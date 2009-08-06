@@ -1,4 +1,24 @@
-Что нового в версии KOLnMCK от 22.09.08 по сравнению с KOLnMCK 2.87
+-------------------------------------------------------------------
+5.08.09
+-------------------------------------------------------------------
+
+Первая ревизия основана на 2.88+ =)
+
+отличия от 2.88:
++ procedure TControl.TBClear;  {* |<#toolbar>     Deletes all buttons. Dufa }
++ property TControl.TBButtonLParam[const Idx: Integer]: DWORD read TBGetButtonLParam write TBSetButtonLParam;
+    {* |<#toolbar>  Allows to access/change LParam. Dufa }
++ добавлен MCKfakeClasses200x.inc для исправления глюка с ложными МСК варнингами(в версиях 2006-2009) // Dufa
+* DefFont = Tahoma
+* procedure TDirList.ScanDirectory исправлена утечка памяти // Dufa
+* function TControl.WndProcTransparent исправлено "странное" поведение приложения, при кол-во форм >= 2   // Galkov
+* procedure TControl.SetCurIndex устранен AV // Galkov
+* visual_xp_styles.inc:  function IsManifestFilePresent : boolean; исправлена ошибка при работе с библиотеками //Dufa
+
+*** возможно что-то забыл.... %)
+
+-------------------------------------------------------------------
+23.09.08
 -------------------------------------------------------------------
 
 Изменено
