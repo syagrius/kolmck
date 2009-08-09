@@ -411,6 +411,10 @@ unit KOL; {-}
   AUTO_REPLACE_CLEARTYPE- to replace automatically CLEARTYPE_QUALITY fonts
                           with ANTIALIASED_QUALITY when running under elder
                           Windows version than XP.
+  FORCE_ALTERNATEFILENAME- TDirList.ScanDirectoryFORCE_ALTERNATEFILENAME - forced
+                          using an alternate file path and filename for unicode
+                          paths (принудительное использование альтернативного имени
+                          пути и имени файла для юникод путей)
 
   NEW_GRADIENT - to use new gradient painting by homm (fast).
   OLD_ALIGN    - to prevent using new Align by Galkov.
@@ -5112,7 +5116,7 @@ type
     fNotAvailable: Boolean;
     FPressedMnemonic: DWORD;
     FBitBtnDrawMnemonic: Boolean;
-    FBitBtnGetCaption: function( Self_: PControl; const S: AnsiString ): AnsiString;
+    FBitBtnGetCaption: function( Self_: PControl; const S: KOLString ): KOLString;
     FBitBtnExtDraw: procedure( Self_: PControl; DC: HDC; X, Y: Integer; const R: TRect;
                     const CapText, CapTxtOrig: KOLString; Color: TColor );
     FTextShiftX, FTextShiftY: Integer;
@@ -9721,7 +9725,7 @@ function NewMDIClient( AParent: PControl; WindowMenu: THandle ): PControl;
    |<br>Note:
    MDI client must be a single on the form. }
 
-function NewMDIChild( AParent: PControl; const ACaption: AnsiString ): PControl;
+function NewMDIChild( AParent: PControl; const ACaption: KOLString ): PControl;
 {* |<#control>
    Creates MDI client window. AParent should be a MDI client window,
    created with NewMDIClient function. }
@@ -12572,7 +12576,7 @@ function WindowsLogoff( Force : Boolean ) : Boolean;
 
 type
   TWindowsVersion = ( wv31, wv95, wv98, wvME, wvNT, wvY2K, wvXP, wvServer2003,
-                  wvVista );
+                  wvVista, wvSeven );
   {* Windows versions constants. }
   TWindowsVersions = Set of TWindowsVersion;
   {* Set of Windows version (e.g. to define a range of versions supported by the
@@ -17102,7 +17106,7 @@ begin
   if fData.Font.Name = Value then Exit;
   FillChar( fData.Font.Name[ 0 ], LF_FACESIZE, #0 );
   {$IFDEF UNICODE_CTRLS} WStrLCopy {$ELSE} StrLCopy {$ENDIF}
-  ( PKOLChar(@fData.Font.Name[0]), PKOLChar( Value ), Length(Value) {LF_FACESIZE} ); //TODO: fixme
+  ( PKOLChar(@fData.Font.Name[0]), PKOLChar( Value ), Length(Value) * SizeOf(KOLChar) {LF_FACESIZE} ); //TODO: fixme
   Changed;
 end;
 
@@ -21580,10 +21584,10 @@ begin
   {$IFDEF FILE_EXISTS_EX}
   Result := FALSE;
   if not Find_First( Filename, FD ) then Exit;
-  Find_Close( FD );
   if FD.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY <> 0 then Exit;
   FileTimeToLocalFileTime( FD.ftLastWriteTime, LFT );
   if FileTimeToDosDateTime( LFT, Hi, Lo ) then Result := TRUE;
+  Find_Close( FD );
   {$ELSE}
   Code := GetFileAttributes(PKOLChar(FileName));
   Result := (Code <> -1) and (FILE_ATTRIBUTE_DIRECTORY and Code = 0);
@@ -21607,10 +21611,10 @@ begin
   {$IFDEF notimplemented_FILE_EXISTS_EX}
   Result := FALSE;
   if not WFind_First( Filename, FD ) then Exit;
-  WFind_Close( FD );
   if FD.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY <> 0 then Exit;
   FileTimeToLocalFileTime( FD.ftLastWriteTime, LFT );
   if FileTimeToDosDateTime( LFT, Hi, Lo ) then Result := TRUE;
+  WFind_Close( FD );
   {$ELSE}
   Code := GetFileAttributesW(PWideChar(FileName));
   Result := (Code <> -1) and (FILE_ATTRIBUTE_DIRECTORY and Code = 0);
@@ -23388,7 +23392,7 @@ procedure TDirList.ScanDirectory(const DirPath, Filter: KOLString;
 var FindData : TFindFileData;
     E : PFindFileData;
     Action: TDirItemAction;
-    {$IFDEF UNICODE_CTRLS}
+    {$IFDEF FORCE_ALTERNATEFILENAME}
     IsUnicode: AnsiString;
     {$ENDIF}
 begin
@@ -23397,7 +23401,7 @@ begin
   if (FPath = '') then Exit;
   FPath := IncludeTrailingPathDelimiter( FPath );
   if not Assigned(fFilters) then begin
-    fFilters := {$IFDEF UNICODE_CTRLS} NewWStrList {$ELSE} NewStrList {$ENDIF};
+    fFilters := {$IFDEF FORCE_ALTERNATEFILENAME} NewWStrList {$ELSE} NewStrList {$ENDIF};
     if Filter = '*.*' then
       fFilters.Add( '*' )
     else
@@ -23407,7 +23411,7 @@ begin
     FList := NewList;
     while True do
     begin
-      {$IFDEF UNICODE_CTRLS} //+MtsVN in 2.58 / 14Apr2007
+      {$IFDEF FORCE_ALTERNATEFILENAME} //+MtsVN
       IsUnicode := FindData.cFileName;
       if (IsUnicode <> '.') and (IsUnicode <> '..') then
       begin
@@ -29021,7 +29025,7 @@ end;
 //[END WndProc_DrawItem]
 
 //[function ExcludeAmpersands]
-function ExcludeAmpersands( Self_: PControl; const S: AnsiString ): AnsiString;
+function ExcludeAmpersands( Self_: PControl; const S: KOLString ): KOLString;
 var I: Integer;
 begin
   Result := S;
@@ -31465,7 +31469,7 @@ begin
 end;
 
 //[function NewMDIChild]
-function NewMDIChild( AParent: PControl; const ACaption: AnsiString ): PControl;
+function NewMDIChild( AParent: PControl; const ACaption: KOLString ): PControl;
 var MDIClient: PControl;
 begin
   Assert( (AParent <> nil) and (AParent.ParentForm <> nil) and
@@ -32734,7 +32738,7 @@ begin
     if Assigned( Self_.fOnResize ) then
       Self_.fOnResize( Self_ );
     {$IFNDEF TOOLBAR_FORCE_CHILDALIGN}
-    if WinVer >= wvNT then
+    //if WinVer >= wvNT then
       Result := TRUE; // this prevents Align working for child controls of Toolbar !
                       // but removing this line makes impossible correct Align for
                       // neighbour controls on form!!! 
@@ -33757,6 +33761,9 @@ var TempClass: TWndClass;
     {$IFDEF _FPC}
     SClassName: AnsiString;
     {$ENDIF ASM_VERSION}
+    {$IFDEF UNICODE_CTRLS}
+    TempOleStr : PWideChar;
+    {$ENDIF}
 begin
   {$IFDEF INPACKAGE}
   Log( '->TControl.CreateWindow' );
@@ -33808,7 +33815,9 @@ begin
    {$IFNDEF UNICODE_CTRLS}
    StrCopy( Params.WinClsNamBuf, @ SubClassName[ 1 ] );
    {$ELSE}
-   lstrcpyW(Params.WinClsNamBuf,StringToOleStr(SubClassName));
+   TempOleStr := StringToOleStr(AnsiString(SubClassName));
+   lstrcpyW(Params.WinClsNamBuf, TempOleStr);
+   SysFreeString( TempOleStr );
    {$ENDIF}
    {$ENDIF}
    Params.Param := nil;
@@ -54035,7 +54044,7 @@ end;
 var SaveWinVer: Byte = $FF;
 
 //[function WinVer]
-{$IFDEF ASM_VERSION}
+{$IFDEF nonononoASM_VERSION}
 {$ELSE ASM_VERSION}
 function WinVer : TWindowsVersion;
 var MajorVersion, MinorVersion: Byte;
@@ -54050,9 +54059,12 @@ begin
     if dwVersion >= 0 then
     begin
       Result := wvNT;
-      if MajorVersion >= 6 then
-        Result := wvVista
-      else begin
+      if (MajorVersion >= 6) then begin
+        if (MinorVersion >= 1) then
+          Result := wvSeven
+        else
+          Result := wvVista;
+      end else begin
              if MajorVersion >= 5 then
                 if MinorVersion >= 1 then
                 begin

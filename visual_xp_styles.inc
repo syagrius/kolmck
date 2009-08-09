@@ -1,8 +1,8 @@
 // Name:   KOL Addon - Visual XP Styles
-// Rev.:   1.96
-// Date:   27 aug 2007 /08:51/
+// Rev.:   1.97
+// Date:   09 aug 2009
 // Author: MTsv DN
-// Thanks: mdw, Vladimir Kladov
+// Thanks: mdw, Vladimir Kladov, D[u]fa
 
 {$IFDEF _FPC}
 const
@@ -786,6 +786,7 @@ function WndXPMessage( Sender: PControl; var Msg: TMsg; var Rslt: Integer ): Boo
 var
  pt : TPoint;
  Mouse: TMouseEventData;
+ dDC : HDC;
 begin
  Result := false;
 
@@ -833,7 +834,9 @@ begin
      Sender.fOnMouseDown(Sender, Mouse);
     end;
    Sender.fPressed := true;
-   Sender.OnPaint(Sender, GetWindowDC(Msg.hWnd));
+   dDC := GetWindowDC(Msg.hWnd);
+   Sender.OnPaint(Sender, dDC);
+   ReleaseDC( Msg.hWnd, dDC );
   end;
 
  WM_LBUTTONUP:
@@ -856,7 +859,9 @@ begin
      Sender.fOnMouseUp(Sender, Mouse);
     end;
    Sender.fPressed := false;
-   Sender.OnPaint(Sender, GetWindowDC(Msg.hWnd));
+   dDC := GetWindowDC(Msg.hWnd);
+   Sender.OnPaint(Sender, dDC);
+   ReleaseDC( Msg.hWnd, dDC );
   end;
 
  WM_KEYDOWN:
@@ -866,7 +871,9 @@ begin
      if Assigned(Sender.fOnKeyDown) then
       Sender.fOnKeyDown(Sender, Msg.wParam, GetShiftState);
      Sender.fPressed := true;
-     Sender.OnPaint(Sender, GetWindowDC(Msg.hWnd));
+     dDC := GetWindowDC(Msg.hWnd);
+     Sender.OnPaint(Sender, dDC);
+     ReleaseDC( Msg.hWnd, dDC );
     end;
   end;
 
@@ -877,20 +884,26 @@ begin
      if Assigned(Sender.fOnKeyUp) then
       Sender.fOnKeyUp(Sender, Msg.wParam, GetShiftState);
      Sender.fPressed := false;
-     Sender.OnPaint(Sender, GetWindowDC(Msg.hWnd));
+     dDC := GetWindowDC(Msg.hWnd);
+     Sender.OnPaint(Sender, dDC);
+     ReleaseDC( Msg.hWnd, dDC );
     end;
   end;
 
   WM_KILLFOCUS:
    begin
     Sender.fHot := false;
-    Sender.OnPaint(Sender, GetWindowDC(Msg.hWnd));
+    dDC := GetWindowDC(Msg.hWnd);
+    Sender.OnPaint(Sender, dDC);
+    ReleaseDC( Msg.hWnd, dDC );
    end;
 
   WM_SETFOCUS:
    begin
     Sender.fHot := true;
-    Sender.OnPaint(Sender, GetWindowDC(Msg.hWnd));
+    dDC := GetWindowDC(Msg.hWnd);
+    Sender.OnPaint(Sender, dDC);
+    ReleaseDC( Msg.hWnd, dDC );
     Result := true;
    end;
   end;

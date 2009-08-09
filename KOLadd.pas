@@ -204,117 +204,117 @@ type
     fUsedSiz: DWORD;
   protected
     procedure ProvideSpace( AddSize: DWORD );
-    function Get(Idx: integer): string;
-    function GetTextStr: string;
-    procedure Put(Idx: integer; const Value: string);
-    procedure SetTextStr(const Value: string);
+    function Get(Idx: integer): AnsiString;
+    function GetTextStr: AnsiString;
+    procedure Put(Idx: integer; const Value: AnsiString);
+    procedure SetTextStr(const Value: AnsiString);
     function GetPChars( Idx: Integer ): PAnsiChar;
   {++}(*public*){--}
     destructor Destroy; {-}virtual;{+}{++}(*override;*){--}
   public
-    function AddAnsi( const S: String ): Integer;
-    {* Adds Ansi String to a list. }
-    function AddAnsiObject( const S: String; Obj: DWORD ): Integer;
-    {* Adds Ansi String and correspondent object to a list. }
+    function AddAnsi( const S: AnsiString ): Integer;
+    {* Adds Ansi AnsiString to a list. }
+    function AddAnsiObject( const S: AnsiString; Obj: DWORD ): Integer;
+    {* Adds Ansi AnsiString and correspondent object to a list. }
     function Add(S: PAnsiChar): integer;
-    {* Adds a string to list. }
+    {* Adds a AnsiString to list. }
     function AddLen(S: PAnsiChar; Len: Integer): integer;
-    {* Adds a string to list. The string can contain #0 characters. }
+    {* Adds a AnsiString to list. The AnsiString can contain #0 characters. }
   public
     FastClear: Boolean;
     {* }
     procedure Clear;
-    {* Makes string list empty. }
+    {* Makes AnsiString list empty. }
     procedure Delete(Idx: integer);
-    {* Deletes string with given index (it *must* exist). }
-    function IndexOf(const S: string): integer;
-    {* Returns index of first string, equal to given one. }
-    function IndexOf_NoCase(const S: string): integer;
-    {* Returns index of first string, equal to given one (while comparing it
+    {* Deletes AnsiString with given index (it *must* exist). }
+    function IndexOf(const S: AnsiString): integer;
+    {* Returns index of first AnsiString, equal to given one. }
+    function IndexOf_NoCase(const S: AnsiString): integer;
+    {* Returns index of first AnsiString, equal to given one (while comparing it
        without case sensitivity). }
     function IndexOfStrL_NoCase( Str: PAnsiChar; L: Integer ): integer;
-    {* Returns index of first string, equal to given one (while comparing it
+    {* Returns index of first AnsiString, equal to given one (while comparing it
        without case sensitivity). }
-    function Find(const S: String; var Index: Integer): Boolean;
-    {* Returns Index of the first string, equal or greater to given pattern, but
-       works only for sorted TFastStrListEx object. Returns TRUE if exact string found,
-       otherwise nearest (greater then a pattern) string index is returned,
+    function Find(const S: AnsiString; var Index: Integer): Boolean;
+    {* Returns Index of the first AnsiString, equal or greater to given pattern, but
+       works only for sorted TFastStrListEx object. Returns TRUE if exact AnsiString found,
+       otherwise nearest (greater then a pattern) AnsiString index is returned,
        and the result is FALSE. }
-    procedure InsertAnsi(Idx: integer; const S: String);
-    {* Inserts ANSI string before one with given index. }
-    procedure InsertAnsiObject(Idx: integer; const S: String; Obj: DWORD);
-    {* Inserts ANSI string before one with given index. }
+    procedure InsertAnsi(Idx: integer; const S: AnsiString);
+    {* Inserts ANSI AnsiString before one with given index. }
+    procedure InsertAnsiObject(Idx: integer; const S: AnsiString; Obj: DWORD);
+    {* Inserts ANSI AnsiString before one with given index. }
     procedure Insert(Idx: integer; S: PAnsiChar);
-    {* Inserts string before one with given index. }
+    {* Inserts AnsiString before one with given index. }
     procedure InsertLen( Idx: Integer; S: PAnsiChar; Len: Integer );
-    {* Inserts string from given PChar. It can contain #0 characters. }
-    function LoadFromFile(const FileName: string): Boolean;
-    {* Loads string list from a file. (If file does not exist, nothing
+    {* Inserts AnsiString from given PChar. It can contain #0 characters. }
+    function LoadFromFile(const FileName: AnsiString): Boolean;
+    {* Loads AnsiString list from a file. (If file does not exist, nothing
        happens). Very fast even for huge text files. }
     procedure LoadFromStream(Stream: PStream; Append2List: boolean);
-    {* Loads string list from a stream (from current position to the end of
+    {* Loads AnsiString list from a stream (from current position to the end of
        a stream). Very fast even for huge text. }
-    procedure MergeFromFile(const FileName: string);
-    {* Merges string list with strings in a file. Fast. }
+    procedure MergeFromFile(const FileName: AnsiString);
+    {* Merges AnsiString list with strings in a file. Fast. }
     procedure Move(CurIndex, NewIndex: integer);
-    {* Moves string to another location. }
-    procedure SetText(const S: string; Append2List: boolean);
-    {* Allows to set strings of string list from given string (in which
+    {* Moves AnsiString to another location. }
+    procedure SetText(const S: AnsiString; Append2List: boolean);
+    {* Allows to set strings of AnsiString list from given AnsiString (in which
        strings are separated by $0D,$0A or $0D characters). Text can
        contain #0 characters. Works very fast. This method is used in
        all others, working with text arrays (LoadFromFile, MergeFromFile,
        Assign, AddStrings). }
-    function SaveToFile(const FileName: string): Boolean;
-    {* Stores string list to a file. }
+    function SaveToFile(const FileName: AnsiString): Boolean;
+    {* Stores AnsiString list to a file. }
     procedure SaveToStream(Stream: PStream);
-    {* Saves string list to a stream (from current position). }
-    function AppendToFile(const FileName: string): Boolean;
-    {* Appends strings of string list to the end of a file. }
+    {* Saves AnsiString list to a stream (from current position). }
+    function AppendToFile(const FileName: AnsiString): Boolean;
+    {* Appends strings of AnsiString list to the end of a file. }
     property Count: integer read fCount;
-    {* Number of strings in a string list. }
-    property Items[Idx: integer]: string read Get write Put; default;
-    {* Strings array items. If item does not exist, empty string is returned.
-       But for assign to property, string with given index *must* exist. }
+    {* Number of strings in a AnsiString list. }
+    property Items[Idx: integer]: AnsiString read Get write Put; default;
+    {* Strings array items. If item does not exist, empty AnsiString is returned.
+       But for assign to property, AnsiString with given index *must* exist. }
     property ItemPtrs[ Idx: Integer ]: PAnsiChar read GetPChars;
     {* Fast access to item strings as PChars. }
     property ItemLen[ Idx: Integer ]: Integer read GetItemLen;
-    {* Length of string item. }
-    function Last: String;
-    {* Last item (or '', if string list is empty). }
-    property Text: string read GetTextStr write SetTextStr;
-    {* Content of string list as a single string (where strings are separated
+    {* Length of AnsiString item. }
+    function Last: AnsiString;
+    {* Last item (or '', if AnsiString list is empty). }
+    property Text: AnsiString read GetTextStr write SetTextStr;
+    {* Content of AnsiString list as a single AnsiString (where strings are separated
        by characters $0D,$0A). }
     procedure Swap( Idx1, Idx2 : Integer );
     {* Swaps to strings with given indeces. }
     procedure Sort( CaseSensitive: Boolean );
-    {* Call it to sort string list. }
+    {* Call it to sort AnsiString list. }
   public
     function AddObject( S: PAnsiChar; Obj: DWORD ): Integer;
-    {* Adds string S (null-terminated) with associated object Obj. }
+    {* Adds AnsiString S (null-terminated) with associated object Obj. }
     function AddObjectLen( S: PAnsiChar; Len: Integer; Obj: DWORD ): Integer;
-    {* Adds string S of length Len with associated object Obj. }
+    {* Adds AnsiString S of length Len with associated object Obj. }
     procedure InsertObject( Idx: Integer; S: PAnsiChar; Obj: DWORD );
-    {* Inserts string S (null-terminated) at position Idx in the list,
+    {* Inserts AnsiString S (null-terminated) at position Idx in the list,
        associating it with object Obj. }
     procedure InsertObjectLen( Idx: Integer; S: PAnsiChar; Len: Integer; Obj: DWORD );
-    {* Inserts string S of length Len at position Idx in the list,
+    {* Inserts AnsiString S of length Len at position Idx in the list,
        associating it with object Obj. }
     property Objects[ Idx: Integer ]: DWORD read GetObject write SetObject;
     {* Access to objects associated with strings in the list. }
   public
     procedure Append( S: PAnsiChar );
-    {* Appends S (null-terminated) to the last string in FastStrListEx object, very fast. }
+    {* Appends S (null-terminated) to the last AnsiString in FastStrListEx object, very fast. }
     procedure AppendLen( S: PAnsiChar; Len: Integer );
-    {* Appends S of length Len to the last string in FastStrListEx object, very fast. }
+    {* Appends S of length Len to the last AnsiString in FastStrListEx object, very fast. }
     procedure AppendInt2Hex( N: DWORD; MinDigits: Integer );
-    {* Converts N to hexadecimal and appends resulting string to the last
-       string, very fast. }
+    {* Converts N to hexadecimal and appends resulting AnsiString to the last
+       AnsiString, very fast. }
   public
     property Values[ Name: PAnsiChar ]: PAnsiChar read GetValues;
-    {* Returns a value correspondent to the Name an ini-file-like string list
-       (having Name1=Value1 Name2=Value2 etc. in each string). }
+    {* Returns a value correspondent to the Name an ini-file-like AnsiString list
+       (having Name1=Value1 Name2=Value2 etc. in each AnsiString). }
     function IndexOfName( AName: PAnsiChar ): Integer;
-    {* Searches string starting from 'AName=' in string list like ini-file. }
+    {* Searches AnsiString starting from 'AName=' in AnsiString list like ini-file. }
   end;
 
 function NewFastStrListEx: PFastStrListEx;
@@ -380,7 +380,7 @@ type
        - by a decision of the system).
        |<br>
        If a sequence of CAB files is used, and not all names for CAB files
-       are provided (absent or represented by a string '?' ), an event
+       are provided (absent or represented by a AnsiString '?' ), an event
        OnNextCAB is called to obtain the name of the next CAB file.}
     property CurCAB: Integer read FCurCAB;
     {* Index of current CAB file in a sequence of CAB files. When OnNextCAB
@@ -388,7 +388,7 @@ type
        index of path, what should be provided. }
     property OnNextCAB: TOnNextCAB read FOnNextCAB write FOnNextCAB;
     {* This event is called, when a series of CAB files is needed and not
-       all CAB file names are provided (absent or represented by '?' string).
+       all CAB file names are provided (absent or represented by '?' AnsiString).
        If this event is not assigned, the user is prompted to browse file. }
     property OnFile: TOnCABFile read FOnFile write FOnFile;
     {* This event is called for every file found during Execute method.
@@ -403,10 +403,10 @@ type
 //[END OF TCABFile DEFINITION]
 
 //[OpenCABFile DECLARATION]
-function OpenCABFile( const APaths: array of String ): PCABFile;
+function OpenCABFile( const APaths: array of AnsiString ): PCABFile;
 {* This function creates TCABFile object, passing a sequence of CAB file names
    (fully qualified). It is possible not to provide all names here, or pass '?'
-   string in place of some of those. For such files, either an event OnNextCAB
+   AnsiString in place of some of those. For such files, either an event OnNextCAB
    will be called, or (and) user will be prompted to browse file during
    executing (i.e. Extracting). }
 
@@ -496,7 +496,7 @@ type
     {* Returns handle of enchanced metafile. }
     function LoadFromStream( Strm: PStream ): Boolean;
     {* Loads emf or wmf file format from stream. }
-    function LoadFromFile( const Filename: String ): Boolean;
+    function LoadFromFile( const Filename: AnsiString ): Boolean;
     {* Loads emf or wmf from stream. }
     procedure Draw( DC: HDC; X, Y: Integer );
     {* Draws enchanced metafile on DC. }
@@ -684,7 +684,7 @@ type
     {$IFDEF TREE_WIDE}
     fNodeName: WideString;
     {$ELSE}
-    fNodeName: String;
+    fNodeName: AnsiString;
     {$ENDIF}
     {$ENDIF}
     fData: Pointer;
@@ -697,7 +697,7 @@ type
     function GetIndexAmongSiblings: Integer;
   protected
     {$IFDEF USE_CONSTRUCTORS}
-    constructor CreateTree( AParent: PTree; const AName: String );
+    constructor CreateTree( AParent: PTree; const AName: AnsiString );
     {* }
     {$ENDIF}
   {++}(*public*){--}
@@ -713,7 +713,7 @@ type
     {$IFDEF TREE_WIDE}
     property Name: WideString read fNodeName write fNodeName;
     {$ELSE}
-    property Name: String read fNodeName write fNodeName;
+    property Name: AnsiString read fNodeName write fNodeName;
     {$ENDIF}
     {$ENDIF}
     {* Optional node name. }
@@ -785,7 +785,7 @@ function NewTree( AParent: PTree; const AName: WideString ): PTree;
    Constructs tree node, adding it to the end of children list of
    the AParent. If AParent is nil, new root tree node is created. }
 {$ELSE}
-function NewTree( AParent: PTree; const AName: String ): PTree;
+function NewTree( AParent: PTree; const AName: AnsiString ): PTree;
 {* Constructs tree node, adding it to the end of children list of
    the AParent. If AParent is nil, new root tree node is created. }
 {$ENDIF}
@@ -795,7 +795,7 @@ function NewTree( AParent: PTree; const AName: String ): PTree;
   ADDITIONAL UTILITIES
 }
 
-function MapFileRead( const Filename: String; var hFile, hMap: THandle ): Pointer;
+function MapFileRead( const Filename: AnsiString; var hFile, hMap: THandle ): Pointer;
 {* Opens file for read only (with share deny none attribute) and maps its
    entire content using memory mapped files technique. The address of the
    first byte of file mapped into the application address space is returned.
@@ -804,7 +804,7 @@ function MapFileRead( const Filename: String; var hFile, hMap: THandle ): Pointe
    exceeding this value only 1/4 Gigabytes starting from the beginning of the
    file is mapped therefore. }
 
-function MapFile( const Filename: String; var hFile, hMap: THandle ): Pointer;
+function MapFile( const Filename: AnsiString; var hFile, hMap: THandle ): Pointer;
 {* Opens file for read/write (in exlusive mode) and maps its
    entire content using memory mapped files technique. The address of the
    first byte of file mapped into the application address space is returned.
@@ -820,13 +820,13 @@ type
   TKOLActionList = PActionList;
 {$ENDIF}
 
-function ShowQuestion( const S: String; Answers: String ): Integer;
+function ShowQuestion( const S: KOLString; Answers: KOLString ): Integer;
 {* Modal dialog like ShowMsgModal. It is based on KOL form, so it can
    be called also out of message loop, e.g. after finishing the
    application. Also, this function *must* be used in MDI applications
    in place of any dialog functions, based on MessageBox.
    |<br>
-   The second parameter should be empty string or several possible
+   The second parameter should be empty AnsiString or several possible
    answers separated by '/', e.g.: 'Yes/No/Cancel'. Result is
    a number answered, starting from 1. For example, if  'Cancel'
    was pressed, 3 will be returned.
@@ -836,7 +836,7 @@ function ShowQuestion( const S: String; Answers: String ): Integer;
 function ShowQuestionEx( S: KOLString; Answers: KOLString; CallBack: TOnEvent ): Integer;
 {* Like ShowQuestion, but with CallBack function, called just before showing
    the dialog. }
-procedure ShowMsgModal( const S: String );
+procedure ShowMsgModal( const S: KOLString );
 {* This message function can be used out of a message loop (e.g., after
    finishing the application). It is always modal.
       Actually, a form with word-wrap label (decorated as borderless edit
@@ -1380,18 +1380,18 @@ procedure InitUpper;
 var c: AnsiChar;
 begin
   for c := #0 to #255 do
-    Upper[ c ] := AnsiUpperCase( c + #0 )[ 1 ];
+    Upper[ c ] := AnsiUpperCase( AnsiString(c + #0) )[ 1 ];
   Upper_Initialized := TRUE;
 end;
 
 { TFastStrListEx }
 
-function TFastStrListEx.AddAnsi(const S: String): Integer;
+function TFastStrListEx.AddAnsi(const S: AnsiString): Integer;
 begin
   Result := AddObjectLen( PAnsiChar( S ), Length( S ), 0 );
 end;
 
-function TFastStrListEx.AddAnsiObject(const S: String; Obj: DWORD): Integer;
+function TFastStrListEx.AddAnsiObject(const S: AnsiString; Obj: DWORD): Integer;
 begin
   Result := AddObjectLen( PAnsiChar( S ), Length( S ), Obj );
 end;
@@ -1430,12 +1430,12 @@ begin
   Inc( fUsedSiz, Len+9 );
 end;
 
-function TFastStrListEx.AppendToFile(const FileName: string): Boolean;
+function TFastStrListEx.AppendToFile(const FileName: AnsiString): Boolean;
 var F: HFile;
-    Txt: String;
+    Txt: AnsiString;
 begin
   Txt := Text;
-  F := FileCreate( FileName, ofOpenAlways or ofOpenReadWrite or ofShareDenyWrite );
+  F := FileCreate( KOLString(FileName), ofOpenAlways or ofOpenReadWrite or ofShareDenyWrite );
   if F = INVALID_HANDLE_VALUE then Result := FALSE
   else begin
          FileSeek( F, 0, spEnd );
@@ -1480,7 +1480,7 @@ begin
   inherited;
 end;
 
-function TFastStrListEx.Find(const S: String; var Index: Integer): Boolean;
+function TFastStrListEx.Find(const S: AnsiString; var Index: Integer): Boolean;
 var i: Integer;
 begin
   for i := 0 to Count-1 do
@@ -1494,7 +1494,7 @@ begin
   Result := FALSE;
 end;
 
-function TFastStrListEx.Get(Idx: integer): string;
+function TFastStrListEx.Get(Idx: integer): AnsiString;
 begin
   if (Idx >= 0) and (Idx <= Count) then
     SetString( Result, PAnsiChar( DWORD( fTextBuf ) + DWORD( fList.Items[ Idx ] ) + 8 ),
@@ -1532,7 +1532,7 @@ begin
   else Result := nil;
 end;
 
-function TFastStrListEx.GetTextStr: string;
+function TFastStrListEx.GetTextStr: AnsiString;
 var L, i: Integer;
     p: PAnsiChar;
 begin
@@ -1554,12 +1554,12 @@ begin
   end;
 end;
 
-function TFastStrListEx.IndexOf(const S: string): integer;
+function TFastStrListEx.IndexOf(const S: AnsiString): integer;
 begin
   if not Find( S, Result ) then Result := -1;
 end;
 
-function TFastStrListEx.IndexOf_NoCase(const S: string): integer;
+function TFastStrListEx.IndexOf_NoCase(const S: AnsiString): integer;
 begin
   Result := IndexOfStrL_NoCase( PAnsiChar( S ), Length( S ) );
 end;
@@ -1584,12 +1584,12 @@ begin
   FastClear := TRUE;
 end;
 
-procedure TFastStrListEx.InsertAnsi(Idx: integer; const S: String);
+procedure TFastStrListEx.InsertAnsi(Idx: integer; const S: AnsiString);
 begin
   InsertObjectLen( Idx, PAnsiChar( S ), Length( S ), 0 );
 end;
 
-procedure TFastStrListEx.InsertAnsiObject(Idx: integer; const S: String;
+procedure TFastStrListEx.InsertAnsiObject(Idx: integer; const S: AnsiString;
   Obj: DWORD);
 begin
   InsertObjectLen( Idx, PAnsiChar( S ), Length( S ), Obj );
@@ -1629,7 +1629,7 @@ begin
   Inc( fCount );
 end;
 
-function TFastStrListEx.Last: String;
+function TFastStrListEx.Last: AnsiString;
 begin
   if Count > 0 then
     Result := Items[ Count-1 ]
@@ -1637,10 +1637,10 @@ begin
     Result := '';
 end;
 
-function TFastStrListEx.LoadFromFile(const FileName: string): Boolean;
+function TFastStrListEx.LoadFromFile(const FileName: AnsiString): Boolean;
 var Strm: PStream;
 begin
-  Strm := NewReadFileStream( FileName );
+  Strm := NewReadFileStream( KOLString(FileName) );
   TRY
     Result := Strm.Handle <> INVALID_HANDLE_VALUE;
     if Result then
@@ -1654,17 +1654,17 @@ end;
 
 procedure TFastStrListEx.LoadFromStream(Stream: PStream;
   Append2List: boolean);
-var Txt: String;
+var Txt: AnsiString;
 begin
   SetLength( Txt, Stream.Size - Stream.Position );
   Stream.Read( Txt[ 1 ], Stream.Size - Stream.Position );
   SetText( Txt, Append2List );
 end;
 
-procedure TFastStrListEx.MergeFromFile(const FileName: string);
+procedure TFastStrListEx.MergeFromFile(const FileName: AnsiString);
 var Strm: PStream;
 begin
-  Strm := NewReadFileStream( FileName );
+  Strm := NewReadFileStream( KOLString(FileName) );
   TRY
     LoadFromStream( Strm, TRUE );
   FINALLY
@@ -1698,7 +1698,7 @@ begin
     fList.Capacity := Max( 100, fList.Count * 2 );
 end;
 
-procedure TFastStrListEx.Put(Idx: integer; const Value: string);
+procedure TFastStrListEx.Put(Idx: integer; const Value: AnsiString);
 var Dest: PAnsiChar;
     OldLen: Integer;
     OldObj: DWORD;
@@ -1745,10 +1745,10 @@ begin
   end;
 end;
 
-function TFastStrListEx.SaveToFile(const FileName: string): Boolean;
+function TFastStrListEx.SaveToFile(const FileName: AnsiString): Boolean;
 var Strm: PStream;
 begin
-  Strm := NewWriteFileStream( FileName );
+  Strm := NewWriteFileStream( KOLString(FileName) );
   TRY
     if Strm.Handle <> INVALID_HANDLE_VALUE then
     SaveToStream( Strm );
@@ -1759,7 +1759,7 @@ begin
 end;
 
 procedure TFastStrListEx.SaveToStream(Stream: PStream);
-var Txt: String;
+var Txt: AnsiString;
 begin
   Txt := Text;
   Stream.Write( PAnsiChar( Txt )^, Length( Txt ) );
@@ -1775,7 +1775,7 @@ begin
   Dest^ := Value;
 end;
 
-procedure TFastStrListEx.SetText(const S: string; Append2List: boolean);
+procedure TFastStrListEx.SetText(const S: AnsiString; Append2List: boolean);
 var Len2Add, NLines, L: Integer;
     p0, p: PAnsiChar;
 begin
@@ -1832,7 +1832,7 @@ begin
     AddObjectLen( p0, DWORD(p)-DWORD(p0), 0 );
 end;
 
-procedure TFastStrListEx.SetTextStr(const Value: string);
+procedure TFastStrListEx.SetTextStr(const Value: AnsiString);
 begin
   SetText( Value, FALSE );
 end;
@@ -1992,7 +1992,7 @@ end;
 { TCABFile }
 
 //[function OpenCABFile]
-function OpenCABFile( const APaths: array of String ): PCABFile;
+function OpenCABFile( const APaths: array of AnsiString ): PCABFile;
 var I: Integer;
 begin
   {-}
@@ -2002,7 +2002,7 @@ begin
   Result.FNames := {$IFDEF UNICODE_CTRLS} NewWStrList {$ELSE} NewStrList {$ENDIF};
   Result.FPaths := {$IFDEF UNICODE_CTRLS} NewWStrList {$ELSE} NewStrList {$ENDIF};
   for I := 0 to High( APaths ) do
-    Result.FPaths.Add( APaths[ I ] );
+    Result.FPaths.Add( KOLString(APaths[ I ]) );
 end;
 
 //[destructor TCABFile.Destroy]
@@ -2224,7 +2224,7 @@ begin
   New( Result, Create );
 end;
 //[function NewDirChangeNotifier]
-function NewDirChangeNotifier( const Path: String; Filter: TFileChangeFilter;
+function NewDirChangeNotifier( const Path: AnsiString; Filter: TFileChangeFilter;
                                WatchSubtree: Boolean; ChangeProc: TOnDirChange )
                                : PDirChange;
 const Dflt_Flags = FILE_NOTIFY_CHANGE_FILE_NAME or FILE_NOTIFY_CHANGE_DIR_NAME or
@@ -2515,10 +2515,10 @@ begin
 end;
 
 //[function TMetafile.LoadFromFile]
-function TMetafile.LoadFromFile(const Filename: String): Boolean;
+function TMetafile.LoadFromFile(const Filename: AnsiString): Boolean;
 var Strm: PStream;
 begin
-  Strm := NewReadFileStream( FileName );
+  Strm := NewReadFileStream( KOLString(FileName ));
   Result := LoadFromStream( Strm );
   Strm.Free;
 end;
@@ -2662,7 +2662,7 @@ end;
 //[END NewActionList]
 
 //[function NewAction]
-function NewAction(const ACaption, AHint: string; AOnExecute: TOnEvent): PAction;
+function NewAction(const ACaption, AHint: KOLString; AOnExecute: TOnEvent): PAction;
 begin
   {-}
   New( Result, Create );
@@ -2975,7 +2975,7 @@ end;
 
 {$IFDEF USE_CONSTRUCTORS}
 //[function NewTree]
-function NewTree( AParent: PTree; const AName: String ): PTree;
+function NewTree( AParent: PTree; const AName: AnsiString ): PTree;
 begin
   New( Result, CreateTree(  AParent, AName ) );
 end;
@@ -3005,7 +3005,7 @@ begin
   Result.fNodeName := AName;
 end;
 {$ELSE}
-function NewTree( AParent: PTree; const AName: String ): PTree;
+function NewTree( AParent: PTree; const AName: AnsiString ): PTree;
 begin
   {-}
   New( Result, Create );
@@ -3053,7 +3053,7 @@ end;
 
 {$IFDEF USE_CONSTRUCTORS}
 //[constructor TTree.CreateTree]
-constructor TTree.CreateTree(AParent: PTree; const AName: String);
+constructor TTree.CreateTree(AParent: PTree; const AName: AnsiString);
 begin
   inherited Create;
   if AParent <> nil then
@@ -3175,8 +3175,8 @@ begin
   Result := DWORD( PTree( List.Items[ e1 ] ).fData ) -
             DWORD( PTree( List.Items[ e2 ] ).fData );
   {$ELSE}
-  Result := AnsiCompareStr( PTree( List.Items[ e1 ] ).fNodeName,
-                            PTree( List.Items[ e2 ] ).fNodeName );
+  Result := AnsiCompareStr( KOLString(PTree( List.Items[ e1 ] ).fNodeName),
+                            KOLString(PTree( List.Items[ e2 ] ).fNodeName) );
   {$ENDIF}
 end;
 
@@ -3257,11 +3257,11 @@ end;
   ADDITIONAL UTILITIES
 }
 
-function MapFileRead( const Filename: String; var hFile, hMap: THandle ): Pointer;
+function MapFileRead( const Filename: AnsiString; var hFile, hMap: THandle ): Pointer;
 var Sz, Hi: DWORD;
 begin
   Result := nil;
-  hFile := FileCreate( Filename, ofOpenRead or ofOpenExisting or ofShareDenyNone );
+  hFile := FileCreate( KOLString(Filename), ofOpenRead or ofOpenExisting or ofShareDenyNone );
   hMap := 0;
   if hFile = INVALID_HANDLE_VALUE then Exit;
   Sz := GetFileSize( hFile, @ Hi );
@@ -3271,11 +3271,11 @@ begin
   Result := MapViewOfFile( hMap, FILE_MAP_READ, 0, 0, Sz );
 end;
 
-function MapFile( const Filename: String; var hFile, hMap: THandle ): Pointer;
+function MapFile( const Filename: AnsiString; var hFile, hMap: THandle ): Pointer;
 var Sz, Hi: DWORD;
 begin
   Result := nil;
-  hFile := FileCreate( Filename, ofOpenRead or ofOpenWrite or ofOpenExisting
+  hFile := FileCreate( KOLString(Filename), ofOpenRead or ofOpenWrite or ofOpenExisting
         or ofShareExclusive );
   hMap := 0;
   if hFile = INVALID_HANDLE_VALUE then Exit;
@@ -3363,7 +3363,7 @@ var Dialog: PControl;
     AppTermFlag: Boolean;
     Lab: PControl;
     {$IFNDEF USE_GRUSH} Y, {$ELSE} {$IFDEF TOGRUSH_OPTIONAL} Y, {$ENDIF} {$ENDIF} W, X, I: Integer;
-    Title: String;
+    Title: KOLString;
     DlgWnd: HWnd;
     AppCtl: PControl;
     {$IFDEF USE_GRUSH}
@@ -3404,7 +3404,7 @@ begin
     else Title := Parse( S, '!' );
   end;
   {$ENDIF}
-  Dialog := NewForm( Applet, Title ).SetSize( 300, 40 );
+  Dialog := NewForm( Applet, KOLString(Title) ).SetSize( 300, 40 );
   {$IFNDEF NO_CHECK_STAYONTOP}
   if DoStayOnTop then
     Dialog.StayOnTop := TRUE;
@@ -3614,14 +3614,14 @@ end;
 //[END ShowQuestionEx]
 
 //[function ShowQuestion]
-function ShowQuestion( const S: String; Answers: String ): Integer;
+function ShowQuestion( const S: KOLString; Answers: KOLString ): Integer;
 begin
   Result := ShowQuestionEx( S, Answers, nil );
 end;
 //[END ShowQuestion]
 
 //[procedure ShowMsgModal]
-procedure ShowMsgModal( const S: String );
+procedure ShowMsgModal( const S: KOLString );
 begin
   ShowQuestion( S, '' );
 end;

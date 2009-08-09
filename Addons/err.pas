@@ -125,7 +125,7 @@ resourcestring
   SReadAccess = 'Read';
   SWriteAccess = 'Write';
   //SResultTooLong = 'Format result longer than 4096 characters';
-  //SFormatTooLong = 'Format string too long';
+  //SFormatTooLong = 'Format AnsiString too long';
   SExternalException = 'External exception %x';
   SAssertionFailed = 'Assertion failed';
   SIntfCastError = 'Interface not supported';
@@ -152,7 +152,7 @@ type
 
 { Generic filename type }
 
-  TFileName = type string;
+  TFileName = type AnsiString;
 
 { Exceptions }
   Exception = class;
@@ -177,31 +177,31 @@ type
   protected
     FCode: TError;
     FErrorCode: DWORD;
-    FMessage: string;
+    FMessage: AnsiString;
     FExceptionRecord: PExceptionRecord;
     FData: Pointer;
     FOnDestroy: TDestroyException;
     procedure SetData(const Value: Pointer);
   public
-    constructor Create(ACode: TError; const Msg: string);
+    constructor Create(ACode: TError; const Msg: AnsiString);
     {* Use this constructor to raise exception, which does not require of
        argument formatting. }
-    constructor CreateFmt(ACode: TError; const Msg: string; const Args: array of const);
-    {* Use this constructor to raise an exception with formatted Message string.
+    constructor CreateFmt(ACode: TError; const Msg: AnsiString; const Args: array of const);
+    {* Use this constructor to raise an exception with formatted Message AnsiString.
        Take into attention, that Format procedure defined in KOL, uses API wvsprintf
        function, which can understand a restricted set of format specifications. }
-    constructor CreateCustom(AError: DWORD; const Msg: String);
+    constructor CreateCustom(AError: DWORD; const Msg: AnsiString);
     {* Use this constructor to create e_Custom exception and to assign AError to
        its ErrorCode property. }
-    constructor CreateCustomFmt(AError: DWORD; const Msg: String; const Args: array of const);
+    constructor CreateCustomFmt(AError: DWORD; const Msg: AnsiString; const Args: array of const);
     {* Use this constructor to create e_Custom exception with formatted message
-       string and to assign AError to its ErrorCode property. }
+       AnsiString and to assign AError to its ErrorCode property. }
     constructor CreateResFmt(ACode: TError; Ident: Integer; const Args: array of const);
     {* }    
     destructor Destroy; override;
     {* destructor }
-    property Message: string read FMessage; // write FMessage;
-    {* Text string, containing descriptive message about the exception. }
+    property Message: AnsiString read FMessage; // write FMessage;
+    {* Text AnsiString, containing descriptive message about the exception. }
     property Code: TError read FCode;
     {* Main exception code. This property can be used to determine, which exception
        occure. }
@@ -253,7 +253,7 @@ procedure AddExitProc(Proc: TProcedure);
 
 { System error messages }
 
-function SysErrorMessage(ErrorCode: Integer): string;
+function SysErrorMessage(ErrorCode: Integer): AnsiString;
 
 { Exception handling routines }
 
@@ -327,7 +327,7 @@ function SafeLoadLibrary(const Filename: KOLString;
 
 implementation
 
-{procedure ConvertError(const Ident: string);
+{procedure ConvertError(const Ident: AnsiString);
 begin
   raise Exception.Create(e_Convert, Ident);
 end;
@@ -385,7 +385,7 @@ end;
 
 { System error messages }
 
-function SysErrorMessage(ErrorCode: Integer): string;
+function SysErrorMessage(ErrorCode: Integer): AnsiString;
 var
   Len: Integer;
   Buffer: array[0..255] of KOLChar;
@@ -492,7 +492,7 @@ end;
 {$ENDIF}
 
 {$IFDEF _D2}
-function LoadStr(Ident: Integer): string;
+function LoadStr(Ident: Integer): AnsiString;
 var
   Buffer: array[0..1023] of Char;
 begin
@@ -500,7 +500,7 @@ begin
     SizeOf(Buffer)));
 end;
 {$ELSE}
-function LoadStr(Ident: Integer): string;
+function LoadStr(Ident: Integer): AnsiString;
 var
   Buffer: array[0..1023] of KOLChar;
 begin
@@ -508,7 +508,7 @@ begin
 end;
 {$ENDIF}
 
-function FmtLoadStr(Ident: Integer; const Args: array of const): string;
+function FmtLoadStr(Ident: Integer; const Args: array of const): AnsiString;
 begin
   //FmtStr(Result, LoadStr(Ident), Args);
   Result := Format(LoadStr(Ident), Args);
@@ -517,12 +517,12 @@ end;
 function ExceptionErrorMessage(ExceptObject: TObject; ExceptAddr: Pointer;
   Buffer: PKOLChar; Size: Integer): Integer;
 var
-  MsgPtr: PChar;
-  //MsgEnd: PChar;
+  MsgPtr: PAnsiChar;
+  //MsgEnd: PAnsiChar;
   //MsgLen: Integer;
   ModuleName: array[0..MAX_PATH] of KOLChar;
   //Temp: array[0..MAX_PATH] of Char;
-  Fmt: array[0..255] of Char;
+  Fmt: array[0..255] of AnsiChar;
   Info: TMemoryBasicInformation;
   ConvertedAddress: Pointer;
 begin
@@ -543,7 +543,7 @@ begin
   //MsgEnd := '';
   if ExceptObject is Exception then
   begin
-    MsgPtr := PChar(Exception(ExceptObject).Message);
+    MsgPtr := PAnsiChar(Exception(ExceptObject).Message);
     //MsgLen := StrLen(MsgPtr);
     //if (MsgLen <> 0) and (MsgPtr[MsgLen - 1] <> '.') then MsgEnd := '.';
     {-} // Isn't it too beautiful - devote ~40 bytes of code just to decide,
@@ -557,7 +557,7 @@ begin
   {$ENDIF}
   //MsgOK( ModuleName );
   {$IFDEF UNICODE_CTRLS} WStrCopy {$ELSE} StrCopy {$ENDIF}
-    ( Buffer, PKOLChar( Format( Fmt, [ ExceptObject.ClassName,
+    ( Buffer, PKOLChar( Format( KOLString(Fmt), [ ExceptObject.ClassName,
       ModuleName, ConvertedAddress, MsgPtr, '' {MsgEnd}]) ) );
   Result := {$IFDEF UNICODE_CTRLS} WStrLen {$ELSE} StrLen {$ENDIF}(Buffer);
 end;
@@ -620,21 +620,21 @@ begin
   FData := Value;
 end;
 
-constructor Exception.Create(ACode: TError; const Msg: string);
+constructor Exception.Create(ACode: TError; const Msg: AnsiString);
 begin
   FCode := ACode;
   FMessage := Msg;
   //FAllowFree := TRUE;
 end;
 
-constructor Exception.CreateCustom(AError: DWORD; const Msg: String);
+constructor Exception.CreateCustom(AError: DWORD; const Msg: AnsiString);
 begin
   FCode := e_Custom;
   FMessage := Msg;
   FErrorCode := AError;
 end;
 
-constructor Exception.CreateCustomFmt(AError: DWORD; const Msg: String;
+constructor Exception.CreateCustomFmt(AError: DWORD; const Msg: AnsiString;
   const Args: array of const);
 begin
   FCode := e_Custom;
@@ -642,7 +642,7 @@ begin
   FMessage := Format(Msg, Args);
 end;
 
-constructor Exception.CreateFmt(ACode: TError; const Msg: string;
+constructor Exception.CreateFmt(ACode: TError; const Msg: AnsiString;
   const Args: array of const);
 begin
   FCode := ACode;
@@ -663,7 +663,7 @@ function CreateInOutError: Exception;
 type
   TErrorRec = record
     Code: Integer;
-    Ident: string;
+    Ident: AnsiString;
   end;
 const
   ErrorMap: array[0..5] of TErrorRec = (
@@ -694,7 +694,7 @@ end;
 type
   TExceptMapRec = packed record
     ECode: TError;
-    EIdent: String;
+    EIdent: AnsiString;
   end;
 
 const
@@ -765,10 +765,10 @@ end;
 { routine RaiseAssertException sets up the registers just as if the user   }
 { code itself had raised the exception.                                    }
 
-function CreateAssertException(const Message, Filename: string;
+function CreateAssertException(const Message, Filename: AnsiString;
   LineNumber: Integer): Exception;
 var
-  S: string;
+  S: AnsiString;
 begin
   if Message <> '' then S := Message else S := SAssertionFailed;
   Result := Exception.CreateFmt(e_Assertion, SAssertError,
@@ -790,13 +790,13 @@ end;
 { If you change this procedure, make sure it does not have any local variables }
 { or temps that need cleanup - they won't get cleaned up due to the way        }
 { RaiseAssertException frame works. Also, it can not have an exception frame.  }
-procedure AssertErrorHandler(const Message, Filename: string;
+procedure AssertErrorHandler(const Message, Filename: AnsiString;
   LineNumber: Integer; ErrorAddr: Pointer);
 var
   E: Exception;
 begin
    E := CreateAssertException(Message, Filename, LineNumber);
-   RaiseAssertException(E, ErrorAddr, PChar(@ErrorAddr)+4);
+   RaiseAssertException(E, ErrorAddr, PAnsiChar(@ErrorAddr)+4);
 end;
 
 { Abstract method invoke error handler }
@@ -891,7 +891,7 @@ var
 
   function CreateAVObject: Exception;
   var
-    AccessOp: string; // string ID indicating the access type READ or WRITE
+    AccessOp: AnsiString; // AnsiString ID indicating the access type READ or WRITE
     AccessAddress: Pointer;
     MemInfo: TMemoryBasicInformation;
     ModName: array[0..MAX_PATH] of KOLChar;
@@ -933,7 +933,7 @@ end;
 procedure ExceptHandler(ExceptObject: TObject; ExceptAddr: Pointer); far;
 begin
   ShowException(ExceptObject, ExceptAddr);
-  Halt(1);
+   Halt(1);
 end;
 
 {+}

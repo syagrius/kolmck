@@ -17890,7 +17890,7 @@ asm     //cmd    //opd
 //@@exit: XCHG     EAX, ECX
 end;
 
-function WinVer : TWindowsVersion;
+{function WinVer : TWindowsVersion;
 asm
   MOVSX EAX, byte ptr [SaveWinVer]
   INC   AH     // если <> 0 после инкремента, то AL содержит вычисленную версию
@@ -17928,7 +17928,7 @@ asm
 @@save_exit:
   MOV   byte ptr [SaveWinVer], AL
 @@exit:
-end;
+end;}
 
 //======================================== THE END OF FILE KOL_ASM.inc
 
