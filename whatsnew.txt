@@ -1,4 +1,60 @@
 -------------------------------------------------------------------
+9.08.09
+-------------------------------------------------------------------
+изменения:
+
+*1. Строка 5115:
+    FBitBtnGetCaption: function( Self_: PControl; const S: KOLString ): KOLString;
+
+Кэпшен может быть Wide, т.ч. нужен KOLString
+
+*2. Строка 9724:
+function NewMDIChild( AParent: PControl; const ACaption: KOLString ): PControl;
+
+Кэпшен может быть Wide, т.ч. нужен KOLString
+
+*4. Строка 17105:
+  ( PKOLChar(@fData.Font.Name[0]), PKOLChar( Value ), Length(Value) * SizeOf(KOLChar) {LF_FACESIZE} ); //TODO: fixme
+
+При UNICODE_CTRLS необходимо учитывать SizeOf(KOLChar) иначе идет обрезка текста по середине...
+
+*5. лучше:
+  Find_Close( FD );
+переместить с стр.21583 на 3 строки ниже. Поскольку дальше используется FD.dwFileAttributes и FileTimeToLocalFileTime( FD.ftLastWriteTime, LFT ). И если щас (в XP) - это может быть непринципиально, то в последующем может вылезти косяк, т.к. фатически ты FD закрыл, но работать с ним хочешь...
+
+*6.
+procedure TDirList.ScanDirectory(const DirPath, Filter: KOLString;  Attr: DWord);
+добавлена новая директива FORCE_ALTERNATEFILENAME - принудительное использование альтернативного имени пути и имени файла для юникод путей 
+
+*7. Стр. 29024
+function ExcludeAmpersands( Self_: PControl; const S: KOLString ): KOLString;
+AnsiString -> KOLString
+
+*8. Стр. 31468 (Продолжение пункта 2) AnsiString -> KOLString
+
+*9. Стр. 32737
+   /// if WinVer >= wvNT then ЗАКОММЕНТИРОВАТЬ СТРОКУ ОБЯЗАТЕЛЬНО!!! Этот фикс для работы программ на Win9x/ME
+Если она раскоментированна и есть меню. Абздец наступает не только приложению, но и всей системе
+
+*10. Фикс утечки памяти в TControl.CreateWindow:
+
+*11. Стр. 4006
+procedure TDirList.ScanDirectoryEx(const DirPath, Filters: AnsiString;
+Фильтры могут быть KOLString
+
+*12. visual_xp_styles.inc
+ Sender.OnPaint(Sender, GetWindowDC(Msg.hWnd));
+->
+   dDC := GetWindowDC(Msg.hWnd);
+   Sender.OnPaint(Sender, dDC);
+   ReleaseDC( Msg.hWnd, dDC );
+
+*13. множество фиксов KOLadd, err для поддержки уникода и работы в 2007\2009 версии делфи
+
+MTsv DN
+
+*14. WinVer - теперь определяет Windows7. D[u]fa.
+-------------------------------------------------------------------
 5.08.09
 -------------------------------------------------------------------
 
