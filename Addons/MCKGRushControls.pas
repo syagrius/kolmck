@@ -16,12 +16,12 @@ uses    Windows,
         Messages,
         Classes,
         Controls,
-        KOL,
-        KOLGRushControls,
         mirror,
         mckCtrls,
+        KOL,
         Graphics,
         Forms,
+        KOLGRushControls,
         SysUtils,
         mckObjs,
         dialogs,
@@ -132,9 +132,9 @@ type
         fSplitterDotsCount: DWORD;
         fCheckMetric:       DWORD;
         fColorCheck:        TColor;
-        fGlyphVAlign:       KOL.TVerticalAlign;
+        fGlyphVAlign:       TGRushVAlign;
         fGlyphHAlign:       TGRushHAlign;
-        fTextVAlign:        KOL.TVerticalAlign;
+        fTextVAlign:        TGRushVAlign;
         fTextHAlign:        TGRushHAlign;
         fDrawGlyph:         Boolean;
         fDrawText:          Boolean;
@@ -158,9 +158,9 @@ type
         procedure SetSplitterDotsCount ( Value: DWORD );
         procedure SetCheckMetric ( Value: DWORD );
         procedure SetColorCheck ( Value: TColor );
-        procedure SetGlyphVAlign ( Value: KOL.TVerticalAlign );
+        procedure SetGlyphVAlign ( Value: TGRushVAlign );
         procedure SetGlyphHAlign ( Value: TGRushHAlign );
-        procedure SetTextVAlign ( Value: KOL.TVerticalAlign );
+        procedure SetTextVAlign ( Value: TGRushVAlign );
         procedure SetTextHAlign ( Value: TGRushHAlign );
         procedure SetDrawGlyph ( Value: Boolean );
         procedure SetDrawText ( Value: Boolean );
@@ -191,9 +191,9 @@ type
     {-} property GlyphHeight: DWORD read fGlyphHeight write SetGlyphHeight default 0;
         //property CheckMetric: DWORD read fCheckMetric write SetCheckMetric;
         //property ColorCheck: TColor read fColorCheck write SetColorCheck;
-    {-} property GlyphVAlign: KOL.TVerticalAlign read fGlyphVAlign write SetGlyphVAlign default KOL.vaCenter;
+    {-} property GlyphVAlign: TGRushVAlign read fGlyphVAlign write SetGlyphVAlign default vaCenter;
     {-} property GlyphHAlign: TGRushHAlign read fGlyphHAlign write SetGlyphHAlign default haLeft;
-    {-} property TextVAlign: KOL.TVerticalAlign read fTextVAlign write SetTextVAlign default KOL.vaCenter;
+    {-} property TextVAlign: TGRushVAlign read fTextVAlign write SetTextVAlign default vaCenter;
     {-} property TextHAlign: TGRushHAlign read fTextHAlign write SetTextHAlign default haCenter;
     {-} property DrawGlyph: Boolean read fDrawGlyph write SetDrawGlyph default TRUE;
     {-} property DrawText: Boolean read fDrawText write SetDrawText default TRUE;
@@ -223,9 +223,9 @@ type
     {-} property GlyphHeight: DWORD read fGlyphHeight write SetGlyphHeight default 0;
         //property CheckMetric: DWORD read fCheckMetric write SetCheckMetric;
         //property ColorCheck: TColor read fColorCheck write SetColorCheck;
-    {-} property GlyphVAlign: KOL.TVerticalAlign read fGlyphVAlign write SetGlyphVAlign default KOL.vaCenter;
+    {-} property GlyphVAlign: TGRushVAlign read fGlyphVAlign write SetGlyphVAlign default vaCenter;
     {-} property GlyphHAlign: TGRushHAlign read fGlyphHAlign write SetGlyphHAlign default haLeft;
-    {-} property TextVAlign: KOL.TVerticalAlign read fTextVAlign write SetTextVAlign default KOL.vaTop;
+    {-} property TextVAlign: TGRushVAlign read fTextVAlign write SetTextVAlign default vaTop;
     {-} property TextHAlign: TGRushHAlign read fTextHAlign write SetTextHAlign default haCenter;
     {-} property DrawGlyph: Boolean read fDrawGlyph write SetDrawGlyph default TRUE;
     {-} property DrawText: Boolean read fDrawText write SetDrawText default TRUE;
@@ -255,9 +255,9 @@ type
     {-} property GlyphHeight: DWORD read fGlyphHeight write SetGlyphHeight default 0;
         property CheckMetric: DWORD read fCheckMetric write SetCheckMetric default 13;
         property ColorCheck: TColor read fColorCheck write SetColorCheck default integer($F3706C);
-    {-} property GlyphVAlign: KOL.TVerticalAlign read fGlyphVAlign write SetGlyphVAlign default KOL.vaCenter;
+    {-} property GlyphVAlign: TGRushVAlign read fGlyphVAlign write SetGlyphVAlign default vaCenter;
     {-} property GlyphHAlign: TGRushHAlign read fGlyphHAlign write SetGlyphHAlign default haLeft;
-    {-} property TextVAlign: KOL.TVerticalAlign read fTextVAlign write SetTextVAlign default KOL.vaCenter;
+    {-} property TextVAlign: TGRushVAlign read fTextVAlign write SetTextVAlign default vaCenter;
     {-} property TextHAlign: TGRushHAlign read fTextHAlign write SetTextHAlign default haLeft;
     {-} property DrawGlyph: Boolean read fDrawGlyph write SetDrawGlyph default TRUE;
     {-} property DrawText: Boolean read fDrawText write SetDrawText default TRUE;
@@ -287,9 +287,9 @@ type
     {-} property GlyphHeight: DWORD read fGlyphHeight write SetGlyphHeight default 0;
         property CheckMetric: DWORD read fCheckMetric write SetCheckMetric default 13;
         property ColorCheck: TColor read fColorCheck write SetColorCheck default integer($F3706C);
-    {-} property GlyphVAlign: KOL.TVerticalAlign read fGlyphVAlign write SetGlyphVAlign default KOL.vaCenter;
+    {-} property GlyphVAlign: TGRushVAlign read fGlyphVAlign write SetGlyphVAlign default vaCenter;
     {-} property GlyphHAlign: TGRushHAlign read fGlyphHAlign write SetGlyphHAlign default haLeft;
-    {-} property TextVAlign: KOL.TVerticalAlign read fTextVAlign write SetTextVAlign default KOL.vaCenter;
+    {-} property TextVAlign: TGRushVAlign read fTextVAlign write SetTextVAlign default vaCenter;
     {-} property TextHAlign: TGRushHAlign read fTextHAlign write SetTextHAlign default haLeft;
     {-} property DrawGlyph: Boolean read fDrawGlyph write SetDrawGlyph default TRUE;
     {-} property DrawText: Boolean read fDrawText write SetDrawText default TRUE;
@@ -319,9 +319,9 @@ type
     {-} property GlyphHeight: DWORD read fGlyphHeight write SetGlyphHeight default 0;
         //property CheckMetric: DWORD read fCheckMetric write SetCheckMetric;
         //property ColorCheck: TColor read fColorCheck write SetColorCheck;
-    {-} property GlyphVAlign: KOL.TVerticalAlign read fGlyphVAlign write SetGlyphVAlign default KOL.vaCenter;
+    {-} property GlyphVAlign: TGRushVAlign read fGlyphVAlign write SetGlyphVAlign default vaCenter;
     {-} property GlyphHAlign: TGRushHAlign read fGlyphHAlign write SetGlyphHAlign default haLeft;
-    {-} property TextVAlign: KOL.TVerticalAlign read fTextVAlign write SetTextVAlign default KOL.vaCenter;
+    {-} property TextVAlign: TGRushVAlign read fTextVAlign write SetTextVAlign default vaCenter;
     {-} property TextHAlign: TGRushHAlign read fTextHAlign write SetTextHAlign default haCenter;
     {-} property DrawGlyph: Boolean read fDrawGlyph write SetDrawGlyph default TRUE;
     {-} property DrawText: Boolean read fDrawText write SetDrawText default TRUE;
@@ -352,9 +352,9 @@ type
     {-} property GlyphHeight: DWORD read fGlyphHeight write SetGlyphHeight default 0;
         //property CheckMetric: DWORD read fCheckMetric write SetCheckMetric;
         //property ColorCheck: TColor read fColorCheck write SetColorCheck;
-    {-} property GlyphVAlign: KOL.TVerticalAlign read fGlyphVAlign write SetGlyphVAlign default KOL.vaCenter;
+    {-} property GlyphVAlign: TGRushVAlign read fGlyphVAlign write SetGlyphVAlign default vaCenter;
     {-} property GlyphHAlign: TGRushHAlign read fGlyphHAlign write SetGlyphHAlign default haLeft;
-    {-} property TextVAlign: KOL.TVerticalAlign read fTextVAlign write SetTextVAlign default KOL.vaCenter;
+    {-} property TextVAlign: TGRushVAlign read fTextVAlign write SetTextVAlign default vaCenter;
     {-} property TextHAlign: TGRushHAlign read fTextHAlign write SetTextHAlign default haCenter;
     {-} property DrawGlyph: Boolean read fDrawGlyph write SetDrawGlyph default TRUE;
     {-} property DrawText: Boolean read fDrawText write SetDrawText default TRUE;
@@ -996,7 +996,7 @@ end;
 constructor TKOLGRushPanelStyles.Create;
 begin
     inherited;
-    fTextVAlign := KOL.vaTop;
+    fTextVAlign := vaTop;
     fPSDef.fBorderRoundWidth := 6;
     fPSDef.fBorderRoundHeight := 6;
     fPSDis.fBorderRoundWidth := 6;
@@ -1122,7 +1122,7 @@ end;
 procedure SetUpCommon (aOwner: TComponent; Styles: TKOLGrushStyles;
     SL: TStringList; const AName, Prefix: String; DefStyles: TKOLGrushStyles;
     ImageCollection: TKOLGRushImageCollection);
-const   TVAligns: array [KOL.TVerticalAlign] of String = ('KOL.vaTop', 'KOL.vaCenter', 'vaBottom');
+const   TVAligns: array [TGRushVAlign] of String = ('vaTop', 'vaCenter', 'vaBottom');
         THAligns: array [TGRushHAlign] of String = ('haLeft', 'haCenter', 'haRight');
         Booleans: array [Boolean] of String = ('FALSE', 'TRUE');
 begin

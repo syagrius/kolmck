@@ -28,6 +28,7 @@ package addons2006;
 {$DESCRIPTION 'KOLAddons2006'}
 {$DESIGNONLY}
 {$IMPLICITBUILD ON}
+{$DEFINE INPACKAGE}
 
 requires
   rtl,

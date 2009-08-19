@@ -170,6 +170,7 @@ type
                   , ctRadioBox { $23}, ctSplitter { $24}, ctProgressBar { $25});
     TGRushSpeed = (usImmediately, usVeryFast, usFast, usNormal, usSlow, usVerySlow);
     //                  64(1)          13(5)       10(7)   8(8)      6(11)   4(16)
+    TGRushVAlign = TVerticalAlign;
     TGRushHAlign = (haLeft, haCenter, haRight);
 
     TGRushPaintState = packed record
@@ -218,9 +219,9 @@ type
         fCheckMetric:       DWORD;
         fColorCheck:        TColor;
 //208
-        fGlyphVAlign:       TVerticalAlign;
+        fGlyphVAlign:       TGRushVAlign;
         fGlyphHAlign:       TGRushHAlign;
-        fTextVAlign:        TVerticalAlign;
+        fTextVAlign:        TGRushVAlign;
         fTextHAlign:        TGRushHAlign;
      {?}fDrawGlyph:         Boolean;
      {?}fDrawText:          Boolean;
@@ -278,9 +279,9 @@ type
         fCheckMetric:       DWORD;
         fColorCheck:        TColor;
 //208
-        fGlyphVAlign:       TVerticalAlign;
+        fGlyphVAlign:       TGRushVAlign;
         fGlyphHAlign:       TGRushHAlign;
-        fTextVAlign:        TVerticalAlign;
+        fTextVAlign:        TGRushVAlign;
         fTextHAlign:        TGRushHAlign;
         fDrawGlyph:         Boolean;
         fDrawText:          Boolean;
@@ -390,9 +391,9 @@ type
         function GetDis_GlyphItemY: DWORD;              procedure SetDis_GlyphItemY(Val: DWORD);
 
         function GetAll_CheckMetric: DWORD;             procedure SetAll_CheckMetric(Val: DWORD);
-        function GetAll_GlyphVAlign: TVerticalAlign;      procedure SetAll_GlyphVAlign(Val: TVerticalAlign);
+        function GetAll_GlyphVAlign: TGRushVAlign;      procedure SetAll_GlyphVAlign(Val: TGRushVAlign);
         function GetAll_GlyphHAlign: TGRushHAlign;      procedure SetAll_GlyphHAlign(Val: TGRushHAlign);
-        function GetAll_TextVAlign: TVerticalAlign;       procedure SetAll_TextVAlign(Val: TVerticalAlign);
+        function GetAll_TextVAlign: TGRushVAlign;       procedure SetAll_TextVAlign(Val: TGRushVAlign);
         function GetAll_TextHAlign: TGRushHAlign;       procedure SetAll_TextHAlign(Val: TGRushHAlign);
         function GetAll_DrawText: Boolean;              procedure SetAll_DrawText(Val: Boolean);
         function GetAll_DrawGlyph: Boolean;             procedure SetAll_DrawGlyph(Val: Boolean);
@@ -591,7 +592,7 @@ type
             read  GetAll_GlyphHAlign        write SetAll_GlyphHAlign;
         {* }
         {= }
-        property     All_GlyphVAlign:       TVerticalAlign
+        property     All_GlyphVAlign:       TGRushVAlign
             read  GetAll_GlyphVAlign        write SetAll_GlyphVAlign;
         {* }
         {= }
@@ -599,7 +600,7 @@ type
             read  GetAll_TextHAlign         write SetAll_TextHAlign;
         {* }
         {= }
-        property     All_TextVAlign:        TVerticalAlign
+        property     All_TextVAlign:        TGRushVAlign
             read  GetAll_TextVAlign         write SetAll_TextVAlign;
         {* }
         {= }
@@ -976,7 +977,7 @@ begin
         ((((Color shr 3) and $1f) * 541052) shr 16);
 end;
 
-procedure AlignRect(var Result: TRect; const Container: TRect; VA: TVerticalAlign; HA: TGRushHAlign);
+procedure AlignRect(var Result: TRect; const Container: TRect; VA: TGRushVAlign; HA: TGRushHAlign);
 var     Wi, He: integer;
 begin
     Wi := Result.Right - Result.Left;
