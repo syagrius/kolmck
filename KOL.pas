@@ -2347,7 +2347,7 @@ function Color2Color15( Color: TColor ): WORD;
 //[DefFont VARIABLE]
 var    // New TFont instances are intialized with the values in this structure:
   DefFont: TGDIFont = (
-     Height: 0;
+     Height: -11;
      Width: 0;
      Escapement: 0;
      Orientation: 0;

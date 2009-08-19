@@ -1,3 +1,4 @@
+{$IFNDEF INPACKAGE}
 type
   TKOLProject = Pointer;
   TKOLApplet = Pointer;
@@ -47,3 +48,4 @@ type
   //TKOLActionList = PActionList;
   //TKOLAction = PAction;
   TKOLScrollBar = PControl;
+{$ENDIF}
