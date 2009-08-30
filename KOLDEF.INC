@@ -125,6 +125,25 @@ Delphi version 8 not supported! (delphi 8 is .net only)
 {$WARN UNSAFE_CODE OFF}
 {$ENDIF}
 
+{$IFDEF VER210} // Delphi 2010
+	{$DEFINE _D3orHigher}
+	{$DEFINE _D4orHigher}
+	{$DEFINE _D5orHigher}
+	{$DEFINE _D6orHigher}
+	{$DEFINE _D7}
+	{$DEFINE _D7orHigher}
+	{$DEFINE _D2005orHigher}
+	{$DEFINE _D2006orHigher}
+	{$DEFINE _D2007orHigher}
+	{$DEFINE _D2009orHigher}
+	{$DEFINE _D2010orHigher}
+	{$WARN UNIT_DEPRECATED OFF}
+	{$WARN SYMBOL_PLATFORM OFF}
+	{$WARN UNSAFE_TYPE OFF}
+	{$WARN UNSAFE_CAST OFF}
+	{$WARN UNSAFE_CODE OFF}
+{$ENDIF}
+
 // TODO: check DLL project
 {$IFNDEF NO_STRIP_RELOC}
   // by Thaddy de Koning:
