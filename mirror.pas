@@ -8609,7 +8609,7 @@ begin
   end;
   if Result <> '' then
     if Result[ 1 ] <> '''' then
-      Result := 'PChar( ' + Result + ' )';
+      Result := 'PKOLChar( ' + Result + ' )';
 end;
 
 function P_PCharStringConstant( Sender: TObject; const Propname, Value: String ): String;
