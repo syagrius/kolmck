@@ -11171,9 +11171,9 @@ begin
           Result := Result + '''' + S + Copy( B, 2, MaxInt )
         else
         if S <> '' then
-          Result := Result + 'PChar( ''' + S + ''' + ' + B + ')'
+          Result := Result + 'PKOLChar( ''' + S + ''' + ' + B + ')'
         else
-          Result := Result + 'PChar( ' + B + ' )';
+          Result := Result + 'PKOLChar( ' + B + ' )';
       end;
     end;
     if I < Items.Count-1 then
