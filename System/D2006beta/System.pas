@@ -43,7 +43,7 @@ interface
   Example:  {$IF RTLVersion >= 16.2} ... {$IFEND}                  *)
 
 const
-  RTLVersion = 14.1;
+  RTLVersion = 18.00;
 
 {$EXTERNALSYM CompilerVersion}
 
@@ -2887,9 +2887,9 @@ begin
   MemoryManager := MemMgr;
 end;
 
-//{X} - function is replaced with pointer to one.
-//  function IsMemoryManagerSet: Boolean;
-function IsDelphiMemoryManagerSet: Boolean;
+{X+}// - function is replaced with pointer to one.
+{X-}//  function IsMemoryManagerSet: Boolean;
+{X+}function IsDelphiMemoryManagerSet: Boolean;
 begin
   with MemoryManager do
     Result := (@GetMem <> @SysGetMem) or (@FreeMem <> @SysFreeMem) or
@@ -3033,6 +3033,8 @@ asm
         POP     EAX
 end;
 
+// Access to a TLS variable.  Note the comment in BeginThread before
+// you change the implementation of this function.
 function AreOSExceptionsBlocked: Boolean;
 asm
         CALL    SysInit.@GetTLS
@@ -3227,7 +3229,7 @@ procedure ErrorAt(ErrorCode: Byte; ErrorAddr: Pointer);
 
 const
   reMap: array [TRunTimeError] of Byte = (
-    0,
+    0,   { reNone }
     203, { reOutOfMemory }
     204, { reInvalidPtr }
     200, { reDivByZero }
@@ -3675,7 +3677,7 @@ asm
 
 @@fin:
 *) {X-}
-//---------------------------------------
+{X+} //---------------------------------------
 {X+} // And now, let us write speedy:
         CMP      ECX, 4
         JGE      @@long
@@ -9732,7 +9734,7 @@ end;
   as a signaling mechanism to an interested debugger.  If the debugger sets
   the DebugHook flag to 1 or 2, then all exception processing is tracked by
   raising these special exceptions.  The debugger *MUST* respond to the
-  debug event with DBG_CONTINE so that normal processing will occur.
+  debug event with DBG_CONTINUE so that normal processing will occur.
 }
 
 {$IFDEF LINUX}
@@ -11124,10 +11126,10 @@ end;
 procedure       SetExceptionHandler;
 asm
   XOR     EDX,EDX                 { using [EDX] saves some space over [0] }
-{X}     // now we come here from another place, and EBP is used above for loop counter
-{X}     // let us restore it...
-{X}     PUSH    EBP
-{X}     LEA     EBP, [ESP + $50]
+{X+}     // now we come here from another place, and EBP is used above for loop counter
+{X+}     // let us restore it...
+{X+}     PUSH    EBP
+{X+}     LEA     EBP, [ESP + $50]
   LEA     EAX,[EBP-12]
   MOV     ECX,FS:[EDX]            { ECX := head of chain                  }
   MOV     FS:[EDX],EAX            { head of chain := @exRegRec            }
@@ -11145,8 +11147,7 @@ asm
 {$ELSE}
   MOV     InitContext.ExcFrame,EAX
 {$ENDIF}
-
-{X}     POP     EBP
+{X+}     POP     EBP
 end;
 
 
@@ -11467,7 +11468,7 @@ asm
         LEA     ECX,[EBP- (type TExcFrame) - (type TInitContext)]
         MOV     InitContext.OuterContext,ECX
         XOR     ECX,ECX
-        CMP     dword ptr [EBP+12],0
+        CMP     DWORD PTR [EBP+12],0
         JNE     @@notShutDown
         MOV     ECX,[EAX].PackageInfoTable.UnitCount
 @@notShutDown:
@@ -11770,7 +11771,7 @@ asm
 {$IFDEF PIC}
         LEA     EDI, [EBX].InitContext
 {$ELSE}
-        MOV EDI, offset InitContext
+        MOV     EDI, offset InitContext
 {$ENDIF}
 
         MOV     EBX,[EDI].TInitContext.DLLSaveEBX
@@ -12183,9 +12184,9 @@ type
   end;
 
 const
-        skew = sizeof(StrRec);
-        rOff = sizeof(StrRec); { refCnt offset }
-        overHead = sizeof(StrRec) + 1;
+  skew = SizeOf(StrRec);
+  rOff = SizeOf(StrRec); { refCnt offset }
+  overHead = SizeOf(StrRec) + 1;
 
 procedure _LStrClr(var S);
 {$IFDEF PUREPASCAL}
@@ -12943,7 +12944,7 @@ asm
         POP     EDX
         POP     EAX
         TEST    EDI,EDI
-        JNZ      @@exit
+        JNZ     @@exit
 
         TEST    EDX,EDX
         JE      @@skip
@@ -13538,7 +13539,7 @@ asm
         CALL    _LStrClr
 
         TEST    ESI,ESI
-        JLE @@exit
+        JLE     @@exit
 
         MOV     EAX,ESI
         CALL    _NewAnsiString
@@ -18965,7 +18966,7 @@ end;
 {$IFDEF MSWINDOWS}
 function LoadResString(ResStringRec: PResStringRec): string;
 var
-  Buffer: array [0..1023] of char;
+  Buffer: array [0..4095] of char;
 begin
   if ResStringRec = nil then Exit;
   if ResStringRec.Identifier < 64*1024 then
