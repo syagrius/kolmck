@@ -23401,7 +23401,7 @@ begin
   if (FPath = '') then Exit;
   FPath := IncludeTrailingPathDelimiter( FPath );
   if not Assigned(fFilters) then begin
-    fFilters := {$IFDEF FORCE_ALTERNATEFILENAME} NewWStrList {$ELSE} NewStrList {$ENDIF};
+    fFilters := {$IFDEF UNICODE_CTRLS} NewWStrList {$ELSE} NewStrList {$ENDIF};
     if Filter = '*.*' then
       fFilters.Add( '*' )
     else
