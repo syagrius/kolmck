@@ -42,6 +42,7 @@ unit KOLadd;
 interface
 
 {$I KOLDEF.INC}
+{$INCLUDE delphidef.inc}
 
 uses Windows, Messages, KOL;
 
@@ -1133,7 +1134,7 @@ asm
   MOV  EAX, [EAX].fList
   {TEST EAX, EAX
   JZ   @@exit}
-  MOV  EAX, [EAX].TList.fItems
+  MOV  EAX, [EAX].TBitsList.fItems
   BT   [EAX], EDX
   SETC AL
 @@exit:
@@ -1306,7 +1307,7 @@ procedure TBits.SetBit(Idx: Integer; const Value: Boolean);
 asm
   PUSH ECX
   MOV  ECX, [EAX].fList
-  MOV  ECX, [ECX].TList.fCapacity
+  MOV  ECX, [ECX].TBitsList.fCapacity
   SHL  ECX, 5
   CMP  EDX, ECX
   JLE  @@1
@@ -1327,7 +1328,7 @@ asm
 @@2:
   POP  ECX
   MOV  EAX, [EAX].fList
-  MOV  EAX, [EAX].TList.fItems
+  MOV  EAX, [EAX].TBitsList.fItems
   SHR  ECX, 1
   JC   @@2set
   BTR  [EAX], EDX
@@ -2272,7 +2273,7 @@ asm
         JMP      @@exit
 @@fault:
         XCHG     EAX, EBX
-        CALL     TObj.Free
+        CALL     TObj.Destroy
 @@exit:
         XCHG     EAX, EBX
         POP      EBX
@@ -2340,7 +2341,7 @@ asm
         MOV      ECX, [EBX].FMonitor
         JECXZ    @@no_monitor
         XCHG     EAX, ECX
-        CALL     TObj.Free
+        CALL     TObj.Destroy
 @@no_monitor:
         MOV      ECX, [EBX].FHandle
         JECXZ    @@exit
