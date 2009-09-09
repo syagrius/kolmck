@@ -28,21 +28,25 @@ Version indicated above is a version of KOL, having place when KOLadd.pas was
 modified last time, this is not a version of KOLadd itself.
 }
 
+//[UNIT DEFINES]
+{$I KOLDEF.inc}
+{$IFDEF EXTERNAL_KOLDEFS}
+  {$INCLUDE PROJECT_KOL_DEFS.INC}
+{$ENDIF}
+{$IFDEF EXTERNAL_DEFINES}
+        {$INCLUDE EXTERNAL_DEFINES.INC}
+{$ENDIF EXTERNAL_DEFINES}
+
 unit KOLadd;
 
 {
   Define symbol TREE_NONAME to disallow using Name in TTree object.
   Define symbol TREE_WIDE to use WideString for Name in TTree object.
 }
-{$IFDEF EXTERNAL_DEFINES}
-        {$INCLUDE EXTERNAL_DEFINES.INC}
-{$ENDIF EXTERNAL_DEFINES}
-
 
 interface
 
 {$I KOLDEF.INC}
-{$INCLUDE delphidef.inc}
 
 uses Windows, Messages, KOL;
 

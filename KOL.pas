@@ -75,8 +75,6 @@
   {$DEFINE WIN_GDI}
 {$ENDIF GDI} {$ENDIF WIN}
 
-{$INCLUDE delphidef.inc}
-
 {$IFDEF WIN_GDI}
   //test
 {$ENDIF WIN_GDI}
