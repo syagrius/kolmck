@@ -22384,16 +22384,17 @@ asm
         CALL     System.@LStrFromPCharLen
 end;
 {$ELSE} //Pascal
-function ExtractFilePath( const Path : KOLString ) : KOLString;
-//var I : Integer;
-var P, P0: PKOLChar;
+function ExtractFilePath(const Path: KOLString): KOLString;
+var
+  i: Integer;
 begin
-  P0 := PKOLChar( Path );
-  P := __DelimiterLast( P0, ':\/' );
-  if P^ = #0 then
-    Result := ''
-  else
-    Result := Copy( Path, 1, P - P0 + 1 );
+  for i := Length(Path) - 1 downto 1 do begin
+    if (Path[i] = '\') then begin
+      Result := Copy(Path, 1, i);
+      Exit;
+    end;
+  end;
+  Result := Path;
 end;
 {$ENDIF ASM_VERSION}
 
