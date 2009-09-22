@@ -91,11 +91,11 @@ function GetModuleFileName(Module: Integer; Filename: PChar; Size: Integer): Int
 function GetModuleHandle(ModuleName: PChar): Integer; stdcall;
   external kernel name 'GetModuleHandleA';
 
-function LocalAlloc(flags, size: Integer): Pointer; stdcall;
-  external kernel name 'LocalAlloc';
+//function LocalAlloc(flags, size: Integer): Pointer; stdcall;
+//  external kernel name 'LocalAlloc';
 
-function LocalFree(addr: Pointer): Pointer; stdcall;
-  external kernel name 'LocalFree';
+//function LocalFree(addr: Pointer): Pointer; stdcall;
+//  external kernel name 'LocalFree';
 
 function TlsAlloc: Integer; stdcall;
   external kernel name 'TlsAlloc';
@@ -110,7 +110,7 @@ function TlsSetValue(TlsIndex: Integer; TlsValue: Pointer): Boolean; stdcall;
   external kernel name 'TlsSetValue';
 
 function GetCommandLine: PChar; stdcall;
-  external kernel name 'GetCommandLineA';
+  external kernel name 'GetCommandLineA';  
 
 const
   tlsArray      = $2C;    { offset of tls array from FS: }
@@ -118,7 +118,8 @@ const
 
 function AllocTlsBuffer(Size: Integer): Pointer;
 begin
-  Result := LocalAlloc(LMEM_ZEROINIT, Size);
+  //Result := LocalAlloc(LMEM_ZEROINIT, Size);
+	GetMem(Result, Size);
 end;
 
 var
@@ -316,7 +317,8 @@ begin
   if TlsIndex <> -1 then begin
     p := TlsGetValue(TlsIndex);
     if p <> nil then begin
-      LocalFree(p);
+      //LocalFree(p);
+			FreeMem(p);
       TlsSetValue(TlsIndex, nil);
     end;
   end;

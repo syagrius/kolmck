@@ -34,11 +34,13 @@
 {Include the memory leak tracking and reporting code. Without this define set
  the memory leak registration functions will do nothing and the memory leak
  report will not be shown on shutdown.}
-{$define IncludeMemoryLeakTrackingCode}
+//{$define IncludeMemoryLeakTrackingCode}
 {Use custom fixed size move routines for some small blocks}
-{$define UseCustomFixedSizeMoveRoutines}
+//{$define UseCustomFixedSizeMoveRoutines}
 {Use custom variable size move routines for larger blocks}
-{$define UseCustomVariableSizeMoveRoutines}
+//{$define UseCustomVariableSizeMoveRoutines}
+//Use sharemem}
+//{$DEFINE USESHAREMM}
 
 {--------------------------------Windows API------------------------------}
 const
@@ -184,7 +186,7 @@ const
   {Hexadecimal characters}
   HexTable: array[0..15] of char = '0123456789ABCDEF';
   {Copyright message - not used anywhere in the code}
-  Copyright: string = 'FastMM';// Borland Edition © 2004, 2005 Pierre le Riche / Professional Software Development';
+//  Copyright: string = 'FastMM';// Borland Edition © 2004, 2005 Pierre le Riche / Professional Software Development';
 {$ifdef IncludeMemoryLeakTrackingCode}
   {-----------------------Memory leak reporting constants-----------------}
   ExpectedMemoryLeaksListSize = 64 * 1024;
@@ -485,7 +487,9 @@ var
    manager between DLLs and the main application)}
   UniqueProcessIDString: String[23] = '????????_PID_FastMM_BE'#0;
   {The handle of the MM window}
+{$IFDEF USESHAREMM}
   MMSharingWindow: HWND;
+{$ENDIF}
 
 {----------------------------Utility Functions----------------------------}
 
@@ -4363,6 +4367,7 @@ begin
   end;
 end;
 
+{$IFDEF USESHAREMM}
 {Searches the current process for a shared memory manager}
 function FindSharedMemoryManager: PMemoryManagerEx;
 var
@@ -4464,6 +4469,7 @@ begin
     Result := False;
   end;
 end;
+{$ENDIF}
 
 {--------------------------Memory Manager Setup---------------------------}
 
@@ -4645,12 +4651,14 @@ end;
 
 procedure FinalizeMemoryManager;
 begin
+{$IFDEF USESHAREMM}
   {Destroy the sharing window if applicable}
   if MMSharingWindow <> 0 then
   begin
     DestroyWindow(MMSharingWindow);
     MMSharingWindow := 0;
   end;
+{$ENDIF}
 {$ifdef IncludeMemoryLeakTrackingCode}
   {Should memory leaks be reported?}
   if ReportMemoryLeaksOnShutdown then

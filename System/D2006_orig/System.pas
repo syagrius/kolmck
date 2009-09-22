@@ -853,7 +853,7 @@ var
 {$IFDEF MSWINDOWS}
 {X} // following variables are converted to functions
 {X} function CmdShow : Integer;
-{X} function CmdLine : PChar; 
+{X} function CmdLine : PChar;
 {$ELSE}
   CmdShow: Integer platform;       { CmdShow parameter for CreateWindow }
   CmdLine: PChar platform;         { Command line pointer }
@@ -995,6 +995,7 @@ function UnregisterExpectedMemoryLeak(P: Pointer): boolean;
 function GetMinimumBlockAlignment: TMinimumBlockAlignment;
 procedure SetMinimumBlockAlignment(AMinimumBlockAlignment: TMinimumBlockAlignment);
 
+{$IFDEF USESHAREMM}
 {Searches the current process for a shared memory manager. If no memory has
  been allocated using this memory manager it will switch to using the shared
  memory manager instead. Returns true if another memory manager was found and
@@ -1005,6 +1006,7 @@ function AttemptToUseSharedMemoryManager: Boolean;
  current process. Only one memory manager may be shared per process, so this
  function may fail.}
 function ShareMemoryManager: Boolean;
+{$ENDIF}
 
 {$ENDIF}
 
@@ -1297,6 +1299,8 @@ type
   end;
 
 function LoadResString(ResStringRec: PResStringRec): string;
+
+{ Procedures and functions that need compiler magic }
 
 function Int(const X: Extended): Extended;
 function Frac(const X: Extended): Extended;
@@ -1741,6 +1745,7 @@ procedure InvalidateModuleCache;
 procedure SetMultiByteConversionCodePage(CodePage: Integer);
 {$ENDIF}
 
+{X} procedure DummyProc; // empty procedure
 (* =================================================================== *)
 
 function DefaultSystemCodePage: Integer;
@@ -2311,18 +2316,21 @@ function DeleteFileA(Filename: PChar): LongBool;  stdcall;
   external kernel name 'DeleteFileA';
 function GetFileType(hFile: Integer): Integer; stdcall;
   external kernel name 'GetFileType';
-procedure GetSystemTime; stdcall;               external kernel name 'GetSystemTime';
+procedure GetSystemTime; stdcall;
+  external kernel name 'GetSystemTime';
 function GetFileSize(Handle: Integer; x: Integer): Integer; stdcall;
   external kernel name 'GetFileSize';
 function GetStdHandle(nStdHandle: Integer): Integer; stdcall;
   external kernel name 'GetStdHandle';
 function MoveFileA(OldName, NewName: PChar): LongBool; stdcall;
   external kernel name 'MoveFileA';
-procedure RaiseException; stdcall;       external kernel name 'RaiseException';
+procedure RaiseException; stdcall;
+  external kernel name 'RaiseException';
 function ReadFile(hFile: Integer; var Buffer; nNumberOfBytesToRead: Cardinal;
   var lpNumberOfBytesRead: Cardinal; lpOverlapped: Pointer): Integer; stdcall;
   external kernel name 'ReadFile';
-procedure RtlUnwind; stdcall;             external kernel name 'RtlUnwind';
+procedure RtlUnwind; stdcall;
+  external kernel name 'RtlUnwind';
 function SetEndOfFile(Handle: Integer): LongBool; stdcall;
   external kernel name 'SetEndOfFile';
 function SetFilePointer(Handle, Distance: Integer; DistanceHigh: Pointer;
@@ -2482,7 +2490,6 @@ function QueryPerformanceCounter(var lpPerformanceCount: Int64): LongBool; stdca
 function GetTickCount: Cardinal;
   external kernel name 'GetTickCount';
 
-
 function GetCmdShow: Integer;
 var
   SI: TStartupInfo;
@@ -2524,6 +2531,7 @@ function SysReallocMem(P: Pointer; Size: Integer): Pointer;
 begin
   Result := __realloc(P, Size);
 end;
+
 {$ENDIF}
 
 var
@@ -3834,7 +3842,7 @@ var
   S: string;
 begin
   Result := 0;
-  P := GetParamStr(GetCommandLine, S);
+  P := GetParamStr(CmdLine, S);
   while True do
   begin
     P := GetParamStr(P, S);
@@ -3864,7 +3872,7 @@ begin
     SetString(Result, Buffer, GetModuleFileName(0, Buffer, SizeOf(Buffer)))
   else
   begin
-    P := GetCommandLine;
+    P := CmdLine;
     while True do
     begin
       P := GetParamStr(P, Result);
@@ -11865,6 +11873,63 @@ asm
 {$ENDIF}
 end;
 
+// {X} Procedure Halt0 refers to WriteLn and MessageBox
+//     but actually such code can be not used really.
+//     So, implementation changed to avoid such references.
+//
+//     Either call UseErrorMessageBox or UseErrorMessageWrite
+//     to provide error message output in GUI or console app.
+// {X}+
+
+var ErrorMessageOutProc : procedure = DummyProc;
+
+procedure ErrorMessageBox;
+begin
+  MakeErrorMessage;
+  if not NoErrMsg then
+     MessageBox(0, runErrMsg, errCaption, 0);
+end;
+
+procedure UseErrorMessageBox;
+begin
+  ErrorMessageOutProc := ErrorMessageBox;
+end;
+
+procedure ErrorMessageWrite;
+begin
+  MakeErrorMessage;
+  WriteLn(PChar(@runErrMsg));
+end;
+
+procedure UseErrorMessageWrite;
+begin
+  ErrorMessageOutProc := ErrorMessageWrite;
+end;
+
+procedure DoCloseInputOutput;
+begin
+  Close( Input );
+  Close( Output );
+  Close(ErrOutput);
+end;
+
+var CloseInputOutput : procedure = DummyProc;
+
+procedure UseInputOutput;
+begin
+  if not assigned( CloseInputOutput ) then
+  begin
+    CloseInputOutput := DoCloseInputOutput;
+    //_Assign( Input, '' );  was for D5 so - changed
+    //_Assign( Output, '' ); was for D5 so - changed
+    TTextRec(Input).Mode := fmClosed;
+    TTextRec(Output).Mode := fmClosed;
+    TTextRec(ErrOutput).Mode := fmClosed;
+  end;
+end;
+
+// {X}-
+(*X-
 procedure WriteErrorMessage;
 {$IFDEF MSWINDOWS}
 var
@@ -11880,8 +11945,10 @@ begin
     WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), runErrMsg, Sizeof(runErrMsg), Dummy, nil);
     WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), sLineBreak, 2, Dummy, nil);
   end
+	{$IFDEF ERRORMSG}
   else if not NoErrMsg then
     MessageBox(0, runErrMsg, errCaption, 0);
+	{$ENDIF}
 {$ENDIF}
 {$IFDEF LINUX}
 var
@@ -11897,7 +11964,7 @@ begin
    __write(STDERR_FILENO, @c, 1);
 {$ENDIF}
 end;
-
+X+*)
 var
   RTLInitFailed: Boolean = False;
 
@@ -11930,9 +11997,21 @@ begin
 
   if ErrorAddr <> nil then
   begin
+    {X+}
+    ErrorMessageOutProc;
+    {
     MakeErrorMessage;
-    WriteErrorMessage;
-    ErrorAddr := nil;
+    if IsConsole then
+      WriteLn(PChar(@runErrMsg))
+    else if not NoErrMsg then
+      MessageBox(0, runErrMsg, errCaption, 0);
+    } {X-}
+
+    {X- As it is said by Alexey Torgashin, it is better not to clear ErrorAddr
+        to make possible check ErrorAddr <> nil in finalization of rest units.
+        If you want, you can uncomment it again: }
+    //ErrorAddr := nil;
+    {X+}
   end;
 
   { This loop exists because we might be nested in PackageLoad calls when }
@@ -15325,6 +15404,10 @@ begin
   else
     Error(reVarInvalidOp);
 end;
+
+{X}procedure DummyProc;
+{X}begin
+{X}end;
 
 procedure       _AddRefArray{ p: Pointer; typeInfo: Pointer; elemCount: Longint};
 asm
@@ -18769,27 +18852,6 @@ begin
   Result := SaveDefaultSystemCodePage;
 end;
 
-procedure DoCloseInputOutput;
-begin
-  Close(Input);
-  Close(Output);
-  Close(ErrOutput);
-end;
-
-var
-  CloseInputOutput: procedure = nil; //DummyProc;
-
-procedure UseInputOutput;
-begin
-  if not Assigned(CloseInputOutput) then begin
-    CloseInputOutput := DoCloseInputOutput;
-    //_Assign( Input, '' );  was for D5 so - changed
-    //_Assign( Output, '' ); was for D5 so - changed
-    TTextRec(Input).Mode     := fmClosed;
-    TTextRec(Output).Mode    := fmClosed;
-    TTextRec(ErrOutput).Mode := fmClosed;
-  end;
-end;
 
 initialization
   InitializeMemoryManager;
@@ -18835,12 +18897,13 @@ initialization
 {X-  MainThreadID := GetCurrentThreadID; }
 
 finalization
-{X+}
-  if Assigned(CloseInputOutput) then
-    CloseInputOutput;
-{X-  Close(Input);
+  {X+}
+  {X}   CloseInputOutput;
+  {X-
+  Close(Input);
   Close(Output);
-  Close(ErrOutput); }
+  Close(ErrOutput);
+  X+}
 {$IFDEF LINUX}
   ReleaseZeroPage;
 {$ENDIF}
