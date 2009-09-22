@@ -1251,6 +1251,8 @@ function Ln(const X: Extended): Extended;
 function ArcTan(const X: Extended): Extended;
 function Sqrt(const X: Extended): Extended;
 
+{ Procedures and functions that need compiler magic }
+
 procedure _ROUND;
 procedure _TRUNC;
 
@@ -1616,7 +1618,11 @@ type
   reVarDispatch, reVarArrayCreate, reVarNotArray, reVarArrayBounds,
   reAssertionFailed,
   reExternalException, { not used here; in SysUtils }
-  reIntfCastError, reSafeCallError);
+  reIntfCastError, reSafeCallError
+{$IFDEF LINUX}
+  , reQuit, reCodesetConversion
+{$ENDIF}
+  );
 {$NODEFINE TRuntimeError}
 
 procedure Error(errorCode: TRuntimeError);
@@ -2144,7 +2150,7 @@ function _fxstat(Version: Integer; Handle: Integer; var Stat: TStatStruct): Inte
 
 function __xstat(Ver: Integer; FileName: PChar; var StatBuffer: TStatStruct): Integer; cdecl;
   external libc name '__xstat';
-  
+
 function _strlen(P: PChar): Integer; cdecl;
   external libc name 'strlen';
 
@@ -2249,9 +2255,9 @@ end;
 type
   PMemInfo = ^TMemInfo;
   TMemInfo = packed record
-  BaseAddress: Pointer;
-  AllocationBase: Pointer;
-  AllocationProtect: Longint;
+    BaseAddress: Pointer;
+    AllocationBase: Pointer;
+    AllocationProtect: Longint;
     RegionSize: Longint;
     State: Longint;
     Protect: Longint;
@@ -2640,20 +2646,25 @@ end;
 
 {$ENDIF}
 
+////
+{$I FastMM.inc}
+
+const
+  DelphiMemoryManager: TMemoryManager = (
+    GetMem:     SysGetMem;
+    FreeMem:    SysFreeMem;
+    ReallocMem: SysReallocMem);
+
+  HeapMemoryManager: TMemoryManager = (
+    GetMem:     DfltGetMem;
+    FreeMem:    DfltFreeMem;
+    ReallocMem: DfltReallocMem);
+
 {X- by default, system memory allocation routines (API calls)
     are used. To use Inprise's memory manager (Delphi standard)
     call UseDelphiMemoryManager procedure. }
 var
-  MemoryManager: TMemoryManager = (
-    GetMem: DfltGetMem;
-    FreeMem: DfltFreeMem;
-    ReallocMem: DfltReallocMem);
-
-const
-  DelphiMemoryManager: TMemoryManager = (
-    GetMem: SysGetMem;
-    FreeMem: SysFreeMem;
-    ReallocMem: SysReallocMem);
+  MemoryManager: TMemoryManager;
 
 procedure UseDelphiMemoryManager;
 begin
@@ -19155,7 +19166,6 @@ end;
 {X} end;
 
 initialization
-
   {$IFDEF MSWINDOWS}
       {$IFDEF USE_PROCESS_HEAP}
         HeapHandle := GetProcessHeap;
@@ -19163,6 +19173,9 @@ initialization
         HeapHandle := HeapCreate( 0, 0, 0 );
       {$ENDIF}
   {$ENDIF}
+  SetMemoryManager(HeapMemoryManager);
+  //UseDelphiMemoryManager;
+  Install_FastMM;
 
   {$IFDEF MSWINDOWS}
   //{X (initialized statically} FileMode := 2;
@@ -19219,4 +19232,3 @@ finalization
   UninitMemoryManager;
 {$ENDIF}
 end.
-

@@ -49,7 +49,7 @@ var
   { DllProcEx passes the Reserved param provided by WinNT on DLL load & exit }
   DllProcEx: TDLLProcEx absolute DllProc;
   DataMark: Integer = 0;        { Used to find the virtual base of DATA seg }
-  CoverageLibraryName: array [0..128] of char = '*'; { initialized by the linker! }
+  CoverageLibraryName: array [0..128] of Char = '*'; { initialized by the linker! }
 {$IFDEF ELF}
   TypeImportsTable: array [0..0] of Pointer platform;  { VMT and RTTI imports table for exes }
   _GLOBAL_OFFSET_TABLE_: ARRAY [0..2] OF Cardinal platform;

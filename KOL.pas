@@ -54042,7 +54042,7 @@ end;
 var SaveWinVer: Byte = $FF;
 
 //[function WinVer]
-{$IFDEF nonononoASM_VERSION}
+{$IFDEF ASM_VERSION}
 {$ELSE ASM_VERSION}
 function WinVer : TWindowsVersion;
 var MajorVersion, MinorVersion: Byte;

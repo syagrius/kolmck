@@ -17890,7 +17890,7 @@ asm     //cmd    //opd
 //@@exit: XCHG     EAX, ECX
 end;
 
-{function WinVer : TWindowsVersion;
+function WinVer : TWindowsVersion;
 asm
   MOVSX EAX, byte ptr [SaveWinVer]
   INC   AH     // если <> 0 после инкремента, то AL содержит вычисленную версию
@@ -17900,21 +17900,31 @@ asm
   XOR   EAX, EAX
   TEST  EDX, EDX
   XCHG  DL, DH    // DH=MajorVersion; DL=MinorVersion
+
   JL    @@platform_9x
   MOV   AL, wvNT
-  CMP   DH, 5
-  JB    @@save_exit
-  INC   AL // wvY2K
-  CMP   DX, $0501
-  JB    @@save_exit
-  INC   AL // wvXP
-  DEC   DL
+  CMP   DX, $0400
   JZ    @@save_exit
-  INC   AL // wvServer2003
-  CMP   DH, 6
-  JB    @@save_exit
+
+  INC   AL // wvY2K
+  CMP   DX, $0500
+  JZ    @@save_exit
+
+  INC   AL // wvXP
+  CMP   DX, $0501
+  JZ    @@save_exit
+
+  INC   AL // wvWin2003Server
+  CMP   DX, $0502
+  JZ    @@save_exit
+
   INC   AL // wvVista
-  JMP   @@save_exit
+  CMP   DX, $0600
+  JZ    @@save_exit
+
+  INC   AL // wvSeven
+  CMP   DX, $0601
+  JZ    @@save_exit
 @@platform_9x:
   CMP   DH, 4
   JB    @@save_exit // wv31
@@ -17928,7 +17938,7 @@ asm
 @@save_exit:
   MOV   byte ptr [SaveWinVer], AL
 @@exit:
-end;}
+end;  
 
 //======================================== THE END OF FILE KOL_ASM.inc
 
