@@ -227,6 +227,10 @@ That is all to have full compatibility.
 // Another way to turn this option off is to define symbol NOT_UNLOAD_RICHEDITLIB
 // in your project options.
 
+{$IFNDEF INPACKAGE}
+	{$DEFINE NOT_USE_RICHEDIT}
+{$ENDIF}
+
 //{$DEFINE TEST_VERSION}
 {$IFNDEF _D6orHigher}
  {$DEFINE PARANOIA} //seems not needed under D6 !!! Inprise fixed this, finally... 

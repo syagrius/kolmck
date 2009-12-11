@@ -216,14 +216,14 @@ begin
   dlg            := TSaveDialog.Create(nil);
   dlg.Options    := [ofOverwritePrompt, ofExtensionDifferent, ofPathMustExist];
   dlg.Title      := 'Save Project';
-  dlg.Filter     := '*.dpr';
+  dlg.Filter     := 'DPR files|*.dpr';
   dlg.DefaultExt := 'dpr';
   if dlg.Execute then begin
     prj := dlg.FileName;
     if (Pos('.', prj) = Length(prj) - 3) then
       SetLength(prj, Length(prj) - 4);
     dlg.Title := 'Save Unit';
-    dlg.Filter := '*.pas';
+    dlg.Filter := 'PAS files|*.pas';
     dlg.DefaultExt := 'pas';
     dlg.FileName := 'unit1';
     if dlg.Execute then begin
