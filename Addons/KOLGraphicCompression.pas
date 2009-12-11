@@ -1,3 +1,35 @@
+{$IFDEF FPC}
+{$DEFINE NOT_USE_KOL_ERR}
+{$MODE Delphi}
+{$ASMMODE intel}
+{$GOTO ON}
+{$ENDIF}
+
+{$IFDEF NO_GIF_OPTIMIZE}
+  {$UNDEF ASM_GIF}
+  {$UNDEF GIF_MMX}
+{$ELSE}
+  {$DEFINE ASM_GIF}
+  {$DEFINE GIF_MMX}
+{$ENDIF}
+
+//{$DEFINE GIF_SAFE} // to check array boundaries while LZW decoding GIF
+                     // (this prevents Access Violation exceptions and other
+                     // possible errors)
+
+//{$IFDEF GIF_SAFE}
+//  {$DEFINE NO_GIF_MMX}
+//{$ENDIF}
+
+{$IFDEF NO_GIF_MMX}
+  {$UNDEF GIF_MMX}
+{$ENDIF}
+
+{$IFNDEF GIF_LOG}
+{$O+}
+{$ENDIF GIF_LOG}
+{$W-}
+
 unit KOLGraphicCompression;
 
 // This file is part of the image library GraphicEx (www.lischke-online.de/Graphics.html).
@@ -38,12 +70,15 @@ unit KOLGraphicCompression;
 interface
 
 {$ALIGN OFF}
+{$I KOLDEF.INC}
 
-uses Windows, KOL, Err, Errors, MZLib; // general inflate/deflate and LZ77 compression support
+uses Windows, KOL, {$IFDEF NOT_USE_KOL_ERR}sysutils {$ELSE}Err {$ENDIF}, Errors,
+  MZLib {$IFDEF GIF_MMX}, Mmx {$ENDIF}; // general inflate/deflate and LZ77 compression support
 
 type
   // abstract decoder class to define the base functionality of an encoder/decoder
-  TDecoder = class
+  PDecoder = ^TDecoder;
+  TDecoder = {$IFDEF NOCLASSES} object(TObj) {$ELSE} class {$ENDIF}
   public
     procedure Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer); virtual; abstract;
     procedure DecodeEnd; virtual;
@@ -53,62 +88,84 @@ type
   // generally, there should be no need to cover the decoder classes by conditional symbols
   // because the image classes which use the decoder classes are already covered and if they
   // aren't compiled then the decoders are also not compiled (more precisely: not linked)
-  TTargaRLEDecoder = class(TDecoder)
+  PTargaRLEDecoder = ^TTargaRLEDecoder;
+  TTargaRLEDecoder = {$IFDEF NOCLASSES} object(TDecoder) {$ELSE} class(TDecoder) {$ENDIF}
   private
     FColorDepth: cardinal;
   public
     constructor Create(ColorDepth: cardinal);
-    procedure Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer); override;
+    procedure Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer);
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
   end;
 
   // Lempel-Ziff-Welch encoder/decoder class
   // TIFF LZW compression / decompression is a bit different to the common LZW code
-  TTIFFLZWDecoder = class(TDecoder)
+  PTiffLzwDecoder = ^TTIFFLZWDecoder;
+  TTIFFLZWDecoder = {$IFDEF NOCLASSES} object(TDecoder) {$ELSE} class(TDecoder) {$ENDIF}
   public
-    procedure Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer); override;
+    procedure Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer);
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
   end;
 
-  TPackbitsRLEDecoder = class(TDecoder)
+  PPackBitsRLEDecoder = ^TPackbitsRLEDecoder;
+  TPackbitsRLEDecoder = {$IFDEF NOCLASSES} object(TDecoder) {$ELSE} class(TDecoder) {$ENDIF}
   public
-    procedure Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer); override;
+    procedure Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer);
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
   end;
 
-  TPCXRLEDecoder = class(TDecoder)
+  PPcxRLEDecoder = ^TPCXRLEDecoder;
+  TPCXRLEDecoder = {$IFDEF NOCLASSES} object(TDecoder) {$ELSE} class(TDecoder) {$ENDIF}
   public
-    procedure Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer); override;
+    procedure Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer);
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
   end;
 
-  TSGIRLEDecoder = class(TDecoder)
+  PSGIRLEDecoder = ^TSGIRLEDecoder;
+  TSGIRLEDecoder = {$IFDEF NOCLASSES} object(TDecoder) {$ELSE} class(TDecoder) {$ENDIF}
   private
     FSampleSize: byte; // 8 or 16 bits
   public
     constructor Create(SampleSize: byte);
-    procedure Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer); override;
+    procedure Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer);
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
   end;
 
-  TCUTRLEDecoder = class(TDecoder)
+  PCUTRLEDecoder = ^TCUTRLEDecoder;
+  TCUTRLEDecoder = {$IFDEF NOCLASSES} object(TDecoder) {$ELSE} class(TDecoder) {$ENDIF}
   public
-    procedure Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer); override;
+    procedure Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer);
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
   end;
 
-  TPSPRLEDecoder = class(TDecoder)
+  PPSPRLEDecoder = ^TPSPRLEDecoder;
+  TPSPRLEDecoder = {$IFDEF NOCLASSES} object(TDecoder) {$ELSE} class(TDecoder) {$ENDIF}
   public
-    procedure Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer); override;
+    procedure Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer);
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
   end;
 
   // Note: We need a different LZW decoder class for GIF because the bit order is reversed compared to that
   //       of TIFF and the code size increment is handled slightly different.
-  TGIFLZWDecoder = class(TDecoder)
+  PGIFLZWDecoder = ^TGIFLZWDecoder;
+  TGIFLZWDecoder = {$IFDEF NOCLASSES} object(TDecoder) {$ELSE} class(TDecoder) {$ENDIF}
   private
     FInitialCodeSize: byte;
+    FLineWidth: Integer;
+    FCorrupted: Boolean;
   public
-    constructor Create(InitialCodeSize: byte);
-    procedure Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer); override;
+    constructor Create(InitialCodeSize: byte; linewidth: Integer);
+    procedure Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer);
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
+    procedure CxDecode( var Source, Dest: PByte; PackedSize,UnpackedSize: Integer );
+    property GIFCorrupted: Boolean read FCorrupted;
   end;
 
-  TRLADecoder = class(TDecoder)
+  PRLADecoder = ^TRLADecoder;
+  TRLADecoder = {$IFDEF NOCLASSES} object(TDecoder) {$ELSE} class(TDecoder) {$ENDIF}
   public
-    procedure Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer); override;
+    procedure Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer);
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
   end;
 
   TStateEntry = packed record
@@ -117,7 +174,7 @@ type
   end;
   TStateArray = array of TStateEntry;
 
-  TCCITTDecoder = class(TDecoder)
+  TCCITTDecoder = {$IFDEF NOCLASSES} object(TDecoder) {$ELSE} class(TDecoder) {$ENDIF}
   private
     FOptions: integer;  // determines some options how to proceed
                         // Bit 0: if set then two-dimensional encoding was used, otherwise one-dimensional
@@ -145,17 +202,32 @@ type
     constructor Create(Options: integer; SwapBits,WordAligned: boolean; Width: cardinal);
   end;
 
-  TCCITTFax3Decoder = class(TCCITTDecoder)
+  PCCITTFax3Decoder = ^TCCITTFax3Decoder;
+  TCCITTFax3Decoder = {$IFDEF NOCLASSES} object(TCCITTDecoder)
+                      {$ELSE} class(TCCITTDecoder) {$ENDIF}
   public
-    procedure Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer); override;
+    procedure Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer);
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
   end;
 
-  TCCITTMHDecoder = class(TCCITTDecoder) // modified Huffman RLE
+  PCCITTFax4Decoder = ^TCCITTFax4Decoder;
+  TCCITTFax4Decoder = {$IFDEF NOCLASSES} object(TCCITTDecoder)
+                      {$ELSE} class(TCCITTDecoder) {$ENDIF}
   public
-    procedure Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer); override;
+    procedure Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer);
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
   end;
 
-  TLZ77Decoder = class(TDecoder)
+  PCCITTMHDecoder = ^TCCITTMHDecoder;
+  TCCITTMHDecoder = {$IFDEF NOCLASSES} object(TCCITTDecoder)
+                      {$ELSE} class(TCCITTDecoder) {$ENDIF} // modified Huffman RLE
+  public
+    procedure Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer);
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
+  end;
+
+  PLZ77Decoder = ^TLZ77Decoder;
+  TLZ77Decoder = {$IFDEF NOCLASSES} object(TDecoder) {$ELSE} class(TDecoder) {$ENDIF}
   private
     FStream: TZState;
     FZLibResult,         // contains the return code of the last ZLib operation
@@ -167,41 +239,61 @@ type
     function GetAvailableOutput: integer;
   public
     constructor Create(FlushMode: integer; AutoReset: boolean);
-    procedure Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer); override;
-    procedure DecodeEnd; override;
-    procedure DecodeInit; override;
+    procedure Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer);
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
+    procedure DecodeEnd;
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
+    procedure DecodeInit;
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
     property AvailableInput: integer read GetAvailableInput;
     property AvailableOutput: integer read GetAvailableOutput;
     property ZLibResult: integer read FZLibResult;
   end;
 
-  TThunderDecoder = class(TDecoder)
+  TThunderDecoder = {$IFDEF NOCLASSES} object(TDecoder) {$ELSE} class(TDecoder) {$ENDIF}
   private
     FWidth: cardinal; // width of a scanline in pixels
   public
     constructor Create(Width: cardinal);
-    procedure Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer); override;
+    procedure Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer);
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
   end;
 
-  TPCDDecoder = class(TDecoder)
+  PPCDDecoder = ^TPCDDecoder;
+  TPCDDecoder = {$IFDEF NOCLASSES} object(TDecoder) {$ELSE} class(TDecoder) {$ENDIF}
   private
     FStream: PStream;  // decoder must read some data
   public
     constructor Create(Stream: PStream);
-    procedure Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer); override;
+    procedure Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer);
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
   end;
 
 //----------------------------------------------------------------------------------------------------------------------
 
 implementation
 
-uses KOLMath, KOLGraphicEx, KOLGraphicColor;
+uses {$IFDEF NOT_USE_KOL_ERR}math, {$ELSE}KOLMath, {$ENDIF} KOLGraphicEx, KOLGraphicColor;
 
+const GIFBufSize = {$IFDEF GIF_SAFE} 16384 {$ELSE} 4096 {$ENDIF};
 const // LZW encoding and decoding support
   NoLZWCode = 4096;
 
+{$IFDEF GIF_MMX}
+var mmxSupported: Boolean;
+{$ENDIF}
+
 //----------------------------------------------------------------------------------------------------------------------
 
+{$IFDEF NOT_USE_KOL_ERR}
+procedure CompressionError(Code: integer);
+var E: Exception;
+begin
+  E:=Exception.Create(int2str(Code));
+  //E.ErrorCode:=Code;
+  raise E;
+end;
+{$ELSE}
 procedure CompressionError(Code: integer);
 var E: Exception;
 begin
@@ -209,6 +301,7 @@ begin
   E.ErrorCode:=Code;
   raise E;
 end;
+{$ENDIF}
 
 //----------------- TDecoder (generic decoder class) -------------------------------------------------------------------
 
@@ -670,28 +763,318 @@ end;
 
 //----------------- TGIFLZWDecoder -------------------------------------------------------------------------------------
 
-constructor TGIFLZWDecoder.Create(InitialCodeSize: byte);
+constructor TGIFLZWDecoder.Create(InitialCodeSize: byte; linewidth: Integer);
 begin
   FInitialCodeSize:=InitialCodeSize;
+  FLineWidth := linewidth;
 end;
 //----------------------------------------------------------------------------------------------------------------------
+
+procedure doGifLog( usz, psz, data: Integer );
+begin
+  LogFileOutput( GetStartDir + 'gif_log.txt',
+    Int2Str( usz ) + ' '#9 + Int2Str( psz ) + ' '#9 + Int2Str( data ) );
+end;
+
+procedure doGifLog2( data: Byte );
+begin
+  LogFileOutput( GetStartDir + 'gif_log.txt',
+    '<= ' + Int2Str( data ) );
+end;
+
+{
+  Converted from C++ library CxImage (conversion by Vladimir Kladov)
+}
+{$O-}
+procedure TGIFLZWDecoder.CxDecode(var Source, Dest: PByte; PackedSize,UnpackedSize: integer);
+type short = SmallInt;
+const MAX_CODES = 4095;
+      code_mask: array[0..16] of word =
+        ( $0000, $0001, $0003, $0007,
+          $000F, $001F, $003F, $007F,
+          $00FF, $01FF, $03FF, $07FF,
+          $0FFF, $1FFF, $3FFF, $7FFF, $FFFF );
+var sp, bufptr: PByte;
+    buf: PByte;
+    code, fc, oc, bufcnt: short;
+    c, size: short;
+    ret: Integer;
+    bad_code_count: Integer;
+
+    curr_size, top_slot, clear, ending,
+    slot, newcodes: short;
+    {navail_bytes,} nbits_left: short;
+
+    stack, suffix: array[ 0..MAX_CODES ] of Byte;
+    prefix: array[ 0..MAX_CODES ] of WORD;
+
+    src, dst: PByte;
+    b1: Byte;
+
+    function out_line( from: PByte; count: Integer ): Integer;
+    begin
+      Result := UnpackedSize - count;
+      if Result < 0 then count := UnpackedSize;
+      move( from^, dst^, count );
+      inc( dst, count );
+      dec( UnpackedSize, count );
+    end;
+
+    function get_next_code: short;
+    var	ret: DWORD;
+    begin
+	if (nbits_left = 0) then
+        begin
+		b1 := src^; inc( src ); dec( PackedSize );
+		nbits_left := 8;
+        end;
+
+	if (PackedSize<0) then
+        begin
+          Result := ending; // prevent deadlocks (thanks to Mike Melnikov)
+          Exit;
+        end;
+
+	ret := b1 shr (8 - nbits_left);
+
+	while (curr_size > nbits_left) do
+        begin
+		b1 := src^; inc( src ); dec( PackedSize );
+		ret := ret or ( b1 shl nbits_left );
+		inc( nbits_left, 8 );
+        end;
+
+	nbits_left := nbits_left - curr_size;
+	ret := ret and code_mask[curr_size];
+        Result := ret;
+    end;
+
+begin
+  FillChar( Dest^, UnpackedSize, 0 );
+
+  //* Initialize for decoding a new image... */
+  bad_code_count := 0;
+  size := FInitialCodeSize;
+  if (size < 2) or (9 < size) then
+  begin
+    //return(BAD_CODE_SIZE);
+    FCorrupted := TRUE;
+    Exit;
+  end;
+  // out_line = outline;
+  //init_exp(size);
+  curr_size := size + 1;
+  top_slot  := 1 shl curr_size;
+  clear     := 1 shl size;
+  ending    := clear + 1;
+  slot      := ending + 1;
+  newcodes  := slot;
+  //navail_bytes := 0;
+  nbits_left   := 0;
+
+  FillChar( stack, SizeOf( stack ), 0 );
+  FillChar( prefix, SizeOf( prefix ), 0 );
+  FillChar( suffix, SizeOf( suffix ), 0 );
+
+  (* Initialize in case they forgot to put in a clear code.
+   * (This shouldn't happen, but we'll try and decode it anyway...)
+   *)
+  oc := 0;
+  fc := 0;
+
+  //* Allocate space for the decode buffer */
+  buf := AllocMem( FLinewidth + 1 );
+  if (buf = nil) then
+  begin
+    //return(OUT_OF_MEMORY);
+    Exit;
+  end;
+
+  //* Set up the stack pointer and decode buffer pointer */
+  sp := @ stack[ 0 ];
+  bufptr := buf;
+  bufcnt := FLinewidth;
+
+  (* This is the main loop.  For each code we get we pass through the
+   * linked list of prefix codes, pushing the corresponding "character" for
+   * each code onto the stack.  When the list reaches a single "character"
+   * we push that on the stack too, and then start unstacking each
+   * character for output in the correct order.  Special handling is
+   * included for the clear code, and the whole thing ends when we get
+   * an ending code.
+   *)
+  src := Source;
+  dst := Dest;
+  while TRUE do
+  begin
+    c := get_next_code;
+    if c = ending then break;
+
+    //* If the code is a clear code, reinitialize all necessary items.*/
+    if (c = clear) then
+    begin
+            curr_size := size + 1;
+            slot      := newcodes;
+            top_slot  := 1 shl curr_size;
+
+            (* Continue reading codes until we get a non-clear code
+            * (Another unlikely, but possible case...)
+            *)
+            REPEAT
+               c := get_next_code;
+            UNTIL c <> clear;
+
+            (* If we get an ending code immediately after a clear code
+            * (Yet another unlikely case), then break out of the loop.
+            *)
+            if c = ending then break;
+
+            (* Finally, if the code is beyond the range of already set codes,
+            * (This one had better NOT happen...  I have no idea what will
+            * result from this, but I doubt it will look good...) then set it
+            * to color zero.
+            *)
+            if (c >= slot) then c := 0;
+            fc := c;
+            oc := fc;
+
+            (* And let us not forget to put the char into the buffer... And
+            * if, on the off chance, we were exactly one pixel from the end
+            * of the line, we have to send the buffer to the out_line()
+            * routine...
+            *)
+            bufptr^ := c; inc( bufptr );
+            dec( bufcnt );
+            if (bufcnt = 0) then
+            begin
+              ret := out_line( buf, FLinewidth );
+              if (ret <= 0) then
+              begin
+                FreeMem( buf );
+                Exit;
+              end;
+              bufptr := buf;
+              bufcnt := FLinewidth;
+            end;
+    end
+      else
+    begin
+            (* In this case, it's not a clear code or an ending code, so
+            * it must be a code code...  So we can now decode the code into
+            * a stack of character codes. (Clear as mud, right?)
+            *)
+            code := c;
+
+            (* Here we go again with one of those off chances...  If, on the
+            * off chance, the code we got is beyond the range of those already
+            * set up (Another thing which had better NOT happen...) we trick
+            * the decoder into thinking it actually got the last code read.
+            * (Hmmn... I'm not sure why this works...  But it does...)
+            *)
+            if (code >= slot) then
+            begin
+              if (code > slot) then
+                inc( bad_code_count );
+              code := oc;
+              sp^ := fc; inc( sp );
+            end;
+
+            (* Here we scan back along the linked list of prefixes, pushing
+            * helpless characters (ie. suffixes) onto the stack as we do so.
+            *)
+            while code >= newcodes do
+            begin
+              sp^ := suffix[ code ]; inc( sp );
+              code := prefix[ code ];
+            end;
+
+            (* Push the last character on the stack, and set up the new
+            * prefix and suffix, and if the required slot number is greater
+            * than that allowed by the current bit size, increase the bit
+            * size.  (NOTE - If we are all full, we *don't* save the new
+            * suffix and prefix...  I'm not certain if this is correct...
+            * it might be more proper to overwrite the last code...
+            *)
+            sp^ := code; inc( sp );
+            if (slot < top_slot) then
+            begin
+                    fc := code;
+                    suffix[slot] := fc;
+                    prefix[slot] := oc; inc( slot );
+                    oc := c;
+            end;
+            if (slot >= top_slot) then
+            begin
+                    if (curr_size < 12) then
+                    begin
+                            top_slot := top_slot shl 1;
+                            inc( curr_size );
+                    end;
+            end;
+
+            (* Now that we've pushed the decoded string (in reverse order)
+            * onto the stack, lets pop it off and put it into our decode
+            * buffer...  And when the decode buffer is full, write another
+            * line...
+            *)
+            while (sp <> @ stack[ 0 ]) do
+            begin
+                    dec( sp );
+                    bufptr^ := sp^; inc( bufptr );
+                    dec( bufcnt );
+                    if bufcnt = 0 then
+                    begin
+                            ret := out_line( buf, FLinewidth );
+                            if ret <= 0 then
+                            begin
+                              FreeMem( buf );
+                              Exit;
+                            end;
+                            bufptr := buf;
+                            bufcnt := FLinewidth;
+                    end;
+            end;
+
+    end;
+
+  end;
+
+  if (bufcnt <> FLinewidth) then
+    {ret :=} out_line( buf, FLinewidth - bufcnt );
+  FreeMem( buf );
+
+  if bad_code_count > 0 then
+    FCorrupted := TRUE;
+
+end;
 
 procedure TGIFLZWDecoder.Decode(var Source, Dest: pointer; PackedSize,UnpackedSize: integer);
 var I: integer;
     Data,                               // current data
-    Bits,                               // counter for bit management
-    Code: cardinal;                     // current code value
+    Bits                               // counter for bit management
+    {$IFNDEF ASM_GIF}
+    ,Code{$ENDIF}: cardinal;                     // current code value
+
     SourcePtr: PByte;
     InCode: cardinal;                   // Buffer for passed code
     CodeSize,CodeMask,FreeCode,OldCode: cardinal;
-    Prefix: array[0..4095] of cardinal; // LZW prefix
+    Prefix: array[0..GIFBufSize-1] of cardinal; // LZW prefix
     Suffix,                             // LZW suffix
-    Stack: array[0..4095] of byte;      // stack
+    Stack: array[0..GIFBufSize-1] of byte;      // stack
     StackPointer,Target: PByte;
     FirstChar: byte;                    // Buffer for decoded byte
-    ClearCode,EOICode: word;
+    ClearCode,EOICode: {$IFDEF ASM_GIF} cardinal {$ELSE} word {$ENDIF};
+    {$IFDEF ASM_GIF}
+    initial_code_size: Byte;
+    {$ENDIF}
+    {$IFDEF GIF_SAFE}
+    Bad: Boolean;
+    {$ENDIF}
 begin
-  Target:=Dest;
+  {$IFDEF GIF_SAFE}
+  Bad := FALSE;
+  {$ENDIF}
+  Target:=Dest; if Target <> nil then;
   SourcePtr:=Source;
   // initialize parameter
   CodeSize:=FInitialCodeSize+1;
@@ -701,18 +1084,42 @@ begin
   OldCode:=NoLZWCode;
   CodeMask:=(1 shl CodeSize)-1;
   // init code table
+  {$IFDEF GIF_SAFE}
+  FillChar( Suffix, SizeOf( Suffix ), 0 );
+  FillChar( Prefix, SizeOf( Prefix ), 0 );
+  //FillChar( Stack, SizeOf( Stack ), 0 );
+  {$ENDIF}
   for I:=0 to ClearCode-1 do
     begin
       Prefix[I]:=NoLZWCode;
       Suffix[I]:=I;
     end;
   // initialize stack
-  StackPointer:=@Stack;
+  StackPointer:=@Stack; if StackPointer <> nil then;
   FirstChar:=0;
   Data:=0;
   Bits:=0;
+  {$IFDEF ASM_GIF}
+      initial_code_size := FInitialCodeSize;
+      {$IFDEF GIF_MMX}
+      if mmxSupported then
+        {$I GIF_MMX.inc}
+        else
+      {$ENDIF} /////////////////////////////////////////////////////////////////////
+        {$I GIF_ASM.inc}
+      {$IFDEF GIF_SAFE}
+        if Bad then FCorrupted := TRUE;
+        {$IFDEF GIF_TRY_CX}
+        if Bad then
+          CxDecode( PByte( Source ), PByte( Dest ), PackedSize, UnpackedSize );
+        {$ENDIF}
+      {$ENDIF}
+  {$ELSE}
   while (UnpackedSize>0) and (PackedSize>0) do
     begin
+      {$IFDEF GIF_LOG}
+      doGifLog( UnpackedSize, PackedSize, Data );
+      {$ENDIF}
       // read code from bit stream
       Inc(Data,SourcePtr^ shl Bits);
       Inc(Bits,8);
@@ -741,6 +1148,9 @@ begin
           if OldCode=NoLZWCode then
             begin
               FirstChar:=Suffix[Code];
+              {$IFDEF GIF_LOG}
+              doGifLog2( FirstChar );
+              {$ENDIF}
               Target^:=FirstChar;
               Inc(Target);
               Dec(UnpackedSize);
@@ -780,6 +1190,9 @@ begin
           OldCode:=InCode;
           repeat
             Dec(StackPointer);
+            {$IFDEF GIF_LOG}
+            doGifLog2( StackPointer^ );
+            {$ENDIF}
             Target^:=StackPointer^;
             Inc(Target);
             Dec(UnpackedSize);
@@ -788,6 +1201,7 @@ begin
       Inc(SourcePtr);
       Dec(PackedSize);
     end;
+  {$ENDIF}
 end;
 
 //----------------- TRLADecoder ----------------------------------------------------------------------------------------
@@ -1199,7 +1613,7 @@ begin
            MOV  EDX,[EDX]
       @@1:
            MOV  AL,[EDX]
-           XLAT
+           XLATB //<<<XLAT
            MOV  [EDX],AL
            INC  EDX
            DEC  ECX
@@ -1234,7 +1648,107 @@ begin
         if RunLength=G3_EOL then Inc(EOLCount) else Break;
     until (RunLength=G3_EOL) or (FPackedSize=0);
     AdjustEOL;
+  {$IFDEF FPC}
+  until (FPackedSize=0) or (PChar(FTarget)-PChar(Dest)>=UnpackedSize);
+  {$ELSE}
   until (FPackedSize=0) or (FTarget-PChar(Dest)>=UnpackedSize);
+  {$ENDIF}
+end;
+
+//----------------- TCCITTFax4Decoder ----------------------------------------------------------------------------------
+
+procedure TCCITTFax4Decoder.Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer);
+var
+  RunLength: integer;
+  EOLCount: integer;
+  //--------------- local functions -------------------------------------------
+  procedure SynchBOL;
+  // synch bit stream to next line start
+  var Count: integer;
+  begin
+    // if no EOL codes have been read so far then do it now
+    if EOLCount=0 then
+      begin
+        // advance until 11 consecutive 0 bits have been found
+        Count:=0;
+        while (Count<11) and (FPackedSize>0) do
+          begin
+            if NextBit then Count:=0 else Inc(Count);
+          end;
+      end;
+    // read 8 bit until at least one set bit is found
+    repeat
+      Count:=0;
+      while (Count<8) and (FPackedSize>0) do
+        begin
+          if NextBit then Count:=9 else Inc(Count);
+        end;
+    until (Count>8) or (FPackedSize=0);
+    // here we are already beyond the set bit and can restart scanning
+    EOLCount:=0;
+  end;
+  //---------------------------------------------------------------------------
+  procedure AdjustEOL;
+  begin
+    FIsWhite:=False;
+    if FFreeTargetBits in [1..7] then Inc(FTarget);
+    FFreeTargetBits:=8;
+    FRestWidth:=FWidth;
+  end;
+  //--------------- end local functions ---------------------------------------
+begin
+  // make all bits white
+  FillChar(Dest^,UnpackedSize,0);
+  // swap all bits here, in order to avoid frequent tests in the main loop
+  if FSwapBits then
+    asm
+           PUSH EBX
+           LEA  EBX,ReverseTable
+           MOV  ECX,[PackedSize]
+           MOV  EDX,[Source]
+           MOV  EDX,[EDX]
+      @@1:
+           MOV  AL,[EDX]
+           XLATB //<<<XLAT
+           MOV  [EDX],AL
+           INC  EDX
+           DEC  ECX
+           JNZ  @@1
+           POP  EBX
+    end;
+  // setup initial states
+  // a row always starts with a (possibly zero-length) white run
+  FSource:=Source;
+  FBitsLeft:=0;
+  FPackedSize:=PackedSize;
+  // target preparation
+  FTarget:=Dest;
+  FRestWidth:=FWidth;
+  FFreeTargetBits:=8;
+  EOLCount:=0;
+  // main loop
+  repeat
+    // synchronize to start of next line
+    SynchBOL;
+    // a line always starts with a white run
+    FIsWhite:=True;
+    // decode one line
+    repeat
+      if FIsWhite then RunLength:=FindWhiteCode else RunLength:=FindBlackCode;
+      if RunLength>=0 then
+        begin
+          if FillRun(RunLength) then Break;
+          FIsWhite:=not FIsWhite;
+        end
+      else
+        if RunLength=G3_EOL then Inc(EOLCount) else Break;
+    until (RunLength=G3_EOL) or (FPackedSize=0);
+    AdjustEOL;
+  {$IFDEF FPC}
+  until (FPackedSize=0) or (PChar(FTarget)-PChar(Dest)>=UnpackedSize);
+  {$ELSE}
+  until (FPackedSize=0) or (FTarget-PChar(Dest)>=UnpackedSize);
+  {$ENDIF}
 end;
 
 //----------------- TCCITTMHDecoder ------------------------------------------------------------------------------------
@@ -1265,7 +1779,7 @@ begin
            MOV  EDX,[EDX]
       @@1:
            MOV  AL,[EDX]
-           XLAT
+           XLATB //<<<XLATB
            MOV  [EDX],AL
            INC  EDX
            DEC  ECX
@@ -1643,6 +2157,11 @@ begin
     if Assigned(Buffer) then FreeMem(Buffer);
   end;
 end;
+
+{$IFDEF GIF_MMX}
+initialization
+  mmxSupported := GetCPUType >= [ cpuMMX ];
+{$ENDIF}
 
 end.
 

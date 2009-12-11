@@ -1,3 +1,10 @@
+{$IFDEF FPC}
+{$DEFINE NOT_USE_KOL_ERR}
+{$MODE Delphi}
+{$ASMMODE intel}
+{$GOTO ON}
+{$ENDIF}
+
 unit Errors;
 
 interface

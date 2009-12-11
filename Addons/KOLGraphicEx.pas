@@ -1,3 +1,11 @@
+//{$DEFINE NOCLASSES}
+{$IFDEF FPC}
+{$DEFINE NOT_USE_KOL_ERR}
+{$MODE Delphi}
+{$ASMMODE intel}
+{$GOTO ON}
+{$ENDIF}
+
 unit KOLGraphicEx;
 
 // (c) Copyright 1999, 2000  Dipl. Ing. Mike Lischke (public@lischke-online.de). All rights reserved.
@@ -49,8 +57,11 @@ unit KOLGraphicEx;
 interface
 
 {$ALIGN OFF}
+{$I KOLDEF.INC}
 
-uses Windows, KOL, Err, KOLGraphicCompression, KOLGraphicColor, Errors;
+{$O+}
+
+uses Windows, KOL, KOLGraphicCompression, KOLGraphicColor, Errors, {$IFDEF NOT_USE_KOL_ERR}sysutils {$ELSE}Err {$ENDIF} ;
 
 type
   TCardinalArray = array of cardinal;
@@ -146,51 +157,79 @@ type
   // This is the general base class for all image types implemented in GraphicEx.
   // It contains some generally used class/data.
   PGraphicExGraphic = ^TGraphicExGraphic;
-  TGraphicExGraphic = class
+  TGraphicExGraphic = {$IFDEF NOCLASSES} object(TObj) {$ELSE} class {$ENDIF}
   private
     FColorManager: PColorManager;
     FImageProperties: TImageProperties;
     FBasePosition: cardinal;  // stream start position
     FStream: PStream;         // used for local references of the stream the class is currently loading from
     FBitmap: PBitmap;
+    FCorrupted: Boolean;
+  protected
+    {$IFNDEF USE_GLOBALS}
+    CurrentLineR: array of integer;
+    CurrentLineG: array of integer;
+    CurrentLineB: array of integer;
+    {$ENDIF}
+  protected
+    function GetWidth: Integer;
+    function GetHeight: Integer;
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
+    {$IFNDEF NOCLASSES}
     class function CanLoad(const Filename: string): boolean; overload; virtual;
-    class function CanLoad(Stream: PStream): boolean; overload; virtual;
+    {$ENDIF}
+    {$IFNDEF NOCLASSES} class {$ENDIF}
+    function CanLoad(Stream: PStream): boolean;
+      {$IFNDEF NOCLASSES} overload; {$ENDIF} virtual;
     function ReadImageProperties(Stream: PStream; ImageIndex: cardinal): boolean; virtual;
     property Bitmap: PBitmap read FBitmap;
     property ColorManager: PColorManager read FColorManager;
     property ImageProperties: TImageProperties read FImageProperties write FImageProperties;
+    property Width: Integer read GetWidth;
+    property Height: Integer read GetHeight;
+    property Corrupted: Boolean read FCorrupted;
   end;
 
+  {$IFNDEF NOCLASSES}
   TGraphicExGraphicClass = class of TGraphicExGraphic;
+  {$ENDIF}
 
   // *.bw, *.rgb, *.rgba, *.sgi images
-  TSGIGraphic = class(TGraphicExGraphic)
+  TSGIGraphic = {$IFDEF NOCLASSES} object(TGraphicExGraphic)
+                {$ELSE} class(TGraphicExGraphic) {$ENDIF}
   private
     FRowStart,
     FRowSize: PDWORDArray;       // start and length of a line (if compressed)
-    FDecoder: TDecoder;          // ...same applies here
+    {$IFDEF NOCLASSES} FDecoder: PSGIRLEDecoder;
+    {$ELSE} FDecoder: TDecoder; {$ENDIF}         // ...same applies here
     procedure ReadAndDecode(Red,Green,Blue,Alpha: pointer; Row,BPC: cardinal);
   public
-    class function CanLoad(Stream: PStream): boolean; override;
+    {$IFNDEF NOCLASSES} class {$ENDIF}
+    function CanLoad(Stream: PStream): boolean;
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
     procedure LoadFromStream(Stream: PStream);
-    function ReadImageProperties(Stream: PStream; ImageIndex: cardinal): boolean;
+    function ReadImageProperties(Stream: PStream; ImageIndex: cardinal):
+      boolean; {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
   end;
 
   // *.cel, *.pic images
-  TAutodeskGraphic = class(TGraphicExGraphic)
+  TAutodeskGraphic = {$IFDEF NOCLASSES} object( TGraphicExGraphic )
+                     {$ELSE} class(TGraphicExGraphic) {$ENDIF}
   public
-    class function CanLoad(Stream: PStream): boolean; override;
+    {$IFNDEF NOCLASSES} class {$ENDIF}
+    function CanLoad(Stream: PStream): boolean;
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
     procedure LoadFromStream(Stream: PStream);
-    function ReadImageProperties(Stream: PStream; ImageIndex: cardinal): boolean; override;
+    function ReadImageProperties(Stream: PStream; ImageIndex: cardinal): boolean;
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
   end;
 
   // *.tif, *.tiff images
   // one entry in a an IFD (image file directory)
   TIFDEntry = packed record
-    Tag: word;
+    ATag: word;
     DataType: word;
     DataLength: cardinal;
     Offset: cardinal;
@@ -198,64 +237,88 @@ type
 
   TTIFFPalette = array[0..787] of word;
 
-  TTIFFGraphic = class(TGraphicExGraphic)
+  PTIFFGraphic = ^TTIFFGraphic;
+  TTIFFGraphic = {$IFDEF NOCLASSES} object(TGraphicExGraphic)
+                 {$ELSE} class(TGraphicExGraphic) {$ENDIF}
   private
     FIFD: array of TIFDEntry; // the tags of one image file directory
     FPalette: TTIFFPalette;
     FYCbCrPositioning: cardinal;
     FYCbCrCoefficients: TFloatArray;
-    function FindTag(Tag: cardinal; var Index: cardinal): boolean;
-    procedure GetValueList(Stream: PStream; Tag: cardinal; var Values: TByteArray); overload;
-    procedure GetValueList(Stream: PStream; Tag: cardinal; var Values: TCardinalArray); overload;
-    procedure GetValueList(Stream: PStream; Tag: cardinal; var Values: TFloatArray); overload;
-    function GetValue(Stream: PStream; Tag: cardinal; Default: single = 0): single; overload;
-    function GetValue(Tag: cardinal; Default: cardinal = 0): Cardinal; overload;
-    function GetValue(Tag: cardinal; var Size: cardinal; Default: cardinal = 0): cardinal; overload;
+    function FindTag(ATag: cardinal; var Index: cardinal): boolean;
+    procedure GetValueList(Stream: PStream; ATag: cardinal; var Values: TByteArray); overload;
+    procedure GetValueList(Stream: PStream; ATag: cardinal; var Values: TCardinalArray); overload;
+    procedure GetValueList(Stream: PStream; ATag: cardinal; var Values: TFloatArray); overload;
+    function GetValue(Stream: PStream; ATag: cardinal; Default: single = 0): single; overload;
+    function GetValue(ATag: cardinal; Default: cardinal = 0): Cardinal; overload;
+    function GetValue(ATag: cardinal; var Size: cardinal; Default: cardinal = 0): cardinal; overload;
     procedure SortIFD;
     procedure SwapIFD;
   public
-    class function CanLoad(Stream: PStream): boolean; override;
+    {$IFNDEF NOCLASSES} class {$ENDIF}
+    function CanLoad(Stream: PStream): boolean;
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
     procedure LoadFromStream(Stream: PStream);
-    function ReadImageProperties(Stream: PStream; ImageIndex: cardinal): boolean; override;
+    function ReadImageProperties(Stream: PStream; ImageIndex: cardinal): boolean;
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
   end;
 
-  TEPSGraphic = class(TTIFFGraphic)
+  TEPSGraphic = {$IFDEF NOCLASSES} object(TTIFFGraphic)
+                {$ELSE} class(TTIFFGraphic) {$ENDIF}
   public
-    class function CanLoad(Stream: PStream): boolean; override;
+    {$IFNDEF NOCLASSES} class {$ENDIF}
+    function CanLoad(Stream: PStream): boolean;
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
     procedure LoadFromStream(Stream: PStream);
-    function ReadImageProperties(Stream: PStream; ImageIndex: cardinal): boolean; override;
+    function ReadImageProperties(Stream: PStream; ImageIndex: cardinal): boolean;
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
   end;
 
   // *.tga; *.vst; *.icb; *.vda; *.win images
-  TTGAGraphic = class(TGraphicExGraphic)
+  TTGAGraphic = {$IFDEF NOCLASSES} object(TGraphicExGraphic)
+                {$ELSE} class(TGraphicExGraphic) {$ENDIF}
    public
-    class function CanLoad(Stream: PStream): boolean; override;
+    {$IFNDEF NOCLASSES} class {$ENDIF}
+    function CanLoad(Stream: PStream): boolean;
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
     procedure LoadFromStream(Stream: PStream);
-    function ReadImageProperties(Stream: PStream; ImageIndex: cardinal): boolean; override;
+    function ReadImageProperties(Stream: PStream; ImageIndex: cardinal): boolean;
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
   end;
 
   // *.pcx; *.pcc; *.scr images
   // Note: Due to the badly designed format a PCX/SCR file cannot be part in a larger stream because the position of the
   //       color palette as well as the decoding size can only be determined by the size of the image.
   //       Hence the image must be the only one in the stream or the last one.
-  TPCXGraphic = class(TGraphicExGraphic)
+  PPCXGraphic = ^TPCXGraphic;
+  TPCXGraphic = {$IFDEF NOCLASSES} object(TGraphicExGraphic)
+                {$ELSE} class(TGraphicExGraphic) {$ENDIF}
   public
-    class function CanLoad(Stream: PStream): boolean; override;
+    {$IFNDEF NOCLASSES} class {$ENDIF}
+    function CanLoad(Stream: PStream): boolean;
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
     procedure LoadFromStream(Stream: PStream);
-    function ReadImageProperties(Stream: PStream; ImageIndex: cardinal): boolean; override;
+    function ReadImageProperties(Stream: PStream; ImageIndex: cardinal): boolean;
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
   end;
 
   // *.pcd images
   // Note: By default the BASE resolution of a PCD image is loaded with LoadFromStream.
-  TPCDGraphic = class(TGraphicExGraphic)
+  TPCDGraphic = {$IFDEF NOCLASSES} object(TGraphicExGraphic)
+                {$ELSE} class(TGraphicExGraphic) {$ENDIF}
   public
-    class function CanLoad(Stream: PStream): boolean; override;
+    {$IFNDEF NOCLASSES} class {$ENDIF}
+    function CanLoad(Stream: PStream): boolean;
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
     procedure LoadFromStream(Stream: PStream);
-    function ReadImageProperties(Stream: PStream; ImageIndex: cardinal): boolean; override;
+    function ReadImageProperties(Stream: PStream; ImageIndex: cardinal): boolean;
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
   end;
 
   // *.ppm, *.pgm, *.pbm images
-  TPPMGraphic = class(TGraphicExGraphic)
+  PPPMGraphic = ^TPPMGraphic;
+  TPPMGraphic = {$IFDEF NOCLASSES} object(TGraphicExGraphic)
+                {$ELSE} class(TGraphicExGraphic) {$ENDIF}
   private
     FBuffer: array[0..4095] of Char;
     FIndex: integer;
@@ -264,60 +327,88 @@ type
     function GetNumber: cardinal;
     function ReadLine: string;
   public
-    class function CanLoad(Stream: PStream): boolean; override;
+    {$IFNDEF NOCLASSES} class {$ENDIF}
+    function CanLoad(Stream: PStream): boolean;
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
     procedure LoadFromStream(Stream: PStream);
-    function ReadImageProperties(Stream: PStream; ImageIndex: cardinal): boolean; override;
+    function ReadImageProperties(Stream: PStream; ImageIndex: cardinal): boolean;
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
   end;
 
   // *.cut (+ *.pal) images
   // Note: Also this format should not be used in a stream unless it is the only image or the last one!
-  TCUTGraphic = class(TGraphicExGraphic)
+  TCUTGraphic = {$IFDEF NOCLASSES} object(TGraphicExGraphic)
+                {$ELSE} class(TGraphicExGraphic) {$ENDIF}
   private
     FPaletteFile: string;
   protected
     procedure LoadPalette;
   public
-    class function CanLoad(Stream: PStream): boolean; override;
+    {$IFNDEF NOCLASSES} class {$ENDIF}
+    function CanLoad(Stream: PStream): boolean;
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
     procedure LoadFromStream(Stream: PStream);
-    function ReadImageProperties(Stream: PStream; ImageIndex: cardinal): boolean; override;
+    function ReadImageProperties(Stream: PStream; ImageIndex: cardinal): boolean;
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
     property PaletteFile: string read FPaletteFile write FPaletteFile;
   end;
 
   // *.gif images
-  TGIFGraphic = class(TGraphicExGraphic)
+  {$IFDEF NOCLASSES} PGifGraphic = ^TGIFGraphic; {$ENDIF}
+  TGIFGraphic = {$IFDEF NOCLASSES} object(TGraphicExGraphic)
+                {$ELSE} class(TGraphicExGraphic) {$ENDIF}
   private
     function SkipExtensions: byte;
   public
-    class function CanLoad(Stream: PStream): boolean; override;
+    {$IFNDEF NOCLASSES} class {$ENDIF}
+    function CanLoad(Stream: PStream): boolean;
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
     procedure LoadFromStream(Stream: PStream);
-    function ReadImageProperties(Stream: PStream; ImageIndex: cardinal): boolean; override;
+    function ReadImageProperties(Stream: PStream; ImageIndex: cardinal): boolean;
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
+    function Transparent: Boolean;
+    function Count: Integer;
   end;
 
   // *.rla, *.rpf images
   // implementation based on code from Dipl. Ing. Ingo Neumann (ingo@upstart.de, ingo_n@dialup.nacamar.de)
-  TRLAGraphic = class(TGraphicExGraphic)
+  TRLAGraphic = {$IFDEF NOCLASSES} object(TGraphicExGraphic)
+                {$ELSE} class(TGraphicExGraphic) {$ENDIF}
   private
     procedure SwapHeader(var Header); // start position of the image header in the stream
   public
-    class function CanLoad(Stream: PStream): boolean; override;
+    {$IFNDEF NOCLASSES} class {$ENDIF}
+    function CanLoad(Stream: PStream): boolean;
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
     procedure LoadFromStream(Stream: PStream);
-    function ReadImageProperties(Stream: PStream; ImageIndex: cardinal): boolean; override;
+    function ReadImageProperties(Stream: PStream; ImageIndex: cardinal): boolean;
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
   end;
 
   // *.psd, *.pdd images
-  TPSDGraphic = class(TGraphicExGraphic)
+  PPSDGraphic = ^TPSDGraphic;
+  TPSDGraphic = {$IFDEF NOCLASSES} object(TGraphicExGraphic)
+                {$ELSE} class(TGraphicExGraphic) {$ENDIF}
   public
-    class function CanLoad(Stream: PStream): boolean; override;
+    {$IFNDEF NOCLASSES} class {$ENDIF}
+    function CanLoad(Stream: PStream): boolean;
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
     procedure LoadFromStream(Stream: PStream);
-    function ReadImageProperties(Stream: PStream; ImageIndex: cardinal): boolean; override;
+    function ReadImageProperties(Stream: PStream; ImageIndex: cardinal): boolean;
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
   end;
 
+  PPSPGraphic = ^TPSPGraphic;
   // *.psp images (file version 3 and 4)
-  TPSPGraphic = class(TGraphicExGraphic)
+  TPSPGraphic = {$IFDEF NOCLASSES} object( TGraphicExGraphic )
+                {$ELSE} class(TGraphicExGraphic) {$ENDIF}
   public
-    class function CanLoad(Stream: PStream): boolean; override;
+    {$IFNDEF NOCLASSES} class {$ENDIF}
+    function CanLoad(Stream: PStream): boolean;
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
     procedure LoadFromStream(Stream: PStream);
-    function ReadImageProperties(Stream: PStream; ImageIndex: cardinal): boolean; override;
+    function ReadImageProperties(Stream: PStream; ImageIndex: cardinal): boolean;
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
   end;
 
   // *.png images
@@ -331,9 +422,12 @@ type
     ChunkType: TChunkType;
   end;
 
-  TPNGGraphic = class(TGraphicExGraphic)
+  TPNGGraphic = {$IFDEF NOCLASSES} object(TGraphicExGraphic)
+                {$ELSE} class(TGraphicExGraphic) {$ENDIF}
   private
-    FDecoder: TLZ77Decoder;
+    {$IFDEF NOCLASSES}
+    FDecoder: PLZ77Decoder;
+    {$ELSE} FDecoder: TLZ77Decoder; {$ENDIF}
     FIDATSize: integer;        // remaining bytes in the current IDAT chunk
     FRawBuffer,                // buffer to load raw chunk data and to check CRC
     FCurrentSource: pointer;   // points into FRawBuffer for current position of decoding
@@ -358,9 +452,12 @@ type
     procedure ReadRow(RowBuffer: pointer; BytesPerRow: integer);
     function SetupColorDepth(ColorType,BitDepth: integer): integer;
   public
-    class function CanLoad(Stream: PStream): boolean; override;
+    {$IFNDEF NOCLASSES} class {$ENDIF}
+    function CanLoad(Stream: PStream): boolean;
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
     procedure LoadFromStream(Stream: PStream);
-    function ReadImageProperties(Stream: PStream; ImageIndex: cardinal): boolean; override;
+    function ReadImageProperties(Stream: PStream; ImageIndex: cardinal): boolean;
+      {$IFDEF NOCLASSES} virtual; {$ELSE} override; {$ENDIF}
     property BackgroundColor: TColor read FBackgroundColor;
     property Transparency: TByteArray read FTransparency;
   end;
@@ -391,8 +488,8 @@ type
   TResamplingFilter = (sfBox, sfTriangle, sfHermite, sfBell, sfSpline, sfLanczos3, sfMitchell);
 
   // Resampling support routines
-  procedure Stretch(NewWidth,NewHeight: cardinal; Filter: TResamplingFilter; Radius: single; Source,Target: PBitmap); overload;
-  procedure Stretch(NewWidth,NewHeight: cardinal; Filter: TResamplingFilter; Radius: single; Source: PBitmap); overload;
+  procedure Stretch(NewWidth,NewHeight: cardinal; Filter: TResamplingFilter; Radius: single; Source,Target: PBitmap;G: PGraphicExGraphic); overload;
+  procedure Stretch(NewWidth,NewHeight: cardinal; Filter: TResamplingFilter; Radius: single; Source: PBitmap; G: PGraphicExGraphic); overload;
 
 var
   Comp2Str: array[TCompressionType] of string = (
@@ -406,7 +503,7 @@ var
 
 implementation
 
-uses KOLMath, MZLib;
+uses {$IFDEF NOT_USE_KOL_ERR}Math, {$ELSE}KOLMath, {$ENDIF} MZLib;
 
 const
   PNG = 'PNG';
@@ -464,10 +561,12 @@ type
 const
   DefaultFilterRadius: array[TResamplingFilter] of single = (0.5,1,1,1.5,2,3,2);
 
+{$IFDEF USE_GLOBALS}
 threadvar // globally used cache for current image (speeds up resampling about 10%)
   CurrentLineR: array of integer;
   CurrentLineG: array of integer;
   CurrentLineB: array of integer;
+{$ENDIF}
 
 function Rect(ALeft,ATop,ARight,ABottom: integer): TRect;
 begin
@@ -519,6 +618,15 @@ end;
 
 //----------------------------------------------------------------------------------------------------------------------
 
+{$IFDEF NOT_USE_KOL_ERR}
+procedure GraphicExError(Code: integer); overload;
+var E: Exception;
+begin
+  E:=Exception.Create(int2str(Code));
+  //E.ErrorCode:=Code;
+  raise E;
+end;
+{$ELSE}
 procedure GraphicExError(Code: integer); overload;
 var E: Exception;
 begin
@@ -526,9 +634,19 @@ begin
   E.ErrorCode:=Code;
   raise E;
 end;
+{$ENDIF}
 
 //----------------------------------------------------------------------------------------------------------------------
 
+{$IFDEF NOT_USE_KOL_ERR}
+procedure GraphicExError(Code: integer; Args: array of const); overload;
+var E: Exception;
+begin
+  E:=Exception.CreateFmt(int2str(Code),Args);
+  //E.ErrorCode:=Code;
+  raise E;
+end;
+{$ELSE}
 procedure GraphicExError(Code: integer; Args: array of const); overload;
 var E: Exception;
 begin
@@ -536,6 +654,7 @@ begin
   E.ErrorCode:=Code;
   raise E;
 end;
+{$ENDIF}
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -693,23 +812,23 @@ const
 
 //----------------------------------------------------------------------------------------------------------------------
 
-procedure FillLineChache(N,Delta: integer; Line: pointer);
+procedure FillLineChache(N,Delta: integer; Line: pointer; G: PGraphicExGraphic);
 var I: integer;
     Run: PBGR;
 begin
   Run:=Line;
   for I:=0 to pred(N) do
     begin
-      CurrentLineR[I]:=Run.R;
-      CurrentLineG[I]:=Run.G;
-      CurrentLineB[I]:=Run.B;
+      G.CurrentLineR[I]:=Run.R;
+      G.CurrentLineG[I]:=Run.G;
+      G.CurrentLineB[I]:=Run.B;
       Inc(PByte(Run),Delta);
     end;
 end;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-function ApplyContributors(N: integer; Contributors: TContributors): TBGR;
+function ApplyContributors(N: integer; Contributors: TContributors; G: PGraphicExGraphic): TBGR;
 var RGB: TRGBInt;
     J,Total,Weight: integer;
     Pixel: cardinal;
@@ -725,9 +844,9 @@ begin
     Weight:=Contr.Weight;
     Inc(Total,Weight);
     Pixel:=Contr.Pixel;
-    Inc(RGB.R,CurrentLineR[Pixel]*Weight);
-    Inc(RGB.G,CurrentLineG[Pixel]*Weight);
-    Inc(RGB.B,CurrentLineB[Pixel]*Weight);
+    Inc(RGB.R,G.CurrentLineR[Pixel]*Weight);
+    Inc(RGB.G,G.CurrentLineG[Pixel]*Weight);
+    Inc(RGB.B,G.CurrentLineB[Pixel]*Weight);
     Inc(Contr);
   end;
   if Total=0 then
@@ -746,7 +865,8 @@ end;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-procedure DoStretch(Filter: TFilterFunction; Radius: single; Source,Target: PBitmap);
+procedure DoStretch(Filter: TFilterFunction; Radius: single; Source,Target: PBitmap;
+          G: PGraphicExGraphic);
 // This is the actual scaling routine. Target must be allocated already with sufficient size. Source must
 // contain valid data, Radius must not be 0 and Filter must not be nil.
 var ScaleX,ScaleY: single;  // Zoom scale factors
@@ -833,18 +953,18 @@ begin
       end;
     end;
     // now apply filter to sample horizontally from Src to Work
-    SetLength(CurrentLineR,SourceWidth);
-    SetLength(CurrentLineG,SourceWidth);
-    SetLength(CurrentLineB,SourceWidth);
+    SetLength(G.CurrentLineR,SourceWidth);
+    SetLength(G.CurrentLineG,SourceWidth);
+    SetLength(G.CurrentLineB,SourceWidth);
     for K:=0 to pred(SourceHeight) do
     begin
       SourceLine:=Source.ScanLine[K];
-      FillLineChache(SourceWidth,3,SourceLine);
+      FillLineChache(SourceWidth,3,SourceLine,G);
       DestPixel:=Work.ScanLine[K];
       for I:=0 to pred(TargetWidth) do
         with ContributorList[I] do
         begin
-          DestPixel^:=ApplyContributors(N,ContributorList[I].Contributors);
+          DestPixel^:=ApplyContributors(N,ContributorList[I].Contributors,G);
           // move on to next column
           Inc(DestPixel);
         end;
@@ -908,9 +1028,9 @@ begin
       end;
     end;
     // apply filter to sample vertically from Work to Target
-    SetLength(CurrentLineR,SourceHeight);
-    SetLength(CurrentLineG,SourceHeight);
-    SetLength(CurrentLineB,SourceHeight);
+    SetLength(G.CurrentLineR,SourceHeight);
+    SetLength(G.CurrentLineG,SourceHeight);
+    SetLength(G.CurrentLineB,SourceHeight);
     SourceLine:=Work.ScanLine[0];
     Delta:=Integer(Work.ScanLine[1])-Integer(SourceLine);
     DestLine:=Target.ScanLine[0];
@@ -918,11 +1038,11 @@ begin
     for K:=0 to pred(TargetWidth) do
     begin
       DestPixel:=Pointer(DestLine);
-      FillLineChache(SourceHeight,Delta,SourceLine);
+      FillLineChache(SourceHeight,Delta,SourceLine,G);
       for I:=0 to pred(TargetHeight) do
         with ContributorList[I] do
         begin
-          DestPixel^:=ApplyContributors(N,ContributorList[I].Contributors);
+          DestPixel^:=ApplyContributors(N,ContributorList[I].Contributors,G);
           Inc(Integer(DestPixel),DestDelta);
         end;
       Inc(SourceLine);
@@ -934,15 +1054,16 @@ begin
     ContributorList:=nil;
   finally
     Work.Free;
-    CurrentLineR:=nil;
-    CurrentLineG:=nil;
-    CurrentLineB:=nil;
+    G.CurrentLineR:=nil;
+    G.CurrentLineG:=nil;
+    G.CurrentLineB:=nil;
   end;
 end;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-procedure Stretch(NewWidth,NewHeight: cardinal; Filter: TResamplingFilter; Radius: single; Source,Target: PBitmap);
+procedure Stretch(NewWidth,NewHeight: cardinal; Filter: TResamplingFilter; Radius: single; Source,Target: PBitmap;
+          G: PGraphicExGraphic);
 // Scales the source bitmap to the given size (NewWidth, NewHeight) and stores the Result in Target.
 // Filter describes the filter function to be applied and Radius the size of the filter area.
 // Is Radius = 0 then the recommended filter area will be used (see DefaultFilterRadius).
@@ -953,12 +1074,13 @@ begin
   Target.Width:=NewWidth;
   Target.Height:=NewHeight;
   Source.PixelFormat:=pf24Bit;
-  DoStretch(FilterList[Filter],Radius,Source,Target);
+  DoStretch(FilterList[Filter],Radius,Source,Target,G);
 end;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-procedure Stretch(NewWidth,NewHeight: cardinal; Filter: TResamplingFilter; Radius: single; Source: PBitmap);
+procedure Stretch(NewWidth,NewHeight: cardinal; Filter: TResamplingFilter;
+          Radius: single; Source: PBitmap; G: PGraphicExGraphic);
 var Target: PBitmap;
 begin
   if Radius=0 then Radius:=DefaultFilterRadius[Filter];
@@ -968,7 +1090,7 @@ begin
     Target.Width:=NewWidth;
     Target.Height:=NewHeight;
     Source.PixelFormat:=pf24Bit;
-    DoStretch(FilterList[Filter],Radius,Source,Target);
+    DoStretch(FilterList[Filter],Radius,Source,Target,G);
     Source.Assign(Target);
   finally
     Target.Free;
@@ -1064,6 +1186,16 @@ begin
   FColorManager:=NewColorManager;
 end;
 
+function TGraphicExGraphic.GetWidth: Integer;
+begin
+  Result := ImageProperties.Width;
+end;
+
+function TGraphicExGraphic.GetHeight: Integer;
+begin
+  Result := ImageProperties.Height;
+end;
+
 //----------------------------------------------------------------------------------------------------------------------
 
 destructor TGraphicExGraphic.Destroy;
@@ -1075,7 +1207,8 @@ end;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class function TGraphicExGraphic.CanLoad(const Filename: string): boolean;
+{$IFNDEF NOCLASSES} class
+function TGraphicExGraphic.CanLoad(const Filename: string): boolean;
 var Stream: PStream;
 begin
   Stream:=NewReadFileStream(Filename);
@@ -1085,10 +1218,12 @@ begin
     Stream.Free;
   end;
 end;
+{$ENDIF}
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class function TGraphicExGraphic.CanLoad(Stream: PStream): boolean;
+{$IFNDEF NOCLASSES} class {$ENDIF}
+function TGraphicExGraphic.CanLoad(Stream: PStream): boolean;
 // Descentants have to override this method and return True if they consider the data in Stream
 // as loadable by the particular class.
 // Note: Make sure the stream position is the same on exit as it was on enter!
@@ -1121,7 +1256,8 @@ type
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class function TAutodeskGraphic.CanLoad(Stream: PStream): boolean;
+{$IFNDEF NOCLASSES} class {$ENDIF}
+function TAutodeskGraphic.CanLoad(Stream: PStream): boolean;
 var FileID: word;
     Header: TAutodeskHeader;
     LastPosition: cardinal;
@@ -1232,7 +1368,8 @@ type
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class function TSGIGraphic.CanLoad(Stream: PStream): boolean;
+{$IFNDEF NOCLASSES} class {$ENDIF}
+function TSGIGraphic.CanLoad(Stream: PStream): boolean;
 // returns True if the data in Stream represents a graphic which can be loaded by this class
 var Header: TSGIHeader;
     LastPosition: cardinal;
@@ -1364,7 +1501,8 @@ begin
         SwapLong(Pointer(FRowStart),Count);
         Stream.Read(FRowSize^,Count*sizeof(Cardinal));
         SwapLong(Pointer(FRowSize),Count);
-        FDecoder:=TSGIRLEDecoder.Create(BitsPerSample);
+        {$IFDEF NOCLASSES} new( FDecoder, Create(BitsPerSample) );
+        {$ELSE} FDecoder:=TSGIRLEDecoder.Create(BitsPerSample); {$ENDIF}
       end
       else
       begin
@@ -1432,8 +1570,8 @@ begin
     end;
   end
   else GraphicExError(1{gesInvalidImage},['SGI, BW or RGB(A)']);
-  FreeMem(FRowStart,Count*4);
-  FreeMem(FRowSize,Count*4);
+  FreeMem(FRowStart {,Count*4} );
+  FreeMem(FRowSize {,Count*4} );
 end;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -1765,7 +1903,8 @@ type
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class function TTIFFGraphic.CanLoad(Stream: PStream): boolean;
+{$IFNDEF NOCLASSES} class {$ENDIF}
+function TTIFFGraphic.CanLoad(Stream: PStream): boolean;
 var Header: TTIFFHeader;
     LastPosition: Cardinal;
 begin
@@ -1782,7 +1921,8 @@ begin
           Header.Version:=System.Swap(Header.Version);
           Header.FirstIFD:=SwapLong(Header.FirstIFD);
         end;
-        Result:=(Header.Version=TIFF_VERSION) and (Integer(Header.FirstIFD)<(Stream.Size-Integer(LastPosition)));
+        Result:=(Header.Version=TIFF_VERSION) and
+          (Integer(Header.FirstIFD)<Integer(Stream.Size-LastPosition));
       end;
       Stream.Position:=LastPosition;
     end;
@@ -1790,7 +1930,7 @@ end;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-function TTIFFGraphic.FindTag(Tag: cardinal; var Index: cardinal): boolean;
+function TTIFFGraphic.FindTag(ATag: cardinal; var Index: cardinal): boolean;
 // looks through the currently loaded IFD for the entry indicated by Tag;
 // returns True and the index of the entry in Index if the entry is there
 // otherwise the result is False and Index undefined
@@ -1803,7 +1943,7 @@ begin
   while L<=H do
   begin
     I:=(L+H) shr 1;
-    C:=Integer(FIFD[I].Tag)-Integer(Tag);
+    C:=Integer(FIFD[I].ATag)-Integer(ATag);
     if C<0 then L:=I+1 else
     begin
       H:=I-1;
@@ -1822,12 +1962,12 @@ end;
 const
   DataTypeToSize: array[TIFF_NOTYPE..TIFF_SLONG] of byte = (0,1,1,2,4,8,1,1,2,4);
 
-procedure TTIFFGraphic.GetValueList(Stream: PStream; Tag: cardinal; var Values: TByteArray);
+procedure TTIFFGraphic.GetValueList(Stream: PStream; ATag: cardinal; var Values: TByteArray);
 // returns the values of the IFD entry indicated by Tag
 var Index,Value,Shift: cardinal;
     I: Integer;
 begin
-  if FindTag(Tag,Index) and (FIFD[Index].DataLength>0) then
+  if FindTag(ATag,Index) and (FIFD[Index].DataLength>0) then
   begin
     // prepare value list
     SetLength(Values,FIFD[Index].DataLength);
@@ -1886,13 +2026,13 @@ end;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-procedure TTIFFGraphic.GetValueList(Stream: PStream; Tag: cardinal; var Values: TCardinalArray);
+procedure TTIFFGraphic.GetValueList(Stream: PStream; ATag: cardinal; var Values: TCardinalArray);
 // returns the values of the IFD entry indicated by Tag
 var Index,Value,Shift: cardinal;
     I: integer;
 begin
 //  Values:=nil;
-  if FindTag(Tag,Index) and (FIFD[Index].DataLength>0) then
+  if FindTag(ATag,Index) and (FIFD[Index].DataLength>0) then
   begin
     // prepare value list
     SetLength(Values,FIFD[Index].DataLength);
@@ -1950,7 +2090,7 @@ end;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-procedure TTIFFGraphic.GetValueList(Stream: PStream; Tag: Cardinal; var Values: TFloatArray);
+procedure TTIFFGraphic.GetValueList(Stream: PStream; ATag: Cardinal; var Values: TFloatArray);
 // returns the values of the IFD entry indicated by Tag
 var Index,Shift,IntValue: cardinal;
     Value: single;
@@ -1958,7 +2098,7 @@ var Index,Shift,IntValue: cardinal;
     IntNominator,IntDenominator,FloatNominator,FloatDenominator: cardinal;
 begin
 //  Values:=nil;
-  if FindTag(Tag,Index) and (FIFD[Index].DataLength>0) then
+  if FindTag(ATag,Index) and (FIFD[Index].DataLength>0) then
   begin
     // prepare value list
     SetLength(Values,FIFD[Index].DataLength);
@@ -2046,14 +2186,14 @@ end;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-function TTIFFGraphic.GetValue(Stream: PStream; Tag: cardinal; Default: single = 0): single;
+function TTIFFGraphic.GetValue(Stream: PStream; ATag: cardinal; Default: single = 0): single;
 // returns the value of the IFD entry indicated by Tag or the default value if the entry is not there
 var Index: cardinal;
     IntNominator,IntDenominator: cardinal;
     FloatNominator,FloatDenominator: cardinal;
 begin
   Result:=Default;
-  if FindTag(Tag,Index) then
+  if FindTag(ATag,Index) then
   begin
     // if the data length is>1 then Offset is a real offset into the stream,
     // otherwise it is the value itself and must be shortend depending on the data type
@@ -2100,11 +2240,11 @@ end;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-function TTIFFGraphic.GetValue(Tag: cardinal; Default: cardinal=0): cardinal;
+function TTIFFGraphic.GetValue(ATag: cardinal; Default: cardinal=0): cardinal;
 // returns the value of the IFD entry indicated by Tag or the default value if the entry is not there
 var Index: cardinal;
 begin
-  if not FindTag(Tag, Index) then Result:=Default else
+  if not FindTag(ATag, Index) then Result:=Default else
   begin
     Result:=FIFD[Index].Offset;
     // if the data length is>1 then Offset is a real offset into the stream,
@@ -2129,12 +2269,12 @@ end;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-function TTIFFGraphic.GetValue(Tag: cardinal; var Size: cardinal; Default: cardinal): cardinal;
+function TTIFFGraphic.GetValue(ATag: cardinal; var Size: cardinal; Default: cardinal): cardinal;
 // Returns the value of the IFD entry indicated by Tag or the default value if the entry is not there.
 // If the tag exists then also the data size is returned.
 var Index: cardinal;
 begin
-  if not FindTag(Tag,Index) then
+  if not FindTag(ATag,Index) then
   begin
     Result:=Default;
     Size:=0;
@@ -2180,8 +2320,8 @@ procedure TTIFFGraphic.SortIFD;
       J:=R;
       M:=(L+R) shr 1;
       repeat
-        while FIFD[I].Tag<FIFD[M].Tag do Inc(I);
-        while FIFD[J].Tag>FIFD[M].Tag do Dec(J);
+        while FIFD[I].ATag<FIFD[M].ATag do Inc(I);
+        while FIFD[J].ATag>FIFD[M].ATag do Dec(J);
         if I<=J then
         begin
           T:=FIFD[I];
@@ -2210,7 +2350,7 @@ begin
   for I:=0 to High(FIFD) do
     with FIFD[I] do
     begin
-      Tag:=System.Swap(Tag);
+      ATag:=System.Swap(ATag);
       DataType:=System.Swap(DataType);
       DataLength:=SwapLong(DataLength);
       // determine whether the data fits into 4 bytes
@@ -2232,7 +2372,15 @@ var IFDCount: word;
     Offsets,ByteCounts: TCardinalArray;
     ColorMap: cardinal;
     StripSize: cardinal;
-    Decoder: TDecoder;
+    {$IFDEF NOCLASSES} Decoder: PDecoder; {$ELSE} Decoder: TDecoder; {$ENDIF}
+    {$IFDEF NOCLASSES}
+    TIFFLZWDecoder: PTiffLzwDecoder;
+    PackBitsRLEDecoder: PPackBitsRLEDecoder;
+    CCITTMHDecoder: PCCITTMHDecoder;
+    CCITTFax3Decoder: PCCITTFax3Decoder;
+    CCITTFax4Decoder: PCCITTFax4Decoder;
+    LZ77Decoder: PLZ77Decoder;
+    {$ENDIF}
     // dynamically assigned handler
     Deprediction: procedure(P: pointer; Count: cardinal);
 begin
@@ -2248,7 +2396,7 @@ begin
     with FImageProperties do
     try
       // tiled images aren't supported
-      if ioTiled in Options then Exit;
+      if ioTiled in FImageProperties.Options then Exit;
       // read data of the first image file directory (IFD)
       Stream.Position:=FBasePosition+FirstIFD;
       Stream.Read(IFDCount,sizeof(IFDCount));
@@ -2268,31 +2416,49 @@ begin
         GetValueList(Stream,TIFFTAG_TILEBYTECOUNTS,ByteCounts);
       end;
       // determine pixelformat and setup color conversion
-      if ioBigEndian in Options then ColorManager.SourceOptions:=[coNeedByteSwap] else ColorManager.SourceOptions:=[];
-      ColorManager.SourceBitsPerSample:=BitsPerSample;
-      if ColorManager.SourceBitsPerSample=16 then ColorManager.TargetBitsPerSample:=8 else ColorManager.TargetBitsPerSample:=ColorManager.SourceBitsPerSample;
+      if ioBigEndian in Options then
+        ColorManager.SourceOptions:=[coNeedByteSwap]
+      else
+        ColorManager.SourceOptions:=[];
+      ColorManager.SourceBitsPerSample:=FImageProperties.BitsPerSample;
+      if ColorManager.SourceBitsPerSample=16 then
+        ColorManager.TargetBitsPerSample:=8
+      else
+        ColorManager.TargetBitsPerSample:=ColorManager.SourceBitsPerSample;
       // the JPEG lib does internally a conversion to RGB
-      if Compression in [ctOJPEG,ctJPEG] then ColorManager.SourceColorScheme:=csBGR else ColorManager.SourceColorScheme:=ColorScheme;
+      if FImageProperties.Compression in [ctOJPEG,ctJPEG] then
+        ColorManager.SourceColorScheme:=csBGR
+      else
+        ColorManager.SourceColorScheme:=FImageProperties.ColorScheme;
       case ColorManager.SourceColorScheme of
         csRGBA: ColorManager.TargetColorScheme:=csBGRA;
         csRGB: ColorManager.TargetColorScheme:=csBGR;
         csCMY,csCMYK,csCIELab,csYCbCr: ColorManager.TargetColorScheme:=csBGR;
         csIndexed:
           begin
-            if HasAlpha then ColorManager.SourceColorScheme:=csGA; // fake indexed images with alpha (used in EPS)
-                                                                   // as being grayscale with alpha
+            if HasAlpha then
+              ColorManager.SourceColorScheme:=csGA; // fake indexed images with alpha (used in EPS)
+                                                    // as being grayscale with alpha
             ColorManager.TargetColorScheme:=csIndexed;
           end;
       else
         ColorManager.TargetColorScheme:=ColorManager.SourceColorScheme;
       end;
-      ColorManager.SourceSamplesPerPixel:=SamplesPerPixel;
+      ColorManager.SourceSamplesPerPixel:=FImageProperties.SamplesPerPixel;
       // now that the pixel format is set we can also set the (possibly large) image dimensions
-      FBitmap:=NewBitmap(Width,Height);
-      if ColorManager.SourceColorScheme=csCMYK then ColorManager.TargetSamplesPerPixel:=3 else ColorManager.TargetSamplesPerPixel:=SamplesPerPixel;
-      if ColorManager.SourceColorScheme=csCIELab then ColorManager.SourceOptions:=ColorManager.SourceOptions+[coLabByteRange];
-      if ColorManager.SourceColorScheme=csGA then FBitmap.PixelFormat:=pf8Bit else FBitmap.PixelFormat:=ColorManager.TargetPixelFormat;
-      if (Width=0) or (Height=0) then GraphicExError(1{gesInvalidImage},[TIF]);
+      FBitmap:=NewBitmap(FImageProperties.Width,FImageProperties.Height);
+      if ColorManager.SourceColorScheme=csCMYK then
+        ColorManager.TargetSamplesPerPixel:=3
+      else
+        ColorManager.TargetSamplesPerPixel:=FImageProperties.SamplesPerPixel;
+      if ColorManager.SourceColorScheme=csCIELab then
+        ColorManager.SourceOptions:=ColorManager.SourceOptions+[coLabByteRange];
+      if ColorManager.SourceColorScheme=csGA then
+        FBitmap.PixelFormat:=pf8Bit
+      else
+        FBitmap.PixelFormat:=ColorManager.TargetPixelFormat;
+      if (FImageProperties.Width=0) or (FImageProperties.Height=0) then
+        GraphicExError(1{gesInvalidImage},[TIF]);
       if ColorManager.TargetColorScheme in [csIndexed,csG,csGA] then
       begin
         // load palette data and build palette
@@ -2305,15 +2471,20 @@ begin
             // number of palette entries is also given by the color map tag
             // (3 components each (r,g,b) and two bytes per component)
             Stream.Read(FPalette[0],2*StripSize);
-            ColorManager.CreateColorPalette(FBitmap,[@FPalette[0],@FPalette[StripSize div 3],@FPalette[2*StripSize div 3]],pfPlane16Triple,StripSize,False);
+            ColorManager.CreateColorPalette(FBitmap,[@FPalette[0],
+              @FPalette[StripSize div 3],
+              @FPalette[2*StripSize div 3]],
+              pfPlane16Triple,StripSize div 3,False);
           end;
         end
         else ColorManager.CreateGrayScalePalette(FBitmap,ioMinIsWhite in Options);
       end
       else
-        if ColorManager.SourceColorScheme=csYCbCr then ColorManager.SetYCbCrParameters(FYCbCrCoefficients,YCbCrSubSampling[0],YCbCrSubSampling[1]);
+        if ColorManager.SourceColorScheme=csYCbCr then
+          ColorManager.SetYCbCrParameters(
+            FYCbCrCoefficients,YCbCrSubSampling[0],YCbCrSubSampling[1]);
       // intermediate buffer for data
-      BytesPerLine:=(BitsPerPixel*Width+7) div 8;
+      FImageProperties.BytesPerLine:=(FImageProperties.BitsPerPixel*FImageProperties.Width+7) div 8;
       // determine prediction scheme
       if Compression<>ctNone then
       begin
@@ -2322,7 +2493,7 @@ begin
         // have a prediction scheme set. Hence we must check for it.
         case Predictor of
           PREDICTION_HORZ_DIFFERENCING: // currently only one prediction scheme is defined
-            case SamplesPerPixel of
+            case FImageProperties.SamplesPerPixel of
               4: Deprediction:=Depredict4;
               3: Deprediction:=Depredict3;
             else Deprediction:=Depredict1;
@@ -2330,15 +2501,65 @@ begin
         end;
       end;
       // create decompressor for the image
-      case Compression of
+      CASE FImageProperties.Compression of
         ctNone:       ;
-        ctLZW:        Decoder:=TTIFFLZWDecoder.Create;
-        ctPackedBits: Decoder:=TPackbitsRLEDecoder.Create;
+        ctLZW:        begin
+                      {$IFDEF NOCLASSES} new( TIFFLZWDecoder, Create );
+                      Decoder := TIFFLZWDecoder;
+                      {$ELSE} Decoder:=TTIFFLZWDecoder.Create; {$ENDIF}
+                      end;
+        ctPackedBits: begin
+                      {$IFDEF NOCLASSES} new( PackBitsRLEDecoder, Create );
+                      Decoder := PackBitsRLEDecoder;
+                      {$ELSE} Decoder:=TPackbitsRLEDecoder.Create; {$ENDIF}
+                      end;
         ctFaxRLE,
-        ctFaxRLEW:    Decoder:=TCCITTMHDecoder.Create(GetValue(TIFFTAG_GROUP3OPTIONS),ioReversed in Options,Compression=ctFaxRLEW,Width);
-        ctFax3:       Decoder:=TCCITTFax3Decoder.Create(GetValue(TIFFTAG_GROUP3OPTIONS),ioReversed in Options,False,Width);
-        ctThunderscan: Decoder:=TThunderDecoder.Create(Width);
-        ctLZ77:        Decoder:=TLZ77Decoder.Create(Z_PARTIAL_FLUSH,True);
+        ctFaxRLEW:    begin
+                      {$IFDEF NOCLASSES}
+                      new( CCITTMHDecoder, Create(GetValue(TIFFTAG_GROUP3OPTIONS),
+                              ioReversed in Options,Compression=ctFaxRLEW,Width) );
+                      Decoder := CCITTMHDecoder;
+                      {$ELSE} Decoder:=
+                              TCCITTMHDecoder.Create(GetValue(TIFFTAG_GROUP3OPTIONS),
+                              ioReversed in Options,Compression=ctFaxRLEW,Width);
+                      {$ENDIF}
+                      end;
+        ctFax3:       begin
+                      {$IFDEF NOCLASSES}
+                      new( CCITTFax3Decoder, Create(GetValue(TIFFTAG_GROUP3OPTIONS),ioReversed in Options,False,
+                      Width) ); Decoder := CCITTFax3Decoder;
+                      {$ELSE}
+                      Decoder:=TCCITTFax3Decoder.Create(
+                      GetValue(TIFFTAG_GROUP3OPTIONS),ioReversed in Options,False,
+                      Width);
+                      {$ENDIF}
+                      end;
+        ctFax4:       begin
+                      {$IFDEF NOCLASSES}
+                      new( CCITTFax4Decoder, Create(GetValue(TIFFTAG_GROUP4OPTIONS),ioReversed in Options,False,
+                      Width) ); Decoder := CCITTFax4Decoder;
+                      {$ELSE}
+                      Decoder:=TCCITTFax4Decoder.Create(
+                      GetValue(TIFFTAG_GROUP4OPTIONS),ioReversed in Options,False,
+                      Width);
+                      {$ENDIF}
+                      end;
+        ctThunderscan: begin
+                      {$IFDEF NOCLASSES}
+                      new( LZ77Decoder, Create(Z_PARTIAL_FLUSH,True) );
+                      Decoder := LZ77Decoder;
+                      {$ELSE}
+                      Decoder:=TThunderDecoder.Create(Width);
+                      {$ENDIF}
+                      end;
+        ctLZ77:       begin
+                      {$IFDEF NOCLASSES}
+                      new( LZ77Decoder, Create(Z_PARTIAL_FLUSH,True) );
+                      Decoder := LZ77Decoder;
+                      {$ELSE}
+                      Decoder:=TLZ77Decoder.Create(Z_PARTIAL_FLUSH,True);
+                      {$ENDIF}
+                      end;
       else
         {
         COMPRESSION_OJPEG,
@@ -2352,24 +2573,27 @@ begin
         COMPRESSION_PIXARLOG
         COMPRESSION_DCS
         COMPRESSION_JBIG}
-        GraphicExError(5{gesUnsupportedFeature},[ErrorMsg[11]{gesCompressionScheme},TIF]);
+        GraphicExError(5{gesUnsupportedFeature},[ErrorMsg[11]{gesCompressionScheme},'compression',TIF]);
       end;
       if Assigned(Decoder) then Decoder.DecodeInit;
       // go for each strip in the image (which might contain more than one line)
-      CurrentRow:=0;
-      CurrentStrip:=0;
+      FImageProperties.CurrentRow:=0;
+      FImageProperties.CurrentStrip:=0;
       StripCount:=Length(Offsets);
-      while CurrentStrip<StripCount do
+      while FImageProperties.CurrentStrip<FImageProperties.StripCount do
       begin
         Stream.Position:=FBasePosition+Offsets[CurrentStrip];
-        if CurrentStrip<Length(RowsPerStrip) then StripSize:=BytesPerLine*RowsPerStrip[CurrentStrip] else StripSize:=BytesPerLine*RowsPerStrip[High(RowsPerStrip)];
-        GetMem(Buffer,StripSize);
+        if CurrentStrip<Length(RowsPerStrip) then
+          StripSize:=FImageProperties.BytesPerLine*RowsPerStrip[FImageProperties.CurrentStrip]
+        else
+          StripSize:=FImageProperties.BytesPerLine*RowsPerStrip[High(RowsPerStrip)];
+        GetMem(Buffer,StripSize+{!reserve}100);
         Run:=Buffer;
         try
           // decompress strip if necessary
           if Assigned(Decoder) then
           begin
-            GetMem(EncodedData,ByteCounts[CurrentStrip]);
+            GetMem(EncodedData,ByteCounts[FImageProperties.CurrentStrip]{reserve!}+100);
             try
               DataPointerCopy:=EncodedData;
               Stream.Read(EncodedData^,ByteCounts[CurrentStrip]);
@@ -2386,13 +2610,14 @@ begin
           end;
           Run:=Buffer;
           // go for each line (row) in the strip
-          while (CurrentRow<Height) and ((Run-Buffer)<Integer(StripSize)) do
+          while (FImageProperties.CurrentRow<FImageProperties.Height) and
+                (Run-Buffer<Integer(StripSize)) do
           begin
-            Pixels:=FBitmap.ScanLine[CurrentRow];
+            Pixels:=FBitmap.ScanLine[FImageProperties.CurrentRow];
             // depredict strip if necessary
             if Assigned(Deprediction) then Deprediction(Run,Width-1);
             // any color conversion comes last
-            ColorManager.ConvertRow([Run],Pixels,Width,$FF);
+            ColorManager.ConvertRow([Run],Pixels,FImageProperties.Width,$FF);
             Inc(PChar(Run),BytesPerLine);
             Inc(CurrentRow);
           end;
@@ -2438,9 +2663,9 @@ begin
       Header.Version:=System.Swap(Header.Version);
       Header.FirstIFD:=SwapLong(Header.FirstIFD);
     end;
-    Version:=Header.Version;
+    FImageProperties.Version:=Header.Version;
     FirstIFD:=Header.FirstIFD;
-    if Version=TIFF_VERSION then
+    if FImageProperties.Version=TIFF_VERSION then
     begin
       IFDOffset:=Header.FirstIFD;
       // advance to next IFD until we have the desired one
@@ -2460,7 +2685,8 @@ begin
       until False;
       SetLength(FIFD,IFDCount);
       Stream.Read(FIFD[0],IFDCount*sizeof(TIFDEntry));
-      if Header.ByteOrder=TIFF_BIGENDIAN then SwapIFD;
+      if Header.ByteOrder=TIFF_BIGENDIAN then
+        SwapIFD;
       SortIFD;
       Width:=GetValue(TIFFTAG_IMAGEWIDTH);
       Height:=GetValue(TIFFTAG_IMAGELENGTH);
@@ -2603,7 +2829,8 @@ type
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class function TEPSGraphic.CanLoad(Stream: PStream): boolean;
+{$IFNDEF NOCLASSES} class {$ENDIF}
+function TEPSGraphic.CanLoad(Stream: PStream): boolean;
 var Header: TEPSHeader;
     LastPosition: cardinal;
 begin
@@ -2705,7 +2932,8 @@ type
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class function TTGAGraphic.CanLoad(Stream: PStream): boolean;
+{$IFNDEF NOCLASSES} class {$ENDIF}
+function TTGAGraphic.CanLoad(Stream: PStream): boolean;
 var Header: TTargaHeader;
     LastPosition: cardinal;
 begin
@@ -2735,7 +2963,10 @@ var Run,RLEBuffer: PChar;
     Color16: Word;
     Header: TTargaHeader;
     FlipV: Boolean;
-    Decoder: TTargaRLEDecoder;
+    {$IFDEF NOCLASSES} Decoder: PTargaRLEDecoder;
+    //{$ELSE} Decoder: PTargaRLEDecoder;
+    {$ELSE} Decoder: TTargaRLEDecoder;
+    {$ENDIF}
 begin
   // free previous image
   if Assigned(FBitmap) then FBitmap.Free;
@@ -2803,7 +3034,9 @@ begin
         TARGA_TRUECOLOR_RLE_IMAGE:
           begin
             RLEBuffer:=nil;
-            Decoder:=TTargaRLEDecoder.Create(Header.PixelSize);
+            {$IFDEF NOCLASSES}
+            new( Decoder, Create(Header.PixelSize) );
+            {$ELSE} Decoder:=TTargaRLEDecoder.Create(Header.PixelSize); {$ENDIF}
             try
               GetMem(RLEBuffer,2*LineSize);
               for I:=0 to pred(FBitmap.Height) do
@@ -2812,7 +3045,7 @@ begin
                 ReadLength:=Stream.Read(RLEBuffer^,2*LineSize);
                 Run:=RLEBuffer;
                 Decoder.Decode(Pointer(Run),LineBuffer,2*LineSize,FBitmap.Width);
-                Stream.Position:=Stream.Position-ReadLength+(Run-RLEBuffer);
+                Stream.Position:=Stream.Position-DWORD(ReadLength)+DWORD(Run-RLEBuffer);
               end;
             finally
               if Assigned(RLEBuffer) then FreeMem(RLEBuffer);
@@ -2889,7 +3122,8 @@ type
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class function TPCXGraphic.CanLoad(Stream: PStream): boolean;
+{$IFNDEF NOCLASSES} class {$ENDIF}
+function TPCXGraphic.CanLoad(Stream: PStream): boolean;
 var Header: TPCXHeader;
     LastPosition: cardinal;
 begin
@@ -2898,7 +3132,8 @@ begin
   if Result then
     begin
       Stream.Read(Header,sizeof(Header));
-      Result:=(Header.FileID in [$0A,$0C]) and (Header.Version in [0,2,3,5]) and (Header.Encoding in [0,1]);
+      Result:=(Header.FileID in [$0A,$0C]) and (Header.Version in [0,2,3,5])
+                             and (Header.Encoding in [0,1]);
     end;
   Stream.Position:=LastPosition;
 end;
@@ -2932,7 +3167,18 @@ var Header: TPCXHeader;
             OldPos:=Stream.Position;
             // 256 colors with 3 components plus one marker byte
             Stream.Position:=Stream.Size-769;
-            Stream.Read(Marker,1);
+            for I := 1 to 768 do // если маркера в этом месте нет, делаем попытку
+            begin                // найти его чуть раньше...
+              Stream.Position := Stream.Position - 2;
+              Stream.Read(Marker,1);
+              if Marker = $0C then break;
+            end;
+            if Marker <> $0C then
+            begin // Еще раз попробуем считать палитру из другого места - измеряя
+                  // разер изображения
+              Stream.Position := OldPos + Integer( FImageProperties.BytesPerLine ) * Height;
+              Stream.Read(Marker, 1);
+            end;
             if Marker<>$0C then
             begin
               // palette ID is wrong, perhaps gray scale?
@@ -2964,6 +3210,7 @@ var PCXSize,Size: cardinal;
     Line: PByte;
     Increment: cardinal;
     NewPixelFormat: TPixelFormat;
+    {$IFDEF NOCLASSES} Decoder: PPcxRLEDecoder; {$ELSE} Decoder: TPCXRLEDecoder; {$ENDIF}
 begin
   // free previous image
   if Assigned(FBitmap) then FBitmap.Free;
@@ -3005,7 +3252,9 @@ begin
         GetMem(RawBuffer,PCXSize);
         try
           Stream.Read(RawBuffer^,PCXSize);
-          with TPCXRLEDecoder.Create do
+          {$IFDEF NOCLASSES} new( Decoder, Create );
+          {$ELSE} Decoder := TPCXRLEDecoder.Create; {$ENDIF}
+          with Decoder {$IFDEF NOCLASSES}^{$ENDIF} do
           try
             Decode(RawBuffer,DecodeBuffer,PCXSize,Size);
           finally
@@ -3119,6 +3368,7 @@ begin
         SamplesPerPixel:=Header.ColorPlanes;
         BitsPerSample:=Header.BitsPerPixel;
         BitsPerPixel:=BitsPerSample*SamplesPerPixel;
+        BytesPerLine := Header.BytesPerLine;
         if BitsPerPixel<=8 then ColorScheme:=csIndexed else ColorScheme:=csRGB;
         if Header.Encoding=1 then Compression:=ctRLE else Compression:=ctNone;
         XResolution:=Header.HRes;
@@ -3141,7 +3391,8 @@ const
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class function TPCDGraphic.CanLoad(Stream: PStream): boolean;
+{$IFNDEF NOCLASSES} class {$ENDIF}
+function TPCDGraphic.CanLoad(Stream: PStream): boolean;
 var Header: array[0..$802] of byte;
     LastPosition: cardinal;
 begin
@@ -3165,7 +3416,7 @@ var C1,C2,YY: PChar;
     ScanLines: array of pointer;
     LineBuffer: pointer;
     Line,Run: PBGR;
-    Decoder: TPCDDecoder;
+    {$IFDEF NOCLASSES} Decoder: PPCDDecoder; {$ELSE} Decoder: TPCDDecoder; {$ENDIF}
 begin
   // free previous image
   if Assigned(FBitmap) then FBitmap.Free;
@@ -3252,7 +3503,8 @@ begin
           if ImageIndex>=3 then
           begin
 //            Inc(Y,3*(ImageIndex-3));
-            Decoder:=TPCDDecoder.Create(Stream);
+            {$IFDEF NOCLASSES} new( Decoder, Create( Stream ) );
+            {$ELSE} Decoder:=TPCDDecoder.Create(Stream); {$ENDIF}
             SourceDummy:=@YCbCrData;
             DestDummy:=nil;
             try
@@ -3268,7 +3520,7 @@ begin
                 Upsample(1536,1024,FBitmap.Width,YCbCrData[0]);
                 Upsample(768,512,FBitmap.Width,YCbCrData[1]);
                 Upsample(768,512,FBitmap.Width,YCbCrData[2]);
-                Offset:=(Stream.Position-Integer(FBasePosition)) div $800+12;
+                Offset:=(Stream.Position-FBasePosition) div $800+12;
                 Stream.Seek(FBasePosition+Offset*$800,spBegin);
                 Decoder.Decode(SourceDummy,DestDummy,Width,2048);
                 if ImageIndex=5 then
@@ -3302,7 +3554,7 @@ begin
                     Run:=LineBuffer;
                     for X:=0 to pred(FBitmap.Width) do
                     begin
-                      PChar(Line):=PChar(ScanLines[FBitmap.Width-X-1])+Y*3;
+                      PChar(Line):=PChar(ScanLines[FBitmap.Width-Integer(X)-1])+Y*3;
                       Line^:=Run^;
                       Inc(Run);
                     end;
@@ -3319,7 +3571,7 @@ begin
                     Run:=LineBuffer;
                     for X:=0 to pred(FBitmap.Width) do
                     begin
-                      PChar(Line):=PChar(ScanLines[X])+(FBitmap.Height-Y-1)*3;
+                      PChar(Line):=PChar(ScanLines[X])+(FBitmap.Height-Integer(Y)-1)*3;
                       Line^:=Run^;
                       Inc(Run);
                     end;
@@ -3355,7 +3607,7 @@ var Header: array[0..$17FF] of byte;
     Temp: cardinal;
 begin
   if ImageIndex>5 then ImageIndex:=5;
-  Result:=inherited ReadImageProperties(Stream,ImageIndex) and ((Stream.Size-Integer(FBasePosition))>3*$800);
+  Result:=inherited ReadImageProperties(Stream,ImageIndex) and ((Stream.Size-FBasePosition)>3*$800);
   with FImageProperties do
   begin
     Stream.Read(Header,Length(Header));
@@ -3390,7 +3642,8 @@ end;
 
 //----------------- TPPMGraphic ----------------------------------------------------------------------------------------
 
-class function TPPMGraphic.CanLoad(Stream: PStream): boolean;
+{$IFNDEF NOCLASSES} class {$ENDIF}
+function TPPMGraphic.CanLoad(Stream: PStream): boolean;
 var Buffer: array[0..9] of Char;
     LastPosition: cardinal;
 begin
@@ -3639,6 +3892,7 @@ end;
 function TPPMGraphic.ReadImageProperties(Stream: PStream; ImageIndex: cardinal): boolean;
 var Buffer: string;
 begin
+  FStream := Stream;
   Result:=inherited ReadImageProperties(Stream,ImageIndex);
   with FImageProperties do
   begin
@@ -3719,7 +3973,8 @@ end;
 
 //----------------- TCUTGraphic ----------------------------------------------------------------------------------------
 
-class function TCUTGraphic.CanLoad(Stream: PStream): boolean;
+{$IFNDEF NOCLASSES} class {$ENDIF}
+function TCUTGraphic.CanLoad(Stream: PStream): boolean;
 // Note: cut files cannot be determined from stream because the only information
 //       is width and height of the image at stream/image start which is by no means
 //       enough to identify a cut (or any other) image.
@@ -3732,7 +3987,7 @@ end;
 procedure TCUTGraphic.LoadFromStream(Stream: PStream);
 var Buffer: PByte;
     Run,Line: pointer;
-    Decoder: TCUTRLEDecoder;
+    {$IFDEF NOCLASSES} Decoder: PCUTRLEDECODER; {$ELSE} Decoder: TCUTRLEDecoder; {$ENDIF}
     CUTSize: cardinal;
     Y: integer;
 begin
@@ -3748,7 +4003,8 @@ begin
       FBitmap.PixelFormat:=pf8Bit;
       LoadPalette;
       CutSize:=Stream.Size-Stream.Position;
-      Decoder:=TCUTRLEDecoder.Create;
+      {$IFDEF NOCLASSES} new( Decoder, Create );
+      {$ELSE} Decoder:=TCUTRLEDecoder.Create; {$ENDIF}
       Buffer:=nil;
       try
         GetMem(Buffer,CutSize);
@@ -3899,7 +4155,8 @@ type
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class function TGIFGraphic.CanLoad(Stream: PStream): boolean;
+{$IFNDEF NOCLASSES} class {$ENDIF}
+function TGIFGraphic.CanLoad(Stream: PStream): boolean;
 var Header: TGIFHeader;
     LastPosition: cardinal;
 begin
@@ -3911,6 +4168,16 @@ begin
       Result:=UpperCase(Header.Signature)='GIF';
     end;
   Stream.Position:=LastPosition;
+end;
+
+function TGIFGraphic.Transparent: boolean;
+begin
+  Result := ImageProperties.HasAlpha;
+end;
+
+function TGIFGraphic.Count: Integer;
+begin
+  Result := ImageProperties.ImageCount;
 end;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -3980,7 +4247,7 @@ var Header: TGIFHeader;
     RawData,Run: PByte;
     TargetBuffer,TargetRun,Line: pointer;
     Pass,Increment,Marker: integer;
-    Decoder: TDecoder;
+    {$IFDEF NOCLASSES} Decoder: PGIFLZWDecoder; {$ELSE} Decoder: TGIFLZWDecoder; {$ENDIF}
 begin
   // free previous image
   if Assigned(FBitmap) then FBitmap.Free;
@@ -4052,12 +4319,15 @@ begin
             Stream.Read(Run^,Increment);
             Inc(Run,Increment);
           until Increment=0;
-          Decoder:=TGIFLZWDecoder.Create(InitCodeSize);
+          {$IFDEF NOCLASSES} new( Decoder, Create( InitCodeSize, FBitmap.Width ) );
+          {$ELSE} Decoder:=TGIFLZWDecoder.Create(InitCodeSize, FBitmap.Width); {$ENDIF}
           try
             Run:=RawData;
             Decoder.Decode(Pointer(Run),TargetBuffer,Pass,FBitmap.Width*FBitmap.Height);
           finally
             Decoder.Free;
+            if Decoder.GIFCorrupted then
+              FCorrupted := TRUE;
           end;
           // finally transfer image data
           if (ImageDescriptor.PackedFields and GIF_INTERLACED)=0 then
@@ -4094,7 +4364,7 @@ begin
                 I:=1;
                 Increment:=2;
               end;
-              while I<FBitmap.Height do
+              while I<DWORD(FBitmap.Height) do
               begin
                 Line:=FBitmap.ScanLine[I];
                 Move(TargetRun^,Line^,FBitmap.Width);
@@ -4210,7 +4480,8 @@ type
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class function TRLAGraphic.CanLoad(Stream: PStream): boolean;
+{$IFNDEF NOCLASSES} class {$ENDIF}
+function TRLAGraphic.CanLoad(Stream: PStream): boolean;
 var Header: TRLAHeader;
     LastPosition: cardinal;
 begin
@@ -4233,7 +4504,7 @@ var Offsets: TCardinalArray;
     Y,I: Integer;
     // RLE buffers
     RawBuffer,RedBuffer,GreenBuffer,BlueBuffer,AlphaBuffer: pointer;
-    Decoder: TRLADecoder;
+    {$IFDEF NOCLASSES} Decoder: PRLADecoder; {$ELSE} Decoder: TRLADecoder; {$ENDIF}
 begin
   // free previous image
   if Assigned(FBitmap) then FBitmap.Free;
@@ -4263,7 +4534,8 @@ begin
       Stream.Read(Offsets[0],Height*sizeof(Cardinal));
       for I:=0 to pred(Height) do SwapLong(@Offsets[I],1);
       // setup intermediate storage
-      Decoder:=TRLADecoder.Create;
+      {$IFDEF NOCLASSES} new( Decoder, Create );
+      {$ELSE} Decoder:=TRLADecoder.Create; {$ENDIF}
       RawBuffer:=nil;
       RedBuffer:=nil;
       GreenBuffer:=nil;
@@ -4416,7 +4688,8 @@ type
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class function TPSDGraphic.CanLoad(Stream: PStream): boolean;
+{$IFNDEF NOCLASSES} class {$ENDIF}
+function TPSDGraphic.CanLoad(Stream: PStream): boolean;
 var Header: TPSDHeader;
     LastPosition: cardinal;
 begin
@@ -4435,11 +4708,12 @@ end;
 procedure TPSDGraphic.LoadFromStream(Stream: PStream);
 var Header: TPSDHeader;
     Count: cardinal;
-    Decoder: TDecoder;
+    {$IFDEF NOCLASSES} Decoder: PPackbitsRLEDecoder; {$ELSE} Decoder: TDecoder; {$ENDIF}
     RLELength: array[0..65535] of word;
     Y: integer;
     BPS: cardinal;        // bytes per sample either 1 or 2 for 8 bits per channel and 16 bits per channel respectively
     ChannelSize: integer; // size of one channel (taking BPS into account)
+    NChannels: Integer;
     Increment: integer;   // pointer increment from one line to next
     // RLE buffers
     Line,RawBuffer,       // all image data compressed
@@ -4465,6 +4739,8 @@ begin
       if BitsPerSample=16 then ColorManager.TargetBitsPerSample:=8 else ColorManager.TargetBitsPerSample:=BitsPerSample;
       ColorManager.SourceSamplesPerPixel:=SamplesPerPixel;
       ColorManager.TargetSamplesPerPixel:=SamplesPerPixel;
+      if (SamplesPerPixel = 2) and (ColorScheme = csG) then
+        ColorManager.TargetSamplesPerPixel := 1;
       // color space
       ColorManager.SourceColorScheme:=ColorScheme;
       case ColorScheme of
@@ -4481,8 +4757,8 @@ begin
                          ColorManager.TargetColorScheme:=csBGR;
                        end;
       end;
-      FBitmap:=NewBitmap(Width,Height);
-      FBitmap.PixelFormat:=ColorManager.TargetPixelFormat;
+      FBitmap:=NewDibBitmap(Width,Height, {);
+      FBitmap.PixelFormat:=}ColorManager.TargetPixelFormat);
       // size of palette
       Stream.Read(Count,sizeof(Count));
       Count:=SwapLong(Count);
@@ -4508,7 +4784,13 @@ begin
       RawBuffer:=nil;
       if Compression=ctPackedBits then
       begin
-        Decoder:=TPackbitsRLEDecoder.Create;
+        {$IFDEF NOCLASSES} new( Decoder, Create );
+        {$ELSE} Decoder:=TPackbitsRLEDecoder.Create; {$ENDIF}
+
+        //+++++++++++++++ by VK: if not clear buffer before using it,
+        //process can be VERY slow even for small images!
+        FillChar( RLELength, SizeOf( RLELength ), 0 );
+
         Stream.Read(RLELength,2*Height*Channels);
         SwapShort(@RLELength[0],Height*Channels);
       end
@@ -4562,7 +4844,8 @@ begin
                   GetMem(RawBuffer,Count);
                   try
                     Stream.Read(RawBuffer^,Count);
-                    Decoder.Decode(RawBuffer,Buffer,Count,Channels*ChannelSize);
+                    NChannels := Channels;
+                    Decoder.Decode(RawBuffer,Buffer,Count,NChannels*ChannelSize);
                   finally
                     if Assigned(RawBuffer) then FreeMem(RawBuffer);
                   end;
@@ -5013,7 +5296,8 @@ type
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class function TPSPGraphic.CanLoad(Stream: PStream): boolean;
+{$IFNDEF NOCLASSES} class {$ENDIF}
+function TPSPGraphic.CanLoad(Stream: PStream): boolean;
 var Header: TPSPFileHeader;
     LastPosition: cardinal;
 begin
@@ -5060,6 +5344,7 @@ var Header: TPSPFileHeader;
   // Returns True if a block header could be read otherwise False (stream end).
   begin
     Result:=Stream.Position<Stream.Size;
+    //TotalBlockLength := 0;
     if Result then
       begin
         Stream.Read(HeaderIdentifier,sizeof(HeaderIdentifier));
@@ -5072,7 +5357,10 @@ var Header: TPSPFileHeader;
   procedure ReadAndDecompress(Target: pointer);
   // reads a stream of data from file stream and decompresses it into Target
   var RawBuffer,Source: pointer;
-      Decoder: TDecoder;
+      {$IFDEF NOCLASSES} Decoder: PDecoder;
+      PSPRLEDecoder: PPSPRLEDecoder;
+      LZ77Decoder: PLZ77Decoder;
+      {$ELSE} Decoder: TDecoder; {$ENDIF}
   begin
     Decoder:=nil;
     GetMem(RawBuffer,ChannelInfo.CompressedSize);
@@ -5083,12 +5371,16 @@ var Header: TPSPFileHeader;
       case Image.Compression of
         PSP_COMP_RLE:
           begin
-            Decoder:=TPSPRLEDecoder.Create;
+            {$IFDEF NOCLASSES}
+            new( PSPRLEDecoder, Create ); Decoder := PSPRLEDecoder;
+            {$ELSE} Decoder:=TPSPRLEDecoder.Create; {$ENDIF}
             Decoder.Decode(Source,Target,ChannelInfo.CompressedSize,ChannelInfo.UncompressedSize);
           end;
         PSP_COMP_LZ77:
           begin
-            Decoder:=TLZ77Decoder.Create(Z_FINISH,False);
+            {$IFDEF NOCLASSES}
+            new( LZ77Decoder, Create(Z_FINISH,False) ); Decoder := LZ77Decoder;
+            {$ELSE} Decoder:=TLZ77Decoder.Create(Z_FINISH,False); {$ENDIF}
             Decoder.DecodeInit;
             Decoder.Decode(Source,Target,ChannelInfo.CompressedSize,ChannelInfo.UncompressedSize);
           end;
@@ -5111,28 +5403,47 @@ var Header: TPSPFileHeader;
     case ChannelInfo.ChannelType of
       PSP_CHANNEL_COMPOSITE: // single channel bitmap (indexed or transparency mask)
         begin
+          if Assigned(CompBuffer) then FreeMem(CompBuffer);
           GetMem(CompBuffer,ChannelInfo.UncompressedSize);
-          if Image.Compression<>PSP_COMP_NONE then ReadAndDecompress(CompBuffer) else Stream.Read(CompBuffer^,ChannelInfo.CompressedSize);
+          if Image.Compression<>PSP_COMP_NONE then
+            ReadAndDecompress(CompBuffer)
+          else
+            Stream.Read(CompBuffer^,ChannelInfo.CompressedSize);
         end;
       PSP_CHANNEL_RED:  // red channel of 24 bit bitmap
         begin
+          if Assigned(RedBuffer) then FreeMem(RedBuffer);
           GetMem(RedBuffer,ChannelInfo.UncompressedSize);
-          if Image.Compression<>PSP_COMP_NONE then ReadAndDecompress(RedBuffer) else Stream.Read(RedBuffer^,ChannelInfo.CompressedSize);
+          if Image.Compression<>PSP_COMP_NONE then
+            ReadAndDecompress(RedBuffer)
+          else
+            Stream.Read(RedBuffer^,ChannelInfo.CompressedSize);
         end;
       PSP_CHANNEL_GREEN:
         begin
+          if Assigned(GreenBuffer) then FreeMem(GreenBuffer);
           GetMem(GreenBuffer,ChannelInfo.UncompressedSize);
-          if Image.Compression<>PSP_COMP_NONE then ReadAndDecompress(GreenBuffer) else Stream.Read(GreenBuffer^,ChannelInfo.CompressedSize);
+          if Image.Compression<>PSP_COMP_NONE then
+            ReadAndDecompress(GreenBuffer)
+          else
+            Stream.Read(GreenBuffer^,ChannelInfo.CompressedSize);
         end;
       PSP_CHANNEL_BLUE:
         begin
+          if Assigned(BlueBuffer) then FreeMem(BlueBuffer);
           GetMem(BlueBuffer,ChannelInfo.UncompressedSize);
-          if Image.Compression<>PSP_COMP_NONE then ReadAndDecompress(BlueBuffer) else Stream.Read(BlueBuffer^,ChannelInfo.CompressedSize);
+          if Image.Compression<>PSP_COMP_NONE then
+            ReadAndDecompress(BlueBuffer)
+          else
+            Stream.Read(BlueBuffer^,ChannelInfo.CompressedSize);
         end;
     end;
   end;
   //--------------- end local functions ---------------------------------------
 
+var RowIncrement: Integer;
+    RowWidth: Integer;
+    RowOffset: Integer;
 begin
   // free previous image
   if Assigned(FBitmap) then FBitmap.Free;
@@ -5143,6 +5454,7 @@ begin
     RedBuffer:=nil;
     GreenBuffer:=nil;
     BlueBuffer:=nil;
+    CompBuffer := nil;  //*//
     with FImageProperties do
     try
       // Note: To be robust with future PSP images any reader must be able to skip data
@@ -5157,7 +5469,7 @@ begin
       if Version>3 then Stream.Read(ChunkSize,sizeof(ChunkSize));
       Stream.Read(Image,sizeof(Image));
       Stream.Position:=LastPosition+TotalBlockLength;
-      FBitmap:=NewBitmap(Width,Height);
+      //FBitmap:=NewBitmap(Width,Height);
       with Image do
       begin
         ColorManager.SourceOptions:=[];
@@ -5166,8 +5478,10 @@ begin
         ColorManager.SourceSamplesPerPixel:=SamplesPerPixel;
         ColorManager.TargetSamplesPerPixel:=SamplesPerPixel;
         ColorManager.SourceColorScheme:=ColorScheme;
-        if ColorScheme=csRGB then ColorManager.TargetColorScheme:=csBGR else ColorManager.TargetColorScheme:=ColorScheme;
-        FBitmap.PixelFormat:=ColorManager.TargetPixelFormat;
+        if ColorScheme=csRGB then ColorManager.TargetColorScheme:=csBGR
+                             else ColorManager.TargetColorScheme:=ColorScheme;
+        //FBitmap.PixelFormat:=ColorManager.TargetPixelFormat;
+        FBitmap:=NewDibBitmap(Width,Height,ColorManager.TargetPixelFormat);
       end;
       // set bitmap properties
       RowSize:=0; // make compiler quiet
@@ -5181,7 +5495,7 @@ begin
       // go through main blocks and read what is needed
       repeat
         if not ReadBlockHeader then Break;
-        NextMainBlock:=Stream.Position+Integer(TotalBlockLength);
+        NextMainBlock:=Stream.Position+TotalBlockLength;
         // no more blocks?
         if HeaderIdentifier[0]<>'~' then Break;
         case BlockIdentifier of
@@ -5197,7 +5511,7 @@ begin
             repeat
               if not ReadBlockHeader then Break;
               // calculate start of next (layer) block in case we need to skip this one
-              NextLayerPosition:=Stream.Position+Integer(TotalBlockLength);
+              NextLayerPosition:=Stream.Position+TotalBlockLength;
               // if all layers have been considered the break loop to continue with other blocks if necessary
               if BlockIdentifier<>PSP_LAYER_BLOCK then Break;
               // layer information chunk
@@ -5233,6 +5547,11 @@ begin
                   Continue;
                 end;
               end;
+              {if LayerInfo.Visible = 0 then
+              begin
+                Stream.Position:=NextLayerPosition;
+                Continue;
+              end;}
               Stream.Read(BitmapCount,sizeof(BitmapCount));
               Stream.Read(ChannelCount,sizeof(ChannelCount));
               // But now we can reliably say whether we have an alpha channel or not.
@@ -5240,39 +5559,78 @@ begin
               // possibly reallocate the entire image (because it is copied by the VCL
               // when changing the pixel format).
               // I don't know another way (preferably before the size of the image is set).
-              if ChannelCount>3 then
+              //if BitmapCount > 0 then
               begin
-                ColorManager.TargetColorScheme:=csBGRA;
-                FBitmap.PixelFormat:=pf32Bit;
-              end;
-              if Version>3 then Stream.Position:=LastPosition+ChunkSize;
-              // allocate memory for all channels and read raw data
-              for X:=0 to pred(ChannelCount) do ReadChannelData;
-              R:=RedBuffer;
-              G:=GreenBuffer;
-              B:=BlueBuffer;
-              C:=CompBuffer;
-              if ColorManager.TargetColorScheme in [csIndexed,csG] then
-              begin
-                for Y:=0 to pred(Height) do
+                //Dec( BitmapCount );
+                if ChannelCount>3 then
                 begin
-                  ColorManager.ConvertRow([C],FBitmap.ScanLine[Y],Width,$FF);
-                  Inc(C,RowSize);
+                  ColorManager.TargetColorScheme:=csBGRA;
+                  FBitmap.PixelFormat:=pf32Bit;
                 end;
-              end
-              else
-              begin
-                for Y:=0 to pred(Height) do
-                begin
-                  ColorManager.ConvertRow([R,G,B,C],FBitmap.ScanLine[Y],Width,$FF);
-                  Inc(R,RowSize);
-                  Inc(G,RowSize);
-                  Inc(B,RowSize);
-                  Inc(C,RowSize);
+                if Version>3 then Stream.Position:=LastPosition+ChunkSize;
+                // allocate memory for all channels and read raw data
+                for X:=0 to pred(ChannelCount) do
+                  ReadChannelData;
+                R:=RedBuffer;
+                G:=GreenBuffer;
+                B:=BlueBuffer;
+                C:=CompBuffer;
+                TRY
+                  RowWidth := LayerInfo.SavedImageRectangle.Right -
+                              LayerInfo.SavedImageRectangle.Left;
+                  CASE ImageProperties.BitsPerSample of
+                    1: RowIncrement:=(RowWidth +7) div 8;
+                    4: RowIncrement:=RowWidth div 2+1;
+                    8: RowIncrement:=RowWidth;
+                    else RowIncrement := RowSize;
+                  end;
+                  RowOffset := LayerInfo.SavedImageRectangle.Left *
+                              ((BitsPerSample + 7) div 8);
+                  if ColorManager.TargetColorScheme in [csIndexed,csG] then
+                  begin
+                    //for Y:=0 to pred(Height) do
+                    for Y:= LayerInfo.SavedImageRectangle.Top to
+                            LayerInfo.SavedImageRectangle.Bottom do
+                    begin
+                      //ColorManager.ConvertRow([C],FBitmap.ScanLine[Y],Width,$FF);
+                      ColorManager.ConvertRow([C],
+                        Pointer( Integer( FBitmap.ScanLine[Y] ) + RowOffset ),
+                                 RowWidth,$FF);
+                      Inc( C, RowIncrement ); //Inc(C,RowSize);
+                    end;
+                  end
+                  else
+                  begin
+                    //for Y:=0 to pred(Height) do
+                    for Y:= LayerInfo.SavedImageRectangle.Top to
+                            LayerInfo.SavedImageRectangle.Bottom-1 do
+                    begin
+                      //ColorManager.ConvertRow([R,G,B,C],FBitmap.ScanLine[Y],Width,$FF);
+                      ColorManager.ConvertRow([R,G,B,C],
+                        Pointer( Integer( FBitmap.ScanLine[Y] ) + RowOffset ),
+                                 RowWidth,$FF);
+                      Inc( R, RowIncrement ); //Inc(R,RowSize);
+                      Inc( G, RowIncrement ); //Inc(G,RowSize);
+                      Inc( B, RowIncrement ); //Inc(B,RowSize);
+                      Inc( C, RowIncrement ); //Inc(C,RowSize);
+                    end;
+                  end;
+                FINALLY
+                  {if Assigned(RedBuffer) then FreeMem(RedBuffer);
+                  if Assigned(GreenBuffer) then FreeMem(GreenBuffer);
+                  if Assigned(BlueBuffer) then FreeMem(BlueBuffer);
+                  if Assigned(CompBuffer) then FreeMem(CompBuffer);
+                  RedBuffer := nil;
+                  GreenBuffer := nil;
+                  BlueBuffer := nil;
+                  CompBuffer := nil;}
+                END;
+                // after the raster layer has been read there's no need to loop further
+                asm
+                  nop
                 end;
+                Break; //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
               end;
-              // after the raster layer has been read there's no need to loop further
-              Break;
             until False; // layer loop
           PSP_COLOR_BLOCK:  // color palette block (this is also present for gray scale and b&w images)
             begin
@@ -5289,6 +5647,7 @@ begin
       if Assigned(RedBuffer) then FreeMem(RedBuffer);
       if Assigned(GreenBuffer) then FreeMem(GreenBuffer);
       if Assigned(BlueBuffer) then FreeMem(BlueBuffer);
+      if Assigned(CompBuffer) then FreeMem(BlueBuffer);
     end;
   end
   else GraphicExError(1{gesInvalidImage},['PSP']);
@@ -5411,7 +5770,8 @@ type
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class function TPNGGraphic.CanLoad(Stream: PStream): boolean;
+{$IFNDEF NOCLASSES} class {$ENDIF}
+function TPNGGraphic.CanLoad(Stream: PStream): boolean;
 var Magic: array[0..7] of byte;
     LastPosition: cardinal;
 begin
@@ -5596,7 +5956,9 @@ begin
         // currently only one compression type is supported by PNG (LZ77)
         if Compression=ctLZ77 then
         begin
-          FDecoder:=TLZ77Decoder.Create(Z_PARTIAL_FLUSH,False);
+          {$IFDEF NOCLASSES}
+          new( FDecoder, Create(Z_PARTIAL_FLUSH,False) );
+          {$ELSE} FDecoder:=TLZ77Decoder.Create(Z_PARTIAL_FLUSH,False); {$ENDIF}
           FDecoder.DecodeInit;
         end
         else

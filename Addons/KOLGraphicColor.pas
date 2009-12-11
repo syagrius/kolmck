@@ -1,3 +1,10 @@
+{$IFDEF FPC}
+{$DEFINE NOT_USE_KOL_ERR}
+{$MODE Delphi}
+{$ASMMODE intel}
+{$GOTO ON}
+{$ENDIF}
+
 unit KOLGraphicColor;
 
 // This file is part of the image library GraphicEx (www.lischke-online.de/Graphics.html).
@@ -46,8 +53,9 @@ unit KOLGraphicColor;
 interface
 
 {$ALIGN OFF}
+{$I KOLDEF.INC}
 
-uses Windows, KOL, Err, Errors;
+uses Windows, KOL, Errors, {$IFDEF NOT_USE_KOL_ERR}sysutils {$ELSE}Err {$ENDIF};
 
 const
   // this is the value for average CRT monitors, adjust it if your monitor differs
@@ -184,7 +192,7 @@ function MulDiv16(Number,Numerator,Denominator: word): word;
 
 implementation
 
-uses KolMath;
+uses {$IFDEF NOT_USE_KOL_ERR}math{$ELSE}KolMath{$ENDIF};
 
 type
   PCMYK = ^TCMYK;
@@ -3660,10 +3668,18 @@ begin
   // Conversion between indexed and non-indexed formats is not supported as well as
   // between source BPS<8 and target BPS > 8.
   // csGA and csG (grayscale w and w/o alpha) are considered being indexed modes
-  if (FSourceScheme in [csIndexed,csG,csGA]) xor (FTargetScheme in [csIndexed,csG]) then Error(14{gesIndexedNotSupported});
+  if (FSourceScheme in [csIndexed,csG,csGA]) xor
+     (FTargetScheme in [csIndexed,csG]) then
+     Error(14{gesIndexedNotSupported});
   // set up special conversion options
-  if FSourceScheme in [csGA,csRGBA,csBGRA] then Include(FSourceOptions,coAlpha) else Exclude(FSourceOptions,coAlpha);
-  if FTargetScheme in [csGA,csRGBA,csBGRA] then Include(FTargetOptions,coAlpha) else Exclude(FTargetOptions,coAlpha);
+  if FSourceScheme in [csGA,csRGBA,csBGRA] then
+    Include(FSourceOptions,coAlpha)
+  else
+    Exclude(FSourceOptions,coAlpha);
+  if FTargetScheme in [csGA,csRGBA,csBGRA] then
+    Include(FTargetOptions,coAlpha)
+  else
+    Exclude(FTargetOptions,coAlpha);
   case FSourceScheme of
     csG:  if (FSourceBPS=16) or (FTargetBPS=16) then
             begin
@@ -3678,7 +3694,8 @@ begin
         // assign special methods for source only, target only or source and target being 16 bits per sample
         if (FSourceBPS=16) and (FTargetBPS=16) then FRowConversion:=RowConvertIndexedBoth16 else
           if FSourceBPS=16 then FRowConversion:=RowConvertIndexedSource16 else
-            if FTargetBPS=16 then FRowConversion:=RowConvertIndexedTarget16 else FRowConversion:=RowConvertIndexed8;
+            if FTargetBPS=16 then FRowConversion:=RowConvertIndexedTarget16 else
+              FRowConversion:=RowConvertIndexed8;
       end;
     csRGB,
     csRGBA:
@@ -3703,14 +3720,14 @@ begin
     csCMYK:
       case FTargetScheme of
         csRGBA: FRowConversion:=RowConvertCMYK2RGB;
-        csBGRA: FRowConversion:=RowConvertCMYK2BGR;
-        csRGB,csBGR,csCMY,csCMYK,csCIELab,csYCbCr: ;
+        csBGRA, csBGR: FRowConversion:=RowConvertCMYK2BGR;
+        csRGB,{csBGR,}csCMY,csCMYK,csCIELab,csYCbCr: ;
       end;
     csCIELab:
       case FTargetScheme of
         csRGBA: FRowConversion:=RowConvertCIELab2RGB;
-        csBGRA: FRowConversion:=RowConvertCIELab2BGR;
-        csRGB,csBGR,csCMY,csCMYK,csCIELab,csYCbCr: ;
+        csBGRA,csBGR: FRowConversion:=RowConvertCIELab2BGR;
+        csRGB,csCMY,csCMYK,csCIELab,csYCbCr: ;
       end;
     csYCbCr:
       begin
@@ -3820,12 +3837,17 @@ begin
   // if there are pending changes then apply them
   if FChanged then PrepareConversion;
   // check if there's now a conversion method
-  if @FRowConversion=nil then Error(15{gesConversionUnsupported}) else FRowConversion(Source,Target,Count,Mask);
+  if not Assigned( FRowConversion ) then
+    Error(15{gesConversionUnsupported})
+  else
+    FRowConversion(Source,Target,Count,Mask);
 end;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-procedure TColorManager.CreateColorPalette(BMP: PBitmap; Data: array of pointer; DataFormat: TRawPaletteFormat; ColorCount: cardinal; RGB: boolean);
+procedure TColorManager.CreateColorPalette(BMP: PBitmap;
+  Data: array of pointer; DataFormat: TRawPaletteFormat;
+  ColorCount: cardinal; RGB: boolean);
 // Creates a color palette from the provided data which can be in various raw formats:
 //-either interlaced or plane
 //-8 bits or 16 bits per component
@@ -3954,11 +3976,17 @@ begin
         RunB16:=Data[2];
         if coApplyGamma in FTargetOptions then
           begin
-            if coNeedbyteSwap in FSourceOptions then Convert16:=ComponentSwapScaleGammaConvert else Convert16:=ComponentScaleGammaConvert;
+            if coNeedbyteSwap in FSourceOptions then
+              Convert16:=ComponentSwapScaleGammaConvert
+            else
+              Convert16:=ComponentScaleGammaConvert;
           end
         else
           begin
-            if coNeedbyteSwap in FSourceOptions then Convert16:=ComponentSwapScaleConvert else Convert16:=ComponentScaleConvert;
+            if coNeedbyteSwap in FSourceOptions then
+              Convert16:=ComponentSwapScaleConvert
+            else
+              Convert16:=ComponentScaleConvert;
           end;
         for I:=0 to pred(ColorCount) do
           begin
@@ -4055,6 +4083,15 @@ end;
 
 //----------------------------------------------------------------------------------------------------------------------
 
+{$IFDEF NOT_USE_KOL_ERR}
+procedure TColorManager.Error(Code: integer);
+var E: Exception;
+begin
+  E:=Exception.Create(int2str(Code));
+  //E.ErrorCode:=Code;
+  raise E;
+end;
+{$ELSE}
 procedure TColorManager.Error(Code: integer);
 var E: Exception;
 begin
@@ -4062,6 +4099,7 @@ begin
   E.ErrorCode:=Code;
   raise E;
 end;
+{$ENDIF}
 
 //----------------------------------------------------------------------------------------------------------------------
 

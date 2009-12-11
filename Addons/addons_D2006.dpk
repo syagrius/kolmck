@@ -1,0 +1,99 @@
+package addons_D2006;
+
+{$R *.res}
+{$R 'mckCCtrls.dcr'}
+{$R 'mckHTTPDownload.dcr'}
+{$R 'mckQProgBar.dcr'}
+{$ALIGN 1}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $25400000}
+{$DESCRIPTION 'KOLADDONS_D2006'}
+{$DESIGNONLY}
+{$IMPLICITBUILD ON}
+{$DEFINE INPACKAGE}
+
+requires
+  rtl,
+  vcl,
+  vclactnband,
+  vclx,
+  KOLMCK_D2006,
+  xmlrtl,
+  designide;
+
+contains
+  KOLCCtrls in 'KOLCCtrls.pas',
+  mckCCtrls in 'mckCCtrls.pas',
+  KOLHashs in 'KOLHashs.PAS',
+  mckHashs in 'mckHashs.pas',
+  KOLFontEditor in 'KOLFontEditor.pas',
+  KOLmhxp in 'KOLmhxp.pas',
+  MCKMHXP in 'MCKMHXP.pas',
+  mckTCPSocket in 'mckTCPSocket.pas',
+  mckSocket in 'mckSocket.pas',
+  mckListEdit in 'mckListEdit.pas',
+  KOLSocket in 'KOLSocket.pas',
+  Objects in 'Objects.pas',
+  kolTCPSocket in 'kolTCPSocket.pas',
+  mckCProgBar in 'mckCProgBar.pas',
+  mckRarInfoBar in 'mckRarInfoBar.pas',
+  mckRarProgBar in 'mckRarProgBar.pas',
+  mckHTTP in 'mckHTTP.pas',
+  mckRAS in 'mckRAS.pas',
+  KOLRas in 'KOLRas.pas',
+  RAS in 'RAS.pas',
+  UStr in 'UStr.pas',
+  UWrd in 'UWrd.pas',
+  KOLHTTP in 'KOLHTTP.pas',
+  mckEcmListEdit in 'mckEcmListEdit.pas',
+  KOLEcmListEdit in 'KOLEcmListEdit.pas',
+  mckBlockCipher in 'mckBlockCipher.pas',
+  KOLBlockCipher in 'KOLBlockCipher.pas',
+  KOLQProgBar in 'KOLQProgBar.pas',
+  mckQProgBar in 'mckQProgBar.pas',
+  MCKPrintDialogs in 'MCKPrintDialogs.pas',
+  MCKPageSetup in 'MCKPageSetup.pas',
+  KOLReport in 'KOLReport.pas',
+  MCKReport in 'MCKReport.pas',
+  KOLHTTPDownload in 'KOLHTTPDownload.pas',
+  mckHTTPDownload in 'mckHTTPDownload.pas',
+  KOLPageSetupDialog in 'KOLPageSetupDialog.pas',
+  KOLPrintCommon in 'KOLPrintCommon.pas',
+  KOLPrintDialogs in 'KOLPrintDialogs.pas',
+  KOLPrinters in 'KOLPrinters.pas',
+  mckXPMenus in 'mckXPMenus.pas',
+  XPMenus in 'XPMenus.pas',
+  MCKGRushSplitterEditor in 'MCKGRushSplitterEditor.pas',
+  MCKGRushButtonEditor in 'MCKGRushButtonEditor.pas',
+  MCKGRushCheckBoxEditor in 'MCKGRushCheckBoxEditor.pas',
+  MCKGRushControls in 'MCKGRushControls.pas',
+  MCKGRushImageCollectionEditor in 'MCKGRushImageCollectionEditor.pas',
+  MCKGRushPanelEditor in 'MCKGRushPanelEditor.pas',
+  MCKGRushProgressBarEditor in 'MCKGRushProgressBarEditor.pas',
+  MCKGRushRadioBoxEditor in 'MCKGRushRadioBoxEditor.pas',
+  tinyPNG in 'tinyPNG.pas',
+  tinyJPGGIFBMP in 'tinyJPGGIFBMP.pas',
+  MZLib in 'MZLib.pas',
+  KOLGRushControls in 'KOLGRushControls.pas',
+  mckWebBrowser in 'mckWebBrowser.pas',
+  mckDHTML in 'mckDHTML.pas';
+
+end.
