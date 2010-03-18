@@ -701,10 +701,6 @@ type
     function GetTotal: Integer;
     function GetIndexAmongSiblings: Integer;
   protected
-    {$IFDEF USE_CONSTRUCTORS}
-    constructor CreateTree( AParent: PTree; const AName: AnsiString );
-    {* }
-    {$ENDIF}
   {++}(*public*){--}
     destructor Destroy; {-}virtual;{+}{++}(*override;*){--}
     {* }
@@ -2978,14 +2974,6 @@ end;
 
 { -- TTree -- }
 
-{$IFDEF USE_CONSTRUCTORS}
-//[function NewTree]
-function NewTree( AParent: PTree; const AName: AnsiString ): PTree;
-begin
-  New( Result, CreateTree(  AParent, AName ) );
-end;
-//[END NewTree]
-{$ELSE not_USE_CONSTRUCTORS}
 //[function NewTree]
 {$IFDEF TREE_NONAME}
 function NewTree( AParent: PTree ): PTree;
@@ -3023,7 +3011,6 @@ end;
 {$ENDIF}
 {$ENDIF}
 //[END NewTree]
-{$ENDIF USE_CONSTRUCTORS}
 
 { TTree }
 
@@ -3055,18 +3042,6 @@ begin
   for I := fChildren.Count - 1 downto 0 do
     PTree( fChildren.Items[ I ] ).Free;
 end;
-
-{$IFDEF USE_CONSTRUCTORS}
-//[constructor TTree.CreateTree]
-constructor TTree.CreateTree(AParent: PTree; const AName: AnsiString);
-begin
-  inherited Create;
-  if AParent <> nil then
-    AParent.Add( @Self );
-  fParent := AParent;
-  fName := AName;
-end;
-{$ENDIF}
 
 //[destructor TTree.Destroy]
 destructor TTree.Destroy;

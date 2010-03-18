@@ -16977,7 +16977,11 @@ asm
 @@if32bit:
         LOOP     @@iffin
         INC      EDX
+{$IFDEF FIXDIB32}
+        MOV      EAX, offset[_GetDIBPixelsTrueColorWithAlpha]
+{$ELSE}
         MOV      EAX, offset[_GetDIBPixelsTrueColor]
+{$ENDIF}
 @@iffin:
         MOV      byte ptr [EBX].fPixelMask, DH
         MOV      byte ptr [EBX].fPixelsPerByteMask, DL
@@ -17181,7 +17185,11 @@ asm
 @@if32bit:
         LOOP     @@ifend
         INC      EDX
+{$IFDEF FIXDIB32}
+        MOV      EAX, offset[_SetDIBPixelsTrueColorWithAlpha]
+{$ELSE}
         MOV      EAX, offset[_SetDIBPixelsTrueColor]
+{$ENDIF}
 @@ifend:
         MOV      byte ptr [EBX].fPixelMask, DH
         MOV      byte ptr [EBX].fPixelsPerByteMask, DL
