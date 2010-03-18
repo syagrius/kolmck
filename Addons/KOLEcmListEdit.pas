@@ -406,7 +406,8 @@ begin
 {$IFDEF _LE_DEBUG_}
             AddLog(Sender, 'ListEdit:LVN_ITEMCHANGED');
 {$ENDIF}
-            if (fCurLine <> fOwner.LVCurItem) then SetCurLVPos(fOwner.LVCurItem, fCurIdx);
+            if (fCurLine <> fOwner.LVCurItem) then
+              SetCurLVPos(fOwner.LVCurItem, fCurIdx);
           end;
         end;
       end;
@@ -429,10 +430,12 @@ begin
     WM_KILLFOCUS:
     begin
       pLE := PEcmListEdit(Sender.Parent.CustomObj);
-      if not Assigned(pLE) then Exit;
-      with pLE^ do if (fEmbedEd and fAutoHide) then begin
-        InternalStopEdit(True);
-        HideInPlaceEd(True);
+      if Assigned(pLE) then begin
+        with pLE^ do
+          if (fEmbedEd and fAutoHide) then begin
+            InternalStopEdit(True);
+            HideInPlaceEd(True);
+          end;
       end;
     end;
     // D[u]fa
@@ -608,7 +611,7 @@ begin
       fOnGetText(fOwner, fCurIdx, LVCurItem, S);
     if bComboEditor then begin
       fInPlaceEd.CurIndex := fInPlaceEd.IndexOf(S);
-      bComboEditor := False; //
+      bComboEditor        := False; //
       //fInPlaceEd.DroppedDown := True;
     end else begin //if fEmbedEd then begin
       if (fInPlaceEd.SubClassName = 'obj_COMBOBOX') then
