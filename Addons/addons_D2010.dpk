@@ -1,6 +1,6 @@
 package addons_D2010;
 
-//{$R *.res}
+{$R addons.res}
 {$R 'mckCCtrls.dcr'}
 {$R 'mckHTTPDownload.dcr'}
 {$R 'mckQProgBar.dcr'}
