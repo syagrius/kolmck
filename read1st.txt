@@ -1,9 +1,9 @@
-KEY OBJECTS LIBRARY for Delphi (and Free Pascal Compiler) - to make applications small and power. This library is freeware and open source. Delphi 2, 3, 4, 5, 6, 7, 8, BDS 2005, 2006, TurboDelphi5 and Free Pascal Compiler 1.0.5, 1.0.6, and higher (2.0.4 and above) are supported. Partially compatible with Kylix (Linux/Qt platform, use special converting tool and provided files in Tools section on the site http://bonanzas.rinet.ru)
+KEY OBJECTS LIBRARY for Delphi (and Free Pascal Compiler) - to make applications small and power. This library is freeware and open source. Delphi 2, 3, 4, 5, 6, 7, 8, BDS 2005, 2006, 2010, TurboDelphi and Free Pascal Compiler 1.0.5, 1.0.6, and higher (2.0.4) are supported. Partially compatible with Kylix (Linux/Qt platform, use special converting tool and provided files in Tools section on the site http://bonanzas.rinet.ru)
 
-Copyright (C) by Vladimir Kladov, 1999-2007.
+Copyright (C) by Vladimir Kladov, 1999-2010.
 Some parts of code are Copyright (C) intellectual property by other people, see comments in code and on KOL site. Thanks to all for help with KOL and MCK!
 
-v. 2.88 (27-Sep-2008 ã.)
+v. 2.89 (30-Mar-2010)
 
 To get newer version, go to Web-page http://www.kolmck.net and get there updates.
 
@@ -16,7 +16,7 @@ BRIEF DESCRIPTION:
    A lot of additions are available for KOL, which allow to work with data bases, Active-X components, print reports, different image and compression formats, etc.
 --------------------------------------------
 
-This archive contains Key Objects Library main part: KOL.PAS and several test samples. At the KOL Web page (http://kolmck.net), you can download also additional components:
+This archive contains Key Objects Library main part: KOL.PAS and several test samples. At the KOL Web page (http://bonanzas.rinet.ru), you can download also additional components:
 
 MCK		- Mirror Classes Kit - visual programming environment for KOL
 xHelpGen	- utility to generate html-documentation from comments within the source code;

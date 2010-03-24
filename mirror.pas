@@ -19,7 +19,7 @@ mmmmm      mmmmm     mmmmm     cccccccccccc       kkkkk     kkkkk
   Key Objects Library (C) 1999 by Kladov Vladimir.
   KOL Mirror Classes Kit (C) 2000 by Kladov Vladimir.
 ********************************************************
-* VERSION 2.87
+* VERSION 2.89
 ********************************************************
 }
 unit mirror;
@@ -21447,7 +21447,7 @@ begin
     if S <> '' then
       //SL.Add( S + ';' );
       {P}SL.Add( S );
-    (*) ... for a frame, this is not applicable ...
+    (* ... for a frame, this is not applicable ...
     if MinimizeNormalAnimated then
       //SL.Add( Prefix + AName + '.MinimizeNormalAnimated;' );
       begin
@@ -21457,7 +21457,7 @@ begin
       begin
         SL.Add( ' DUP TControl.RestoreNormalMaximized<1>' )
       end;
-    (*)
+    *)
     if Assigned( FpopupMenu ) then
       //SL.Add( Prefix + AName + '.SetAutoPopupMenu( Result.' + FpopupMenu.Name +
       //        ' );' );
@@ -21835,6 +21835,7 @@ var N: Integer;
     if MI.itemindex >= 0 then
     begin
       if not MI.separator or generateSeparatorConstants then
+        //SL.Add( 'const ' + MI.Name + ': Integer = ' + IntToStr( MI.itemindex ) + ';' );
         SL.Add( 'const ' + MI.Name + ' = ' + IntToStr( MI.itemindex ) + ';' );
       Inc( N );
     end;

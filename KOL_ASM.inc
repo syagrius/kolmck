@@ -166,19 +166,16 @@ function TObj.RefDec: Integer;
 asm
   TEST  EAX, EAX
   JZ    @@exit
-  {$IFDEF OLD_REFCOUNT}
+
         SUB      [EAX].fRefCount, 2
         JGE      @@exit
+  {$IFDEF OLD_REFCOUNT}
         TEST     [EAX].fRefCount, 1
         JZ       @@exit
         MOV      EDX, [EAX]
-        PUSH     dword ptr [EDX+4]
-  {$ELSE}
-        SUB      [EAX].fRefCount, 2
-        JGE      @@exit
+  {$ENDIF}
         MOV      EDX, [EAX]
         PUSH     dword ptr [EDX+4]
-  {$ENDIF}
 @@exit:
 end;
 
@@ -1754,7 +1751,7 @@ asm
 
         CLD
         PUSH     EDX  //Canvas.fHandle
-        CALL     Arc
+        CALL     Windows.Arc
         POP      ESI
 end;
 
@@ -3311,7 +3308,7 @@ asm
         SETZ     AL
 end;
 
-function AnsiEq( const S1, S2 : AnsiString ) : Boolean;
+function AnsiEq( const S1, S2 : KOLString ) : Boolean;
 asm
         CALL     AnsiCompareStrNoCase
         TEST     EAX, EAX
@@ -5135,6 +5132,7 @@ asm     //cmd    //opd
        XOR       EAX, EAX
 end;
 
+{$IFDEF BITBTN_ASM}
 function NewBitBtn( AParent: PControl; const Caption: KOLString;
          Options: TBitBtnOptions; Layout: TGlyphLayout; GlyphBitmap: HBitmap; GlyphCount: Integer ): PControl;
 const szBitmapInfo = sizeof(TBitmapInfo);
@@ -5314,6 +5312,7 @@ asm
         POP      EDX
  {$ENDIF}
 end;
+{$ENDIF BITBTN_ASM}
 
 function NewCheckbox( AParent: PControl; const Caption: KOLString ): PControl;
 asm
@@ -6370,33 +6369,34 @@ asm
         OR       [EAX].TControl.fStyle, EDX
 end;
 
+// by Galkov, Jun-2009
 function WndProcNotify( Self_: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean;
 asm
-        CMP      word ptr [EDX].TMsg.message, WM_NOTIFY
-        JNE      @@ret_false
+       CMP      word ptr [EDX].TMsg.message, WM_NOTIFY
+       JNE      @@ret_false
         PUSH     ECX
         PUSH     EDX
-        MOV      ECX, [EDX].TMsg.lParam
-        {$IFDEF USE_PROP}
-        PUSH     offset[ID_SELF]
-        PUSH     [ECX].TNMHdr.hwndFrom
-        CALL     GetProp
-        {$ELSE}
-        PUSH     GWL_USERDATA
-        PUSH     [ECX].TNMHdr.hwndFrom
-        CALL     GetWindowLong
-        {$ENDIF}
+       MOV      ECX, [EDX].TMsg.lParam
+       {$IFDEF USE_PROP}
+       PUSH     offset[ID_SELF]
+       PUSH     [ECX].TNMHdr.hwndFrom
+       CALL     GetProp
+       {$ELSE}
+       PUSH     GWL_USERDATA
+       PUSH     [ECX].TNMHdr.hwndFrom
+       CALL     GetWindowLong
+       {$ENDIF}
         POP      EDX
         TEST     EAX, EAX
         JZ       @@ret_false_ECX
         MOV      ECX, [EAX].TControl.fHandle
         MOV      [EDX].TMsg.hwnd, ECX
         POP      ECX
-        JMP      TControl.EnumDynHandlers
+       JMP      TControl.EnumDynHandlers
 @@ret_false_ECX:
         POP      ECX
 @@ret_false:
-        XOR      EAX, EAX
+       XOR      EAX, EAX
 end;
 
 function WndProcCommonNotify( Self_: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean;
@@ -11757,8 +11757,6 @@ asm
 end;
 
 {procedure TControl.SetCurIndex(const Value: Integer);
-var
-  idx: Integer;
 asm
         MOVZX    ECX, [EAX].fCommandActions.aSetCurrent
         JECXZ    @@set_item_sel
@@ -11768,14 +11766,9 @@ asm
         PUSH     ECX
         PUSH     EAX
         CALL     Perform
-      mov idx, eax
         POPAD
         CMP      CX, TCM_SETCURSEL
         JNE      @@exit
-      push ecx
-      mov ecx, idx
-      mov [EAX].fCurIndex, ecx
-      pop ecx
         PUSH     TCN_SELCHANGE
         PUSH     EAX // idfrom doesn't matter
         PUSH     [EAX].fHandle
@@ -11787,12 +11780,11 @@ asm
         POP      ECX
         POP      ECX
         POP      ECX
-      jmp @@exit
+@@exit:
+        RET
 @@set_item_sel:
         INC      ECX
         CALL     SetItemSelected
-@@exit:
-//        RET
 end;}
 
 procedure TControl.SetCurIndex(const Value: Integer);                           // fix av
@@ -12586,16 +12578,20 @@ end;
 {$IFDEF ASM_TLIST}
 function TStrList.IndexOf(const S: Ansistring): integer;
 asm
-        PUSH     EBX
+        PUSH     EDI
         PUSH     ESI
-        OR       EBX, -1
+        PUSH     EBX
+        OR       EDI, -1
         MOV      ECX, [EAX].fCount
         JECXZ    @@exit
         MOV      ESI, [EAX].fList
         MOV      ESI, [ESI].TList.fItems
         CALL     EDX2PChar
+        MOVZX    EBX, BYTE[EDX]
 @@loo:  LODSD
-        INC      EBX
+        INC      EDI
+        CMP      BL, BYTE[EAX]
+        JNE      @@1
         PUSH     EDX
         PUSH     ECX
         CALL     StrComp
@@ -12603,10 +12599,11 @@ asm
         POP      EDX
         JE       @@exit
 @@1:    LOOP     @@loo
-        OR       EBX, -1
-@@exit: XCHG     EAX, EBX
-        POP      ESI
+        OR       EDI, -1
+@@exit: XCHG     EAX, EDI
         POP      EBX
+        POP      ESI
+        POP      EDI
 end;
 {$ENDIF}
 
@@ -12817,48 +12814,43 @@ asm
 end;
 
 {$IFDEF ASM_TLIST}
-function CompareStrListItems( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
+function CompareStrListItems_Case( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
 asm
-        CMP      [EAX].TStrList.fCaseSensitiveSort, 0
         MOV      EAX, [EAX].TStrList.fList
         MOV      EAX, [EAX].TList.fItems
         MOV      EDX, [EAX+EDX*4]
         MOV      EAX, [EAX+ECX*4]
         XCHG     EAX, EDX
-        JNZ      StrComp
-        PUSH     EBX
+        JMP      StrComp
+end;
 
-        XCHG     EBX, EAX
-        CALL     LowerCaseStrFromPCharEDX
-
-        MOV      EDX, EBX
-        CALL     LowerCaseStrFromPCharEDX
-
-        POP      EAX
-        POP      EDX
-        PUSH     EDX
-        PUSH     EAX
-        CALL     EAX2PChar
-        CALL     EDX2PChar
-        CALL     StrComp
-        XCHG     EBX, EAX
-
-        CALL     RemoveStr
-        CALL     RemoveStr
-
-        XCHG     EAX, EBX
-        POP      EBX
+function CompareStrListItems_NoCase( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
+asm
+        MOV      EAX, [EAX].TStrList.fList
+        MOV      EAX, [EAX].TList.fItems
+        MOV      EDX, [EAX+EDX*4]
+        MOV      EAX, [EAX+ECX*4]
+        XCHG     EAX, EDX
+        JMP      StrComp_NoCase
 end;
 
 function CompareAnsiStrListItems( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
 asm
-        CMP      byte ptr [EAX].TStrList.fCaseSensitiveSort, 0
         MOV      EAX, [EAX].TStrList.fList
         MOV      EAX, [EAX].TList.fItems
         MOV      EDX, [EAX+EDX*4]
         MOV      EAX, [EAX+ECX*4]
         XCHG     EAX, EDX
-        JZ       _AnsiCompareStrNoCase
+        JMP      _AnsiCompareStrNoCase
+end;
+
+function CompareAnsiStrListItems_Case( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
+asm
+        MOV      EAX, [EAX].TStrList.fList
+        MOV      EAX, [EAX].TList.fItems
+        MOV      EDX, [EAX+EDX*4]
+        MOV      EAX, [EAX+ECX*4]
+        XCHG     EAX, EDX
         JMP      _AnsiCompareStr
 end;
 {$ENDIF}
@@ -12866,18 +12858,26 @@ end;
 procedure TStrList.Sort(CaseSensitive: Boolean);
 asm
         MOV      [EAX].fCaseSensitiveSort, DL
+        MOV      [EAX].fAnsiSort, 0
         PUSH     Offset[TStrList.Swap]
-        MOV      ECX, Offset[CompareStrListItems]
-        MOV      EDX, [EAX].fCount
+        MOV      ECX, Offset[CompareStrListItems_Case]
+        CMP      DL, 0
+        JNZ      @1
+        MOV      ECX, Offset[CompareStrListItems_NoCase]
+@1:     MOV      EDX, [EAX].fCount
         CALL     SortData
 end;
 
 procedure TStrList.AnsiSort(CaseSensitive: Boolean);
 asm
         MOV      [EAX].fCaseSensitiveSort, DL
+        MOV      [EAX].fAnsiSort, 1
         PUSH     Offset[TStrList.Swap]
         MOV      ECX, Offset[CompareAnsiStrListItems]
-        MOV      EDX, [EAX].fCount
+        CMP      DL, 0
+        JZ       @1
+        MOV      ECX, Offset[CompareAnsiStrListItems_Case]
+@1:     MOV      EDX, [EAX].fCount
         CALL     SortData
 end;
 
@@ -17898,7 +17898,7 @@ asm     //cmd    //opd
 //@@exit: XCHG     EAX, ECX
 end;
 
-function WinVer : TWindowsVersion;
+{function WinVer : TWindowsVersion;
 asm
   MOVSX EAX, byte ptr [SaveWinVer]
   INC   AH     // если <> 0 после инкремента, то AL содержит вычисленную версию
@@ -17908,7 +17908,6 @@ asm
   XOR   EAX, EAX
   TEST  EDX, EDX
   XCHG  DL, DH    // DH=MajorVersion; DL=MinorVersion
-
   JL    @@platform_9x
   MOV   AL, wvNT
   CMP   DX, $0400
@@ -17946,8 +17945,7 @@ asm
 @@save_exit:
   MOV   byte ptr [SaveWinVer], AL
 @@exit:
-end;  
+end;}
 
 //======================================== THE END OF FILE KOL_ASM.inc
-
 

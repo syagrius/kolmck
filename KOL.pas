@@ -15,7 +15,7 @@
 
 //[VERSION]
 ****************************************************************
-* VERSION 2.88
+* VERSION 2.89
 ****************************************************************
 //[END OF VERSION]
 
@@ -570,23 +570,23 @@ var
     {$ERROR 'Delphi 2 cannot compile with UNICODE_CTRLS defined!'}
   {$ENDIF}
 const
-  SizeOfKOLChar = SizeOf(WideChar);
+	SizeOfKOLChar = SizeOf(WideChar);
 
  type
-   KOLString = WideString;
+	 KOLString = WideString;
          KOL_String = type WideString;
-   KOLChar = type WideChar;
-   PKOLChar = PWideChar;
+	 KOLChar = type WideChar;
+	 PKOLChar = PWideChar;
          PKOL_Char = type PWideChar;
 {$ELSE}
 const
-  SizeOfKOLChar = SizeOf(AnsiChar);
+	SizeOfKOLChar = SizeOf(AnsiChar);
 
  type
-   KOLString = AnsiString;
+	 KOLString = AnsiString;
          KOL_String = type AnsiString;
-   KOLChar = type AnsiChar;
-   PKOLChar = PAnsiChar;
+	 KOLChar = type AnsiChar;
+	 PKOLChar = PAnsiChar;
          PKOL_Char = type PAnsiChar;
    {$IFDEF ASM_VERSION}
      {$DEFINE ASM_UNICODE}
@@ -945,7 +945,7 @@ type
   TThreadMethod = procedure of object;
   TThreadMethodEx = procedure( Sender: PThread; Param: Pointer ) of object;
 
-  TOnThreadExecute = function(Sender:PThread): Integer of object;
+  TOnThreadExecute = function(Sender: PThread): Integer of object;
   {* Event to be called when Execute method is called for TThread }
 
 { ---------------------------------------------------------------------
@@ -1022,6 +1022,7 @@ type
     {* Waits (infinitively) until thead will be finished. }
     function WaitForTime( T: DWORD ): Integer;
     {* Waits (T milliseconds) until thead will be finished. }
+
     property Handle: THandle read FHandle;
     {* Thread handle. It is created immediately when object is created
        (using NewThread). }
@@ -1040,6 +1041,7 @@ type
        THREAD_PRIORITY_LOWEST, THREAD_PRIORITY_NORMAL, THREAD_PRIORITY_TIME_CRITICAL. }
     property Data : Pointer read FData write FData;
     {* Custom data pointer. Use it for Youe own purpose. }
+
     property OnExecute: TOnThreadExecute read FOnExecute write FOnExecute;
     {* Is called, when Execute is starting. }
     property OnSuspend: TObjectMethod read FOnSuspend write FOnSuspend;
@@ -1493,6 +1495,8 @@ RT_VERSION	Version resource
 //[TStrList]
 
 type
+  TCompareStrListFun = function( const S1, S2: PAnsiChar ): Integer;
+
   {++}(*TStrList = class;*){--}
   PStrList = {-}^{+}TStrList;
 { ---------------------------------------------------------------------
@@ -1514,8 +1518,10 @@ type
     fList: PList;
     fCount: Integer;
     fCaseSensitiveSort: Boolean;
+    fAnsiSort: Boolean;
     fTextBuf: PAnsiChar;
     fTextSiz: DWORD;
+    fCompareStrListFun: TCompareStrListFun;
     function GetPChars(Idx: Integer): PAnsiChar;
     //procedure AddTextBuf( Src: PAnsiChar; Len: DWORD );
   protected
@@ -1550,7 +1556,7 @@ type
     {* Deletes string with given index (it *must* exist). }
     procedure DeleteLast;
     {* Deletes the last string (it *must* exist). }
-    function IndexOf(const S: Ansistring): integer;
+    function IndexOf(const S: AnsiString): integer;
     {* Returns index of first string, equal to given one. }
     function IndexOf_NoCase(const S: Ansistring): integer;
     {* Returns index of first string, equal to given one (while comparing it
@@ -1559,10 +1565,15 @@ type
     {* Returns index of first string, equal to given one (while comparing it
        without case sensitivity). }
     function Find(const S: AnsiString; var Index: Integer): Boolean;
-    {* Returns Index of the first string, equal or greater to given pattern, but
+    {* Returns Index of the string, equal or greater to given pattern, but
        works only for sorted TStrList object. Returns TRUE if exact string found,
        otherwise nearest (greater then a pattern) string index is returned,
        and the result is FALSE. }
+    function FindFirst(const S: AnsiString; var Index: Integer): Boolean;
+    {* Like above but always returns Index of the first string, equal or greater
+       to given pattern. Also works only for sorted TStrList object. Returns TRUE
+       if exact string found, otherwise nearest (greater then a pattern) string
+       index is returned, and the result is FALSE. }
     procedure Insert(Idx: integer; const S: Ansistring);
     {* Inserts string before one with given index. }
     procedure Move(CurIndex, NewIndex: integer);
@@ -2312,6 +2323,8 @@ type
 function Color2RGB( Color: TColor ): TColor;
 {* Function to get RGB color from system color. Parameter can be also RGB
    color, in that case result is just equal to a parameter. }
+function RGB2BGR( Color: TColor ): TColor;
+{* Converts RGB color to BGR }
 {$IFDEF GTK}
 function Color2GDKColor( Color: TColor ): TGdkColor;
 {$ENDIF GTK}
@@ -2531,6 +2544,10 @@ type
     {* Brush of Canvas object. Do not change its Brush.OnChange event value. }
     property Font : PGraphicTool read GetFont;
     {* Font of Canvas object. Do not change its Font.OnChange event value. }
+    procedure OffsetAndRotate( Xoff, Yoff: Integer; Angle: Double );
+    {* Transforms world coordinates so that Xoff and Yoff become the
+       coordinates of the origin (0,0) and all further drawing is done
+       rotated around that point by the Angle (which is given in radians) }
     {$IFNDEF NOT_USE_KOLMATH} // if using KOLmath disabled, Arc becomes unavailable
     procedure Arc(X1, Y1, X2, Y2, X3, Y3, X4, Y4: Integer); stdcall;
     {* Draws arc. For more info, see Delphi TCanvas help. }
@@ -3806,7 +3823,7 @@ type
 //[Create Window STRUCTURES]
   TCreateParams = packed record
   {* Record to pass it through CreateSubClass method. }
-  Caption: PKOLChar;
+	Caption: PKOLChar;
     Style: cardinal;
     ExStyle: cardinal;
     X, Y: Integer;
@@ -3819,16 +3836,16 @@ type
 
   TCreateWndParams = packed Record
     ExStyle: DWORD;
-  WinClassName: PKOLChar;
-  Caption: PKOLChar;
+	WinClassName: PKOLChar;
+	Caption: PKOLChar;
     Style: DWORD;
     X, Y, Width, Height: Integer;
     WndParent: HWnd;
     Menu: HMenu;
     Inst: THandle;
     Param: Pointer;
-  WinClsNamBuf: array[ 0..63 ] of KOLChar;
-  WindowClass: TWndClass;
+	WinClsNamBuf: array[ 0..63 ] of KOLChar;
+	WindowClass: TWndClass;
   end;
 
 //[COMMAND ACTIONS TYPE FOR DIFFERENT CONTROLS]
@@ -4629,8 +4646,8 @@ type
     fGetCaption: TGetCaption;
     fSetCaption: TSetCaption;
     {$ENDIF _X_}
-  function GetCaption: KOLString;
-  procedure SetCaption( const Value: KOLString );
+	function GetCaption: KOLString;
+	procedure SetCaption( const Value: KOLString );
     {$IFDEF GDI}
 
     procedure SetWindowState( Value: TWindowState );
@@ -5179,7 +5196,7 @@ type
     {* Returns Icon property. By default, if it is not set,
        returns Icon property of an Applet. }
 
-  procedure CreateSubclass( var Params: TCreateParams; ControlClassName: PKOLChar );
+	procedure CreateSubclass( var Params: TCreateParams; ControlClassName: PKOLChar );
     {* Can be used in descending classes to subclass window with given
        standard Windows ControlClassName - must be called after
        creating Params but before CreateWindow. Usually it is called
@@ -8706,6 +8723,7 @@ type
     // to use the same naming rule for all of You. Name your fields, properies, etc.
     // using a form idx_SomeName, where idx is a prefix, containing several
     // (at least one) letters and digits. E.g. ZK65_OnSomething.
+
   protected
      fParentCoordX: Integer;
      fParentCoordY: Integer;
@@ -10338,6 +10356,9 @@ function Double2Str( D: Double ): AnsiString;
 {* }
 function Extended2Str( E: Extended ): AnsiString;
 {* }
+function Extended2StrDigits( D: Double; n: Integer ): AnsiString;
+{* Converts floating point number to string, leaving exactly n digits
+   following floating point. }
 
 function Double2StrEx( D: Double ): AnsiString;
 {* experimental, do not use }
@@ -10630,6 +10651,8 @@ function WStrRScan(const Str: PWideChar; Chr: WideChar): PWideChar;
   considered to be part of the string. }
 {$ENDIF _FPC}
 {$ENDIF _D2}
+//--- set of functions to work either with AnsiString or with WideString
+//    depending on UNICODE_CTRLS symbol ----------------------------------------
 function AnsiCompareStr(const S1, S2: KOLString): Integer;
 {* AnsiCompareStr compares S1 to S2, with case-sensitivity. The compare
   operation is controlled by the current Windows locale. The return value
@@ -10642,7 +10665,28 @@ function AnsiCompareStrNoCase(const S1, S2: KOLString): Integer;
   is the same as for CompareStr. }
 function _AnsiCompareStrNoCase(S1, S2: PKOLChar): Integer;
 {* The same, but for PChar ANSI strings }
-function AnsiCompareText( const S1, S2: AnsiString ): Integer;
+function AnsiCompareText( const S1, S2: KOLString ): Integer;
+{* }
+function AnsiEq( const S1, S2 : KOLString ) : Boolean;
+{* Returns True, if AnsiLowerCase(S1) = AnsiLowerCase(S2). I.e., if ANSI
+   stringsare equal to each other without caring of characters case
+   sensitivity. }
+
+//--- set of functions to work always with AnsiString
+//    even if UNICODE_CTRLS symbol is defined ----------------------------------
+function AnsiCompareStrA(const S1, S2: AnsiString): Integer;
+{* AnsiCompareStr compares S1 to S2, with case-sensitivity. The compare
+  operation is controlled by the current Windows locale. The return value
+  is the same as for CompareStr. }
+function _AnsiCompareStrA(S1, S2: PAnsiChar): Integer;
+{* The same, but for PChar ANSI strings }
+function AnsiCompareStrNoCaseA(const S1, S2: AnsiString): Integer;
+{* AnsiCompareStr compares S1 to S2, with case-sensitivity. The compare
+  operation is controlled by the current Windows locale. The return value
+  is the same as for CompareStr. }
+function _AnsiCompareStrNoCaseA(S1, S2: PAnsiChar): Integer;
+{* The same, but for PChar ANSI strings }
+function AnsiCompareTextA( const S1, S2: AnsiString ): Integer;
 {* }
 
 {$IFDEF WIN}
@@ -10715,10 +10759,6 @@ function StrEq( const S1, S2 : AnsiString ) : Boolean;
 {* Returns True, if LowerCase(S1) = LowerCase(S2). I.e., if strings
    are equal to each other without caring of characters case sensitivity
    (ASCII only). }
-function AnsiEq( const S1, S2 : AnsiString ) : Boolean;
-{* Returns True, if AnsiLowerCase(S1) = AnsiLowerCase(S2). I.e., if ANSI
-   stringsare equal to each other without caring of characters case
-   sensitivity. }
 {$IFNDEF _D2}
 {$IFNDEF _FPC}
 function WAnsiEq( const S1, S2 : WideString ) : Boolean;
@@ -11889,6 +11929,8 @@ type
     {* Reads or writes integer data value. }
     function ValueString( const Key: KOLString; const Value: KOLString ): KOLString;
     {* Reads or writes string data value. }
+    function ValueDouble( const Key: KOLString; const Value: Double ): Double;
+    {* Reads or writes Double data value. }
     function ValueBoolean( const Key: KOLString; Value: Boolean ): Boolean;
     {* Reads or writes Boolean data value. }
     function ValueData( const Key: KOLString; Value: Pointer; Count: Integer ): Boolean;
@@ -12070,8 +12112,8 @@ type
     procedure SetItemChecked( Item : Integer; Value : Boolean );
     function GetItemBitmap(Idx: Integer): HBitmap;
     procedure SetItemBitmap(Idx: Integer; const Value: HBitmap);
-  function GetItemText(Idx: Integer): KOLString;
-  procedure SetItemText(Idx: Integer; const Value: KOLString);
+	function GetItemText(Idx: Integer): KOLString;
+	procedure SetItemText(Idx: Integer; const Value: KOLString);
     function GetItemEnabled(Idx: Integer): Boolean;
     procedure SetItemEnabled(Idx: Integer; const Value: Boolean);
     function GetItemVisible(Idx: Integer): Boolean;
@@ -12290,7 +12332,7 @@ type
        only - for checked menu items default checkmark bitmap is used). }
     procedure AssignBitmaps( StartIdx: Integer; Bitmaps: array of HBitmap );
     {* Can be used to assign bitmaps to several menu items during one call. }
-  property ItemText[ Idx: Integer ]: KOLString read GetItemText write SetItemText;
+	property ItemText[ Idx: Integer ]: KOLString read GetItemText write SetItemText;
     {* This property allows to get / modify menu item text at run time. }
     property ItemEnabled[ Idx: Integer ]: Boolean read GetItemEnabled write SetItemEnabled;
     {* Controls enabling / disabling menu items. Disabled menu items are
@@ -12316,11 +12358,11 @@ type
     {* Retrieves submenu item dynamically. See also SubMenu property. }
 
     // by Sergey Shisminzev:
-  function AddItem(ACaption: PKOLChar; Event: TOnMenuItem; Options: TMenuOptions): Integer;
+	function AddItem(ACaption: PKOLChar; Event: TOnMenuItem; Options: TMenuOptions): Integer;
     {* Adds menu item dynamically. Returns ID of the added item. }
-  function InsertItem(InsertBefore: Integer; ACaption: PKOLChar; Event: TOnMenuItem; Options: TMenuOptions): Integer;
+	function InsertItem(InsertBefore: Integer; ACaption: PKOLChar; Event: TOnMenuItem; Options: TMenuOptions): Integer;
     {* Inserts menu item before an item with ID, given by InsertBefore parameter. }
-  function InsertItemEx(InsertBefore: Integer; ACaption: PKOLChar; Event: TOnMenuItem; Options: TMenuOptions;
+	function InsertItemEx(InsertBefore: Integer; ACaption: PKOLChar; Event: TOnMenuItem; Options: TMenuOptions;
              ByPosition: Boolean): Integer;
     {* Inserts menu item by command or by position, dependant on ByPosition parameter }
     procedure RedrawFormMenuBar;
@@ -13179,7 +13221,7 @@ function CrackStack_MapInFile( const MapFileName: KOLString; Max_length: Integer
    no enough data). }
 
 {$IFDEF _D2006orHigher}
-  {$I MCKfakeClasses200x.inc} // Dufa
+	{$I MCKfakeClasses200x.inc} // Dufa
 {$ENDIF}
 //[IMPLEMENTATION]
 implementation
@@ -13764,7 +13806,9 @@ function WndProcJustOneNotify( Control: PControl; var Msg: TMsg; var Rslt: Integ
 function WndProcJustOne( Control: PControl; var Msg: TMsg; var Rslt: Integer ) : Boolean; forward;
 function WndProcTreeView( Self_: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean; forward;
 function CompareAnsiStrListItems( const Sender : Pointer; const e1, e2 : DWORD ) : Integer; forward;
-function CompareStrListItems( const Sender : Pointer; const e1, e2 : DWORD ) : Integer; forward;
+function CompareAnsiStrListItems_Case( const Sender : Pointer; const e1, e2 : DWORD ) : Integer; forward;
+function CompareStrListItems_NoCase( const Sender : Pointer; const e1, e2 : DWORD ) : Integer; forward;
+function CompareStrListItems_Case( const Sender : Pointer; const e1, e2 : DWORD ) : Integer; forward;
 function CompareIntegers( const Sender : Pointer; const e1, e2 : DWORD ) : Integer; forward;
 procedure SwapIntegers( const Sender : Pointer; const e1, e2 : DWORD ); forward;
 function CompareDwords( const Sender : Pointer; const e1, e2 : DWORD ) : Integer; forward;
@@ -14091,6 +14135,7 @@ end;
  {$I visual_xp_styles.inc}
 {$ENDIF}
 
+{$IFDEF SNAPMOUSE2DFLTBTN}
 var FoundMsgBoxWnd: HWnd;
 
 function EnumProcSnapMouse2DfltBtn( W: HWnd; lParam: Integer ): BOOL; stdcall;
@@ -14136,6 +14181,7 @@ begin
   end;
   Result := FALSE;
 end;
+{$ENDIF SNAPMOUSE2DFLTBTN}
 
 {$IFDEF GDI}
 //[function MsgBox]
@@ -15715,10 +15761,10 @@ var I: Integer;
     CountBefore, CountCurrent: Integer;
     {$ENDIF}
 begin
+  Result := -1;
   {$IFDEF DEBUG}
   TRY
   {$ENDIF}
-     Result := -1;
      {$IFDEF TLIST_FAST}
      if fUseBlocks and Assigned( fBlockList ) then
      begin
@@ -15951,7 +15997,7 @@ end;
 {$IFDEF WIN_GDI}
 
 { -- Window procedure -- }
-
+(*
 function CallCtlWndProc_1( Ctl: PControl; var Msg: TMsg ): Integer;
 begin
   Result := Ctl.WndProc( Msg );
@@ -16047,6 +16093,7 @@ asm
 
         MOV       ESP, EBP
 end;
+*)
 
 {$UNDEF ASM_LOCAL}
 {$IFDEF ASM_noVERSION}
@@ -16397,6 +16444,7 @@ end;
 {$ENDIF ASM_VERSION}
 
 //[PROCEDURE CallTControlCreateWindow]
+{$IFDEF ASM_VERSION}
 function CallTControlCreateWindow( Ctl: PControl ): Boolean;
 begin
   {$IFDEF SAFE_CODE}
@@ -16413,6 +16461,7 @@ begin
   Result := Ctl.CreateWindow;
   {$ENDIF}
 end;
+{$ENDIF}
 //[END CallTControlCreateWindow]
 {$ENDIF GDI}
 {$ENDIF WIN_GDI}
@@ -16527,7 +16576,9 @@ end;
 {$ENDIF GDI}
 
 //[WndProcXXX FORWARD DECLARATIONS]
+{$IFDEF ASM_VERSION}
 function WndProcAppAsm( Self_: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean; forward;
+{$ENDIF}
 function WndProcAppPas( Self_: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean; forward;
 function WndProcForm( Self_: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean; forward;
 function WndProcPaint( Self_: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean; forward;
@@ -17623,6 +17674,22 @@ begin
   RequiredState( HandleValid );
   Windows.SetPixel(FHandle, X, Y, Color2RGB( Value ));
 end;
+
+procedure TCanvas.OffsetAndRotate(Xoff, Yoff: Integer; Angle: Double);
+var F: tagXForm;
+begin
+    SetGraphicsMode( fHandle, GM_ADVANCED );
+    F.eM11 := cos( Angle );
+    F.eM12 := sin( Angle );
+    F.eM21 := -F.eM12;
+    F.eM22 := F.eM11;
+    F.eDx := Xoff;
+    F.eDy := Yoff;
+    SetWorldTransform( fHandle, F );
+    if  (Angle = 0) and (Xoff = 0) and (Yoff = 0) then
+        SetGraphicsMode( fHandle, GM_COMPATIBLE );
+end;
+
 {$ENDIF WIN_GDI}
 
 {$IFDEF _X_}
@@ -19239,6 +19306,57 @@ begin
   if S then Result := '-' + Result;
 end;
 
+function Extended2StrDigits( D: Double; n: Integer ): AnsiString;
+var i, m: Integer;
+label start;
+begin
+start:
+    Result := Extended2Str( D );
+    i := pos( '.', Result );
+    if  n <= 0 then
+    begin
+        if  i <= 0 then Exit;
+        delete( Result, i, MaxInt );
+    end
+      else
+    begin
+        if  i <= 0 then
+        begin
+            i := Length( Result ) + 1;
+            Result := Result + '.';
+        end;
+        if  Length( Result ) - i < n then
+            Result := Result + StrRepeat( '0', n + i - Length( Result ) )
+        else
+        begin
+            m := i + n;
+            if  Length( Result ) <= m then Exit;
+            if  (Result[m+1] > '5')
+            or  (Length( Result ) > m+1)
+            and (Result[m+2] > '0') then
+            begin
+                //D := D + 1/IntPower( 10, n-1 );
+                //goto start;
+                n := m;
+                inc( Result[n] );
+                while Result[n] > '9' do
+                begin
+                      Result[n] := '0';
+                      dec( n );
+                      if  n = 0 then
+                      begin
+                          Result := '1' + Result;
+                          break;
+                      end;
+                      if  Result[n] = '.' then dec(n);
+                      inc( Result[n] );
+                end;
+            end;
+            delete( Result, m+1, MaxInt );
+        end;
+    end;
+end;
+
 //[function Double2Str]
 function Double2Str( D: Double ): AnsiString;
 begin
@@ -20531,11 +20649,28 @@ begin
 end;
 {$ENDIF WIN}
 
+//[function AnsiCompareStrA]
+{$IFDEF WIN}
+function AnsiCompareStrA(const S1, S2: AnsiString): Integer;
+begin
+  Result := CompareStringA(LOCALE_USER_DEFAULT, 0, PAnsiChar(S1), -1, PAnsiChar(S2), -1 ) - 2;
+end;
+{$ENDIF WIN}
+
 //[function _AnsiCompareStr]
 {$IFDEF WIN}
 function _AnsiCompareStr(S1, S2: PKOLChar): Integer;
 begin
   Result := CompareString( LOCALE_USER_DEFAULT, 0, S1, -1,
+                           S2, -1) - 2;
+end;
+{$ENDIF WIN}
+
+//[function _AnsiCompareStrA]
+{$IFDEF WIN}
+function _AnsiCompareStrA(S1, S2: PAnsiChar): Integer;
+begin
+  Result := CompareStringA( LOCALE_USER_DEFAULT, 0, S1, -1,
                            S2, -1) - 2;
 end;
 {$ENDIF WIN}
@@ -20549,6 +20684,15 @@ begin
 end;
 {$ENDIF WIN}
 
+//[function AnsiCompareStrNoCaseA]
+{$IFDEF WIN}
+function AnsiCompareStrNoCaseA(const S1, S2: AnsiString): Integer;
+begin
+  Result := CompareStringA(LOCALE_USER_DEFAULT, NORM_IGNORECASE, PAnsiChar(S1), -1,
+    PAnsiChar(S2), -1 ) - 2;
+end;
+{$ENDIF WIN}
+
 //[function _AnsiCompareStrNoCase]
 {$IFDEF WIN}
 function _AnsiCompareStrNoCase(S1, S2: PKOLChar): Integer;
@@ -20558,10 +20702,25 @@ begin
 end;
 {$ENDIF WIN}
 
+//[function _AnsiCompareStrNoCaseA]
+{$IFDEF WIN}
+function _AnsiCompareStrNoCaseA(S1, S2: PAnsiChar): Integer;
+begin
+  Result := CompareStringA( LOCALE_USER_DEFAULT, NORM_IGNORECASE, S1, -1,
+                           S2, -1) - 2;
+end;
+{$ENDIF WIN}
+
 //[function AnsiCompareText]
-function AnsiCompareText( const S1, S2: AnsiString ): Integer;
+function AnsiCompareText( const S1, S2: KOLString ): Integer;
 begin
   Result := AnsiCompareStrNoCase( S1, S2 );
+end;
+
+//[function AnsiCompareTextA]
+function AnsiCompareTextA( const S1, S2: AnsiString ): Integer;
+begin
+  Result := AnsiCompareStrNoCaseA( S1, S2 );
 end;
 
 //[function StrLCopy]
@@ -20625,7 +20784,7 @@ end;
 //[FUNCTION AnsiEq]
 {$IFDEF ASM_VERSION}
 {$ELSE ASM_VERSION} //Pascal
-function AnsiEq( const S1, S2 : AnsiString ) : Boolean;
+function AnsiEq( const S1, S2 : KOLString ) : Boolean;
 begin
   Result := AnsiCompareStrNoCase( S1, S2 ) = 0;
 end;
@@ -20883,9 +21042,12 @@ var I, J, N: Integer;
 begin
   if S <> '' then
   begin
-    if S[ 1 ] = #10 then
-      S[ 1 ] := #0;
     N := 0;
+    if S[ 1 ] = #10 then
+    begin
+      S[ 1 ] := #0;
+      inc( N );
+    end;
     for I := Length(S) downto 2 do
     begin
         if (S[I]=#10) and (S[I-1]<>#13) then
@@ -23323,48 +23485,50 @@ var FindData : TFindFileData;
 begin
   Clear;
   FPath := DirPath;
-  if (FPath = '') then Exit;
+  if FPath = '' then Exit;
   FPath := IncludeTrailingPathDelimiter( FPath );
-  if not Assigned(fFilters) then begin
+  if not Assigned(fFilters) then 
+  begin
     fFilters := {$IFDEF UNICODE_CTRLS} NewWStrList {$ELSE} NewStrList {$ENDIF};
     if Filter = '*.*' then
       fFilters.Add( '*' )
     else
       fFilters.Add( Filter );
   end;
-  if Find_First( PKOLChar( FPath + FindFilter( Filter ) ), FindData ) then begin // D[u]fa. fix mem leaks (FList, fFilters)
+  if Find_First( PKOLChar( FPath + FindFilter( Filter ) ), FindData ) then 
+  begin // D[u]fa. fix mem leaks (FList, fFilters)
     FList := NewList;
-    while True do
-    begin
+  while True do
+  begin
       {$IFDEF FORCE_ALTERNATEFILENAME} //+MtsVN
-      IsUnicode := FindData.cFileName;
-      if (IsUnicode <> '.') and (IsUnicode <> '..') then
-      begin
-       if pos('?', IsUnicode) > 0 then
-           CopyMemory( @FindData.cFileName, @FindData.cAlternateFileName,
-                       SizeOf(FindData.cAlternateFileName));
-      end;
-      {$ENDIF}
-      if SatisfyFilter( PKOLChar(@FindData.cFileName[0]),
-                        FindData.dwFileAttributes, Attr ) then
-      begin
-        Action := diAccept;
-        if Assigned( OnItem ) then
-          OnItem( @Self, FindData, Action );
-        CASE Action OF
-        diSkip: ;
-        diAccept:
-          begin
-            GetMem( E, Sizeof( FindData ) );
-            E^ := FindData;
-            FList.Add( E );
-          end;
-        diCancel: break;
-        END;
-      end;
-      if not Find_Next( FindData ) then break;
+    IsUnicode := FindData.cFileName;
+    if (IsUnicode <> '.') and (IsUnicode <> '..') then
+    begin
+     if pos('?', IsUnicode) > 0 then
+         CopyMemory( @FindData.cFileName, @FindData.cAlternateFileName,
+                     SizeOf(FindData.cAlternateFileName));
     end;
-    Find_Close( FindData );
+    {$ENDIF}
+    if SatisfyFilter( PKOLChar(@FindData.cFileName[0]),
+                      FindData.dwFileAttributes, Attr ) then
+    begin
+      Action := diAccept;
+      if Assigned( OnItem ) then
+        OnItem( @Self, FindData, Action );
+      CASE Action OF
+      diSkip: ;
+      diAccept:
+        begin
+          GetMem( E, Sizeof( FindData ) );
+          E^ := FindData;
+          FList.Add( E );
+        end;
+      diCancel: break;
+      END;
+    end;
+    if not Find_Next( FindData ) then break;
+  end;
+  Find_Close( FindData );
   end;
   Free_And_Nil(fFilters);                                                       //D[u]fa
 end;
@@ -24044,8 +24208,7 @@ end;
    at all Christian era, and all other historical era too. }
 
 //[procedure DivMod]
-procedure DivMod(Dividend: Integer; Divisor: Word;
-  var Result, Remainder: Word);
+procedure DivMod(Dividend: Integer; Divisor: Word; var Result, Remainder: Word);
 {$IFDEF F_P}
 begin
         Result    := Dividend div Divisor;
@@ -26442,6 +26605,11 @@ begin
   end;
 end;
 
+function TIniFile.ValueDouble(const Key: KOLString; const Value: Double): Double;
+begin
+  Result := Str2Double( ValueString( Key, Double2Str( Value ) ) );
+end;
+
 //[function OpenIniFile]
 function OpenIniFile( const FileName: KOLString ): PIniFile;
 begin
@@ -27107,7 +27275,7 @@ begin
   {$IFNDEF UNICODE_CTRLS}
   Result := SetMenuItemInfo( H, FId, FALSE, Windows.PMenuitemInfo( @ MII )^ );
   {$ELSE}
-  Result := SetMenuItemInfoW( H, FId, FALSE, Windows.PMenuitemInfoW( @ MII )^ );
+	Result := SetMenuItemInfoW( H, FId, FALSE, Windows.PMenuitemInfoW( @ MII )^ );
   {$ENDIF}
   if Result and ((FParentMenu = nil) or (FParentMenu.FParentMenu = nil)) then {YS}
     RedrawFormMenuBar;
@@ -27119,7 +27287,7 @@ begin
   if not FIsSeparator then
   begin
     if FBmpItem = 0 then
-    MII.dwTypeData := PKOLChar( FCaption )
+	  MII.dwTypeData := PKOLChar( FCaption )
     else
       MII.dwTypeData := Pointer( FBmpItem );
     MII.cch := Length( FCaption )*SizeOfKOLChar;
@@ -27487,8 +27655,8 @@ begin
     if not FIsSeparator then
     begin
       MII.fType := MII.fType or MFT_STRING;
-    MII.dwTypeData := PKOLChar( FCaption );
-    MII.cch := Length( FCaption )*SizeOfKOLChar;
+	  MII.dwTypeData := PKOLChar( FCaption );
+	  MII.cch := Length( FCaption )*SizeOfKOLChar;
     end
       else
       MII.fType := MII.fType or MFT_SEPARATOR;
@@ -27510,13 +27678,13 @@ begin
       MII.fMask := MII.fMask or MIIM_SUBMENU;
       MII.hSubMenu := FHandle;
     end;
-  {$IFNDEF UNICODE_CTRLS}
+	{$IFNDEF UNICODE_CTRLS}
     InsertMenuItem( FParentMenu.FHandle, Before, ByPosition,
                     Windows.PMenuitemInfo( @ MII )^ );
-  {$ELSE}
-  InsertMenuItemW( FParentMenu.FHandle, Before, ByPosition,
-                  Windows.PMenuitemInfoW( @ MII )^ );
-  {$ENDIF}
+	{$ELSE}
+	InsertMenuItemW( FParentMenu.FHandle, Before, ByPosition,
+									Windows.PMenuitemInfoW( @ MII )^ );
+	{$ENDIF}
   end
     else
   begin // hide menu item removing it
@@ -27872,6 +28040,7 @@ begin
         SM := M.Items[ MIS.itemID ];
         if SM <> nil then
         begin
+          //MIS.itemWidth := 100; // VK: agree, this is not necessary
           Sender.CallDefWndProc( Msg );
           I := M.IndexOf( SM );
           if Assigned( SM.OnMeasureItem ) then
@@ -27988,6 +28157,7 @@ begin
   Result.FParentMenu := @ Self;
   Result.FMenuItems := NewList;
   Result.FIsSeparator := moSeparator in Options;
+  Result.FIsCheckItem := moCheckMark in Options; //+ by shilou, 12/2009
   if FHandle = 0 then
     SetSubMenu( CreatePopupMenu );
   M := nil;
@@ -28106,15 +28276,15 @@ begin
     MII.cbSize := MenuStructSize;
     MII.fMask := MIIM_ID;
     MII.wID := SubMenuToInsert.FId;
-  {$IFNDEF UNICODE_CTRLS}
+	{$IFNDEF UNICODE_CTRLS}
     SetMenuItemInfo( SubMenuToInsert.FParentMenu.FHandle,
       SubMenuToInsert.FParentMenu.FMenuItems.IndexOf( SubMenuToInsert ),
                      TRUE, Windows.PMenuItemInfo( @ MII )^ );
-  {$ELSE}
+	{$ELSE}
     SetMenuItemInfoW( SubMenuToInsert.FParentMenu.FHandle,
       SubMenuToInsert.FParentMenu.FMenuItems.IndexOf( SubMenuToInsert ),
                      TRUE, Windows.PMenuItemInfoW( @ MII )^ );
-  {$ENDIF}
+	{$ENDIF}
   end;
   RedrawFormMenuBar;
 end;
@@ -28122,15 +28292,15 @@ end;
 //[function TMenu.RemoveSubMenu]
 function TMenu.RemoveSubMenu( ItemToRemove: Integer ): PMenu;
 {$IFDEF DEBUG_MENU}var OK: Boolean; {$ENDIF}
+var M: PMenu;
 begin
   Result := Items[ ItemToRemove ];
   if Result = nil then Exit;
-  if Result.FParentMenu <> nil then
-    {$IFDEF DEBUG_MENU} OK := {$ENDIF}
-    RemoveMenu( Result.FParentMenu.FHandle, Result.FId, MF_BYCOMMAND )
-  else
-    {$IFDEF DEBUG_MENU} OK := {$ENDIF}
-    RemoveMenu( FHandle, Result.FId, MF_BYCOMMAND );
+  M := Result.FParentMenu;
+  if M = nil then M := @Self;
+  {$IFDEF DEBUG_MENU} OK := {$ENDIF}
+  RemoveMenu( M.FHandle, Result.FId, MF_BYCOMMAND );
+  M.FMenuItems.Remove( Result );
   {$IFDEF DEBUG_MENU}
   if not OK then
     ShowMessage( 'Error removing menu: ' + Int2Str( GetLastError ) + ' - ' +
@@ -28453,6 +28623,7 @@ end;
 //===================== Applet button ========================//
 
 //[FUNCTION WndProcApp]
+{$IFDEF ASM_VERSION}
   function WndProcAppAsm(Self_: PControl; var Msg: TMsg; var Rslt: Integer): Boolean;
   asm
           CMP      word ptr [EDX].TMsg.message, WM_SETFOCUS
@@ -28496,13 +28667,14 @@ end;
           XOR      EAX, EAX
           MOV      dword ptr [ECX], EAX
           INC      EAX
-          JMP      @@exit     
+          JMP      @@exit
   @@ret_false1:
           POP      ECX
   @@ret_false:
           XOR      EAX, EAX
   @@exit:
   end;
+{$ENDIF}
 
 function WndProcAppPas(Self_: PControl; var Msg: TMsg; var Rslt: Integer): Boolean;
 begin
@@ -29772,7 +29944,7 @@ end;
 //[END WndProcBitBtn]
 
 //[FUNCTION NewBitBtn]
-{$IFDEF ASM_VERSION}
+{$IFDEF ASM_noVERSION} // todo: first correct asm version, then remove <no>
 {$ELSE ASM_VERSION} //Pascal
 function NewBitBtn( AParent: PControl; const Caption: KOLString;
          Options: TBitBtnOptions; Layout: TGlyphLayout; GlyphBitmap: HBitmap;
@@ -31499,6 +31671,24 @@ begin
               end;
           {$ENDIF}
         end;
+        {$IFDEF KEY_PREVIEW}
+        if  not Form.KeyPreviewing then
+        begin
+            if  Form.KeyPreview then
+            begin
+                Form.KeyPreviewing := TRUE;
+                inc( Form.FKeyPreviewCount );
+                //Form.Perform(Msg, wParam, lParam);
+                Form.fWndProcKeybd( Form, MsgStruct, Result );
+                dec( Form.FKeyPreviewCount );
+                if  MsgStruct.wParam = 0 then
+                begin
+                    Result := 0;
+                    Exit;
+                end;
+            end;
+        end;
+        {$ENDIF}
         Combo.fWndProcKeybd( Combo, MsgStruct, Result );
       end
         else
@@ -31768,7 +31958,9 @@ begin
     {$ELSE}
     Child := Pointer( GetWindowLong( NMhdr.hwndFrom, GWL_USERDATA ) );
     {$ENDIF}
-    if Child <> nil then
+    if (Child <> nil)
+       and (Child <> Self_) //+ by Galkov, Jun-2009
+    then
     begin
       Msg.hwnd := Child.fHandle;
       Result := EnumDynHandlers( Child, Msg, Rslt );
@@ -32391,10 +32583,10 @@ begin
     if Assigned( Self_.fOnResize ) then
       Self_.fOnResize( Self_ );
     {$IFNDEF TOOLBAR_FORCE_CHILDALIGN}
-    //if WinVer >= wvNT then
-      Result := TRUE; // this prevents Align working for child controls of Toolbar !
-                      // but removing this line makes impossible correct Align for
-                      // neighbour controls on form!!! 
+    if WinVer >= wvNT then // todo: check it.
+      Result := TRUE; // this provides (prevents?) the Align working for child controls of Toolbar !
+                      // but removing this line makes it impossible to correct the Align property for
+                      // the neighbour controls on form!!! 
     {$ENDIF}
     Rslt := 0;
   end
@@ -33112,6 +33304,7 @@ begin
    {$UNDEF destroy}
    {$ENDIF USE_MHTOOLTIP}
    {$IFDEF DEBUG}
+   F := nil;
    TRY
      F := ParentForm; // or Applet - for form ???
    EXCEPT
@@ -33467,21 +33660,21 @@ begin
    {$ENDIF INPACKAGE}
    if fControlClassName <> nil then
    begin
-   GetClassInfo( hInstance,fControlClassName,Params.WindowClass );
+	 GetClassInfo( hInstance,fControlClassName,Params.WindowClass );
      Params.WindowClass.hInstance := Params.Inst;
-   Params.WindowClass.style := Params.WindowClass.style and
-     not CS_OFF or CS_ON;
+	 Params.WindowClass.style := Params.WindowClass.style and
+	   not CS_OFF or CS_ON;
    end;
    if fDefWndProc = nil then
      fDefWndProc := {$ifdef FPC21}@{$endif}Params.WindowClass.lpfnWndProc;
    if Params.WndParent = 0 then
-   if Params.Style and WS_CHILD <> 0 then Exit;
+	 if Params.Style and WS_CHILD <> 0 then Exit;
 
-   {$IFNDEF UNICODE_CTRLS}
-   ClassRegistered := GetClassInfo( Params.WindowClass.hInstance,Params.WinClassName, TempClass );
-   {$ELSE}
-   ClassRegistered := GetClassInfoW( Params.WindowClass.hInstance,Params.WinClassName, TempClass );
-   {$ENDIF}
+	 {$IFNDEF UNICODE_CTRLS}
+	 ClassRegistered := GetClassInfo( Params.WindowClass.hInstance,Params.WinClassName, TempClass );
+	 {$ELSE}
+	 ClassRegistered := GetClassInfoW( Params.WindowClass.hInstance,Params.WinClassName, TempClass );
+	 {$ENDIF}
 
    {$IFDEF INPACKAGE}
    Log( '/// Registering window class' );
@@ -33490,11 +33683,11 @@ begin
    begin
      Params.WindowClass.lpszClassName := Params.WinClassName;
      Params.WindowClass.lpfnWndProc := @ WndFunc;
-   {$IFNDEF UNICODE_CTRLS}
+	 {$IFNDEF UNICODE_CTRLS}
      if RegisterClass( Params.WindowClass ) = 0 then Exit;
-   {$ELSE}
-   if RegisterClassW(Params.WindowClass ) = 0 then Exit;
-   {$ENDIF}
+	 {$ELSE}
+	 if RegisterClassW(Params.WindowClass ) = 0 then Exit;
+	 {$ENDIF}
    end;
 
    {$IFDEF DEBUG_CREATEWINDOW}
@@ -33512,10 +33705,10 @@ begin
                               Params.Param );
    {$ELSE}
    fHandle := CreateWindowExW( Params.ExStyle{ or WS_EX_RTLREADING}, Params.WinClassName,
-              Params.Caption, Params.Style, Params.X, Params.Y,
-              Params.Width, Params.Height, Params.WndParent,
-              Params.Menu, Params.WindowClass.hInstance,
-              Params.Param );
+							Params.Caption, Params.Style, Params.X, Params.Y,
+							Params.Width, Params.Height, Params.WndParent,
+							Params.Menu, Params.WindowClass.hInstance,
+							Params.Param );
 
    {$ENDIF}
    {$IFDEF INPACKAGE}
@@ -33524,13 +33717,13 @@ begin
 
 
    {$IFDEF DEBUG_CREATEWINDOW}
-   if fHandle = 0 then
+	 if fHandle = 0 then
          begin
-    MessageBox(0,
+		MessageBox(0,
                   PKOLChar(SysErrorMessage(GetLastError)),
                   'Error creating window',mb_iconhand);
-    Exit;
-   end;
+		Exit;
+	 end;
    {$ENDIF}
    {$IFDEF INPACKAGE}
    Log( '/// SendMessage WM_UPDATEUISTATE' );
@@ -33621,17 +33814,17 @@ begin
     with Params do
     begin
       SaveInstance := WindowClass.hInstance;
-    {$IFNDEF UNICODE_CTRLS}
+	  {$IFNDEF UNICODE_CTRLS}
       if not GetClassInfo(HInstance, fControlClassName, WindowClass) and
         not GetClassInfo(0, fControlClassName, WindowClass)
       then
         GetClassInfo(WindowClass.hInstance, fControlClassName, WindowClass);
-    {$ELSE}
-      if not GetClassInfoW(HInstance, pWideChar(fControlClassName), WindowClass) and
-        not GetClassInfoW(0, pWidechar(fControlClassName), WindowClass)
-      then
-        GetClassInfoW(WindowClass.hInstance, pWideChar(fControlClassName), WindowClass);
-    {$ENDIF}
+	  {$ELSE}
+			if not GetClassInfoW(HInstance, pWideChar(fControlClassName), WindowClass) and
+				not GetClassInfoW(0, pWidechar(fControlClassName), WindowClass)
+			then
+				GetClassInfoW(WindowClass.hInstance, pWideChar(fControlClassName), WindowClass);
+	  {$ENDIF}
       WindowClass.hInstance := SaveInstance;
       WindowClass.style := WindowClass.style and not CS_OFF or CS_ON;
     end;
@@ -34053,7 +34246,7 @@ begin
                   and not (fKeyPreviewing {and
                       ((Msg.Message=WM_KEYDOWN) {or (Msg.message = WM_CHAR) )})
                  {$ENDIF}
-     then
+		 then
                  begin
                    Result := 0;
                    // Jump to PassFun here. Prevents beep in case when WM_KEYDOWN
@@ -35806,16 +35999,14 @@ end;
 
 //*
 //[function TControl.ControlAtPos]
-function TControl.ControlAtPos( X, Y: Integer;
-                                   IgnoreDisabled: Boolean ): PControl;
+function TControl.ControlAtPos( X, Y: Integer; IgnoreDisabled: Boolean ): PControl;
 var I: Integer;
     C: PControl;
     CR, VR: TRect;
 begin
    Result := nil;
-   CR := ControlRect;
-   if Windowed then
-      CR := MakeRect( 0, 0, 0, 0 );
+   CR := ControlRect; // ÓÚÌÓÒËÚÂÎ¸Ì˚Â ÍÓÓ‰ËÌ‡Ú˚ ‚ ÒËÒÚÂÏÂ –Œƒ»“≈À‹— Œ√Œ  ŒÕ“–ŒÀ¿
+   if Windowed then CR := MakeRect( 0, 0, 0, 0 );
    X := X + CR.Left; // - R.Left;
    Y := Y + CR.Top; // - R.Top;
    for I := ChildCount { + MembersCount } - 1 downto 0 do
@@ -36867,7 +37058,9 @@ begin
   Result := TRUE;
 
   //if Sender.fTransparent and (not Sender.fParentRequirePaint) then
-  if Assigned(Sender.fParent) and (not Sender.isForm)                           // fix Galkov
+  {if (Sender.fTransparent or 
+  	 Sender.fDoubleBuffered) and (Sender.FParent <> nil)} // ·˚ÎÓ
+  if Assigned(Sender.fParent) and (not Sender.isForm)     // ÒÚ‡ÎÓ
   and Sender.FParent.fDoubleBuffered
   and (not Sender.fParentRequirePaint) then
   begin
@@ -37629,7 +37822,7 @@ var
     CShadow: TColor;
     Target: PCanvas;
     Txt: KOLString;
-  //LCaption: PKOLChar;
+	//LCaption: PKOLChar;
     OldPaintDC: HDC;
 
     procedure doTextOut( shfx, shfy: Integer; col: TColor );
@@ -40137,19 +40330,39 @@ end;
 //[function TStrList.IndexOf]
 {$IFDEF ASM_TLIST}
 {$ELSE ASM_VERSION} //Pascal
-function TStrList.IndexOf(const S: Ansistring): integer;
+function TStrList.IndexOf(const S: AnsiString): integer;
+var Word1: Word;
 begin
-  for Result := 0 to fCount - 1 do
-    if (S = PAnsiChar( fList.Items[Result] )) then Exit;
+  if  S = '' then
+  begin
+      for Result := 0 to fCount - 1 do
+        if  PAnsiChar(fList.Items[Result])^ = #0 then Exit;
+  end
+    else
+  begin
+      Word1 := PWord(PAnsiChar( S ))^;
+  	  for Result := 0 to fCount - 1 do
+          if  (PWord(fList.Items[Result])^ = Word1)
+          and (StrComp( fList.Items[Result], PAnsiChar( S ) ) = 0) then Exit;
+  end;
   Result := -1;
 end;
 {$ENDIF ASM_VERSION}
 
 //[function TStrList.IndexOf]
-function TStrList.IndexOf_NoCase(const S: Ansistring): integer;
+function TStrList.IndexOf_NoCase(const S: AnsiString): integer;
+begin
+  if  S = '' then
 begin
   for Result := 0 to fCount - 1 do
-    if AnsiCompareStrNoCase( S, Items[Result] ) = 0 then Exit;
+          if  PAnsiChar( fList.Items[Result] )^ = #0 then Exit;
+  end
+    else
+  begin
+      for Result := 0 to fCount - 1 do
+        if  (PWord( PAnsiChar(S) )^ = PWord( PAnsiChar( fList.Items[Result] ) )^)
+        and (_AnsiCompareStrNoCaseA( PAnsiChar( S ), fList.Items[Result] ) = 0) then Exit;
+  end;
   Result := -1;
 end;
 
@@ -40165,6 +40378,15 @@ begin
   Result := -1;
 end;
 
+function CompareAnsiCase( const S1, S2: PAnsiChar ): Integer;
+begin
+    Result := _AnsiCompareStrA( S1, S2 );
+end;
+function CompareAnsiNoCase( const S1, S2: PAnsiChar ): Integer;
+begin
+    Result := _AnsiCompareStrNoCaseA( S1, S2 );
+end;
+
 //[function TStrList.Find]
 function TStrList.Find(const S: AnsiString; var Index: Integer): Boolean;
 var
@@ -40173,10 +40395,25 @@ begin
   Result := FALSE;
   L := 0;
   H := FCount - 1;
+  if  fAnsiSort then
+  begin
+      if  fCaseSensitiveSort then
+          fCompareStrListFun := CompareAnsiCase
+      else
+          fCompareStrListFun := CompareAnsiNoCase;
+  end
+    else
+  begin
+      if  fCaseSensitiveSort then
+          fCompareStrListFun := StrComp
+      else
+          fCompareStrListFun := StrComp_NoCase;
+  end;
   while L <= H do
   begin
     I := (L + H) shr 1;
-    C := AnsiCompareStr( AnsiString(PAnsiChar( fList.Items[ I ] )), S ); // TODO: _PureAnsiCompareStr
+    C := fCompareStrListFun( PAnsiChar( fList.Items[ I ] ),
+                             PAnsiChar( S ) );
     if C < 0 then L := I + 1 else
     begin
       H := I - 1;
@@ -40184,10 +40421,27 @@ begin
       begin
         Result := TRUE;
         L := I;
+        break;
       end;
     end;
   end;
   Index := L;
+  if  not Result then
+      Result := fCompareStrListFun( PAnsiChar( fList.Items[ L ] ),
+                                    PAnsiChar( S ) ) = 0;
+end;
+
+//[function TStrList.FindFirst]
+function TStrList.FindFirst(const S: AnsiString; var Index: Integer): Boolean;
+begin
+  Result := Find( S, Index );
+  if  Result then
+  begin
+      while (Index > 0)
+      and   (fCompareStrListFun( PAnsiChar( fList.Items[ Index-1 ] ),
+                                 PAnsiChar( S )) = 0) do
+            dec( Index );
+  end;
 end;
 
 //[procedure TStrList.Insert]
@@ -40321,18 +40575,28 @@ begin
   SetText( Value, False );
 end;
 
-//[FUNCTION CompareStrListItems]
+//[FUNCTION CompareStrListItems_NoCase]
 {$IFDEF ASM_TLIST}
 {$ELSE ASM_VERSION} //Pascal
-function CompareStrListItems( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
+function CompareStrListItems_NoCase( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
 var S1, S2 : PAnsiChar;
 begin
   S1 := PStrList( Sender ).fList.Items[ e1 ];
   S2 := PStrList( Sender ).fList.Items[ e2 ];
-  if PStrList( Sender ).fCaseSensitiveSort then
-    Result := StrComp( S1, S2 )
-  else
-    Result := StrComp( PAnsiChar( LowerCase( S1 ) ), PAnsiChar( LowerCase( S2 ) ) );
+  Result := StrComp_NoCase( S1, S2 );
+end;
+{$ENDIF ASM_VERSION}
+//[END CompareStrListItems]
+
+//[FUNCTION CompareStrListItems]
+{$IFDEF ASM_TLIST}
+{$ELSE ASM_VERSION} //Pascal
+function CompareStrListItems_Case( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
+var S1, S2 : PAnsiChar;
+begin
+  S1 := PStrList( Sender ).fList.Items[ e1 ];
+  S2 := PStrList( Sender ).fList.Items[ e2 ];
+  Result := StrComp( S1, S2 );
 end;
 {$ENDIF ASM_VERSION}
 //[END CompareStrListItems]
@@ -40341,14 +40605,24 @@ end;
 {$IFDEF ASM_TLIST}
 {$ELSE ASM_VERSION} //Pascal
 function CompareAnsiStrListItems( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
-var S1, S2 : PKOLChar;
+var S1, S2 : PAnsiChar;
 begin
   S1 := PStrList( Sender ).fList.Items[ e1 ];
   S2 := PStrList( Sender ).fList.Items[ e2 ];
-  if PStrList( Sender ).fCaseSensitiveSort then
-    Result := _AnsiCompareStr( S1, S2 )
-  else
-    Result := _AnsiCompareStrNoCase( S1, S2 );
+  Result := _AnsiCompareStrNoCaseA( S1, S2 );
+end;
+{$ENDIF ASM_VERSION}
+//[END CompareAnsiStrListItems]
+
+//[FUNCTION CompareAnsiStrListItems_Case]
+{$IFDEF ASM_TLIST}
+{$ELSE ASM_VERSION} //Pascal
+function CompareAnsiStrListItems_Case( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
+var S1, S2 : PAnsiChar;
+begin
+  S1 := PStrList( Sender ).fList.Items[ e1 ];
+  S2 := PStrList( Sender ).fList.Items[ e2 ];
+  Result := _AnsiCompareStrA( S1, S2 )
 end;
 {$ENDIF ASM_VERSION}
 //[END CompareAnsiStrListItems]
@@ -40367,7 +40641,11 @@ end;
 procedure TStrList.Sort(CaseSensitive: Boolean);
 begin
   fCaseSensitiveSort := CaseSensitive;
-  SortData( @Self, fCount, @CompareStrListItems, @SwapStrListItems );
+  fAnsiSort := FALSE;
+  if  CaseSensitive then
+      SortData( @Self, fCount, @CompareStrListItems_Case, @SwapStrListItems )
+  else
+      SortData( @Self, fCount, @CompareStrListItems_NoCase, @SwapStrListItems )
 end;
 {$ENDIF ASM_VERSION}
 
@@ -40377,7 +40655,11 @@ end;
 procedure TStrList.AnsiSort(CaseSensitive: Boolean);
 begin
   fCaseSensitiveSort := CaseSensitive;
-  SortData( @Self, fCount, @CompareAnsiStrListItems, @SwapStrListItems );
+  fAnsiSort := TRUE;
+  if  CaseSensitive then
+      SortData( @Self, fCount, @CompareAnsiStrListItems_Case, @SwapStrListItems )
+  else
+      SortData( @Self, fCount, @CompareAnsiStrListItems, @SwapStrListItems );
 end;
 {$ENDIF ASM_VERSION}
 
@@ -40723,14 +41005,22 @@ end;
 procedure TStrListEx.AnsiSort(CaseSensitive: Boolean);
 begin
   fCaseSensitiveSort := CaseSensitive;
-  SortData( @Self, fCount, @CompareAnsiStrListItems, @SwapStrListExItems );
+  fAnsiSort := TRUE;
+  if  CaseSensitive then
+      SortData( @Self, fCount, @CompareAnsiStrListItems_Case, @SwapStrListExItems )
+  else
+      SortData( @Self, fCount, @CompareAnsiStrListItems, @SwapStrListExItems )
 end;
 
 //[procedure TStrListEx.Sort]
 procedure TStrListEx.Sort(CaseSensitive: Boolean);
 begin
   fCaseSensitiveSort := CaseSensitive;
-  SortData( @Self, fCount, @CompareStrListItems, @SwapStrListExItems );
+  fAnsiSort := FALSE;
+  if  CaseSensitive then
+      SortData( @Self, fCount, @CompareStrListItems_Case, @SwapStrListExItems )
+  else
+      SortData( @Self, fCount, @CompareStrListItems_NoCase, @SwapStrListExItems );
 end;
 
 //[procedure TStrListEx.Move]
@@ -41235,14 +41525,16 @@ end;
 //[function CompareWStrListItems_UpperCase]
 function CompareWStrListItems_UpperCase( const Sender: Pointer; const Idx1, Idx2: DWORD ): Integer;
 var WL: PWStrList;
-    L1, L2: Integer;
+    L1, L2, tL1, tL2: Integer;
 begin
   WL := Sender;
   L1 := WStrLen( WL.fList.Items[ Idx1 ] );
   L2 := WStrLen( WL.fList.Items[ Idx2 ] );
-  if Length( WL.fTmp1 ) < L1 then
+  tL1 := Length( WL.fTmp1 );
+  if tL1 <= L1 then
     SetLength( WL.fTmp1, L1 + 1 );
-  if Length( WL.fTmp2 ) < L2 then
+  tL2 := Length( WL.fTmp2 );
+  if tL2 <= L2 then
     SetLength( WL.fTmp2, L2 + 1 );
   if L1 > 0 then
     Move( WL.fList.Items[ Idx1 ]^, WL.fTmp1[ 1 ], (L1 + 1) * 2 )
@@ -41288,15 +41580,31 @@ function TWStrList.IndexOf( const s: WideString ): Integer;
 var i: Integer;
     p: PWideChar;
 begin
-  for i := 0 to Count-1 do
+  if  s = '' then
   begin
-    p := ItemPtrs[ i ];
-    if (p <> nil) and
-       (WStrCmp( PWideChar( s ), p ) = 0) then
-    begin
-      Result := i;
-      Exit;
-    end;
+      for i := 0 to fList.fCount-1 do
+      begin
+          p := ItemPtrs[ i ];
+          if (p = nil) or
+             (p^ = #0) then
+          begin
+              Result := i;
+              Exit;
+          end;
+      end;
+  end
+    else
+  begin
+      for i := 0 to Count-1 do
+      begin
+        p := ItemPtrs[ i ];
+        if (p <> nil) and
+           (WStrCmp( PWideChar( s ), p ) = 0) then
+        begin
+          Result := i;
+          Exit;
+        end;
+      end;
   end;
   Result := -1;
 end;
@@ -47344,6 +47652,7 @@ begin
   fWidth := SrcBmp.fWidth;
   fHeight := SrcBmp.fHeight;
   fHandleType := SrcBmp.fHandleType;
+  fNewPixelFormat := SrcBmp.PixelFormat;
   if SrcBmp.fHandleType = bmDDB then
   begin
     fHandle := CopyImage( SrcBmp.fHandle, IMAGE_BITMAP, 0, 0, 0 {LR_COPYRETURNORG} );
@@ -48864,16 +49173,16 @@ var DesiredSize : Integer;
        end
        else
          if BIH.biBitCount = 16 then
-       begin
-				if (BIH.biCompression = BI_BITFIELDS) then // mdw
-					Stream2Stream(Mem, Strm, 12)
-        else
-         for I := 0 to 2 do
          begin
-           J := InitColors[ I ];
-           Mem.Write( J, 4 );
+             if  BIH.biCompression = BI_BITFIELDS then  // + by mdw - fix for
+                 Stream2Stream(Mem, Strm, 12)           // 16 bit per pixels
+             else                                       
+                 for I := 0 to 2 do
+                 begin
+                   J := InitColors[ I ];
+                   Mem.Write( J, 4 );
+                 end;
          end;
-       end;
        I := Stream2Stream( Mem, Strm, SzImg );
        if I <> Integer( SzImg ) then Exit;
        {$IFDEF ICON_DIFF_WH}
@@ -48900,6 +49209,7 @@ var DesiredSize : Integer;
      BIH.biBitCount := 1;
      BIH.biPlanes := 1;
      BIH.biClrUsed := 0;
+     BIH.biCompression := 0;
      Mem.Seek( 0, spBegin );
      BIH.biSizeImage := ((BIH.biWidth + 31) div 32) * 4 * BIH.biHeight;
      Mem.Write( BIH, Sizeof( BIH ) );
@@ -52509,7 +52819,8 @@ begin
   TVIns.item.mask := TVIF_TEXT;
   TVIns.item.pszText := PKOLChar( Txt );
   Result := Perform( TVM_INSERTITEM, 0, Integer( @TVIns ) );
-  Invalidate;
+  if fUpdateCount <= 0 then
+     Invalidate;
 end;
 
 //[procedure TControl.TVExpand]
@@ -53686,7 +53997,7 @@ end;
 var SaveWinVer: Byte = $FF;
 
 //[function WinVer]
-{$IFDEF ASM_VERSION}
+{$IFDEF nonononoASM_VERSION} // todo: fix asm version first
 {$ELSE ASM_VERSION}
 function WinVer : TWindowsVersion;
 var MajorVersion, MinorVersion: Byte;
@@ -54109,7 +54420,7 @@ begin
           ItemState := ItemState + [ odsMarked ];
       end;
 
-      Sender.Canvas;
+      //Sender.Canvas;  //????????????????????????????
 
       Rslt := Sender.FOnLVCustomDraw( Sender, {Sender.fPaintDC} NMCustDraw.nmcd.hdc,
            NMCustDraw.nmcd.dwDrawStage, ItemIdx, SubItemIdx, NMCustDraw.nmcd.rc,
@@ -54222,7 +54533,7 @@ end;
 
 //[function CompareLVColumns]
 function CompareLVColumns( Idx1, Idx2: Integer; Sender: PControl ): Integer; stdcall;
-var S1, S2: AnsiString;
+var S1, S2: KOLString;
 begin
   //--- changed by Mike Gerasimov:
   S1 := Sender.LVItems[ Idx1, Sender.fColumn ];

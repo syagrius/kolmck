@@ -291,7 +291,7 @@ begin
   begin
     if WinVer >= wvNT then
     begin
-//      _FindFirstFileEx;
+      _FindFirstFileEx;
       F := FFindFirstFileEx( PChar( DirTree.TVItemPath( node, '\' ) + '\*.*' ),
         FindExInfoStandard, @ Find32, FindExSearchLimitToDirectories, nil, 0 );
       if F <> INVALID_HANDLE_VALUE then
@@ -986,7 +986,7 @@ begin
         else
       if WinVer >= wvNT then // используется более быстрый вариант - для NT/2K/XP
       begin
-//        _FindFirstFileEx;
+        _FindFirstFileEx;
         F := FFindFirstFileEx( PChar( p + '*.*' ), FindExInfoStandard, @ Find32,
           FindExSearchLimitToDirectories, nil, 0 );
         if F <> INVALID_HANDLE_VALUE then

@@ -1,6 +1,6 @@
 package KOLMCK_D2006;
 
-{$R *.res}
+{$R KOLMCK.res}
 {$ALIGN 4}
 {$ASSERTIONS ON}
 {$BOOLEVAL OFF}

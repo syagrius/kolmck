@@ -222,9 +222,9 @@ type
     function AddAnsiObject( const S: AnsiString; Obj: DWORD ): Integer;
     {* Adds Ansi AnsiString and correspondent object to a list. }
     function Add(S: PAnsiChar): integer;
-    {* Adds a AnsiString to list. }
+    {* Adds an AnsiString to list. }
     function AddLen(S: PAnsiChar; Len: Integer): integer;
-    {* Adds a AnsiString to list. The AnsiString can contain #0 characters. }
+    {* Adds an AnsiString to list. The AnsiString can contain #0 characters. }
   public
     FastClear: Boolean;
     {* }
@@ -238,7 +238,7 @@ type
     {* Returns index of first AnsiString, equal to given one (while comparing it
        without case sensitivity). }
     function IndexOfStrL_NoCase( Str: PAnsiChar; L: Integer ): integer;
-    {* Returns index of first AnsiString, equal to given one (while comparing it
+    {* Returns index of the first AnsiString, equal to given one (while comparing it
        without case sensitivity). }
     function Find(const S: AnsiString; var Index: Integer): Boolean;
     {* Returns Index of the first AnsiString, equal or greater to given pattern, but
@@ -827,7 +827,7 @@ function ShowQuestion( const S: KOLString; Answers: KOLString ): Integer;
    application. Also, this function *must* be used in MDI applications
    in place of any dialog functions, based on MessageBox.
    |<br>
-   The second parameter should be empty AnsiString or several possible
+   The the second parameter should be empty AnsiString or several possible
    answers separated by '/', e.g.: 'Yes/No/Cancel'. Result is
    a number answered, starting from 1. For example, if  'Cancel'
    was pressed, 3 will be returned.
@@ -2341,7 +2341,7 @@ asm
         MOV      ECX, [EBX].FMonitor
         JECXZ    @@no_monitor
         XCHG     EAX, ECX
-        CALL     TObj.Destroy
+        CALL     TObj.Destroy // TObj.Free //
 @@no_monitor:
         MOV      ECX, [EBX].FHandle
         JECXZ    @@exit
@@ -3308,6 +3308,7 @@ begin
 end;
 //[END KeyClick]
 
+{$IFDEF SNAPMOUSE2DFLTBTN}
 function WndProcDlg( Sender: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean;
 var F, B: PControl;
     R: TRect;
@@ -3328,6 +3329,7 @@ begin
     end;
   end;
 end;
+{$ENDIF}
 
 //[function ShowQuestionEx]
 function ShowQuestionEx( S: KOLString; Answers: KOLString; CallBack: TOnEvent ): Integer;
