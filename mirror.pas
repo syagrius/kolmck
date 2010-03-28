@@ -162,6 +162,11 @@ const
 
 type
 
+    {$IFDEF _D2009orHigher}
+    TDelphiString = WideString;
+    {$ELSE}
+    TDelphiString = String;
+    {$ENDIF}
 
 //////////////////////////////////////////////////////////
      {$IFDEF _D6orHigher}                               //
@@ -706,11 +711,7 @@ type
     FOnShow: TOnEvent;
     FOnHide: TOnEvent;
     FzOrderChildren: Boolean;
-{$IFDEF _D2009orHigher}
-    FSimpleStatusText: WideString;
-{$ELSE}
-    FSimpleStatusText: String;
-{$ENDIF}
+    FSimpleStatusText: TDelphiString;
     FStatusText: TStringList;
     fOnMouseDblClk: TOnMouse;
     FMarginLeft: Integer;
@@ -798,11 +799,7 @@ type
     procedure SetOnShow(const Value: TOnEvent);
     procedure SetOnHide(const Value: TOnEvent);
     procedure SetzOrderChildren(const Value: Boolean);
-{$IFDEF _D2009orHigher}
-    procedure SetSimpleStatusText(const Value: WideString);
-{$ELSE}
-    procedure SetSimpleStatusText(const Value: String);
-{$ENDIF}
+    procedure SetSimpleStatusText(const Value: TDelphiString);
     function GetStatusText: TStrings;
     procedure SetStatusText(const Value: TStrings);
     procedure SetOnMouseDblClk(const Value: TOnMouse);
@@ -841,13 +838,9 @@ type
     function AdditionalUnits: String; virtual;
     function FormTypeName: String; virtual;
     function AppletOnForm: Boolean;
-{$IFDEF _D2009orHigher}
-    function GetCaption: WideString; virtual;
-    procedure SetFormCaption(const Value: WideString); virtual;
-{$ELSE}
-    function GetCaption: String; virtual;
-    procedure SetFormCaption(const Value: String); virtual;
-{$ENDIF}
+    function GetCaption: TDelphiString; virtual;
+    procedure SetFormCaption(const Value: TDelphiString); virtual;
+
     function GetFormName: String;
     procedure SetFormName(const Value: String);
     function GenerateTransparentInits: String; virtual;
@@ -994,12 +987,7 @@ type
     // форма выполняет особую роль, и даже может замещать собой объект
     // Applet при его отсутствии).
     property formMain: Boolean read GetFormMain write SetFormMain;
-
-{$IFDEF _D2009orHigher}
-    property Caption: WideString read GetCaption write SetFormCaption;
-{$ELSE}
-    property Caption: String read GetCaption write SetFormCaption;
-{$ENDIF}
+    property Caption: TDelphiString read GetCaption write SetFormCaption;
     property Visible;
     property Enabled;
 
@@ -1058,11 +1046,7 @@ type
     property RestoreNormalMaximized: Boolean read FRestoreNormalMaximized write SetRestoreNormalMaximized;
     property zOrderChildren: Boolean read FzOrderChildren write SetzOrderChildren;
 
-{$IFDEF _D2009orHigher}
-    property SimpleStatusText: WideString read FSimpleStatusText write SetSimpleStatusText;
-{$ELSE}
-    property SimpleStatusText: String read FSimpleStatusText write SetSimpleStatusText;
-{$ENDIF}
+    property SimpleStatusText: TDelphiString read FSimpleStatusText write SetSimpleStatusText;
     property StatusText: TStrings read GetStatusText write SetStatusText;
     property statusSizeGrip: Boolean read FStatusSizeGrip write SetStatusSizeGrip;
 
@@ -1372,11 +1356,7 @@ type
   {$ENDIF}
   TKOLMenuItem = class(TComponent)
   private
-{$IFDEF _D2009orHigher}
-    FCaption: WideString;
-{$ELSE}
-    FCaption: String;
-{$ENDIF}
+    FCaption: TDelphiString;
     FBitmap: TBitmap;
     FSubitems: TList;
     FChecked: Boolean;
@@ -1399,11 +1379,7 @@ type
     FTag: Integer;
     Faction: TKOLAction;
     procedure SetBitmap(Value: TBitmap);
-{$IFDEF _D2009orHigher}
-    procedure SetCaption(const Value: WideString);
-{$ELSE}
-    procedure SetCaption(const Value: String);
-{$ENDIF}
+    procedure SetCaption(const Value: TDelphiString);
     function GetCount: Integer;
     function GetSubItems(Idx: Integer): TKOLMenuItem;
     procedure SetChecked(const Value: Boolean);
@@ -1494,11 +1470,7 @@ type
     function CheckOnMenuMethodExists: Boolean;
   published
     property Tag: Integer read FTag write SetTag;
-{$IFDEF _D2009orHigher}
-    property caption: WideString read FCaption write SetCaption;
-{$ELSE}
-    property caption: String read FCaption write SetCaption;
-{$ENDIF}
+    property Caption: TDelphiString read FCaption write SetCaption;
     property bitmap: TBitmap read FBitmap write SetBitmap;
     property bitmapChecked: TBitmap read FbitmapChecked write SetbitmapChecked;
     property bitmapItem: TBitmap read FbitmapItem write SetbitmapItem;
@@ -1802,11 +1774,7 @@ type
     fClsStyle: DWORD;
     fExStyle: DWORD;
     fStyle: DWORD;
-{$IFDEF _D2009orHigher}
-    fCaption: WideString;
-{$ELSE}
-    fCaption: String;
-{$ENDIF}
+    fCaption: TDelphiString;
     FTextAlign: TTextAlign;
     fMargin: Integer;
     fOnClick: TOnEvent;
@@ -2081,11 +2049,7 @@ type
     function TabStopByDefault: Boolean; virtual;
 
     procedure SetMargin(const Value: Integer); virtual;
-{$IFDEF _D2009orHigher}
-    procedure SetCaption(const Value: WideString); virtual;
-{$ELSE}
-    procedure SetCaption(const Value: String); virtual;
-{$ENDIF}
+    procedure SetCaption(const Value: TDelphiString); virtual;
     procedure SetTextAlign(const Value: TTextAlign); virtual;
 
     // This function returns margins between control edges and edges of client
@@ -2217,11 +2181,7 @@ type
     // Функция, которая формирует правильные параметры для оператора
     // конструирования объекта (т.е. то, что будет в круглых скобках
     // в операторе: Result.Button1 := NewButton( ... )...;
-{$IFDEF _D2009orHigher}
-    function SetupParams( const AName, AParent: WideString ): WideString; virtual;
-{$ELSE}
-    function SetupParams( const AName, AParent: String ): String; virtual;
-{$ENDIF}
+    function SetupParams( const AName, AParent: TDelphiString ): TDelphiString; virtual;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; virtual;
 
     // Method to assign values to assigned events. Is called in SetupFirst
@@ -2315,12 +2275,7 @@ type
 
     procedure Loaded; override;
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
-
-{$IFDEF _D2009orHigher}
-    function StringConstant( const Propname, Value: WideString ): WideString;
-{$ELSE}
-    function StringConstant( const Propname, Value: String ): String;
-{$ENDIF}
+    function StringConstant( const Propname, Value: TDelphiString ): TDelphiString;
     function P_StringConstant( const Propname, Value: String ): String;
     function BestEventName: String; virtual;
     function GetDefaultControlFont: HFONT; virtual;
@@ -2437,11 +2392,7 @@ type
 
     property CenterOnParent: Boolean read fCenterOnParent write SetCenterOnParent;
 
-{$IFDEF _D2009orHigher}
-    property Caption: WideString read fCaption write SetCaption;
-{$ELSE}
-    property Caption: String read fCaption write SetCaption;
-{$ENDIF}
+    property Caption: TDelphiString read fCaption write SetCaption;
     property Ctl3D: Boolean read FCtl3D write SetCtl3D;
 
     property Color: TColor read Get_Color write Set_Color;
@@ -2762,11 +2713,7 @@ type
     procedure SetParentFont(const Value: Boolean);
   protected
     function AutoCaption: Boolean; override;
-{$IFDEF _D2009orHigher}
-    function GetCaption: WideString; override;
-{$ELSE}
-    function GetCaption: String; override;
-{$ENDIF}
+    function GetCaption: TDelphiString; override;
     function GenerateTransparentInits: String; override;
     function P_GenerateTransparentInits: String; override;
     procedure GenerateCreateForm( SL: TStringList ); override;
@@ -2970,13 +2917,8 @@ function Get_ProjectName: String;
 function Get_ProjectGroup: IOTAProjectGroup;
 {$ENDIF}
 
-{$IFDEF _D2009orHigher}
 procedure AddLongTextField( var SL: TStringList; const Prefix:String;
- const Text:WideString; const Suffix:String; const LinePrefix: String );
-{$ELSE}
-procedure AddLongTextField( var SL: TStringList; const Prefix:String;
- const Text:String; const Suffix:String; const LinePrefix: String );
-{$ENDIF}
+ const Text:TDelphiString; const Suffix:String; const LinePrefix: String );
 
 //*///////////////////////////////////////
   {$IFDEF _D6orHigher}                  //
@@ -3926,13 +3868,8 @@ begin
   END;
 end;
 
-{$IFDEF _D2009orHigher}
 procedure AddLongTextField( var SL: TStringList; const Prefix:String;
- const Text:WideString; const Suffix:String; const LinePrefix: String );
-{$ELSE}
-procedure AddLongTextField( var SL: TStringList; const Prefix:String;
- const Text:String; const Suffix:String; const LinePrefix: String );
-{$ENDIF}
+ const Text:TDelphiString; const Suffix:String; const LinePrefix: String );
 var
 {$IFDEF _D2009orHigher}
   C, C2: WideString;
@@ -6074,12 +6011,7 @@ begin
   end;
 end;
 
-procedure TKOLCustomControl.
-{$IFDEF _D2009orHigher}
-    SetCaption(const Value: WideString);
-{$ELSE}
-    SetCaption(const Value: String);
-{$ENDIF}
+procedure TKOLCustomControl.SetCaption(const Value: TDelphiString);
 begin
   asm
     jmp @@e_signature
@@ -7925,13 +7857,7 @@ begin
   Change;
 end;
 
-function TKOLCustomControl.
-{$IFDEF _D2009orHigher}
-SetupParams( const AName, AParent: WideString ): WideString;
-{$ELSE}
-SetupParams( const AName, AParent: String ): String;
-{$ENDIF}
-
+function TKOLCustomControl.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
 begin
   asm
     jmp @@e_signature
@@ -8565,12 +8491,7 @@ begin
   Change;
 end;
 
-function TKOLCustomControl.
-{$IFDEF _D2009orHigher}
-    StringConstant( const Propname, Value: WideString ): WideString;
-{$ELSE}
-    StringConstant( const Propname, Value: String ): String;
-{$ENDIF}
+function TKOLCustomControl.StringConstant( const Propname, Value: TDelphiString ): TDelphiString;
 begin
   Log( '->TKOLCustomControl.StringConstant' );
   try
@@ -12776,8 +12697,7 @@ begin
   end;
 end;
 
-{$IFDEF _D2009orHigher}
-function TKOLForm.GetCaption: WideString;
+function TKOLForm.GetCaption: TDelphiString;
 begin
   asm
     jmp @@e_signature
@@ -12795,26 +12715,6 @@ begin
   Log( '<-TKOLForm.GetCaption' );
   end;
 end;
-{$ELSE}
-function TKOLForm.GetCaption: String;
-begin
-  asm
-    jmp @@e_signature
-    DB '#$signature$#', 0
-    DB 'TKOLForm.GetCaption', 0
-  @@e_signature:
-  end;
-  Log( '->TKOLForm.GetCaption' );
-  try
-  Result := FCaption;
-  if (Owner <> nil) and (Owner is TForm) then
-    Result := (Owner as TForm).Caption;
-  LogOK;
-  finally
-  Log( '<-TKOLForm.GetCaption' );
-  end;
-end;
-{$ENDIF}
 
 function TKOLForm.GetFormMain: Boolean;
 begin
@@ -13187,8 +13087,7 @@ begin
 end;
 
 
-{$IFDEF _D2009orHigher}
-procedure TKOLForm.SetFormCaption(const Value: WideString);
+procedure TKOLForm.SetFormCaption(const Value: TDelphiString);
 begin
   asm
     jmp @@e_signature
@@ -13210,30 +13109,6 @@ begin
   Log( '<-TKOLForm.SetFormCaption' );
   end;
 end;
-{$ELSE}
-procedure TKOLForm.SetFormCaption(const Value: String);
-begin
-  asm
-    jmp @@e_signature
-    DB '#$signature$#', 0
-    DB 'TKOLForm.SetFormCaption', 0
-  @@e_signature:
-  end;
-  Log( '->TKOLForm.SetFormCaption' );
-  try
-
-  if not FLocked then
-  begin
-    inherited Caption := Value;
-    if (Owner <> nil) and (Owner is TForm) then
-      (Owner as TForm).Caption := Value;
-  end;
-  LogOK;
-  finally
-  Log( '<-TKOLForm.SetFormCaption' );
-  end;
-end;
-{$ENDIF}
 
 procedure TKOLForm.SetFormMain(const Value: Boolean);
 var I: Integer;
@@ -14566,8 +14441,7 @@ begin
   end;
 end;
 
-{$IFDEF _D2009orHigher}
-procedure TKOLForm.SetSimpleStatusText(const Value: WideString);
+procedure TKOLForm.SetSimpleStatusText(const Value: TDelphiString);
 begin
   asm
     jmp @@e_signature
@@ -14585,26 +14459,6 @@ begin
   Log( '<-TKOLForm.SetSimpleStatusText' );
   end;
 end;
-{$ELSE}
-procedure TKOLForm.SetSimpleStatusText(const Value: String);
-begin
-  asm
-    jmp @@e_signature
-    DB '#$signature$#', 0
-    DB 'TKOLForm.SetSimpleStatusText', 0
-  @@e_signature:
-  end;
-  Log( '->TKOLForm.SetSimpleStatusText' );
-  try
-  FSimpleStatusText := Value;
-  FStatusText.Text := Value;
-  Change( Self );
-  LogOK;
-  finally
-  Log( '<-TKOLForm.SetSimpleStatusText' );
-  end;
-end;
-{$ENDIF}
 
 function TKOLForm.GetStatusText: TStrings;
 begin
@@ -21279,12 +21133,7 @@ begin
 
 end;
 
-function TKOLFrame.
-{$IFDEF _D2009orHigher}
-GetCaption: WideString;
-{$ELSE}
-GetCaption: String;
-{$ENDIF}
+function TKOLFrame.GetCaption: TDelphiString;
 begin
   asm
     jmp @@e_signature

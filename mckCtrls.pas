@@ -72,11 +72,7 @@ type
     procedure FirstCreate; override;
     function GenerateTransparentInits: String; override;
     function P_GenerateTransparentInits: String; override;
-{$IFDEF _D2009orHigher}
-    function SetupParams( const AName, AParent: WideString ): WideString; override;
-{$ELSE}
-    function SetupParams( const AName, AParent: String ): String; override;
-{$ENDIF}
+    function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
     procedure SetupColor( SL: TStrings; const AName: String ); override;
     procedure P_SetupColor( SL: TStrings; const AName: String; var ControlInStack: Boolean ); override;
@@ -168,11 +164,7 @@ type
     procedure FirstCreate; override;
     function GenerateTransparentInits: String; override;
     function P_GenerateTransparentInits: String; override;
-{$IFDEF _D2009orHigher}
-    function SetupParams( const AName, AParent: WideString ): WideString; override;
-{$ELSE}
-    function SetupParams( const AName, AParent: String ): String; override;
-{$ENDIF}
+    function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
     procedure SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
     procedure P_SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
@@ -262,11 +254,7 @@ type
   protected
     function AdjustVerticalAlign( Value: TVerticalAlign ): TVerticalAlign; virtual;
     procedure FirstCreate; override;
-{$IFDEF _D2009orHigher}
-    function SetupParams( const AName, AParent: WideString ): WideString; override;
-{$ELSE}
-    function SetupParams( const AName, AParent: String ): String; override;
-{$ENDIF}
+    function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nParams: Integer ): String; override;
     function P_GenerateTransparentInits: String; override;
 
@@ -309,11 +297,7 @@ type
     procedure SetColor2(const Value: TColor);
   protected
     function AdjustVerticalAlign( Value: TVerticalAlign ): TVerticalAlign; override;
-{$IFDEF _D2009orHigher}
-    function SetupParams( const AName, AParent: WideString ): WideString; override;
-{$ELSE}
-    function SetupParams( const AName, AParent: String ): String; override;
-{$ENDIF}
+    function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
     procedure SetupTextAlign( SL: TStrings; const AName: String ); override;
     procedure P_SetupTextAlign( SL: TStrings; const AName: String ); override;
@@ -363,11 +347,7 @@ type
   protected
     function Get_VA: TVerticalAlign;
     procedure Set_VA(const Value: TVerticalAlign); virtual;
-{$IFDEF _D2009orHigher}
-    function SetupParams( const AName, AParent: WideString ): WideString; override;
-{$ELSE}
-    function SetupParams( const AName, AParent: String ): String; override;
-{$ENDIF}
+    function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
     procedure SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
     procedure P_SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
@@ -380,11 +360,7 @@ type
     procedure Paint; override;
     function WYSIWIGPaintImplemented: Boolean; override;
     function NoDrawFrame: Boolean; override;
-{$IFDEF _D2009orHigher}
-    procedure SetCaption(const Value: WideString); override;
-{$ELSE}
-    procedure SetCaption(const Value: String); override;
-{$ENDIF}
+    procedure SetCaption(const Value: TDelphiString); override;
   public
     constructor Create( AOwner: TComponent ); override;
     destructor Destroy; override;
@@ -413,11 +389,7 @@ type
     FTimer: TTimer;
     procedure Tick( Sender: TObject );
   protected
-{$IFDEF _D2009orHigher}
-    function SetupParams( const AName, AParent: WideString ): WideString; override;
-{$ELSE}
-    function SetupParams( const AName, AParent: String ): String; override;
-{$ENDIF}
+    function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
   public
     constructor Create( AOwner: TComponent ); override;
@@ -445,11 +417,7 @@ type
   protected
     function TabStopByDefault: Boolean; override;
     function TypeName: String; override;
-{$IFDEF _D2009orHigher}
-    function SetupParams( const AName, AParent: WideString ): WideString; override;
-{$ELSE}
-    function SetupParams( const AName, AParent: String ): String; override;
-{$ENDIF}
+    function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
     procedure SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
     procedure P_SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
@@ -493,11 +461,7 @@ type
     procedure SetEdgeStyle(const Value: TEdgeStyle);
   protected
     function IsCursorDefault: Boolean; override;
-{$IFDEF _D2009orHigher}
-    function SetupParams( const AName, AParent: WideString ): WideString; override;
-{$ELSE}
-    function SetupParams( const AName, AParent: String ): String; override;
-{$ENDIF}
+    function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
     procedure SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
     procedure P_SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
@@ -532,11 +496,7 @@ type
   protected
     function TabStopByDefault: Boolean; override;
     procedure FirstCreate; override;
-{$IFDEF _D2009orHigher}
-    function SetupParams( const AName, AParent: WideString ): WideString; override;
-{$ELSE}
-    function SetupParams( const AName, AParent: String ): String; override;
-{$ENDIF}
+    function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
     procedure SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
     procedure P_SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
@@ -577,11 +537,7 @@ type
   protected
     function TabStopByDefault: Boolean; override;
     procedure FirstCreate; override;
-{$IFDEF _D2009orHigher}
-    function SetupParams( const AName, AParent: WideString ): WideString; override;
-{$ELSE}
-    function SetupParams( const AName, AParent: String ): String; override;
-{$ENDIF}
+    function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
     procedure SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
     procedure P_SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
@@ -629,11 +585,7 @@ type
   protected
     function TabStopByDefault: Boolean; override;
     procedure FirstCreate; override;
-{$IFDEF _D2009orHigher}
-    function SetupParams( const AName, AParent: WideString ): WideString; override;
-{$ELSE}
-    function SetupParams( const AName, AParent: String ): String; override;
-{$ENDIF}
+    function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
     function P_GenerateTransparentInits: String; override;
     procedure SetupLast( SL: TStringList; const AName, AParent, Prefix: String ); override;
@@ -687,24 +639,14 @@ type
     FOptions: TKOLEditOptions;
     FEdTransparent: Boolean;
     procedure SetOptions(const Value: TKOLEditOptions);
-{$IFDEF _D2009orHigher}
-    function GetCaption: WideString;
-    function GetText: WideString;
-    procedure SetText(const Value: WideString);
-{$ELSE}
-    function GetCaption: String;
-    function GetText: String;
-    procedure SetText(const Value: String);
-{$ENDIF}
+    function GetCaption: TDelphiString;
+    function GetText: TDelphiString;
+    procedure SetText(const Value: TDelphiString);
     procedure SetEdTransparent(const Value: Boolean);
   protected
     function TabStopByDefault: Boolean; override;
     procedure FirstCreate; override;
-{$IFDEF _D2009orHigher}
-    function SetupParams( const AName, AParent: WideString ): WideString; override;
-{$ELSE}
-    function SetupParams( const AName, AParent: String ): String; override;
-{$ENDIF}
+    function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
     procedure SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
     procedure P_SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
@@ -723,21 +665,13 @@ type
     function Pcode_Generate: Boolean; override;
   published
     property Transparent: Boolean read FEdTransparent write SetEdTransparent;
-{$IFDEF _D2009orHigher}
-    property Text: WideString read GetText write SetText;
-{$ELSE}
-    property Text: String read GetText write SetText;
-{$ENDIF}
+    property Text: TDelphiString read GetText write SetText;
     property Options: TKOLEditOptions read FOptions write SetOptions;
     property TabStop;
     property TabOrder;
     property OnChange;
     property OnSelChange;
-{$IFDEF _D2009orHigher}
-    property Caption: WideString read GetCaption; // redefined as read only to remove from Object Inspector
-{$ELSE}
-    property Caption: String read GetCaption; // redefined as read only to remove from Object Inspector
-{$ENDIF}
+    property Caption: TDelphiString read GetCaption; // redefined as read only to remove from Object Inspector
     property OnKeyDown;
     property OnKeyUp;
     property OnChar;
@@ -784,11 +718,7 @@ type
   protected
     function TabStopByDefault: Boolean; override;
     procedure FirstCreate; override;
-{$IFDEF _D2009orHigher}
-    function SetupParams( const AName, AParent: WideString ): WideString; override;
-{$ELSE}
-    function SetupParams( const AName, AParent: String ): String; override;
-{$ENDIF}
+    function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
     procedure SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
     procedure P_SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
@@ -887,11 +817,7 @@ type
   protected
     function TabStopByDefault: Boolean; override;
     procedure FirstCreate; override;
-{$IFDEF _D2009orHigher}
-    function SetupParams( const AName, AParent: WideString ): WideString; override;
-{$ELSE}
-    function SetupParams( const AName, AParent: String ): String; override;
-{$ENDIF}
+    function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
     procedure SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
     procedure P_SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
@@ -991,11 +917,7 @@ type
   protected
     function TabStopByDefault: Boolean; override;
     procedure FirstCreate; override;
-{$IFDEF _D2009orHigher}
-    function SetupParams( const AName, AParent: WideString ): WideString; override;
-{$ELSE}
-    function SetupParams( const AName, AParent: String ): String; override;
-{$ENDIF}
+    function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
     procedure SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
     procedure P_SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
@@ -1067,11 +989,7 @@ type
   protected
     function TabStopByDefault: Boolean; override;
     procedure FirstCreate; override;
-{$IFDEF _D2009orHigher}
-    function SetupParams( const AName, AParent: WideString ): WideString; override;
-{$ELSE}
-    function SetupParams( const AName, AParent: String ): String; override;
-{$ENDIF}
+    function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
     procedure SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
     procedure P_SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
@@ -1125,11 +1043,7 @@ type
   private
     fNotAvailable: Boolean;
   protected
-{$IFDEF _D2009orHigher}
-    function SetupParams( const AName, AParent: WideString ): WideString; override;
-{$ELSE}
-    function SetupParams( const AName, AParent: String ): String; override;
-{$ENDIF}
+    function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
     function BestEventName: String; override;
   public
@@ -1164,11 +1078,7 @@ type
     procedure SetImageListNormal(const Value: TKOLImageList);
     procedure SetImgShwAutoSize(const Value: Boolean);
   protected
-{$IFDEF _D2009orHigher}
-    function SetupParams( const AName, AParent: WideString ): WideString; override;
-{$ELSE}
-    function SetupParams( const AName, AParent: String ): String; override;
-{$ENDIF}
+    function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
     procedure SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
     procedure P_SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
@@ -1219,11 +1129,7 @@ type
   protected
     procedure SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
     procedure P_SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
-{$IFDEF _D2009orHigher}
-    function SetupParams( const AName, AParent: WideString ): WideString; override;
-{$ELSE}
-    function SetupParams( const AName, AParent: String ): String; override;
-{$ENDIF}
+    function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
     function TypeName: String; override;
     procedure CreateKOLControl(Recreating: boolean); override;
@@ -1356,11 +1262,7 @@ type
     FCols: TList;
     FColCount: Integer;
     function TabStopByDefault: Boolean; override;
-{$IFDEF _D2009orHigher}
-    function SetupParams( const AName, AParent: WideString ): WideString; override;
-{$ELSE}
-    function SetupParams( const AName, AParent: String ): String; override;
-{$ENDIF}
+    function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
     procedure SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
     procedure P_SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
@@ -1480,11 +1382,7 @@ type
     procedure SetTVIndent(const Value: Integer);
   protected
     function TabStopByDefault: Boolean; override;
-{$IFDEF _D2009orHigher}
-    function SetupParams( const AName, AParent: WideString ): WideString; override;
-{$ELSE}
-    function SetupParams( const AName, AParent: String ): String; override;
-{$ENDIF}
+    function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
     procedure SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
     procedure P_SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
@@ -1694,11 +1592,7 @@ type
     ValuesInStack: Integer;
     procedure SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
     procedure P_SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
-{$IFDEF _D2009orHigher}
-    function SetupParams( const AName, AParent: WideString ): WideString; override;
-{$ELSE}
-    function SetupParams( const AName, AParent: String ): String; override;
-{$ENDIF}
+    function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
     procedure SetupLast( SL: TStringList; const AName, AParent, Prefix: String ); override;
     procedure P_SetupLast( SL: TStringList; const AName, AParent, Prefix: String ); override;
@@ -1826,11 +1720,7 @@ type
     procedure SetOptions(const Value: TDateTimePickerOptions);
     procedure SetFormat(const Value: String);
   protected
-{$IFDEF _D2009orHigher}
-    function SetupParams( const AName, AParent: WideString ): WideString; override;
-{$ELSE}
-    function SetupParams( const AName, AParent: String ): String; override;
-{$ENDIF}
+    function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
     function GenerateTransparentInits: String; override;
     function P_GenerateTransparentInits: String; override;
@@ -1885,11 +1775,7 @@ type
     fDestroyingTabControl: Boolean;
     FAdjustingPages: Boolean;
     function TabStopByDefault: Boolean; override;
-{$IFDEF _D2009orHigher}
-    function SetupParams( const AName, AParent: WideString ): WideString; override;
-{$ELSE}
-    function SetupParams( const AName, AParent: String ): String; override;
-{$ENDIF}
+    function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
     procedure SetupFirst(SL: TStringList; const AName, AParent, Prefix: String); override;
     procedure P_SetupFirst(SL: TStringList; const AName, AParent, Prefix: String); override;
@@ -1964,11 +1850,7 @@ type
     procedure SetControlContainer(const Value: Boolean);
     procedure SetEdgeStyle(const Value: TEdgeStyle);
   protected
-{$IFDEF _D2009orHigher}
-    function SetupParams( const AName, AParent: WideString ): WideString; override;
-{$ELSE}
-    function SetupParams( const AName, AParent: String ): String; override;
-{$ENDIF}
+    function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
     function IsControlContainer: Boolean; virtual;
     function TypeName: String; override;
@@ -2015,11 +1897,7 @@ type
   protected
     procedure SetupFirst(SL: TStringList; const AName, AParent, Prefix: String); override;
     procedure P_SetupFirst(SL: TStringList; const AName, AParent, Prefix: String); override;
-{$IFDEF _D2009orHigher}
-    function SetupParams( const AName, AParent: WideString ): WideString; override;
-{$ELSE}
-    function SetupParams( const AName, AParent: String ): String; override;
-{$ENDIF}
+    function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
     procedure AssignEvents( SL: TStringList; const AName: String ); override;
     function P_AssignEvents( SL: TStringList; const AName: String;
@@ -2716,12 +2594,7 @@ begin
     Font.GenerateCode( SL, AName, BFont );
 end;
 
-function TKOLButton.
-{$IFDEF _D2009orHigher}
-SetupParams( const AName, AParent: WideString ): WideString;
-{$ELSE}
-SetupParams( const AName, AParent: String ): String;
-{$ENDIF}
+function TKOLButton.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
 var
 {$IFDEF _D2009orHigher}
   C, C2: WideString;
@@ -2997,12 +2870,7 @@ begin
     SL.Add( Prefix + AName + '.Style := ' + AName + '.Style and not SS_NOPREFIX;' );
 end;
 
-function TKOLLabel.
-{$IFDEF _D2009orHigher}
-SetupParams( const AName, AParent: WideString ): WideString;
-{$ELSE}
-SetupParams( const AName, AParent: String ): String;
-{$ENDIF}
+function TKOLLabel.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
 var
 {$IFDEF _D2009orHigher}
   C, C2: WideString;
@@ -3324,12 +3192,7 @@ begin
   end;
 end;
 
-procedure TKOLPanel.
-{$IFDEF _D2009orHigher}
-    SetCaption(const Value: WideString);
-{$ELSE}
-    SetCaption(const Value: String);
-{$ENDIF}
+procedure TKOLPanel.SetCaption(const Value: TDelphiString);
 begin
   inherited;
   if (Parent <> nil) and (Parent is TKOLTabControl) then
@@ -3406,13 +3269,7 @@ begin
     SL.Add( Prefix + AName + '.Style := ' + AName + '.Style and not SS_NOPREFIX;' );
 end;
 
-function TKOLPanel.
-{$IFDEF _D2009orHigher}
-SetupParams( const AName, AParent: WideString ): WideString;
-{$ELSE}
-SetupParams( const AName, AParent: String ): String;
-{$ENDIF}
-
+function TKOLPanel.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
 const EdgeStyles: array[ TEdgeStyle ] of String =
   ( 'esRaised', 'esLowered', 'esNone', 'esTransparent', 'esSolid' );
 begin
@@ -4116,13 +3973,7 @@ begin
 
 end;
 
-function TKOLBitBtn.
-{$IFDEF _D2009orHigher}
-SetupParams( const AName, AParent: WideString ): WideString;
-{$ELSE}
-SetupParams( const AName, AParent: String ): String;
-{$ENDIF}
-
+function TKOLBitBtn.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
 const Layouts: array[ TGlyphLayout ] of String = ( 'glyphLeft', 'glyphTop',
                'glyphRight', 'glyphBottom', 'glyphOver' );
 var
@@ -4563,13 +4414,7 @@ begin
     SL.Add( Prefix + AName + '.HasBorder := TRUE;' );
 end;
 
-function TKOLGradientPanel.
-{$IFDEF _D2009orHigher}
-SetupParams( const AName, AParent: WideString ): WideString;
-{$ELSE}
-SetupParams( const AName, AParent: String ): String;
-{$ENDIF}
-
+function TKOLGradientPanel.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
 begin
   asm
     jmp @@e_signature
@@ -4740,12 +4585,7 @@ begin
     SL.Add( Prefix + AName + '.TextAlign := ' + TextAligns[ TextAlign ] + ';' );}
 end;
 
-function TKOLGroupBox.
-{$IFDEF _D2009orHigher}
-SetupParams( const AName, AParent: WideString ): WideString;
-{$ELSE}
-SetupParams( const AName, AParent: String ): String;
-{$ENDIF}
+function TKOLGroupBox.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
 var
 {$IFDEF _D2009orHigher}
   C, C2: WideString;
@@ -4936,12 +4776,7 @@ begin
     SL.Add( Prefix + AName + '.WordWrap := TRUE;' );}
 end;
 
-function TKOLCheckBox.
-{$IFDEF _D2009orHigher}
-SetupParams( const AName, AParent: WideString ): WideString;
-{$ELSE}
-SetupParams( const AName, AParent: String ): String;
-{$ENDIF}
+function TKOLCheckBox.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
 var
 {$IFDEF _D2009orHigher}
   C, C2: WideString;
@@ -5130,12 +4965,7 @@ begin
   end;
 end;
 
-function TKOLRadioBox.
-{$IFDEF _D2009orHigher}
-SetupParams( const AName, AParent: WideString ): WideString;
-{$ELSE}
-SetupParams( const AName, AParent: String ): String;
-{$ENDIF}
+function TKOLRadioBox.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
 var
 {$IFDEF _D2009orHigher}
   C, C2: WideString;
@@ -5228,12 +5058,7 @@ begin
   inherited;
 end;
 
-function TKOLEditBox.
-{$IFDEF _D2009orHigher}
-GetCaption: WideString;
-{$ELSE}
-GetCaption: String;
-{$ENDIF}
+function TKOLEditBox.GetCaption: TDelphiString;
 begin
   asm
     jmp @@e_signature
@@ -5244,12 +5069,7 @@ begin
   Result := inherited Caption;
 end;
 
-function TKOLEditBox.
-{$IFDEF _D2009orHigher}
-GetText: WideString;
-{$ELSE}
-GetText: String;
-{$ENDIF}
+function TKOLEditBox.GetText: TDelphiString;
 begin
   asm
     jmp @@e_signature
@@ -5415,12 +5235,7 @@ begin
   Change;
 end;
 
-procedure TKOLEditBox.
-{$IFDEF _D2009orHigher}
-SetText(const Value: WideString);
-{$ELSE}
-SetText(const Value: String);
-{$ENDIF}
+procedure TKOLEditBox.SetText(const Value: TDelphiString);
 begin
   asm
     jmp @@e_signature
@@ -5456,13 +5271,7 @@ begin
     SL.Add( Prefix + AName + '.Ed_Transparent := TRUE;' );
 end;
 
-function TKOLEditBox.
-{$IFDEF _D2009orHigher}
-SetupParams( const AName, AParent: WideString ): WideString;
-{$ELSE}
-SetupParams( const AName, AParent: String ): String;
-{$ENDIF}
-
+function TKOLEditBox.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
 var S: String;
 begin
   asm
@@ -5805,13 +5614,7 @@ begin
     SL.Add( Prefix + AName + '.Ed_Transparent := TRUE;' );
 end;
 
-function TKOLMemo.
-{$IFDEF _D2009orHigher}
-SetupParams( const AName, AParent: WideString ): WideString;
-{$ELSE}
-SetupParams( const AName, AParent: String ): String;
-{$ENDIF}
-
+function TKOLMemo.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
 var S: String;
 begin
   asm
@@ -6196,13 +5999,7 @@ begin
     SL.Add( Prefix + AName + '.Count := ' + IntToStr( Count ) + ';' );
 end;
 
-function TKOLListBox.
-{$IFDEF _D2009orHigher}
-SetupParams( const AName, AParent: WideString ): WideString;
-{$ELSE}
-SetupParams( const AName, AParent: String ): String;
-{$ENDIF}
-
+function TKOLListBox.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
 var S: String;
 begin
   asm
@@ -6528,13 +6325,7 @@ begin
     SL.Add( Prefix + AName + '.DroppedWidth := ' + IntToStr( FDroppedWidth ) + ';' );
 end;
 
-function TKOLComboBox.
-{$IFDEF _D2009orHigher}
-SetupParams( const AName, AParent: WideString ): WideString;
-{$ELSE}
-SetupParams( const AName, AParent: String ): String;
-{$ENDIF}
-
+function TKOLComboBox.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
 var S: String;
 begin
   asm
@@ -6763,13 +6554,7 @@ begin
   inherited;
 end;
 
-function TKOLSplitter.
-{$IFDEF _D2009orHigher}
-SetupParams( const AName, AParent: WideString ): WideString;
-{$ELSE}
-SetupParams( const AName, AParent: String ): String;
-{$ENDIF}
-
+function TKOLSplitter.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
 const Styles: array[ TEdgeStyle ] of String =
   ( 'esRaised', 'esLowered', 'esNone', 'esTransparent', 'esSolid' );
 begin
@@ -6836,13 +6621,7 @@ begin
   Result := ' DUP';
 end;
 
-function TKOLPaintBox.
-{$IFDEF _D2009orHigher}
-SetupParams( const AName, AParent: WideString ): WideString;
-{$ELSE}
-SetupParams( const AName, AParent: String ): String;
-{$ENDIF}
-
+function TKOLPaintBox.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
 begin
   asm
     jmp @@e_signature
@@ -7272,13 +7051,7 @@ begin
     SL.Add( Prefix + AName + '.LVCount := ' + IntToStr( LVCount ) + ';' );
 end;
 
-function TKOLListView.
-{$IFDEF _D2009orHigher}
-SetupParams( const AName, AParent: WideString ): WideString;
-{$ELSE}
-SetupParams( const AName, AParent: String ): String;
-{$ENDIF}
-
+function TKOLListView.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
 var S, O, ILSm, ILNr, ILSt: String;
 begin
   asm
@@ -7971,13 +7744,7 @@ begin
     SL.Add( Prefix + AName + '.TVIndent := ' + IntToStr( TVIndent ) + ';' );
 end;
 
-function TKOLTreeView.
-{$IFDEF _D2009orHigher}
-SetupParams( const AName, AParent: WideString ): WideString;
-{$ELSE}
-SetupParams( const AName, AParent: String ): String;
-{$ENDIF}
-
+function TKOLTreeView.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
 var O, ILNr, ILSt: String;
 begin
   asm
@@ -8587,13 +8354,7 @@ begin
       ', ' + IntToStr( FRE_ZoomDenominator ) + ' );' );
 end;
 
-function TKOLRichEdit.
-{$IFDEF _D2009orHigher}
-SetupParams( const AName, AParent: WideString ): WideString;
-{$ELSE}
-SetupParams( const AName, AParent: String ): String;
-{$ENDIF}
-
+function TKOLRichEdit.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
 var S: String;
 begin
   asm
@@ -8894,13 +8655,7 @@ begin
     SL.Add( Prefix + AName + '.ProgressBkColor := ' + Color2Str( ProgressBkColor ) + ';' );}
 end;
 
-function TKOLProgressBar.
-{$IFDEF _D2009orHigher}
-SetupParams( const AName, AParent: WideString ): WideString;
-{$ELSE}
-SetupParams( const AName, AParent: String ): String;
-{$ENDIF}
-
+function TKOLProgressBar.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
 var S: String;
 begin
   asm
@@ -9821,13 +9576,7 @@ begin
   end;
 end;
 
-function TKOLTabControl.
-{$IFDEF _D2009orHigher}
-SetupParams( const AName, AParent: WideString ): WideString;
-{$ELSE}
-SetupParams( const AName, AParent: String ): String;
-{$ENDIF}
-
+function TKOLTabControl.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
 var O, IL: String;
     I: Integer;
 {$IFDEF _D2009orHigher}
@@ -10998,13 +10747,7 @@ begin
   end;
 end;
 
-function TKOLToolbar.
-{$IFDEF _D2009orHigher}
-SetupParams( const AName, AParent: WideString ): WideString;
-{$ELSE}
-SetupParams( const AName, AParent: String ): String;
-{$ENDIF}
-
+function TKOLToolbar.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
 var
    {$IFDEF _D2009orHigher}
     C, C2: WideString;
@@ -13051,13 +12794,7 @@ begin
     SL.Add( Prefix + AName + '.CurIndex := ' + IntToStr( CurIndex ) + ';' );
 end;
 
-function TKOLImageShow.
-{$IFDEF _D2009orHigher}
-SetupParams( const AName, AParent: WideString ): WideString;
-{$ELSE}
-SetupParams( const AName, AParent: String ): String;
-{$ENDIF}
-
+function TKOLImageShow.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
 begin
   asm
     jmp @@e_signature
@@ -13276,12 +13013,7 @@ begin
     SL.Add( Prefix + AName + '.Ctl3D := TRUE;' );
 end;
 
-function TKOLLabelEffect.
-{$IFDEF _D2009orHigher}
-SetupParams( const AName, AParent: WideString ): WideString;
-{$ELSE}
-SetupParams( const AName, AParent: String ): String;
-{$ENDIF}
+function TKOLLabelEffect.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
 var
 {$IFDEF _D2009orHigher}
   C, C2: WideString;
@@ -13448,13 +13180,7 @@ begin
   Change;
 end;
 
-function TKOLScrollBox.
-{$IFDEF _D2009orHigher}
-SetupParams( const AName, AParent: WideString ): WideString;
-{$ELSE}
-SetupParams( const AName, AParent: String ): String;
-{$ENDIF}
-
+function TKOLScrollBox.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
 const EdgeStyles: array[ TEdgeStyle ] of String =
   ( 'esRaised', 'esLowered', 'esNone', 'esTransparent', 'esSolid' );
 var S: String;
@@ -13638,13 +13364,7 @@ begin
     nparams := 2;
 end;
 
-function TKOLMDIClient.
-{$IFDEF _D2009orHigher}
-SetupParams( const AName, AParent: WideString ): WideString;
-{$ELSE}
-SetupParams( const AName, AParent: String ): String;
-{$ENDIF}
-
+function TKOLMDIClient.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
 
   function FindWindowMenu( MI: TKOLMenuItem ): Integer;
   var I: Integer;
@@ -14967,13 +14687,7 @@ begin
       Color2Str( Color ) + ';' );
 end;
 
-function TKOLDateTimePicker.
-{$IFDEF _D2009orHigher}
-SetupParams( const AName, AParent: WideString ): WideString;
-{$ELSE}
-SetupParams( const AName, AParent: String ): String;
-{$ENDIF}
-
+function TKOLDateTimePicker.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
 var S: String;
 begin
   S := '';
@@ -15181,13 +14895,7 @@ begin
     SL.Add( Prefix + AName + '.SBPageSize := ' + IntToStr( SBPageSize ) + ';' );
 end;
 
-function TKOLScrollBar.
-{$IFDEF _D2009orHigher}
-SetupParams( const AName, AParent: WideString ): WideString;
-{$ELSE}
-SetupParams( const AName, AParent: String ): String;
-{$ENDIF}
-
+function TKOLScrollBar.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
 const ScrollerBarNames: array[ TScrollerBar ] of String = (
         'sbHorizontal', 'sbVertical' );
 begin

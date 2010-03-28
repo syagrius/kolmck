@@ -198,6 +198,17 @@ That is all to have full compatibility.
   {$ENDIF}
 {$ENDIF}
 
+//{$DEFINE USE_CONSTRUCTORS}
+// Comment this line to produce smaller code if constructors are not used.
+// When uncommented, this definition allows to create descendant controls
+// and objects overriding constructors, which are actually members of objects.
+// Otherwise, global functions (usually named New<ObjectName>) are used to
+// create and initialize object instances. This gives smaller code, but
+// prevents from using OOP inheritance.
+// Note: creating descendant objects derived from TObj does not require using
+// of this option. It is actually needed only for deriving new controls on
+// base of TControl. See also option USE_CUSTOMEXTENSIONS below.
+
 //{$DEFINE USE_CUSTOMEXTENSIONS}
 // Uncomment this option or add it to your project conditional defines,
 // if You wish to extend existing TControl object from
@@ -215,10 +226,6 @@ That is all to have full compatibility.
 // actually is not needed.
 // Another way to turn this option off is to define symbol NOT_UNLOAD_RICHEDITLIB
 // in your project options.
-
-//{$IFNDEF INPACKAGE}
-//	{$DEFINE NOT_USE_RICHEDIT}
-//{$ENDIF}
 
 //{$DEFINE TEST_VERSION}
 {$IFNDEF _D6orHigher}

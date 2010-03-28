@@ -701,6 +701,10 @@ type
     function GetTotal: Integer;
     function GetIndexAmongSiblings: Integer;
   protected
+    {$IFDEF USE_CONSTRUCTORS}
+    constructor CreateTree( AParent: PTree; const AName: AnsiString );
+    {* }
+    {$ENDIF}
   {++}(*public*){--}
     destructor Destroy; {-}virtual;{+}{++}(*override;*){--}
     {* }
@@ -1381,7 +1385,7 @@ procedure InitUpper;
 var c: AnsiChar;
 begin
   for c := #0 to #255 do
-    Upper[ c ] := AnsiUpperCase( AnsiString(c + #0) )[ 1 ];
+    Upper[ c ] := AnsiUpperCase( {$IFDEF _D3orHigher}AnsiString{$ENDIF}(c + #0) )[ 1 ];
   Upper_Initialized := TRUE;
 end;
 
@@ -2711,7 +2715,9 @@ var
   arr1_DoOnMenuItem: array[ 0..0 ] of TOnMenuItem;
 {$ENDIF _FPC}
 begin
-  LinkCtrl(Menu, ckMenu, MenuItemIdx, UpdateMenu);
+  //LinkCtrl(Menu, ckMenu, MenuItemIdx, UpdateMenu); -- replaced by mdw to:
+  LinkCtrl(Menu, ckMenu, Menu.Items[MenuItemIdx].MenuId, UpdateMenu);
+
   {$IFDEF _FPC}
   arr1_DoOnMenuItem[ 0 ] := DoOnMenuItem;
   Menu.AssignEvents(MenuItemIdx, arr1_DoOnMenuItem);
@@ -2974,6 +2980,14 @@ end;
 
 { -- TTree -- }
 
+{$IFDEF USE_CONSTRUCTORS}
+//[function NewTree]
+function NewTree( AParent: PTree; const AName: AnsiString ): PTree;
+begin
+  New( Result, CreateTree(  AParent, AName ) );
+end;
+//[END NewTree]
+{$ELSE not_USE_CONSTRUCTORS}
 //[function NewTree]
 {$IFDEF TREE_NONAME}
 function NewTree( AParent: PTree ): PTree;
@@ -3011,6 +3025,7 @@ end;
 {$ENDIF}
 {$ENDIF}
 //[END NewTree]
+{$ENDIF USE_CONSTRUCTORS}
 
 { TTree }
 
@@ -3042,6 +3057,18 @@ begin
   for I := fChildren.Count - 1 downto 0 do
     PTree( fChildren.Items[ I ] ).Free;
 end;
+
+{$IFDEF USE_CONSTRUCTORS}
+//[constructor TTree.CreateTree]
+constructor TTree.CreateTree(AParent: PTree; const AName: AnsiString);
+begin
+  inherited Create;
+  if AParent <> nil then
+    AParent.Add( @Self );
+  fParent := AParent;
+  fName := AName;
+end;
+{$ENDIF}
 
 //[destructor TTree.Destroy]
 destructor TTree.Destroy;

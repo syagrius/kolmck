@@ -2,7 +2,7 @@
 // Rev.:   1.97
 // Date:   09 aug 2009
 // Author: MTsv DN
-// Thanks: mdw, Vladimir Kladov, D[u]fa
+// Thanks: mdw, Vladimir Kladov
 
 {$IFDEF _FPC}
 const

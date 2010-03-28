@@ -15,7 +15,7 @@
 
 //[VERSION]
 ****************************************************************
-* VERSION 2.89
+* VERSION 2.90
 ****************************************************************
 //[END OF VERSION]
 
@@ -253,6 +253,8 @@ unit KOL; {-}
   USE_GRUSH             - to use ToGRush.pas unit, which provides automatic
                           redirection of the most cintrols creation functions
                           to the KOLGRushControls.pas.
+  (USE_CONSTRUCTORS     - to use constructors like in VCL. Note: this option is
+                          not carefully tested!)
   TLIST_FAST            - very fast implementation of TList (for coast of some
                           additional code).
   DFLT_TLIST_NOUSE_BLOCKS - for TLIST_FAST: by default, do not make all TList
@@ -791,7 +793,7 @@ type
      {$ENDIF}
    public
      {$IFDEF USE_NAMES}
-     procedure SetName( NewOwnerObj: PObj; const NewName: AnsiString);
+     procedure SetName( NewOwnerObj: PObj; NewName: AnsiString);
      property  Name: Ansistring read FName;
 
      property  NamedObjList : PList read fNamedObjList;
@@ -826,6 +828,9 @@ type
     procedure SetCapacity( Value: Integer );
     function Get( Idx: Integer ): Pointer;
     procedure Put( Idx: Integer; Value: Pointer );
+    {$IFDEF USE_CONSTRUCTORS}
+    procedure Init; virtual;
+    {$ENDIF}
   protected
     {$IFDEF TLIST_FAST}
     fUseBlocks: Boolean;
@@ -1054,6 +1059,11 @@ type
     procedure SynchronizeEx( Method: TThreadMethodEx; Param: Pointer );
     {* Call it to execute given method in main thread context, with a given
        parameter. Applet variable must exist for that time. Param must not be nil. }
+    {$IFDEF USE_CONSTRUCTORS}
+    constructor ThreadCreate;
+    constructor ThreadCreateEx( const Proc: TOnThreadExecute );
+    {$ENDIF USE_CONSTRUCTORS}
+
     property AutoFree: Boolean read F_AutoFree write F_AutoFree;
     {* Set this property to true to provide automatic destroying of thread
        object when its executing is finished. }
@@ -2860,6 +2870,9 @@ type
        other images from the image list). These overalay images can be used in
        listview and treeview as overlaying images (up to four masks at the same
        time). }
+    {$IFDEF USE_CONSTRUCTORS}
+    constructor CreateImageList( POwner: Pointer );
+    {$ENDIF USE_CONSTRUCTORS}
   end;
 //[END OF TImageList DEFINITION]
 
@@ -5018,7 +5031,7 @@ type
     fOnSelChange: TOnEvent;
 
     {$IFNDEF NOT_USE_RICHEDIT}
-    fRECharFormatRec: TCharFormat2;
+    fRECharFormatRec: TCharFormat;
     fREError: Integer;
     fREStream: PStream;
     fREStrLoadLen: DWORD;
@@ -8703,6 +8716,51 @@ type
     property AnchorBottom: Boolean read fAnchorBottom write SetAnchorBottom;
     function Anchor( aLeft, aTop, aRight, aBottom: Boolean ): PControl;
   public
+    {$IFDEF USE_CONSTRUCTORS}
+    //------------------------------------------------------------
+    // constructors here:
+    constructor CreateWindowed( AParent: PControl; AClassName: PKOLChar; ACtl3D: Boolean );
+    constructor CreateApplet( const ACaption: AnsiString );
+    constructor CreateForm( AParent: PControl; const ACaption: AnsiString );
+    constructor CreateControl( AParent: PControl; AClassName: PAnsiChar; AStyle: DWORD;
+                               ACtl3D: Boolean; Actions: PCommandActions );
+    constructor CreateButton( AParent: PControl; const ACaption: AnsiString );
+    constructor CreateBitBtn( AParent: PControl; const ACaption: AnsiString;
+         AOptions: TBitBtnOptions; ALayout: TGlyphLayout; AGlyphBitmap: HBitmap;
+         AGlyphCount: Integer);
+    constructor CreateLabel( AParent: PControl; const ACaption: AnsiString );
+    constructor CreateWordWrapLabel( AParent: PControl; const ACaption: AnsiString );
+    constructor CreateLabelEffect( AParent: PControl; ACaption: AnsiString; AShadowDeep: Integer );
+    constructor CreatePaintBox( AParent: PControl );
+    constructor CreateGradientPanel( AParent: PControl; AColor1, AColor2: TColor );
+    constructor CreateGradientPanelEx( AParent: PControl; AColor1, AColor2: TColor;
+                             AStyle: TGradientStyle; ALayout: TGradientLayout );
+    constructor CreateGroupbox( AParent: PControl; const ACaption: AnsiString );
+    constructor CreateCheckbox( AParent: PControl; const ACaption: AnsiString );
+    constructor CreateRadiobox( AParent: PControl; const ACaption: AnsiString );
+    constructor CreateEditbox( AParent: PControl; AOptions: TEditOptions );
+    constructor CreatePanel( AParent: PControl; AStyle: TEdgeStyle );
+    constructor CreateSplitter( AParent: PControl; AMinSizePrev, AMinSizeNext: Integer;
+                EdgeStyle: TEdgeStyle );
+    constructor CreateListbox( AParent: PControl; AOptions: TListOptions );
+    constructor CreateCombobox( AParent: PControl; AOptions: TComboOptions );
+    constructor CreateCommonControl( AParent: PControl; AClassName: PAnsiChar; AStyle: DWORD;
+                            ACtl3D: Boolean; Actions: PCommandActions );
+    constructor CreateRichEdit( AParent: PControl; AOptions: TEditOptions );
+    constructor CreateRichEdit1( AParent: PControl; AOptions: TEditOptions );
+    constructor CreateProgressbar( AParent: PControl );
+    constructor CreateProgressbarEx( AParent: PControl; AOptions: TProgressbarOptions );
+    constructor CreateListView( AParent: PControl; AStyle: TListViewStyle; AOptions: TListViewOptions;
+                      AImageListSmall, AImageListNormal, AImageListState: PImageList );
+    constructor CreateTreeView( AParent: PControl; AOptions: TTreeViewOptions;
+                      AImgListNormal, AImgListState: PImageList );
+    constructor CreateTabControl( AParent: PControl; ATabs: array of String;
+         AOptions: TTabControlOptions; AImgList: PImageList; AImgList1stIdx: Integer );
+    constructor CreateToolbar( AParent: PControl; AAlign: TControlAlign; AOptions: TToolbarOptions;
+                     ABitmap: HBitmap; AButtons: array of PChar;
+                     ABtnImgIdxArray: array of Integer );
+    {$ENDIF USE_CONSTRUCTORS}
+
     {$IFDEF USE_CUSTOMEXTENSIONS}
       {$I CUSTOM_TCONTROL_EXTENSION.inc}
     {$ENDIF}
@@ -8711,7 +8769,9 @@ type
     // methods and properties. This provides You with capability to extend
     // TControl implementing another kinds of visual controls without deriving
     // new descendant objects from TControl. This way is provided to avoid too
-    // large grow of executable size. 
+    // large grow of executable size. You also can derive your own controls
+    // from TControl using standard OOP capabilities. In such case an option
+    // USE_CONSTRUCTORS should be turned on (see it at the start of this unit).
     //   If You choose this "flat" model of extending the TControl with your
     // own properties, fieds, methods, events, etc. You should provide three
     // inc-files: CUSTOM_TCONTROL_EXTENSION.inc, containing such definitions
@@ -10620,7 +10680,7 @@ function TrimRight(const S: KOLString): KOLString;
    end of string S. }
 function Trim( const S : KOLString): KOLString;
 {* Makes TrimLeft and TrimRight for given string. }
-function RemoveSpaces( const S: AnsiString ): AnsiString;
+function RemoveSpaces( const S: KOLString ): KOLString;
 {* Removes all characters less or equal to ' ' in S and returns it. }
 procedure Str2LowerCase( S: PAnsiChar );
 {* Converts null-terminated string to lowercase (inplace). }
@@ -13186,7 +13246,7 @@ var DrawThemeBackground: function(hTheme: DWORD; hdc: HDC; iPartId, iStateId: In
       var pColor: COLORREF): HRESULT; stdcall;
 
 const
-  themelib = 'uxtheme';
+  themelib = 'uxtheme.dll';
 
 type
   PThemedElementDetails = ^TThemedElementDetails;
@@ -15111,7 +15171,7 @@ begin
 end;
 
 {$IFDEF USE_NAMES}
-procedure TObj.SetName( NewOwnerObj: PObj; const NewName: AnsiString );
+procedure TObj.SetName( NewOwnerObj: PObj; NewName: AnsiString );
 {$IFDEF UNIQUE_NAMES}
 var i: Integer;
 {$ENDIF}
@@ -15181,6 +15241,29 @@ end;
 {$ENDIF}
 {$ENDIF}
 
+{$IFDEF USE_CONSTRUCTORS}
+procedure TList.Init;
+begin
+  {$IFDEF _D2orD3}
+  inherited;
+  {$ENDIF}
+  fAddBy := 4;
+  {$IFDEF TLIST_FAST}
+  {$IFNDEF DFLT_TLIST_NOUSE_BLOCKS} // for debug only
+  fUseBlocks := TRUE;
+  {$ENDIF}
+  {$ENDIF}
+end;
+
+//[function NewList]
+function NewList: PList;
+begin
+  New( Result, Create );
+  //Result.fAddBy := 4;
+end;
+//[END NewList]
+
+{$ELSE not_USE_CONSTRUCTORS}
 //[function NewList]
 function NewList: PList;
 begin
@@ -15195,6 +15278,7 @@ begin
   {$ENDIF}
 end;
 //[END NewList]
+{$ENDIF USE_CONSTRUCTORS}
 
 //[procedure TList.Init]
 {$IFDEF _D4orHigher}
@@ -17081,7 +17165,7 @@ begin
   if fData.Font.Name = Value then Exit;
   FillChar( fData.Font.Name[ 0 ], LF_FACESIZE, #0 );
   {$IFDEF UNICODE_CTRLS} WStrLCopy {$ELSE} StrLCopy {$ENDIF}
-  ( PKOLChar(@fData.Font.Name[0]), PKOLChar( Value ), Length(Value) * SizeOf(KOLChar) {LF_FACESIZE} ); //TODO: fixme
+  ( PKOLChar(@fData.Font.Name[0]), PKOLChar( Value ), Length(Value) * SizeOf(KOLChar) {LF_FACESIZE} ); 
   Changed;
 end;
 
@@ -17676,7 +17760,7 @@ begin
 end;
 
 procedure TCanvas.OffsetAndRotate(Xoff, Yoff: Integer; Angle: Double);
-var F: tagXForm;
+var F: TXForm;
 begin
     SetGraphicsMode( fHandle, GM_ADVANCED );
     F.eM11 := cos( Angle );
@@ -20027,7 +20111,7 @@ end;
 //[END Trim]
 
 //[function RemoveSpaces]
-function RemoveSpaces( const S: AnsiString ): AnsiString;
+function RemoveSpaces( const S: KOLString ): KOLString;
 var I: Integer;
 begin
   Result := S;
@@ -22472,17 +22556,16 @@ asm
         CALL     System.@LStrFromPCharLen
 end;
 {$ELSE} //Pascal
-function ExtractFilePath(const Path: KOLString): KOLString;
-var
-  i: Integer;
+function ExtractFilePath( const Path : KOLString ) : KOLString;
+//var I : Integer;
+var P, P0: PKOLChar;
 begin
-  for i := Length(Path) - 1 downto 1 do begin
-    if (Path[i] = '\') then begin
-      Result := Copy(Path, 1, i);
-      Exit;
-    end;
-  end;
-  Result := Path;
+  P0 := PKOLChar( Path );
+  P := __DelimiterLast( P0, ':\/' );
+  if P^ = #0 then
+    Result := ''
+  else
+    Result := Copy( Path, 1, P - P0 + 1 );
 end;
 {$ENDIF ASM_VERSION}
 
@@ -24819,6 +24902,14 @@ begin
   Result := Thread.Execute;
 end;
 
+{$IFDEF USE_CONSTRUCTORS}
+//[function NewThread]
+function NewThread: PThread;
+begin
+  new( Result, ThreadCreate );
+end;
+//[END NewThread]
+{$ELSE not_USE_CONSTRUCTORS}
 //*
 //[function NewThread]
 function NewThread: PThread;
@@ -24842,6 +24933,15 @@ begin
   {$ENDIF}
 end;
 //[END NewThread]
+{$ENDIF USE_CONSTRUCTORS}
+
+{$IFDEF USE_CONSTRUCTORS}
+//[function NewThreadEx]
+function NewThreadEx( const Proc: TOnThreadExecute ): PThread;
+begin
+  new( Result, ThreadCreateEx( Proc ) );
+end;
+{$ELSE not_USE_CONSTRUCTORS}
 
 //[FUNCTION NewThreadEx]
 {$IFDEF ASM_!VERSION}
@@ -24869,6 +24969,8 @@ begin
 end;
 {$ENDIF ASM_VERSION}
 //[END NewThreadEx]
+
+{$ENDIF USE_CONSTRUCTORS}
 
 //[function NewThreadAutoFree]
 function NewThreadAutoFree( const Proc: TOnThreadExecute ): PThread;
@@ -25838,7 +25940,8 @@ end;
 //[FUNCTION SeekMemStream]
 {$IFDEF ASM_STREAM}
 {$ELSE ASM_VERSION} //Pascal
-function SeekMemStream( Strm: PStream; const MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
+function SeekMemStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF}
+         MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
 var NewPos: DWORD;
 begin
   case MoveFrom of
@@ -25873,7 +25976,7 @@ end;
 //[PROCEDURE SetSizeMemStream]
 {$IFDEF ASM_STREAM}
 {$ELSE ASM_VERSION} //Pascal
-procedure SetSizeMemStream( Strm: PStream; const NewSize: TStrmSize );
+procedure SetSizeMemStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} NewSize: TStrmSize );
 var S: PStream;
     NewCapacity: DWORD;
 begin
@@ -25914,7 +26017,7 @@ end;
 //[FUNCTION ReadMemStream]
 {$IFDEF ASM_STREAM}
 {$ELSE ASM_VERSION} //Pascal
-function ReadMemStream( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
+function ReadMemStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
 var S: PStream;
     C: TStrmSize;
 begin
@@ -25939,7 +26042,7 @@ end;
 //[FUNCTION WriteMemStream]
 {$IFDEF ASM_STREAM}
 {$ELSE ASM_VERSION} //Pascal
-function WriteMemStream( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
+function WriteMemStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
 var S: PStream;
 begin
   S := Strm;
@@ -26307,7 +26410,7 @@ end;
 //[FUNCTION WriteExMemoryStream]
 {$IFDEF ASM_STREAM}
 {$ELSE ASM_VERSION}
-function WriteExMemoryStream( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
+function WriteExMemoryStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize; 
 var S: PStream;
     C: TStrmSize;
 begin
@@ -28549,6 +28652,15 @@ end;
 
 //===================== Form ========================//
 
+{$IFDEF USE_CONSTRUCTORS}
+//[function NewForm]
+function NewForm( AParent: PControl; const Caption: AnsiString ): PControl;
+begin
+  new( Result, CreateForm( AParent, Caption ) );
+end;
+//[END NewForm]
+{$ELSE not_USE_CONSTRUCTORS}
+
 //[FUNCTION NewForm]
 {$IFDEF GDI}
 {$IFDEF ASM_VERSION}
@@ -28618,6 +28730,8 @@ end;
 {$ENDIF GTK}
 {$ENDIF _X_}
 //[END NewForm]
+
+{$ENDIF USE_CONSTRUCTORS}
 
 {$IFDEF WIN_GDI} //vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 //===================== Applet button ========================//
@@ -28709,6 +28823,16 @@ begin
 end;
 //[END WndProcApp]
 
+{$IFDEF USE_CONSTRUCTORS}
+{$DEFINE CREATEAPPBUTTON_USED}
+//[function NewApplet]
+function NewApplet( const Caption: AnsiString ): PControl;
+begin
+  new( Result, CreateApplet( Caption ) );
+end;
+//[END NewApplet]
+{$ELSE not_USE_CONSTRUCTORS}
+
 //[FUNCTION NewApplet]
 {$IFDEF ASM_TLIST}
 {$ELSE ASM_VERSION} //Pascal
@@ -28742,6 +28866,7 @@ begin
 end;
 {$ENDIF ASM_VERSION}
 //[END NewApplet]
+{$ENDIF USE_CONSTRUCTORS}
 
 {$IFDEF CREATEAPPBUTTON_USED}
 procedure CreateAppButton( App: PControl );
@@ -28963,6 +29088,14 @@ begin
     Result := False;
 end;
 
+{$IFDEF USE_CONSTRUCTORS}
+//[function NewButton]
+function NewButton( AParent: PControl; const Caption: KOLString ): PControl;
+begin
+  new( Result, CreateButton( AParent, Caption ) );
+end;
+{$ELSE USE_CONSTRUCTORS}
+
 {$IFDEF ASM_VERSION}
 const ButtonClass: array[ 0..6 ] of KOLChar = ( 'B','U','T','T','O','N',#0 );
 {$ENDIF ASM_VERSION}
@@ -29002,6 +29135,7 @@ end;
 {$ENDIF ASM_VERSION}
 //[END NewButton]
 
+{$ENDIF USE_CONSTRUCTORS}
 {$ENDIF WIN_GDI}
 {$IFDEF _X_}
 {$IFDEF GTK}
@@ -29943,6 +30077,17 @@ end;
 {$ENDIF ASM_VERSION}
 //[END WndProcBitBtn]
 
+{$IFDEF USE_CONSTRUCTORS}
+//[function NewBitBtn]
+function NewBitBtn( AParent: PControl; const Caption: AnsiString;
+         Options: TBitBtnOptions; Layout: TGlyphLayout; GlyphBitmap: HBitmap;
+         GlyphCount: Integer ): PControl;
+begin
+  new( Result, CreateBitBtn( AParent, Caption, Options, Layout, GlyphBitmap, GlyphCount ) );
+end;
+//[END NewBitBtn]
+{$ELSE not_USE_CONSTRUCTORS}
+
 //[FUNCTION NewBitBtn]
 {$IFDEF ASM_noVERSION} // todo: first correct asm version, then remove <no>
 {$ELSE ASM_VERSION} //Pascal
@@ -30049,7 +30194,18 @@ end;
 {$ENDIF ASM_VERSION}
 //[END NewBitBtn]
 
+{$ENDIF USE_CONSTRUCTORS}
+
 //===================== Check box ========================//
+
+{$IFDEF USE_CONSTRUCTORS}
+//[function NewCheckbox]
+function NewCheckbox( AParent: PControl; const Caption: AnsiString ): PControl;
+begin
+  new( Result, CreateCheckbox( AParent, Caption ) );
+end;
+//[END NewCheckbox]
+{$ELSE not_USE_CONSTRUCTORS}
 
 //[FUNCTION NewCheckbox]
 {$IFDEF ASM_VERSION}
@@ -30073,6 +30229,8 @@ begin
 end;
 {$ENDIF ASM_VERSION}
 //[END NewCheckbox]
+
+{$ENDIF USE_CONSTRUCTORS}
 
 //[function NewCheckBox3State]
 function NewCheckBox3State( AParent: PControl; const Caption: KOLString ): PControl;
@@ -30098,6 +30256,15 @@ begin
 end;
 {$ENDIF ASM_VERSION}
 //[END ClickRadio]
+
+{$IFDEF USE_CONSTRUCTORS}
+//[function NewRadiobox]
+function NewRadiobox( AParent: PControl; const Caption: AnsiString ): PControl;
+begin
+  new( Result, CreateRadiobox( AParent, Caption ) );
+end;
+//[END NewRadiobox]
+{$ELSE not_USE_CONSTRUCTORS}
 
 //[FUNCTION NewRadiobox]
 {$IFDEF ASM_VERSION}
@@ -30126,12 +30293,24 @@ end;
 {$ENDIF ASM_VERSION}
 //[END NewRadiobox]
 
+{$ENDIF USE_CONSTRUCTORS}
+
 //===================== Label ========================//
 
 {$ENDIF WIN_GDI}
+{$IFNDEF USE_CONSTRUCTORS}
 {$IFDEF ASM_VERSION}
 const StaticClass: Array[0..6] of AnsiChar=('S','T','A','T','I','C',#0);
 {$ENDIF ASM_VERSION}
+{$ENDIF not USE_CONSTRUCTORS}
+{$IFDEF USE_CONSTRUCTORS}
+//[function NewLabel]
+function NewLabel( AParent: PControl; const Caption: AnsiString ): PControl;
+begin
+  new( Result, CreateLabel( AParent, Caption ) );
+end;
+//[END NewLabel]
+{$ELSE not_USE_CONSTRUCTORS}
 
 //[FUNCTION NewLabel]
 {$IFDEF GDI}
@@ -30179,10 +30358,20 @@ begin
 end;
 {$ENDIF GTK}
 {$ENDIF _X_}
+{$ENDIF USE_CONSTRUCTORS}
 //[END NewLabel]
 
 {$IFDEF WIN_GDI}
 //===================== word wrap Label ========================//
+
+{$IFDEF USE_CONSTRUCTORS}
+//[function NewWordWrapLabel]
+function NewWordWrapLabel( AParent: PControl; const Caption: AnsiString ): PControl;
+begin
+  new( Result, CreateWordWrapLabel( AParent, Caption ) );
+end;
+//[END NewWordWrapLabel]
+{$ELSE not_USE_CONSTRUCTORS}
 
 //[FUNCTION NewWordWrapLabel]
 {$IFDEF ASM_VERSION}
@@ -30200,7 +30389,16 @@ end;
 {$ENDIF ASM_VERSION}
 //[END NewWordWrapLabel]
 
+{$ENDIF USE_CONSTRUCTORS}
+
 //===================== Label Effect ========================//
+
+{$IFDEF USE_CONSTRUCTORS}
+function NewLabelEffect( AParent: PControl; const Caption: AnsiString; ShadowDeep: Integer ): PControl;
+begin
+  new( Result, CreateLabelEffect( AParent, Caption, ShadowDeep ) );
+end;
+{$ELSE not_USE_CONSTRUCTORS}
 
 //[FUNCTION NewLabelEffect]
 {$IFDEF ASM_VERSION}
@@ -30225,8 +30423,17 @@ end;
 {$ENDIF ASM_VERSION}
 //[END NewLabelEffect]
 
+{$ENDIF USE_CONSTRUCTORS}
+
 //===================== Paint box ========================//
 {$ENDIF WIN_GDI}
+{$IFDEF USE_CONSTRUCTORS}
+//[function NewPaintbox]
+function NewPaintbox( AParent: PControl ): PControl;
+begin
+  new( Result, CreatePaintBox( AParent ) );
+end;
+{$ELSE not_USE_CONSTRUCTORS}
 
 //[FUNCTION NewPaintbox]
 {$IFDEF GDI}
@@ -30279,6 +30486,7 @@ end;
 {$ENDIF _X_}
 //[END NewPaintbox]
 
+{$ENDIF USE_CONSTRUCTORS}
 {$IFDEF WIN_GDI}
 
 {$IFDEF _D2}
@@ -30812,6 +31020,15 @@ end;
 
 //===================== Groupbox ========================//
 
+{$IFDEF USE_CONSTRUCTORS}
+//[function NewGroupbox]
+function NewGroupbox( AParent: PControl; const Caption: AnsiString ): PControl;
+begin
+  new( Result, CreateGroupbox( AParent, Caption ) );
+end;
+//[END NewGroupbox]
+{$ELSE not_USE_CONSTRUCTORS}
+
 //[FUNCTION NewGroupbox]
 {$IFDEF ASM_UNICODE}
 {$ELSE ASM_VERSION} //Pascal
@@ -30849,7 +31066,18 @@ end;
 {$ENDIF ASM_VERSION}
 //[END NewGroupbox]
 
+{$ENDIF USE_CONSTRUCTORS}
+
 //===================== Panel ========================//
+
+{$IFDEF USE_CONSTRUCTORS}
+//[function NewPanel]
+function NewPanel( AParent: PControl; EdgeStyle: TEdgeStyle ): PControl;
+begin
+  new( Result, CreatePanel( AParent, EdgeStyle ) );
+end;
+//[END NewPanel]
+{$ELSE not_USE_CONSTRUCTORS}
 
 //[FUNCTION NewPanel]
 {$IFDEF ASM_UNICODE}
@@ -30878,6 +31106,8 @@ begin
 end;
 {$ENDIF ASM_VERSION}
 //[END NewPanel]
+
+{$ENDIF USE_CONSTRUCTORS}
 
 //===================== Splitter ==============================//
 
@@ -31056,6 +31286,16 @@ begin
 end;
 //[END NewSplitter]
 
+{$IFDEF USE_CONSTRUCTORS}
+//[function NewSplitterEx]
+function NewSplitterEx( AParent: PControl; MinSizePrev, MinSizeNext: Integer;
+         EdgeStyle: TEdgeStyle ): PControl;
+begin
+  new( Result, CreateSplitter( AParent, MinSizePrev, MinSizeNext, EdgeStyle ) );
+end;
+//[END NewSplitterEx]
+{$ELSE not_USE_CONSTRUCTORS}
+
 //[FUNCTION NewSplitterEx]
 {$IFDEF ASM_VERSION}
 {$ELSE ASM_VERSION} //Pascal
@@ -31101,6 +31341,8 @@ begin
 end;
 {$ENDIF ASM_VERSION}
 //[END NewSplitterEx]
+
+{$ENDIF USE_CONSTRUCTORS}
 
 //===================== MDI client window control =============//
 
@@ -31433,6 +31675,15 @@ end;
 
 //===================== Gradient panel ========================//
 
+{$IFDEF USE_CONSTRUCTORS}
+//[function NewGradientPanel]
+function NewGradientPanel( AParent: PControl; Color1, Color2: TColor ): PControl;
+begin
+  new( Result, CreateGradientPanel( AParent, Color1, Color2 ) );
+end;
+//[END NewGradientPanel]
+{$ELSE not_USE_CONSTRUCTORS}
+
 //[FUNCTION NewGradientPanel]
 {$IFDEF ASM_VERSION}
 {$ELSE ASM_VERSION} //Pascal
@@ -31450,6 +31701,19 @@ begin
 end;
 {$ENDIF ASM_VERSION}
 //[END NewGradientPanel]
+
+{$ENDIF USE_CONSTRUCTORS}
+
+{$IFDEF USE_CONSTRUCTORS}
+//[function NewGradientPanelEx]
+function NewGradientPanelEx( AParent: PControl; Color1, Color2: TColor;
+                             Style: TGradientStyle; Layout: TGradientLayout ): PControl;
+begin
+  new( Result, CreateGradientPanelEx( AParent, Color1, Color2,
+                             Style, Layout ) );
+end;
+//[END NewGradientPanelEx]
+{$ELSE not_USE_CONSTRUCTORS}
 
 //[FUNCTION NewGradientPanelEx]
 {$IFDEF ASM_VERSION}
@@ -31472,6 +31736,8 @@ end;
 {$ENDIF ASM_VERSION}
 //[END NewGradientPanelEx]
 
+{$ENDIF USE_CONSTRUCTORS}
+
 //===================== Edit box ========================//
 
 const Editflags: array [ TEditOption ] of Integer = (
@@ -31480,6 +31746,15 @@ const Editflags: array [ TEditOption ] of Integer = (
                   es_Lowercase, es_Multiline,
                   es_NoHideSel, es_OemConvert, es_Password, es_Readonly,
                   es_UpperCase, es_WantReturn, 0, es_Number );
+
+{$IFDEF USE_CONSTRUCTORS}
+//[function NewEditbox]
+function NewEditbox( AParent: PControl; Options: TEditOptions ) : PControl;
+begin
+  new( Result, CreateEditbox( AParent, Options ) );
+end;
+//[END NewEditbox]
+{$ELSE not_USE_CONSTRUCTORS}
 
 //[FUNCTION NewEditBox]
 {$IFDEF ASM_VERSION}
@@ -31512,6 +31787,8 @@ end;
 {$ENDIF ASM_VERSION}
 //[END NewEditBox]
 
+{$ENDIF USE_CONSTRUCTORS}
+
 //===================== List box ========================//
 
 const ListFlags: array[TListOption] of Integer = (
@@ -31521,6 +31798,15 @@ const ListFlags: array[TListOption] of Integer = (
                   LBS_NoIntegralHeight, LBS_NoSel, LBS_Sort, LBS_USETabstops,
                   not LBS_HASSTRINGS, LBS_NODATA, LBS_OWNERDRAWFIXED,
                   LBS_OWNERDRAWVARIABLE, WS_HSCROLL );
+
+{$IFDEF USE_CONSTRUCTORS}
+//[function NewListbox]
+function NewListbox( AParent: PControl; Options: TListOptions ): PControl;
+begin
+  new( Result, CreateListbox( AParent, Options ) );
+end;
+//[END NewListbox]
+{$ELSE not_USE_CONSTRUCTORS}
 
 //[FUNCTION NewListbox]
 {$IFDEF ASM_UNICODE}
@@ -31542,6 +31828,8 @@ begin
 end;
 {$ENDIF ASM_VERSION}
 //[END NewListbox]
+
+{$ENDIF USE_CONSTRUCTORS}
 
 //===================== Combo box ========================//
 
@@ -31799,6 +32087,14 @@ const ComboFlags: array[ TComboOption ] of Integer = (
       CBS_OemConvert, CBS_Sort, CBS_UpperCase,
       CBS_OWNERDRAWFIXED, CBS_OWNERDRAWVARIABLE, CBS_SIMPLE );
 
+{$IFDEF USE_CONSTRUCTORS}
+//[function NewCombobox]
+function NewCombobox( AParent: PControl; Options: TComboOptions ): PControl;
+begin
+  new( Result, CreateCombobox( AParent, Options ) );
+end;
+{$ELSE not_USE_CONSTRUCTORS}
+
 //[FUNCTION NewCombobox]
 {$IFDEF ASM_VERSION}
 {$ELSE ASM_VERSION} //Pascal
@@ -31834,6 +32130,8 @@ begin
 end;
 {$ENDIF ASM_VERSION}
 //[END NewCombobox]
+
+{$ENDIF USE_CONSTRUCTORS}
 
 //[FUNCTION WndProcResiz]
 {$IFDEF ASM_TLIST}
@@ -31907,6 +32205,15 @@ end;
 
 //==================== Progress bar ======================//
 
+{$IFDEF USE_CONSTRUCTORS}
+//[function NewProgressbar]
+function NewProgressbar( AParent: PControl ): PControl;
+begin
+  new( Result, CreateProgressbar( AParent ) );
+end;
+//[END NewProgressbar]
+{$ELSE not_USE_CONSTRUCTORS}
+
 //[FUNCTION NewProgressbar]
 {$IFDEF ASM_VERSION}
 {$ELSE ASM_VERSION} //Pascal
@@ -31927,6 +32234,17 @@ end;
 {$ENDIF ASM_VERSION}
 //[END NewProgressbar]
 
+{$ENDIF USE_CONSTRUCTORS}
+
+{$IFDEF USE_CONSTRUCTORS}
+//[function NewProgressbarEx]
+function NewProgressbarEx( AParent: PControl; Options: TProgressbarOptions ): PControl;
+begin
+  new( Result, CreateProgressbarEx( AParent, Options ) );
+end;
+//[END NewProgressbarEx]
+{$ELSE not_USE_CONSTRUCTORS}
+
 //[FUNCTION NewProgressbarEx]
 {$IFDEF ASM_VERSION}
 {$ELSE ASM_VERSION} //Pascal
@@ -31939,6 +32257,8 @@ begin
 end;
 {$ENDIF ASM_VERSION}
 //[END NewProgressbarEx]
+
+{$ENDIF USE_CONSTRUCTORS}
 
 //===================== List view ========================//
 
@@ -32051,6 +32371,17 @@ end;
 {$ENDIF ASM_VERSION}
 //[END ApplyImageLists2ListView]
 
+{$IFDEF USE_CONSTRUCTORS}
+//[function NewListView]
+function NewListView( AParent: PControl; Style: TListViewStyle; Options: TListViewOptions;
+                      ImageListSmall, ImageListNormal, ImageListState: PImageList ): PControl;
+begin
+  new( Result, CreateListView( AParent, Style, Options, ImageListSmall,
+               ImageListNormal, ImageListState ) );
+end;
+//[END NewListView]
+{$ELSE not_USE_CONSTRUCTORS}
+
 //[FUNCTION NewListView]
 {$IFDEF ASM_VERSION}
 {$ELSE ASM_VERSION} //Pascal
@@ -32080,6 +32411,8 @@ begin
 end;
 {$ENDIF ASM_VERSION}
 //[END NewListView]
+
+{$ENDIF USE_CONSTRUCTORS}
 
 //=====================  Tree view  ========================//
 
@@ -32214,6 +32547,15 @@ const
                   TVS_TRACKSELECT, TVS_SINGLEEXPAND, TVS_INFOTIP,
                   TVS_FULLROWSELECT, TVS_NOSCROLL, TVS_NONEVENHEIGHT );
 
+{$IFDEF USE_CONSTRUCTORS}
+//[function NewTreeView]
+function NewTreeView( AParent: PControl; Options: TTreeViewOptions;
+                      ImgListNormal, ImgListState: PImageList ): PControl;
+begin
+  new( Result, CreateTreeView( AParent, Options, ImgListNormal, ImgListState ) );
+end;
+{$ELSE not_USE_CONSTRUCTORS}
+
 //[FUNCTION NewTreeView]
 {$IFDEF ASM_VERSION}
 {$ELSE ASM_VERSION} //Pascal
@@ -32238,6 +32580,8 @@ begin
 end;
 {$ENDIF ASM_VERSION}
 //[END NewTreeView]
+
+{$ENDIF USE_CONSTRUCTORS}
 
 //===================== Tab Control ========================//
 
@@ -32386,6 +32730,16 @@ const TabControlFlags: array[ TTabControlOption ] of Integer = ( TCS_BUTTONS,
            TCS_MULTILINE, TCS_MULTISELECT, TCS_RIGHTJUSTIFY, TCS_SCROLLOPPOSITE,
            TCS_BOTTOM, TCS_VERTICAL, TCS_FLATBUTTONS, TCS_HOTTRACK, 0, TCS_OWNERDRAWFIXED );
 
+{$IFDEF USE_CONSTRUCTORS}
+//[function NewTabControl]
+function NewTabControl( AParent: PControl; Tabs: array of String; Options: TTabControlOptions;
+         ImgList: PImageList; ImgList1stIdx: Integer ): PControl;
+begin
+  new( Result, CreateTabControl( AParent, Tabs, Options, ImgList, ImgList1stIdx ) );
+end;
+//[END NewTabControl]
+{$ELSE not_USE_CONSTRUCTORS}
+
 //[FUNCTION NewTabControl]
 {$IFDEF ASM_UNICODE}
 {$ELSE ASM_VERSION} //Pascal
@@ -32451,6 +32805,8 @@ end;
 {$ENDIF ASM_VERSION}
 //[END NewTabEmpty]
 {$ENDIF}
+
+{$ENDIF USE_CONSTRUCTORS}
 
 //===================== Tool bar ========================//
 
@@ -32583,7 +32939,8 @@ begin
     if Assigned( Self_.fOnResize ) then
       Self_.fOnResize( Self_ );
     {$IFNDEF TOOLBAR_FORCE_CHILDALIGN}
-    if WinVer >= wvNT then // todo: check it.
+    //-- removed by MTsv DN (v.290), crash in Win 98:
+    //-- if WinVer >= wvNT then // todo: check it.
       Result := TRUE; // this provides (prevents?) the Align working for child controls of Toolbar !
                       // but removing this line makes it impossible to correct the Align property for
                       // the neighbour controls on form!!! 
@@ -32670,6 +33027,17 @@ const ToolbarAligns: array[ TControlAlign ] of DWORD =
                      TBSTYLE_FLAT, TBSTYLE_TRANSPARENT, TBSTYLE_WRAPABLE, CCS_NODIVIDER, 0,
                      TBSTYLE_CUSTOMERASE );
 
+{$IFDEF USE_CONSTRUCTORS}
+//[function NewToolbar]
+function NewToolbar( AParent: PControl; Align: TControlAlign; Options: TToolbarOptions;
+                     Bitmap: HBitmap; Buttons: array of PAnsiChar;
+                     BtnImgIdxArray: array of Integer ) : PControl;
+begin
+  new( Result, CreateToolbar( AParent, Align, Options, Bitmap, Buttons, BtnImgIdxArray ) );
+end;
+//[END NewToolbar]
+{$ELSE not_USE_CONSTRUCTORS}
+
 //[FUNCTION NewToolbar]
 {$IFDEF ASM_UNICODE}
 {$ELSE ASM_VERSION} //Pascal
@@ -32726,6 +33094,8 @@ begin
 end;
 {$ENDIF ASM_VERSION}
 //[END NewToolbar]
+
+{$ENDIF USE_CONSTRUCTORS}
 
 //================== DateTimePicker =====================//
 
@@ -32989,6 +33359,15 @@ const RichEditflags: array [ TEditOption ] of Integer = (
                   0 {es_UpperCase - not supported},
                   es_WantReturn, 0, es_Number );
 
+{$IFDEF USE_CONSTRUCTORS}
+//[function NewRichEdit1]
+function NewRichEdit1( AParent: PControl; Options: TEditOptions ): PControl;
+begin
+  new( Result, CreateRichEdit1( AParent, Options ) );
+end;
+//[END NewRichEdit1]
+{$ELSE not_USE_CONSTRUCTORS}
+
 //[FUNCTION NewRichEdit1]
 {$IFDEF ASM_UNICODE}
 {$ELSE ASM_VERSION} //Pascal
@@ -33072,6 +33451,8 @@ end;
 //[END NewRichEdit1]
 {$ENDIF NOT_USE_RICHEDIT}
 
+{$ENDIF USE_CONSTRUCTORS}
+
 //[API OleInitialize]
 function OleInitialize(pwReserved: Pointer): HResult; stdcall;
   external 'ole32.dll' name 'OleInitialize';
@@ -33138,6 +33519,14 @@ end;
 {+}
 
 {$IFNDEF NOT_USE_RICHEDIT}
+{$IFDEF USE_CONSTRUCTORS}
+//[function NewRichEdit]
+function NewRichEdit( AParent: PControl; Options: TEditOptions ): PControl;
+begin
+  new( Result, CreateRichEdit( AParent, Options ) );
+end;
+//[END NewRichEdit]
+{$ELSE not_USE_CONSTRUCTORS}
 
 //[FUNCTION NewRichEdit]
 {$IFDEF ASM_VERSION}
@@ -33197,6 +33586,7 @@ end;
 {$ENDIF ASM_VERSION}
 //[END NewRichEdit]
 
+{$ENDIF USE_CONSTRUCTORS}
 {$ENDIF NOT_USE_RICHEDIT}
 
 //=====================================================================//
@@ -40395,6 +40785,7 @@ begin
   Result := FALSE;
   L := 0;
   H := FCount - 1;
+  if  H < 0 then Exit; // === if FCount = 0 then Exit;
   if  fAnsiSort then
   begin
       if  fCaseSensitiveSort then
@@ -42340,6 +42731,14 @@ end;
 { -- Image List -- }
 
 //*
+{$IFDEF USE_CONSTRUCTORS}
+//[function NewImageList]
+function NewImageList( AOwner: PControl ): PImageList;
+begin
+  new( Result, CreateImageList( AOwner ) );
+end;
+//[END NewImageList]
+{$ELSE not_USE_CONSTRUCTORS}
 //[function NewImageList]
 function NewImageList( AOwner: PControl ): PImageList;
 begin
@@ -42366,6 +42765,7 @@ begin
   {$ENDIF}
   AOwner.fImageList := Result;
 end;
+{$ENDIF}
 
 //[API ImageList_XXX]
 function ImageList_Create; stdcall; external cctrl name 'ImageList_Create';
@@ -47652,7 +48052,7 @@ begin
   fWidth := SrcBmp.fWidth;
   fHeight := SrcBmp.fHeight;
   fHandleType := SrcBmp.fHandleType;
-  fNewPixelFormat := SrcBmp.PixelFormat;
+  //fNewPixelFormat := SrcBmp.PixelFormat;
   if SrcBmp.fHandleType = bmDDB then
   begin
     fHandle := CopyImage( SrcBmp.fHandle, IMAGE_BITMAP, 0, 0, 0 {LR_COPYRETURNORG} );
@@ -53997,7 +54397,7 @@ end;
 var SaveWinVer: Byte = $FF;
 
 //[function WinVer]
-{$IFDEF nonononoASM_VERSION} // todo: fix asm version first
+{$IFDEF ASM_VERSION} // asm version by MTsv DN  (v 2.90)
 {$ELSE ASM_VERSION}
 function WinVer : TWindowsVersion;
 var MajorVersion, MinorVersion: Byte;
@@ -55221,6 +55621,747 @@ begin
   SetCapture( GetWindowHandle );
   AttachProc( WndProcDrag );
 end;
+
+{-}
+{$IFDEF USE_CONSTRUCTORS} //****************************************************//
+                                                                                //
+//[constructor TControl.CreateWindowed]
+constructor TControl.CreateWindowed(AParent: PControl; AClassName: PKOLChar;       //
+  ACtl3D: Boolean);                                                             //
+begin                                                                           //
+  CreateParented( AParent );                                                    //
+  fOnDynHandlers := WndProcDummy;                                               //
+  fWndProcKeybd := WndProcDummy;                                                //
+  fWndProcResizeFlicks := WndProcDummy;                                         //
+  fCommandActions.aClear := ClearText;                                          //
+  //fWindowed := True; // is set in TControl.Init
+  fControlClassName := AClassName;                                              //
+                                                                                //
+  fControlClick := DummyObjProc;                                                //
+                                                                                //
+  fColor := clBtnFace;                                                          //
+  fTextColor := clWindowText;                                                   //
+  fMargin := 2;                                                                 //
+  fCtl3D := True;                                                               //
+  fCtl3Dchild := True;                                                          //
+  if AParent <> nil then                                                        //
+  begin                                                                         //
+     fWndProcResizeFlicks := AParent.fWndProcResizeFlicks;                      //
+     fGotoControl := AParent.fGotoControl;                                      //
+     fDoubleBuffered := AParent.fDoubleBuffered;                                //
+     fTransparent := AParent.fTransparent;                                      //
+     fCtl3Dchild := AParent.fCtl3Dchild;                                        //
+     if AParent.fCtl3Dchild then                                                //
+       fCtl3D := ACtl3D                                                         //
+     else                                                                       //
+       fCtl3D := False;                                                         //
+     fMargin := AParent.fMargin;                                                //
+     with fBoundsRect do                                                        //
+     begin                                                                      //
+       Left := AParent.fMargin + AParent.fClientLeft;                           //
+       Top  := AParent.fMargin + AParent.fClientTop;                            //
+       Right := Left + 64;                                                      //
+       Bottom := Top + 64;                                                      //
+     end;                                                                       //
+     fTextColor := AParent.fTextColor;                                          //
+     fFont := fFont.Assign( AParent.fFont );                                    //
+     if fFont <> nil then                                                       //
+     begin                                                                      //
+       fFont.fOnChange := FontChanged;                                          //
+       FontChanged( fFont );                                                    //
+     end;                                                                       //
+     fColor := AParent.fColor;                                                  //
+     fBrush := fBrush.Assign( AParent.fBrush );                                 //
+     if fBrush <> nil then                                                      //
+     begin                                                                      //
+       fBrush.fOnChange := BrushChanged;                                        //
+       BrushChanged( fBrush );                                                  //
+     end;                                                                       //
+  end;                                                                          //
+end;                                                                            //
+                                                                                //
+//[constructor TControl.CreateApplet]
+constructor TControl.CreateApplet(const ACaption: AnsiString);                      //
+begin                                                                           //
+  AppButtonUsed := True;                                                        //
+  CreateWindowed( nil, 'App', TRUE );                                           //
+  FIsApplet := TRUE;                                                            //
+  fStyle := WS_VISIBLE or WS_SYSMENU or WS_POPUP or WS_MINIMIZEBOX              //
+    or WS_CAPTION;                                                              //
+  fExStyle := WS_EX_APPWINDOW;                                                  //
+  FCreateWndExt := CreateAppButton;                                             //
+  AttachProc( WndProcApp );                                                     //
+  Caption := ACaption;                                                          //
+end;                                                                            //
+                                                                                //
+//[constructor TControl.CreateForm]
+constructor TControl.CreateForm(AParent: PControl; const ACaption: AnsiString);     //
+begin                                                                           //
+  CreateWindowed( AParent, 'Form', TRUE );                                      //
+  AttachProc( WndProcForm );                                                    //
+  AttachProc( WndProcDoEraseBkgnd );                                            //
+  Caption := ACaption;                                                          //
+end;                                                                            //
+                                                                                //
+//[constructor TControl.CreateControl]
+constructor TControl.CreateControl(AParent: PControl; AClassName: PAnsiChar;        //
+  AStyle: DWORD; ACtl3D: Boolean; Actions: PCommandActions);                    //
+var Form: PControl;                                                             //
+begin                                                                           //
+  CreateWindowed( AParent, AClassName, ACtl3D );                                //
+  if Actions <> nil then                                                        //
+    fCommandActions := Actions^;                                                //
+  fIsControl := True;                                                           //
+  fStyle := AStyle or WS_CLIPSIBLINGS or WS_CLIPCHILDREN;                       //
+  fVisible := (Style and WS_VISIBLE) <> 0;                                      //
+  fTabstop := (Style and WS_TABSTOP) <> 0;                                      //
+  if (AParent <> nil) then                                                      //
+  begin                                                                         //
+    Inc( AParent.ParentForm.fTabOrder );                                        //
+    fTabOrder := AParent.ParentForm.fTabOrder;                                  //
+  end;                                                                          //
+  fLookTabKeys := [ tkTab, tkLeftRight, tkUpDown, tkPageUpPageDn ];             //
+  if fCtl3D then                                                                //
+  begin                                                                         //
+    fStyle := fStyle and not WS_BORDER;                                         //
+    fExStyle := fExStyle or WS_EX_CLIENTEDGE;                                   //
+  end;                                                                          //
+  if (Style and WS_TABSTOP) <> 0 then                                           //
+  begin                                                                         //
+    Form := ParentForm;                                                         //
+    if Form <> nil then                                                         //
+    if Form.FCurrentControl = nil then                                          //
+       Form.FCurrentControl := @Self;                                           //
+  end;                                                                          //
+  //fCreateParamsExt := CreateParams2;                                          //
+  fMenu := CtlIdCount;                                                          //
+  Inc( CtlIdCount );                                                            //
+  AttachProc( WndProcCtrl );                                                    //
+end;                                                                            //
+                                                                                //
+//[constructor TControl.CreateButton]
+constructor TControl.CreateButton(AParent: PControl;                            //
+  const ACaption: AnsiString);                                                      //
+begin                                                                           //
+  CreateControl( AParent, 'BUTTON',                                             //
+            WS_VISIBLE or WS_CHILD or                                           //
+            BS_PUSHLIKE or WS_TABSTOP, False, @ButtonActions );                 //
+  with fBoundsRect do                                                           //
+    Bottom := Top + 22;                                                         //
+  fTextAlign := taCenter;                                                       //
+  Caption := ACaption;                                                          //
+end;                                                                            //
+                                                                                //
+//[constructor TControl.CreateBitBtn]
+constructor TControl.CreateBitBtn(AParent: PControl;                            //
+  const ACaption: AnsiString; AOptions: TBitBtnOptions; ALayout: TGlyphLayout;      //
+  AGlyphBitmap: HBitmap; AGlyphCount: Integer);                                 //
+var                                                                             //
+    B: TBitmapInfo;                                                             //
+    W, H: Integer;                                                              //
+begin                                                                           //
+  CreateControl( AParent, 'BUTTON', WS_VISIBLE or WS_CHILD or                   //
+            WS_TABSTOP or BS_OWNERDRAW, False, @ButtonActions );                //
+  fBitBtnOptions := AOptions;                                                   //
+  fGlyphLayout := ALayout;                                                      //
+  fGlyphBitmap := AGlyphBitmap;                                                 //
+  with fBoundsRect do                                                           //
+  begin                                                                         //
+    Bottom := Top + 22;                                                         //
+    W := 0; H := 0;                                                             //
+    if AGlyphBitmap <> 0 then                                                   //
+    begin                                                                       //
+      if bboImageList in AOptions then                                          //
+        ImageList_GetIconSize( AGlyphBitmap, W, H )                             //
+      else                                                                      //
+        begin                                                                   //
+          if GetObject( AGlyphBitmap, Sizeof(B), @B ) > 0 then                  //
+          begin                                                                 //
+            W := B.bmiHeader.biWidth;                                           //
+            H := B.bmiHeader.biHeight;                                          //
+            if AGlyphCount = 0 then                                             //
+              AGlyphCount := W div H;                                           //
+            if AGlyphCount > 1 then                                             //
+              W := W div AGlyphCount;                                           //
+          end;                                                                  //
+        end;                                                                    //
+      if W > 0 then                                                             //
+        if ACaption = '' then                                                   //
+          Right := Left + W                                                     //
+        else                                                                    //
+          Right := Right + W;                                                   //
+      if H > 0 then                                                             //
+        Bottom := Top + H;                                                      //
+      if not ( bboNoBorder in AOptions ) then                                   //
+      begin                                                                     //
+        if W > 0 then                                                           //
+          Inc( Right, 2 );                                                      //
+        if H > 0 then                                                           //
+          Inc( Bottom, 2 );                                                     //
+      end;                                                                      //
+    end;                                                                        //
+    fGlyphWidth := W;                                                           //
+    fGlyphHeight := H;                                                          //
+  end;                                                                          //
+  fGlyphCount := AGlyphCount;                                                   //
+  if AParent <> nil then                                                        //
+    AParent.AttachProc( WndProc_DrawItem );                                     //
+  AttachProc( WndProcBitBtn );                                                  //
+  fTextAlign := taCenter;                                                       //
+  Caption := ACaption;                                                          //
+end;                                                                            //
+                                                                                //
+//[constructor TControl.CreateLabel]
+constructor TControl.CreateLabel(AParent: PControl;                             //
+  const ACaption: AnsiString);                                                      //
+begin                                                                           //
+  CreateControl( AParent, 'STATIC', WS_VISIBLE or WS_CHILD or                   //
+                         SS_LEFTNOWORDWRAP or SS_NOPREFIX or SS_NOTIFY,         //
+                         False, @LabelActions );                                //
+  fIsStaticControl := 1;                                                     //
+  fSizeRedraw := True;                                                          //
+  fBoundsRect.Bottom := fBoundsRect.Top + 22;                                   //
+  Caption := ACaption;                                                          //
+end;                                                                            //
+                                                                                //
+//[constructor TControl.CreateWordWrapLabel]
+constructor TControl.CreateWordWrapLabel(AParent: PControl;                     //
+  const ACaption: AnsiString);                                                      //
+begin                                                                           //
+  CreateLabel( AParent, ACaption );                                             //
+  fBoundsRect.Bottom := fBoundsRect.Top + 44;                                   //
+  fStyle := fStyle and not SS_LEFTNOWORDWRAP;                                   //
+end;                                                                            //
+                                                                                //
+//[constructor TControl.CreateLabelEffect]
+constructor TControl.CreateLabelEffect(AParent: PControl; ACaption: AnsiString;     //
+  AShadowDeep: Integer);                                                        //
+begin                                                                           //
+  CreateLabel( AParent, ACaption );                                             //
+  fIsStaticControl := 0;                                                        //
+  AttachProc( WndProcLabelEffect );                                             //
+  fTextAlign := taCenter;                                                       //
+  fTextColor := clBtnShadow;                                                    //
+  fShadowDeep := AShadowDeep;                                                   //
+  fIgnoreWndCaption := True;                                                    //
+  with fBoundsRect do                                                           //
+  begin                                                                         //
+    Bottom := Top + 40;                                                         //
+  end;                                                                          //
+end;                                                                            //
+                                                                                //
+//[constructor TControl.CreatePaintBox]
+constructor TControl.CreatePaintBox(AParent: PControl);                         //
+begin                                                                           //
+  CreateLabel( AParent, '' );                                                   //
+  with fBoundsRect do                                                           //
+  begin                                                                         //
+    Right := Left + 40;                                                         //
+    Bottom := Top + 40;                                                         //
+  end;                                                                          //
+end;                                                                            //
+                                                                                //
+{$IFDEF ASM_VERSION}                                                            //
+//[constructor TControl.CreateGradientPanel]
+constructor TControl.CreateGradientPanel(AParent: PControl; AColor1,            //
+  AColor2: TColor);                                                             //
+asm     //cmd    //opd                                                          //
+        XOR      EDX, EDX                                                       //
+        PUSH     EDX                                                            //
+        CALL     CreateLabel                                                    //
+        MOV      ECX, AColor1                                                   //
+        MOV      [EAX].fColor1, ECX                                             //
+        MOV      ECX, AColor2                                                   //
+        MOV      [EAX].fColor2, ECX                                             //
+        MOV      EDX, [EAX].fBoundsRect.Left                                    //
+        ADD      EDX, 40                                                        //
+        MOV      [EAX].fBoundsRect.Right, EDX                                   //
+        MOV      EDX, [EAX].fBoundsRect.Top                                     //
+        ADD      EDX, 40                                                        //
+        MOV      [EAX].fBoundsRect.Bottom, EDX                                  //
+        PUSH     EAX                                                            //
+        MOV      EDX, offset[ WndProcGradient ]                                 //
+        CALL     AttachProc                                                     //
+        POP      EAX                                                            //
+end;                                                                            //
+{$ELSE ASM_VERSION} //Pascal                                                                //
+constructor TControl.CreateGradientPanel(AParent: PControl; AColor1,            //
+  AColor2: TColor);                                                             //
+begin                                                                           //
+  CreateLabel( AParent, '' );                                                   //
+  AttachProc( WndProcGradient );                                                //
+  fColor2 := AColor2;                                                           //
+  fColor1 := AColor1;                                                           //
+  with fBoundsRect do                                                           //
+  begin                                                                         //
+    Right := Left + 40;                                                         //
+    Bottom := Top + 40;                                                         //
+  end;                                                                          //
+end;                                                                            //
+{$ENDIF ASM_VERSION}                                                                        //
+                                                                                //
+//[constructor TControl.CreateGradientPanelEx]
+constructor TControl.CreateGradientPanelEx(AParent: PControl; AColor1,          //
+  AColor2: TColor; AStyle: TGradientStyle; ALayout: TGradientLayout);           //
+begin                                                                           //
+  CreateLabel( AParent, '' );                                                   //
+  AttachProc( WndProcGradientEx );                                              //
+  fColor2 := AColor2;                                                           //
+  fColor1 := AColor1;                                                           //
+  fGradientStyle := AStyle;                                                     //
+  fGradientLayout := ALayout;                                                   //
+  with fBoundsRect do                                                           //
+  begin                                                                         //
+    Right := Left + 40;                                                         //
+    Bottom := Top + 40;                                                         //
+  end;                                                                          //
+end;                                                                            //
+                                                                                //
+//[constructor TControl.CreateGroupbox]
+constructor TControl.CreateGroupbox(AParent: PControl;                          //
+  const ACaption: AnsiString);                                                      //
+begin                                                                           //
+  CreateButton( AParent, ACaption );                                            //
+  with fBoundsRect do                                                           //
+  begin                                                                         //
+    Right := Left + 100;                                                        //
+    Bottom := Top + 100;                                                        //
+  end;                                                                          //
+  fStyle := WS_VISIBLE or WS_CHILD or BS_GROUPBOX or WS_TABSTOP;                //
+  fClientTop := 22;                                                             //
+  fClientLeft := 2;                                                             //
+  fClientBottom := 2;                                                           //
+  fClientRight := 2;                                                            //
+  fTabstop := False;                                                            //
+end;                                                                            //
+                                                                                //
+//[constructor TControl.CreateCheckbox]
+constructor TControl.CreateCheckbox(AParent: PControl;                          //
+  const ACaption: AnsiString);                                                      //
+begin                                                                           //
+  CreateButton( AParent, ACaption );                                            //
+  with fBoundsRect do                                                           //
+  begin                                                                         //
+    Right := Left + 72;                                                         //
+  end;                                                                          //
+  fStyle := WS_VISIBLE or WS_CHILD or                                           //
+            BS_AUTOCHECKBOX or WS_TABSTOP;                                      //
+end;                                                                            //
+                                                                                //
+//[constructor TControl.CreateRadiobox]
+constructor TControl.CreateRadiobox(AParent: PControl;                          //
+  const ACaption: AnsiString);                                                      //
+begin                                                                           //
+  CreateCheckbox( AParent, ACaption );                                          //
+  fStyle := WS_VISIBLE or WS_CHILD or                                           //
+            BS_RADIOBUTTON or WS_TABSTOP or WS_GROUP;                           //
+  fControlClick := ClickRadio;                                                  //
+  if AParent <> nil then                                                        //
+  begin                                                                         //
+    AParent.fRadioLast := fMenu;                                                //
+    if AParent.fRadio1st = 0 then                                               //
+    begin                                                                       //
+       AParent.fRadio1st := fMenu;                                              //
+       SetRadioChecked;                                                         //
+    end;                                                                        //
+  end;                                                                          //
+end;                                                                            //
+                                                                                //
+//[constructor TControl.CreateEditbox]
+constructor TControl.CreateEditbox(AParent: PControl;                           //
+  AOptions: TEditOptions);                                                      //
+var Flags: Integer;                                                             //
+begin                                                                           //
+  Flags := MakeFlags( @AOptions, EditFlags );                                   //
+  if not(eoMultiline in AOptions) then                                          //
+     Flags := Flags and not(WS_HSCROLL or WS_VSCROLL);                          //
+  CreateControl( AParent, 'EDIT', WS_VISIBLE or WS_CHILD or WS_TABSTOP          //
+                         or WS_BORDER or Flags, True, @EditActions );           //
+//YS  fCursor := LoadCursor( 0, IDC_IBEAM );                                      // //YS
+  with fBoundsRect do                                                           //
+  begin                                                                         //
+    Right := Left + 100;                                                        //
+    Bottom := Top + 22;                                                         //
+    if eoMultiline in AOptions then                                             //
+    begin                                                                       //
+       Right := Right + 100;                                                    //
+       Bottom := Top + 200;                                                     //
+    end;                                                                        //
+  end;                                                                          //
+  fColor := clWindow;                                                           //
+  fLookTabKeys := [ tkTab, tkUpDown, tkPageUpPageDn ];                          //
+  if eoMultiline in AOptions then                                               //
+     fLookTabKeys := [ tkTab ];                                                 //
+  if eoWantTab in AOptions then                                                 //
+     fLookTabKeys := fLookTabKeys - [ tkTab ];                                  //
+end;                                                                            //
+                                                                                //
+//[constructor TControl.CreatePanel]
+constructor TControl.CreatePanel(AParent: PControl; AStyle: TEdgeStyle);        //
+const Edgestyles: array[ TEdgeStyle ] of DWORD = ( WS_DLGFRAME, SS_SUNKEN, 0 ); //
+begin                                                                           //
+  CreateControl( AParent, 'STATIC', WS_VISIBLE or WS_CHILD or                   //
+                         SS_LEFTNOWORDWRAP or SS_NOPREFIX or SS_NOTIFY, False,  //
+                         @LabelActions );                                       //
+  with fBoundsRect do                                                           //
+  begin                                                                         //
+    Right := Left + 100;                                                        //
+    Bottom := Top + 100;                                                        //
+  end;                                                                          //
+  Style := Style or Edgestyles[ AStyle ];                                       //
+  ExStyle := ExStyle or WS_EX_CONTROLPARENT;                                    //
+end;                                                                            //
+                                                                                //
+//[constructor TControl.CreateSplitter]
+constructor TControl.CreateSplitter(AParent: PControl; AMinSizePrev,            //
+  AMinSizeNext: Integer; EdgeStyle: TEdgeStyle);                                //
+var PrevCtrl: PControl;                                                         //
+    Sz0: Integer;                                                               //
+begin                                                                           //
+  CreatePanel( AParent, EdgeStyle );                                            //
+  fSplitMinSize1 := AMinSizePrev;                                               //
+  fSplitMinSize2 := AMinSizeNext;                                               //
+  Sz0 := 4;                                                                     //
+  with fBoundsRect do                                                           //
+  begin                                                                         //
+    Right := Left + Sz0;                                                        //
+    Bottom := Top + Sz0;                                                        //
+  end;                                                                          //
+  if AParent <> nil then                                                        //
+  begin                                                                         //
+    if AParent.fChildren.fCount > 1 then                                        //
+    begin                                                                       //
+      PrevCtrl := AParent.fChildren.{$IFDEF TLIST_FAST} Items {$ELSE} fItems {$ENDIF}[ AParent.fChildren.fCount - 2 ];     //
+      case PrevCtrl.FAlign of                                                   //
+      caLeft, caRight:                                                          //
+        begin                                                                   //
+          fCursor := LoadCursor( 0, IDC_SIZEWE );                               //
+        end;                                                                    //
+      caTop, caBottom:                                                          //
+        begin                                                                   //
+          fCursor := LoadCursor( 0, IDC_SIZENS );                               //
+        end;                                                                    //
+      end;                                                                      //
+      Align := PrevCtrl.FAlign;                                                 //
+    end;                                                                        //
+  end;                                                                          //
+  AttachProc( WndProcSplitter );                                                //
+end;                                                                            //
+                                                                                //
+//[constructor TControl.CreateListbox]
+constructor TControl.CreateListbox(AParent: PControl;                           //
+  AOptions: TListOptions);                                                      //
+var Flags: Integer;                                                             //
+begin                                                                           //
+  Flags := MakeFlags( @AOptions, ListFlags );                                   //
+  CreateControl( AParent, 'LISTBOX', WS_VISIBLE or WS_CHILD or WS_TABSTOP       //
+                 or WS_BORDER or WS_VSCROLL                                     //
+                 or LBS_NOTIFY or Flags, True, @ListActions );                  //
+  with fBoundsRect do                                                           //
+  begin                                                                         //
+    Right := Right + 100;                                                       //
+    Bottom := Top + 200;                                                        //
+  end;                                                                          //
+  fColor := clWindow;                                                           //
+  fLookTabKeys := [ tkTab, tkLeftRight ];                                       //
+end;                                                                            //
+                                                                                //
+//[constructor TControl.CreateCombobox]
+constructor TControl.CreateCombobox(AParent: PControl;                          //
+  AOptions: TComboOptions);                                                     //
+var Flags: Integer;                                                             //
+begin                                                                           //
+  Flags := MakeFlags( @AOptions, ComboFlags );                                  //
+  CreateControl( AParent, 'COMBOBOX',                                           //
+                 WS_VISIBLE or WS_CHILD or WS_VSCROLL or                        //
+                 CBS_DROPDOWN or CBS_HASSTRINGS or WS_TABSTOP or Flags,         //
+                 True, @ComboActions );                                         //
+  fCreateWndExt := CreateComboboxWnd;                                           //
+  fDropDownProc := ComboboxDropDown;                                            //
+  fClsStyle := fClsStyle or CS_DBLCLKS;                                         //
+  with fBoundsRect do                                                           //
+  begin                                                                         //
+    Right := Left + 100;                                                        //
+    Bottom := Top + 22;                                                         //
+  end;                                                                          //
+  fColor := clWindow;                                                           //
+  fLookTabKeys := [ tkTab ];                                                    //
+  if coReadOnly in AOptions then                                                //
+    fLookTabKeys := [ tkTab, tkLeftRight ];                                     //
+end;                                                                            //
+                                                                                //
+//[constructor TControl.CreateCommonControl]
+constructor TControl.CreateCommonControl(AParent: PControl;                     //
+  AClassName: PAnsiChar; AStyle: DWORD; ACtl3D: Boolean;                            //
+  Actions: PCommandActions);                                                    //
+begin                                                                           //
+  {*************} DoInitCommonControls( ICC_WIN95_CLASSES );                      //
+  CreateControl( AParent, AClassName, AStyle, ACtl3D, Actions );                //
+  fIsCommonControl := True;                                                     //
+  if AParent <> nil then                                                        //
+  begin                                                                         //
+    AttachProc( WndProcParentResize );                                          //
+    AParent.AttachProc( WndProcResize );                                        //
+    AttachProc( WndProcCommonNotify );                                          //
+    AParent.AttachProc( WndProcNotify );                                        //
+  end;                                                                          //
+end;                                                                            //
+                                                                                //
+//[constructor TControl.CreateRichEdit1]
+constructor TControl.CreateRichEdit1(AParent: PControl;                         //
+  AOptions: TEditOptions);                                                      //
+var Flags, I: Integer;                                                          //
+begin                                                                           //
+  if FRichEditModule = 0 then                                                   //
+  begin                                                                         //
+    for I := 0 to High( RichEditLibnames ) do                                                          //
+    begin                                                                       //
+      FRichEditModule := LoadLibrary( RichEditLibnames[ I ] );                  //
+      if FRichEditModule > HINSTANCE_ERROR then break;                          //
+      RichEditClass := RichEditClasses[ I ];                                              //
+    end;                                                                        //
+    if FRichEditModule <= HINSTANCE_ERROR then                                  //
+      FRichEditModule := 0;                                                     //
+  end;                                                                          //
+  Flags := MakeFlags( @AOptions, RichEditFlags );                               //
+  CreateCommonControl( AParent, RichEditClass, WS_VISIBLE or WS_CHILD           //
+                       or WS_TABSTOP or WS_BORDER or ES_MULTILINE or Flags,     //
+                       True, @RichEditActions );                                //
+                                                                                //
+  AttachProc( WndProcRichEditNotify );                                          //
+  fDoubleBuffered := False;                                                     //
+  fCannotDoubleBuf := True;                                                     //
+  with fBoundsRect do                                                           //
+  begin                                                                         //
+    Right := Right + 100;                                                       //
+    Bottom := Top + 200;                                                        //
+  end;                                                                          //
+  fColor := clWindow;                                                           //
+  fLookTabKeys := [ tkTab ];                                                    //
+  if eoWantTab in AOptions then                                                 //
+     fLookTabKeys := [ ];                                                       //
+  Perform( EM_SETEVENTMASK, 0,                                                  //
+    ENM_CHANGE or ENM_SELCHANGE or ENM_REQUESTRESIZE or                         //
+    ENM_PROTECTED or $04000000 {ENM_LINK} );                                    //
+  Perform( EM_SETBKGNDCOLOR, 0, Color2RGB(fColor));                             //
+end;                                                                            //
+                                                                                //
+                                                                                //
+//[constructor TControl.CreateRichEdit]
+constructor TControl.CreateRichEdit(AParent: PControl;                          //
+  AOptions: TEditOptions);                                                      //
+var OldRichEditClass, OldRichEditLib: PAnsiChar;                                    //
+begin                                                                           //
+  if OleInit then                                                               //
+  begin                                                                         //
+    OldRichEditClass := RichEditClass;                                          //
+    OldRichEditLib := RichEditLib;                                              //
+    CreateRichEdit1( AParent, AOptions );                                       //
+    fCharFmtDeltaSz := 24;                                                      //
+    fParaFmtDeltaSz := sizeof( TParaFormat2 ) - sizeof( RichEdit.TParaFormat ); //
+    RichEditClass := OldRichEditClass;                                          //
+    RichEditLib := OldRichEditLib;                                              //
+  end                                                                           //
+     else                                                                       //
+    CreateRichEdit1( AParent, AOptions );                                       //
+end;                                                                            //
+                                                                                //
+//[constructor TControl.CreateProgressbar]
+constructor TControl.CreateProgressbar(AParent: PControl);                      //
+const ProgressBarFlags: array[ TProgressbarOption ] of Integer =                //
+      (PBS_VERTICAL, PBS_SMOOTH );                                              //
+begin                                                                           //
+  CreateCommonControl( AParent, PROGRESS_CLASS,                                 //
+            WS_CHILD or WS_VISIBLE, True, nil );                                //
+  with fBoundsRect do                                                           //
+  begin                                                                         //
+    Right := Left + 300;                                                        //
+    Bottom := Top + 20;                                                         //
+  end;                                                                          //
+  fMenu := 0;                                                                   //
+  fTextColor := clHighlight;                                                    //
+end;                                                                            //
+                                                                                //
+//[constructor TControl.CreateProgressbarEx]
+constructor TControl.CreateProgressbarEx(AParent: PControl;                     //
+  AOptions: TProgressbarOptions);                                               //
+const ProgressBarFlags: array[ TProgressbarOption ] of Integer =                //
+      (PBS_VERTICAL, PBS_SMOOTH );                                              //
+begin                                                                           //
+  CreateProgressbar( AParent );                                                 //
+  fStyle := fStyle or DWORD( MakeFlags( @AOptions, ProgressBarFlags ) );        //
+end;                                                                            //
+                                                                                //
+//[constructor TControl.CreateListView]
+constructor TControl.CreateListView(AParent: PControl;                          //
+  AStyle: TListViewStyle; AOptions: TListViewOptions; AImageListSmall,          //
+  AImageListNormal, AImageListState: PImageList);                               //
+begin                                                                           //
+  CreateCommonControl( AParent, WC_LISTVIEW, ListViewStyles[ AStyle ] or        //
+                 LVS_SHAREIMAGELISTS or WS_CHILD or WS_VISIBLE or WS_TABSTOP,   //
+                 True, @ListViewActions );                                      //
+  fLVOptions := AOptions;                                                       //
+  fLVStyle := AStyle;                                                           //
+  fCreateWndExt := ApplyImageLists2ListView;                                    //
+  with fBoundsRect do                                                           //
+  begin                                                                         //
+    Right := Left + 200;                                                        //
+    Bottom := Top + 150;                                                        //
+  end;                                                                          //
+  ImageListSmall := AImageListSmall;                                            //
+  ImageListNormal := AImageListNormal;                                          //
+  ImageListState := AImageListState;                                            //
+  fLVTextBkColor := clWindow;                                                   //
+  fLookTabKeys := [ tkTab ];                                                    //
+end;                                                                            //
+                                                                                //
+//[constructor TControl.CreateTreeView]
+constructor TControl.CreateTreeView(AParent: PControl;                          //
+  AOptions: TTreeViewOptions; AImgListNormal, AImgListState: PImageList);       //
+var Flags: Integer;                                                             //
+begin                                                                           //
+  Flags := MakeFlags( @AOptions, TreeViewFlags );                               //
+  CreateCommonControl( AParent, WC_TREEVIEW, Flags or WS_VISIBLE or             //
+            WS_CHILD or WS_TABSTOP, True, @TreeViewActions );                   //
+  fCreateWndExt := ApplyImageLists2Control;                                     //
+  fColor := clWindow;                                                           //
+  AttachProc( WndProcTreeView );                                                //
+  with fBoundsRect do                                                           //
+  begin                                                                         //
+    Right := Left + 150;                                                        //
+    Bottom := Top + 200;                                                        //
+  end;                                                                          //
+  ImageListNormal := AImgListNormal;                                            //
+  ImageListState := AImgListState;                                              //
+  fLookTabKeys := [ tkTab ];                                                    //
+end;                                                                            //
+                                                                                //
+//[constructor TControl.CreateTabControl]
+constructor TControl.CreateTabControl(AParent: PControl; ATabs: array of String;//
+         AOptions: TTabControlOptions;                                          //
+         AImgList: PImageList; AImgList1stIdx: Integer);                        //
+var I, II : Integer;                                                            //
+    Flags: Integer;                                                             //
+begin                                                                           //
+  Flags := MakeFlags( @AOptions, TabControlFlags );                             //
+  if tcoFocusTabs in AOptions then                                              //
+    Flags := Flags or (WS_TABSTOP or TCS_FOCUSONBUTTONDOWN);                    //
+  CreateCommonControl( AParent, WC_TABCONTROL,                                  //
+            Flags or (WS_CHILD or WS_CLIPSIBLINGS or WS_CLIPCHILDREN or         //
+            WS_VISIBLE), True, @TabControlActions );                            //
+  if not( tcoBorder in AOptions ) then                                           //
+    fExStyle := fExStyle and not WS_EX_CLIENTEDGE;                              //
+  AttachProc( WndProcTabControl );                                              //
+  with fBoundsRect do                                                           //
+  begin                                                                         //
+    Right := Left + 100;                                                        //
+    Bottom := Top + 100;                                                        //
+  end;                                                                          //
+  if AImgList <> nil then                                                       //
+    Perform( TCM_SETIMAGELIST, 0, AImgList.Handle );                            //
+  II := AImgList1stIdx;                                                         //
+  for I := 0 to High( ATabs ) do                                                //
+  begin                                                                         //
+    TC_Insert( I, ATabs[ I ], II );                                             //
+    Inc( II );                                                                  //
+  end;                                                                          //
+  fLookTabKeys := [ tkTab ];                                                    //
+end;                                                                            //
+                                                                                //
+//[constructor TControl.CreateToolbar]
+constructor TControl.CreateToolbar(AParent: PControl;                           //
+  AAlign: TControlAlign; AOptions: TToolbarOptions; ABitmap: HBitmap;           //
+  AButtons: array of PAnsiChar; ABtnImgIdxArray: array of Integer);             //
+var Flags: DWORD;                                                               //
+begin                                                                           //
+  if not( tboTextBottom in AOptions ) then                                      //
+    AOptions := AOptions + [ tboTextRight ];                                    //
+  if tboTextRight in AOptions then                                              //
+    AOptions := AOptions - [ tboTextBottom ];                                   //
+  Flags := MakeFlags( @AOptions, ToolbarOptions );                              //
+  CreateCommonControl( AParent, TOOLBARCLASSNAME, ToolbarAligns[ Align ] or     //
+                       WS_CHILD or WS_VISIBLE {or WS_TABSTOP}                   //
+                       or TBSTYLE_TOOLTIPS or Flags,                            //
+                       (not (Align in [caNone])) and                            //
+                        not (tboNoDivider in AOptions),  nil );                 //
+  fCommandActions.aClear := ClearToolbar;                                       //
+  fCommandActions.aGetCount := TB_BUTTONCOUNT;                                  //
+  with fBoundsRect do                                                           //
+  begin                                                                         //
+    if AAlign in [ caNone ] then                                                //
+    begin                                                                       //
+      Bottom := Top + 26;                                                       //
+      Right := Left + 1000;                                                     //
+    end                                                                         //
+       else                                                                     //
+    begin                                                                       //
+      Left := 0; Right := 0;                                                    //
+      Top := 0; Bottom := 0;                                                    //
+    end;                                                                        //
+  end;                                                                          //
+  Perform(TB_SETEXTENDEDSTYLE, 0, Perform(TB_GETEXTENDEDSTYLE, 0, 0) or         //
+      TBSTYLE_EX_DRAWDDARROWS);                                                 //
+                                                                                //
+  AttachProc( WndProcToolbarCtrl );                                             //
+  Perform( TB_BUTTONSTRUCTSIZE, Sizeof( TTBButton ), 0 );                       //
+  Perform( TB_SETINDENT, fMargin, 0 );                                          //
+  with fBoundsRect do                                                           //
+  begin                                                                         //
+    if AAlign in [ caLeft, caRight ] then                                       //
+      Right := Left + 24                                                        //
+    else if not (AAlign in [caNone]) then                                       //
+      Bottom := Top + 22;                                                       //
+  end;                                                                          //
+  if ABitmap <> 0 then                                                          //
+    TBAddBitmap( ABitmap );                                                     //
+  TBAddButtons( AButtons, ABtnImgIdxArray );                                    //
+  Perform( WM_SIZE, 0, 0 );                                                     //
+end;                                                                            //
+                                                                                //
+//[constructor TImageList.CreateImageList]
+constructor TImageList.CreateImageList(POwner: Pointer);                        //
+var AOwner: PControl;                                                           //
+begin                                                                           //
+  {*************} DoInitCommonControls( ICC_WIN95_CLASSES );                    //
+  Create;                                                                       //
+  FAllocBy := 1;                                                                //
+  FMasked := True;                                                              //
+  if POwner = nil then exit;                                                    //
+  FBkColor := TColor( CLR_NONE );
+  //ImageList_SetBkColor( FHandle, CLR_NONE );
+                                                                                //
+  AOwner := POwner;                                                             //
+  FControl := AOwner;                                                           //
+  fNext := PImageList( AOwner.fImageList );                                     //
+  if AOwner.fImageList <> nil then                                              //
+     PImageList( AOwner.fImageList ).fPrev := @Self;                            //
+  AOwner.fImageList := @Self;                                                   //
+end;                                                                            //
+                                                                                //
+//[constructor TThread.ThreadCreate]
+constructor TThread.ThreadCreate;                                               //
+begin                                                                           //
+  IsMultiThread := True;                                                        //
+  Create;                                                                       //
+  FSuspended := True;                                                           //
+  FHandle := CreateThread( nil, // no security                                  //
+                          0,   // the same stack size                           //
+                          @ThreadFunc, // thread entry point                    //
+                          @Self,      // parameter to pass to ThreadFunc        //
+                          CREATE_SUSPENDED,   // always SUSPENDED               //
+                          FThreadID ); // receive thread ID                     //
+end;                                                                            //
+                                                                                //
+//[constructor TThread.ThreadCreateEx]
+constructor TThread.ThreadCreateEx( const Proc: TOnThreadExecute );             //
+begin                                                                           //
+  ThreadCreate;                                                                 //
+  OnExecute := Proc;                                                            //
+  Resume;                                                                       //
+end;                                                                            //
+                                                                                //
+{$ENDIF USE_CONSTRUCTORS} //****************************************************//
+{+}
 
 //[procedure InvalidateExW]
 procedure InvalidateExW( Wnd: HWnd );
