@@ -557,7 +557,6 @@ uses {$IFDEF WIN}messages, windows {$IFNDEF NOT_USE_RICHEDIT}, RichEdit {$ENDIF}
 ////type HDC = TGC; // from Xlib (temporary definition?)
 {$ENDIF LIN}
 
-
 var
   AppTheming: Boolean;
 {$IFDEF DEBUG_GDIOBJECTS}
@@ -1073,7 +1072,7 @@ type
 //[END OF TThread DEFINITION]
 
 //[NewThread, NewThreadEx, NewThreadAutoFree DECLARATIONS]
-function NewThread: PThread;
+function NewThread(const stackize: DWORD = 0): PThread;
 {* Creates thread object (always suspended). After creating, set event
    OnExecute and perform Resume operation. }
 
@@ -1507,6 +1506,15 @@ RT_VERSION	Version resource
 type
   TCompareStrListFun = function( const S1, S2: PAnsiChar ): Integer;
 
+//[Sorting TYPES]
+  TCompareEvent = function (const Data: Pointer; const e1,e2 : Dword) : Integer;
+  {* Event type to define comparison function between two elements of an array.
+     This event handler must return -1 or +1 (correspondently for cases e1<e2
+     and e2>e2). Items are enumerated from 0 to uNElem. }
+  TSwapEvent = procedure (const Data : Pointer; const e1,e2 : Dword);
+  {* Event type to define swap procedure which is swapping two elements of an
+     array. }
+
   {++}(*TStrList = class;*){--}
   PStrList = {-}^{+}TStrList;
 { ---------------------------------------------------------------------
@@ -1614,6 +1622,8 @@ type
     {* Call it to sort string list. }
     procedure AnsiSort( CaseSensitive: Boolean );
     {* Call it to sort ANSI string list. }
+    procedure SortEx(const CompareFun: TCompareEvent);
+    {* Call it to custom sort string list. Dufa }
 
     // by Alexander Pravdin:
   protected
@@ -11580,16 +11590,6 @@ function RegKeyGetValueTyp (const Key:HKEY; const ValueName: KOLString) : DWORD;
   renamed to SortData - which is a regular procedure now). }
 
 {$ENDIF WIN_GDI} //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-//[Sorting TYPES]
-type
-  TCompareEvent = function (const Data: Pointer; const e1,e2 : Dword) : Integer;
-  {* Event type to define comparison function between two elements of an array.
-     This event handler must return -1 or +1 (correspondently for cases e1<e2
-     and e2>e2). Items are enumerated from 0 to uNElem. }
-  TSwapEvent = procedure (const Data : Pointer; const e1,e2 : Dword);
-  {* Event type to define swap procedure which is swapping two elements of an
-     array. }
-
 //[SortData FUNCTIONS DECLARATIONS]
 procedure SortData( const Data: Pointer; const uNElem: Dword;
                     const CompareFun: TCompareEvent;
@@ -24912,7 +24912,7 @@ end;
 {$ELSE not_USE_CONSTRUCTORS}
 //*
 //[function NewThread]
-function NewThread: PThread;
+function NewThread(const stackize: DWORD = 0): PThread;
 begin
   {$IFNDEF FPC105ORBELOW}
   IsMultiThread := True;
@@ -24924,8 +24924,8 @@ begin
   Result.FSuspended := True;
   {$IFDEF PSEUDO_THREADS}
   {$ELSE}
-  Result.FHandle := CreateThread( nil, // no security
-                                  0,   // the same stack size
+  Result.FHandle := CreateThread( nil,         // no security
+                                  stackize,    // the same stack size
                                   @ThreadFunc, // thread entry point
                                   Result,      // parameter to pass to ThreadFunc
                                   CREATE_SUSPENDED,   // always SUSPENDED
@@ -41053,6 +41053,12 @@ begin
       SortData( @Self, fCount, @CompareAnsiStrListItems, @SwapStrListItems );
 end;
 {$ENDIF ASM_VERSION}
+
+//[procedure TStrList.SortEx]
+procedure TStrList.SortEx(const CompareFun: TCompareEvent);
+begin
+  SortData(@Self, fCount, CompareFun, {@SwapStrListItems}@TStrList.Swap);
+end;
 
 //[procedure TStrList.Swap]
 procedure TStrList.Swap(Idx1, Idx2: Integer);

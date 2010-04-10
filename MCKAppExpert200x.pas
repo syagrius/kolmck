@@ -217,14 +217,12 @@ begin
   dlg.Options    := [ofOverwritePrompt, ofExtensionDifferent, ofPathMustExist];
   dlg.Title      := 'Save Project';
   dlg.Filter     := 'DPR files|*.dpr';
-  dlg.DefaultExt := 'dpr';
   if dlg.Execute then begin
     prj := dlg.FileName;
     if (Pos('.', prj) = Length(prj) - 3) then
       SetLength(prj, Length(prj) - 4);
     dlg.Title := 'Save Unit';
     dlg.Filter := 'PAS files|*.pas';
-    dlg.DefaultExt := 'pas';
     dlg.FileName := 'unit1';
     if dlg.Execute then begin
       unt := dlg.FileName;
@@ -234,18 +232,19 @@ begin
       lst := TStringList.Create;
       lst.Text := StringReplace(prj_template, '%prj_name%', ExtractFileName(prj), [rfReplaceAll]);
       lst.Text := StringReplace(lst.Text, '%unt_name%', ExtractFileName(unt), [rfReplaceAll]);
-      lst.SaveToFile(prj + '.dpr');
+      lst.SaveToFile(ChangeFileExt(prj, '.dpr'));
       // gen unit
       lst.Text := StringReplace(unt_template, '%unt_name%', ExtractFileName(unt), [rfReplaceAll]);
-      lst.SaveToFile(unt + '.pas');
+      lst.SaveToFile(ChangeFileExt(unt, '.pas'));
       // gen dfm
       lst.Text := StringReplace(dfm_template, '%path%', ExtractFilePath(unt), [rfReplaceAll]);
-      lst.SaveToFile(unt + '.dfm');
+      lst.SaveToFile(ChangeFileExt(unt, '.dfm'));
       // close all
-      if (MessageBox(0, 'Close all projects before opening new?', 'MCKAppExpert200x', MB_ICONQUESTION or MB_YESNO) = IDYES) then
-        (BorlandIDEServices as IOTAModuleServices).CloseAll;
+      //if (MessageBox(0, 'Close all projects before opening new?', 'MCKAppExpert200x', MB_ICONQUESTION or MB_YESNO) = IDYES) then
+      //  (BorlandIDEServices as IOTAModuleServices).CloseAll;
       // open new
-      (BorlandIDEServices as IOTAActionServices).OpenProject(prj + '.dpr', False);
+//      (BorlandIDEServices as IOTAActionServices).OpenProject(ChangeFileExt(prj, '.dpr'), True);
+      (BorlandIDEServices as IOTAActionServices).OpenFile(ChangeFileExt(prj, '.dpr'));
       // free
       lst.Free;
     end;

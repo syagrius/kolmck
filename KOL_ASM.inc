@@ -6374,31 +6374,35 @@ end;
 // by Galkov, Jun-2009
 function WndProcNotify( Self_: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean;
 asm
-       CMP      word ptr [EDX].TMsg.message, WM_NOTIFY
-       JNE      @@ret_false
-        PUSH     ECX
-        PUSH     EDX
-       MOV      ECX, [EDX].TMsg.lParam
-       {$IFDEF USE_PROP}
-       PUSH     offset[ID_SELF]
-       PUSH     [ECX].TNMHdr.hwndFrom
-       CALL     GetProp
-       {$ELSE}
-       PUSH     GWL_USERDATA
-       PUSH     [ECX].TNMHdr.hwndFrom
-       CALL     GetWindowLong
-       {$ENDIF}
-        POP      EDX
-        TEST     EAX, EAX
-        JZ       @@ret_false_ECX
-        MOV      ECX, [EAX].TControl.fHandle
-        MOV      [EDX].TMsg.hwnd, ECX
-        POP      ECX
-       JMP      TControl.EnumDynHandlers
+      CMP      word ptr [EDX].TMsg.message, WM_NOTIFY
+      JNE      @@ret_false
+      PUSH     ECX
+      PUSH     EDX
+      PUSH     EAX
+      MOV      ECX, [EDX].TMsg.lParam
+      {$IFDEF USE_PROP}
+      PUSH     offset[ID_SELF]
+      PUSH     [ECX].TNMHdr.hwndFrom
+      CALL     GetProp
+      {$ELSE}
+      PUSH     GWL_USERDATA
+      PUSH     [ECX].TNMHdr.hwndFrom
+      CALL     GetWindowLong
+      {$ENDIF}
+      POP      ECX
+      POP      EDX
+      TEST     EAX, EAX
+      JZ       @@ret_false_ECX
+      CMP      EAX, ECX
+      JZ       @@ret_false_ECX
+      MOV      ECX, [EAX].TControl.fHandle
+      MOV      [EDX].TMsg.hwnd, ECX
+      POP      ECX
+      JMP      TControl.EnumDynHandlers
 @@ret_false_ECX:
-        POP      ECX
+      POP      ECX
 @@ret_false:
-       XOR      EAX, EAX
+      XOR      EAX, EAX
 end;
 
 function WndProcCommonNotify( Self_: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean;
