@@ -1,6 +1,7 @@
 package addons_D2010;
 
-{$R addons.res}
+{$R *.res}
+{$R 'addons.res'}
 {$R 'mckCCtrls.dcr'}
 {$R 'mckHTTPDownload.dcr'}
 {$R 'mckQProgBar.dcr'}
@@ -24,11 +25,12 @@ package addons_D2010;
 {$VARSTRINGCHECKS ON}
 {$WRITEABLECONST OFF}
 {$MINENUMSIZE 1}
-{$IMAGEBASE $400000}
+{$IMAGEBASE $8400000}
 {$DESCRIPTION 'KOLADDONS_D2010'}
 {$DESIGNONLY}
 {$IMPLICITBUILD ON}
 {$DEFINE INPACKAGE}
+{$DEFINE unicode_ctrls}
 
 requires
   rtl,
@@ -40,26 +42,17 @@ requires
   designide;
 
 contains
-  KOLCCtrls in 'KOLCCtrls.pas',
-  mckCCtrls in 'mckCCtrls.pas',
   KOLHashs in 'KOLHashs.PAS',
   mckHashs in 'mckHashs.pas',
   KOLFontEditor in 'KOLFontEditor.pas',
   KOLmhxp in 'KOLmhxp.pas',
   MCKMHXP in 'MCKMHXP.pas',
-  mckTCPSocket in 'mckTCPSocket.pas',
-  mckSocket in 'mckSocket.pas',
   mckListEdit in 'mckListEdit.pas',
-  KOLSocket in 'KOLSocket.pas',
   Objects in 'Objects.pas',
-  kolTCPSocket in 'kolTCPSocket.pas',
   mckCProgBar in 'mckCProgBar.pas',
   mckRarInfoBar in 'mckRarInfoBar.pas',
   mckRarProgBar in 'mckRarProgBar.pas',
   mckHTTP in 'mckHTTP.pas',
-  mckRAS in 'mckRAS.pas',
-  KOLRas in 'KOLRas.pas',
-  RAS in 'RAS.pas',
   UStr in 'UStr.pas',
   UWrd in 'UWrd.pas',
   KOLHTTP in 'KOLHTTP.pas',
@@ -81,17 +74,10 @@ contains
   KOLPrinters in 'KOLPrinters.pas',
   mckXPMenus in 'mckXPMenus.pas',
   XPMenus in 'XPMenus.pas',
-  MCKGRushSplitterEditor in 'MCKGRushSplitterEditor.pas',
-  MCKGRushButtonEditor in 'MCKGRushButtonEditor.pas',
-  MCKGRushCheckBoxEditor in 'MCKGRushCheckBoxEditor.pas',
-  MCKGRushControls in 'MCKGRushControls.pas',
-  MCKGRushImageCollectionEditor in 'MCKGRushImageCollectionEditor.pas',
-  MCKGRushPanelEditor in 'MCKGRushPanelEditor.pas',
-  MCKGRushProgressBarEditor in 'MCKGRushProgressBarEditor.pas',
-  MCKGRushRadioBoxEditor in 'MCKGRushRadioBoxEditor.pas',
   tinyPNG in 'tinyPNG.pas',
   tinyJPGGIFBMP in 'tinyJPGGIFBMP.pas',
   MZLib in 'MZLib.pas',
-  KOLGRushControls in 'KOLGRushControls.pas';
+  mckWebBrowser in 'mckWebBrowser.pas',
+  mckDHTML in 'mckDHTML.pas';
 
 end.

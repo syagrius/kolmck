@@ -340,7 +340,7 @@ begin
   if Result then
   begin
     DeleteObject(Font.Handle);
-    Font.Handle := CreateFontIndirect(TMPLogFont);
+    Font.Handle := CreateFontIndirectA(TMPLogFont);
     Font.Color := Color;
   end;
 end;

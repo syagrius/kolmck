@@ -1,4 +1,5 @@
 unit KOLCCtrls;
+{$UNDEF UNICODE}
 
 interface
 
