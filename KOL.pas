@@ -856,7 +856,7 @@ type
        follow item indeces up by one. }
     procedure DeleteRange( Idx, Len: Integer );
     {* Deletes Len items starting from Idx. }
-    procedure Remove( Value: Pointer );
+    function Remove(Value: Pointer): Integer;
     {* Removes first entry of a Value in the list. }
     property Count: Integer read fCount write SetCount;
     {* Returns count of items in the list. It is possible to delete a number
@@ -15568,12 +15568,11 @@ end;
 {$ENDIF ASM_VERSION}
 
 //[procedure TList.Remove]
-procedure TList.Remove(Value: Pointer);
-var I: Integer;
+function TList.Remove(Value: Pointer): Integer;
 begin
-  I := IndexOf( Value );
-  if I >= 0 then
-    Delete( I );
+  Result := IndexOf( Value );
+  if Result >= 0 then
+    Delete( Result );
 end;
 
 function TList.ItemAddress(Idx: Integer): Pointer;
