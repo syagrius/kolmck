@@ -15,7 +15,7 @@
 
 //[VERSION]
 ****************************************************************
-* VERSION 2.90
+* VERSION 2.91
 ****************************************************************
 //[END OF VERSION]
 
@@ -429,6 +429,10 @@ unit KOL; {-}
                           can be used for compatibility with compilers not
                           understanding "calling" a property without assigning
                           something to or from it (Turbo Delphi?).
+  SCROLL_OLD            - for compatibility with the old applications using
+                          TScrollBar: there was another method of adjusting
+                          SBMax and SBPageSize: SBMax should be corrected to
+                          (nMaxItems-1-SBPageSize).
   FILE_EXISTS_EX - to use more correct (but a bit large code in FileExists functon)
   USE_AUTOFREE4CONTROLS - (default) - from 2.40, most of control sub-objects are
                           destroying using Add2AutoFree (smaller code).
@@ -557,6 +561,7 @@ uses {$IFDEF WIN}messages, windows {$IFNDEF NOT_USE_RICHEDIT}, RichEdit {$ENDIF}
 ////type HDC = TGC; // from Xlib (temporary definition?)
 {$ENDIF LIN}
 
+
 var
   AppTheming: Boolean;
 {$IFDEF DEBUG_GDIOBJECTS}
@@ -590,7 +595,9 @@ const
 	 PKOLChar = PAnsiChar;
          PKOL_Char = type PAnsiChar;
    {$IFDEF ASM_VERSION}
-     {$DEFINE ASM_UNICODE}
+     {$IFNDEF ASM_NOUNICODE}
+       {$DEFINE ASM_UNICODE}
+     {$ENDIF}
      {$UNDEF PAS_VERSION}
    {$ENDIF}
 {$ENDIF}
@@ -1072,7 +1079,7 @@ type
 //[END OF TThread DEFINITION]
 
 //[NewThread, NewThreadEx, NewThreadAutoFree DECLARATIONS]
-function NewThread(const stackize: DWORD = 0): PThread;
+function NewThread: PThread;
 {* Creates thread object (always suspended). After creating, set event
    OnExecute and perform Resume operation. }
 
@@ -1113,7 +1120,9 @@ type
   TStrmSize = DWORD;
   TStrmMove = Integer;
     {$IFDEF ASM_VERSION}
-      {$DEFINE ASM_STREAM}
+      {$IFNDEF ASM_NOSTREAM}
+        {$DEFINE ASM_STREAM}
+      {$ENDIF}
     {$ENDIF}
   {$ENDIF}
 
@@ -1586,7 +1595,8 @@ type
     {* Returns Index of the string, equal or greater to given pattern, but
        works only for sorted TStrList object. Returns TRUE if exact string found,
        otherwise nearest (greater then a pattern) string index is returned,
-       and the result is FALSE. }
+       and the result is FALSE. And in such _case Index is returned negated
+       when the S string is less then the string found. }
     function FindFirst(const S: AnsiString; var Index: Integer): Boolean;
     {* Like above but always returns Index of the first string, equal or greater
        to given pattern. Also works only for sorted TStrList object. Returns TRUE
@@ -4733,6 +4743,7 @@ type
 
     {$ENDIF GDI}
     FParent: PControl;
+    FParentWnd: HWnd;  //<<-- ++ for InitOrthaned !!
     fEnabled: Boolean; // Caution!!! fVisible must follow fEnabled! ___
     fVisible: Boolean; //____________________________________________//
     fTabstop: Boolean;
@@ -5168,6 +5179,8 @@ type
     {$IFDEF GDI}
     procedure InitParented( AParent: PControl ); virtual;
     {* Initialization of visual object. }
+    procedure InitOrthaned( AParentWnd: HWnd ); virtual;
+    {* Initialization of visual object. }
     {$ENDIF GDI}
     {$IFDEF _X_}
     {$IFDEF GTK}
@@ -5279,6 +5292,8 @@ type
     {$IFDEF GDI}
     constructor CreateParented( AParent: PControl );
     {* Creates new instance of TControl object, calling InitParented }
+    constructor CreateOrthaned( AParentWnd: HWnd );
+    {* Creates new instance of TControl object, calling InitOrthaned }
     {$ENDIF GDI}
     {$IFDEF _X_}
     {$IFDEF GTK}
@@ -8464,13 +8479,17 @@ type
     //----------------------------------------------------------------------
     // ScrollBar
     property SBMin: Longint read fSBMinMax.X write SetSBMin;
-    {* }
+    {* Minimum scrolling area position. }
     property SBMax: Longint read fSBMinMax.Y write SetSBMax;
-    {* }
+    {* Maximum scrolling area position (size of the text or image to be scrolling).
+       For case when SCROLL_OLD defined, this value should be set as scrolling
+       object size without SBPageSize. }
     property SBMinMax: TPoint read fSBMinMax write SetSBMinMax;
-    {* }
+    {* The property to adjust SBMin and SBMax for a single call (set X to a minimum
+       and Y to a maximum value). }
     property SBPosition: Integer read fSBPosition write SetSBPosition;
-    {* }
+    {* Current scroll position. When set, should be between SBMin and
+       SBMax - max(0, SBPageSize-1) }
     property SBPageSize: Integer read fSBPageSize write SetSBPageSize;
     {* }
 
@@ -9580,6 +9599,8 @@ function NewForm( AParent: PControl; const Caption: KOLString ): PControl;
    (ones common for all visual objects, such as <D Left>, <D Top>, <D Width>,
    <D Height>, etc. are not listed here - look TControl for it):
    |#form }
+
+function NewAlienPanel( AParentWnd: HWnd; EdgeStyle: TEdgeStyle ): PControl;
 
 //[_NewControl DECLARATION]
 {$IFDEF GDI}
@@ -11087,7 +11108,7 @@ function Time2StrFmt( const Fmt: KOLString; D: TDateTime ): KOLString;
    See possible pictures in definition of the function Str2DateTimeFmt
    (the second part). If Fmt string is empty, default system time format
    for short date string used. }
-function DateTime2StrShort( D: TDateTime ): AnsiString;
+function DateTime2StrShort( D: TDateTime ): KOLString;
 {* Formats date and time to string in short date format using current user
    locale. }
 function Str2DateTimeFmt( const sFmtStr, sS: KOLString ): TDateTime;
@@ -11230,7 +11251,7 @@ function WFileExists( const FileName: WideString ) : Boolean;
    under NT-based Windows systems, FALSE is always returned for files
    opened for excluseve use like pagefile.sys. }
 {$ENDIF}
-function FileSeek(Handle: THandle; {$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmSize; MoveMethod: TMoveMethod): TStrmSize;
+function FileSeek(Handle: THandle; {$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmMove; MoveMethod: TMoveMethod): TStrmSize;
 {* Changes current position in file. }
 function FileRead(Handle: THandle; var Buffer; Count: DWord): DWord;
 {* Reads bytes from current position in file to buffer. Returns number of
@@ -11242,7 +11263,8 @@ function File2Str(Handle: THandle): AnsiString;
 {* Reads file from current position to the end and returns result as ansi string. }
 {$IFNDEF _D2}
 function File2WStr(Handle: THandle): WideString;
-{* Reads file from current position to the end and returns result as unicode string. }
+{* Reads UNICODE file from current position to the end and returns result as
+   unicode string. }
 {$ENDIF}
 function FileWrite(Handle: THandle; const Buffer; Count: DWord): DWord;
 {* Writes bytes from buffer to file from current position, extending its
@@ -11271,6 +11293,9 @@ procedure LogFileOutput( const filepath, str: AnsiString );
 
 function Str2File( Filename: PKOLChar; Str: PAnsiChar ): Boolean;
 {* Save null-terminated string to file directly. If file does not exists, it is
+   created. If it exists, it is overriden. If operation failed, FALSE is returned. }
+function WStr2File( Filename: PKOLChar; Str: PWideChar ): Boolean;
+{* Save null-terminated wide string to file directly. If file does not exists, it is
    created. If it exists, it is overriden. If operation failed, FALSE is returned. }
 function StrSaveToFile( const Filename: KOLString; const Str: AnsiString ): Boolean;
 {* Saves a string to a file without any changes. If file does not exists, it is
@@ -11360,6 +11385,9 @@ function GetStartDir: KOLString;
 {* Returns path to directory where executable is located (regardless
    of current directory). }
 function ExePath: KOLString;
+{* Returns the path to the exe-file (in case of dll hook, this is exe-file
+   of the process in which context dll hook function is called). }
+function ModulePath: KOLString;
 {* Returns the path to the module (exe, dll) itself. }
 
 
@@ -11947,6 +11975,13 @@ type
 
   {++}(*TIniFile = class;*){--}
   PIniFile = {-}^{+}TIniFile;
+
+{$IFDEF UNICODE_CTRLS}
+  PXStrList = PWStrList;
+{$ELSE}
+  PXStrList = PStrList;
+{$ENDIF}
+
 { ----------------------------------------------------------------------
                 TIniFile - store/load data to ini-files
 ----------------------------------------------------------------------- }
@@ -12003,19 +12038,11 @@ type
     {* Clears given key in current section. }
 
     /////////////// + by Vyacheslav A. Gavrik:
-    {$IFDEF UNICODE_CTRLS}
-    procedure GetSectionNames(Names:PWStrList);
-    {$ELSE}
-    procedure GetSectionNames(Names:PStrList);
-    {$ENDIF}
+    procedure GetSectionNames(Names:PXStrList);
     {* Retrieves section names, storing it in string list passed as a parameter.
        String list does not cleared before processing. Section names are added
        to the end of the string list. }
-    {$IFDEF UNICODE_CTRLS}
-    procedure SectionData(Names:PWStrList);
-    {$ELSE}
-    procedure SectionData(Names:PStrList);
-    {$ENDIF}
+    procedure SectionData(Names:PXStrList);
     {* Read/write current section content to/from string list. (Depending on
        current Mode value). }
     ///////////////
@@ -13442,8 +13469,10 @@ const
   FOF_NOERRORUI              = $0400;  { don't put up error UI }
 
 
+{$IFDEF UNICODE_CTRLS}
 function SHFileOperationW(const lpFileOp: TSHFileOpStructW): Integer; stdcall;
          external 'shell32.dll' name 'SHFileOperationW';
+{$ENDIF}
 
 function SHFileOperationA(const lpFileOp: TSHFileOpStructA): Integer; stdcall;
          external 'shell32.dll' name 'SHFileOperationA';
@@ -13786,7 +13815,7 @@ end;
 const size_TRect = 16; // used often in assembler versions of code
 {-}
 
-{$IFDEF ASM_VERSION}
+//22{$IFDEF ASM_VERSION}
 const
   EmptyString: AnsiString = '';
 
@@ -13850,8 +13879,7 @@ asm
         POP      EAX
 end;
 {$ENDIF _D3orHigher}
-{$ELSE ASM_VERSION}
-{$ENDIF ASM_VERSION}
+//22{$ENDIF ASM_VERSION}
 {+}
 
 const PossibleColorBits : array[1..7] of Byte = ( 1, 4, 8, 16, 24, 32, 0 );
@@ -15017,6 +15045,13 @@ begin
 end;
 *){--}
 
+{$IFDEF ASM_VERSION}
+  {$DEFINE ASM_TLIST}
+{$IFDEF TLIST_FAST}
+  {$UNDEF ASM_TLIST}
+{$ENDIF}
+{$ENDIF}
+
 //[procedure TObj.Final]
 {$IFDEF ASM_TLIST}
 procedure TObj.Final;
@@ -15234,13 +15269,6 @@ end;
 
 { TList }
 
-{$IFDEF ASM_VERSION}
-  {$DEFINE ASM_TLIST}
-{$IFDEF TLIST_FAST}
-  {$UNDEF ASM_TLIST}
-{$ENDIF}
-{$ENDIF}
-
 {$IFDEF USE_CONSTRUCTORS}
 procedure TList.Init;
 begin
@@ -15337,6 +15365,27 @@ end;
 
 //[procedure TList.Release]
 {$IFDEF ASM_TLIST}
+procedure TList.Release;
+asm
+       TEST      EAX, EAX
+       JZ        @@e
+       MOV       ECX, [EAX].fCount
+       JECXZ     @@e
+       MOV       EDX, [EAX].fItems
+       PUSH      EAX
+@@1:
+       MOV       EAX, [EDX+ECX*4-4]
+       TEST      EAX, EAX
+       JZ        @@2
+       PUSH      EDX
+       PUSH      ECX
+       CALL      System.@FreeMem
+       POP       ECX
+       POP       EDX
+@@2:   LOOP      @@1
+       POP       EAX
+@@e:   CALL      TObj.RefDec
+end;
 {$ELSE ASM_VERSION} //Pascal
 procedure TList.Release;
 var I: Integer;
@@ -15416,7 +15465,7 @@ begin
 end;
 
 //[procedure TList.Add]
-{$IFDEF ASM_VERSION}
+{$IFDEF ASM_NO_VERSION}  /// ASM-version disabled due some problems - 20-May-2010
 {$ELSE ASM_VERSION} //Pascal
 procedure TList.Add( Value: Pointer );
 {$IFDEF TLIST_FAST}
@@ -15495,6 +15544,34 @@ end;
 
 //[procedure TList.DeleteRange]
 {$IFDEF ASM_TLIST}
+procedure TList.DeleteRange(Idx, Len: Integer);
+asm     //cmd    //opd
+        TEST     ECX, ECX
+        JLE      @@exit
+        CMP      EDX, [EAX].fCount
+        JGE      @@exit
+        PUSH     EBX
+        XCHG     EBX, EAX
+        LEA      EAX, [EDX+ECX]
+        CMP      EAX, [EBX].fCount
+        JBE      @@1
+        MOV      ECX, [EBX].fCount
+        SUB      ECX, EDX
+@@1:
+        MOV      EAX, [EBX].fItems
+        PUSH     [EBX].fCount
+        SUB      [EBX].fCount, ECX
+        MOV      EBX, EDX
+        LEA      EDX, [EAX+EDX*4]
+        LEA      EAX, [EDX+ECX*4]
+        ADD      EBX, ECX
+        POP      ECX
+        SUB      ECX, EBX
+        SHL      ECX, 2
+        CALL     System.Move
+        POP      EBX
+@@exit:
+end;
 {$ELSE ASM_VERSION} //Pascal
 procedure TList.DeleteRange(Idx, Len: Integer);
 {$IFDEF TLIST_FAST}
@@ -15835,6 +15912,31 @@ end;
 
 //[function TList.IndexOf]
 {$IFDEF ASM_TLIST}
+function TList.IndexOf( Value: Pointer ): Integer;
+asm
+        PUSH      EDI
+
+        MOV       EDI, [EAX].fItems
+        MOV       ECX, [EAX].fCount
+          PUSH      EDI
+          DEC       EAX            // make "NZ" - EAX always <> 1
+          MOV       EAX, EDX
+          REPNZ     SCASD
+          POP       EDX
+        {$IFDEF USE_CMOV}
+        CMOVNZ    EDI, EDX
+        {$ELSE}
+        JZ        @@succ
+        MOV       EDI, EDX
+@@succ: {$ENDIF}
+
+        MOV       EAX, EDI
+        STC
+        SBB       EAX, EDX
+        SAR       EAX, 2
+
+        POP       EDI
+end;
 {$ELSE ASM_VERSION} //Pascal
 function TList.IndexOf( Value: Pointer ): Integer;
 var I: Integer;
@@ -15892,6 +15994,32 @@ end;
 
 //[procedure TList.Insert]
 {$IFDEF ASM_TLIST}
+procedure TList.Insert(Idx: Integer; Value: Pointer);
+asm
+        PUSH      ECX
+        PUSH      EAX
+        PUSH      [EAX].fCount
+          PUSH      EDX
+          CALL      TList.Add   // don't matter what to add
+          POP       EDX         // EDX = Idx, Eax = Count-1
+        POP       EAX
+        SUB       EAX, EDX
+
+        SAL       EAX, 2
+        MOV       ECX, EAX      // ECX = (Count - Idx - 1) * 4
+        POP       EAX
+        MOV       EAX, [EAX].fItems
+        LEA       EAX, [EAX + EDX*4]
+        JL        @@1
+          PUSH      EAX
+          LEA       EDX, [EAX + 4]
+          CALL      System.Move
+
+          POP       EAX          // EAX = @fItems[ Idx ]
+@@1:
+        POP       ECX            // ECX = Value
+        MOV       [EAX], ECX
+end;
 {$ELSE ASM_VERSION} //Pascal
 procedure TList.Insert(Idx: Integer; Value: Pointer);
 {$IFDEF TLIST_FAST}
@@ -16018,6 +16146,17 @@ end;
 
 //[procedure TList.Swap]
 {$IFDEF ASM_TLIST}
+procedure TList.Swap(Idx1, Idx2: Integer);
+asm
+        MOV       EAX, [EAX].fItems
+          PUSH      dword ptr [EAX + EDX*4]
+            PUSH      ECX
+            MOV       ECX, [EAX + ECX*4]
+            MOV       [EAX + EDX*4], ECX
+            POP       ECX
+          POP       EDX
+        MOV       [EAX + ECX*4], EDX
+end;
 {$ELSE ASM_VERSION} //Pascal
 procedure TList.Swap(Idx1, Idx2: Integer);
 var Tmp: DWORD;
@@ -16527,7 +16666,7 @@ end;
 {$ENDIF ASM_VERSION}
 
 //[PROCEDURE CallTControlCreateWindow]
-{$IFDEF ASM_VERSION}
+//22{$IFDEF ASM_VERSION}
 function CallTControlCreateWindow( Ctl: PControl ): Boolean;
 begin
   {$IFDEF SAFE_CODE}
@@ -16544,7 +16683,7 @@ begin
   Result := Ctl.CreateWindow;
   {$ENDIF}
 end;
-{$ENDIF}
+//22{$ENDIF}
 //[END CallTControlCreateWindow]
 {$ENDIF GDI}
 {$ENDIF WIN_GDI}
@@ -16659,9 +16798,9 @@ end;
 {$ENDIF GDI}
 
 //[WndProcXXX FORWARD DECLARATIONS]
-{$IFDEF ASM_VERSION}
+//22{$IFDEF ASM_VERSION}
 function WndProcAppAsm( Self_: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean; forward;
-{$ENDIF}
+//22{$ENDIF}
 function WndProcAppPas( Self_: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean; forward;
 function WndProcForm( Self_: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean; forward;
 function WndProcPaint( Self_: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean; forward;
@@ -17397,6 +17536,20 @@ end;
 
 //[FUNCTION MakeFontHandle]
 {$IFDEF ASM_LOCAL}
+function MakeFontHandle( Self_: PGraphicTool ): THandle;
+asm
+         XCHG   EDX, EAX
+         MOV    EAX, [EDX].TGraphicTool.fHandle
+         TEST   EAX, EAX
+         JNZ    @@exit
+         PUSH   EDX
+         LEA    ECX, [EDX].TGraphicTool.fData.Font
+         PUSH   ECX
+         CALL   CreateFontIndirect
+         POP    EDX
+         MOV    [EDX].TGraphicTool.fHandle, EAX
+@@exit:
+end;
 {$ELSE ASM_VERSION} //Pascal
 function MakeFontHandle( Self_: PGraphicTool ): THandle;
 {$IFDEF AUTO_REPLACE_CLEARTYPE}
@@ -20072,6 +20225,22 @@ end {$IFDEF F_P} [ 'EAX', 'EDX', 'ECX' ] {$ENDIF};
 
 //[FUNCTION TrimLeft]
 {$IFDEF ASM_UNICODE}
+function TrimLeft(const S: Ansistring): Ansistring;
+asm
+        XCHG     EAX, EDX
+        CALL     EDX2PChar
+        DEC      EDX
+@@1:    INC      EDX
+        MOVZX    ECX, byte ptr [EDX]
+        JECXZ    @@fin
+        CMP      CL, ' '
+        JBE      @@1
+@@fin:
+        {$IFDEF _D2009orHigher}
+        XOR      ECX, ECX
+        {$ENDIF}
+        CALL     System.@LStrFromPChar
+end;
 {$ELSE ASM_VERSION} //Pascal
 function TrimLeft(const S: KOLString): KOLString;
 var
@@ -20087,6 +20256,29 @@ end;
 
 //[FUNCTION TrimRight]
 {$IFDEF ASM_UNICODE}
+function TrimRight(const S: Ansistring): Ansistring;
+asm
+        PUSH     EDX
+        PUSH     EAX
+
+        PUSH     EAX
+        CALL     System.@LStrLen
+        XCHG     EAX, [ESP]
+        CALL     EAX2PChar
+        POP      ECX
+        INC      ECX
+@@1:    DEC      ECX
+        MOV      DL, [EAX+ECX]
+        JL       @@fin
+        CMP      DL, ' '
+        JBE      @@1
+@@fin:
+        INC      ECX
+        POP      EAX
+        XOR      EDX, EDX
+        INC      EDX
+        CALL     System.@LStrCopy
+end;
 {$ELSE ASM_VERSION} //Pascal
 function TrimRight(const S: KOLString): KOLString;
 var
@@ -20100,7 +20292,7 @@ end;
 //[END TrimRight]
 
 //[FUNCTION Trim]
-{$IFDEF ASM_UNICODE}
+{$IFDEF ASM_VERSION}
 {$ELSE ASM_VERSION} //Pascal
 function Trim( const S : KOLString): KOLString;
 begin
@@ -20175,6 +20367,33 @@ end;
 
 //[FUNCTION CopyEnd]
 {$IFDEF ASM_UNICODE}
+function CopyEnd( const S : AnsiString; Idx : Integer ) : AnsiString;
+asm
+        PUSH     ECX
+        PUSH     EAX
+        PUSH     EDX
+
+        CALL     System.@LStrLen
+
+        POP      EDX
+        TEST     EDX, EDX
+        JG       @@1
+        XOR      EDX, EDX
+        INC      EDX
+@@1:
+        SUB      EAX, EDX
+        MOV      ECX, EAX
+
+        POP      EAX
+        JGE      @@ret_end
+
+        POP      EAX
+        JL       System.@LStrClr
+
+@@ret_end:
+        INC      ECX
+        CALL     System.@LStrCopy
+end;
 {$ELSE ASM_VERSION} //Pascal
 function CopyEnd( const S : KOLString; Idx : Integer ) : KOLString;
 begin
@@ -20185,6 +20404,27 @@ end;
 
 //[FUNCTION CopyTail]
 {$IFDEF ASM_UNICODE}
+function CopyTail( const S : AnsiString; Len : Integer ) : AnsiString;
+asm
+        PUSH     ECX
+        PUSH     EAX
+          PUSH     EDX
+            CALL     System.@LStrLen
+          POP      ECX
+          CMP      ECX, EAX
+          {$IFDEF USE_CMOV}
+          CMOVG    ECX, EAX
+          {$ELSE}
+          JLE      @@1
+          MOV      ECX, EAX
+@@1:      {$ENDIF}
+
+        MOV      EDX, EAX
+        SUB      EDX, ECX
+        INC      EDX
+        POP      EAX
+        CALL     System.@LStrCopy
+end;
 {$ELSE ASM_VERSION} //Pascal
 function CopyTail( const S : KOLString; Len : Integer ) : KOLString;
 var L : Integer;
@@ -20201,6 +20441,27 @@ end;
 
 //[PROCEDURE DeleteTail]
 {$IFDEF ASM_UNICODE}
+procedure DeleteTail( var S : AnsiString; Len : Integer );
+asm
+        PUSH     EAX
+        PUSH     EDX
+        MOV      EAX, [EAX]
+        CALL     System.@LStrLen
+        POP      ECX
+        CMP      ECX, EAX
+        {$IFDEF USE_CMOV}
+        CMOVG    ECX, EAX
+        {$ELSE}
+        JLE      @@1
+        MOV      ECX, EAX
+@@1:    {$ENDIF}
+
+        MOV      EDX, EAX
+        SUB      EDX, ECX
+        INC      EDX
+        POP      EAX
+        CALL     System.@LStrDelete
+end;
 {$ELSE ASM_VERSION} //Pascal
 procedure DeleteTail( var S : KOLString; Len : Integer );
 var L : Integer;
@@ -20216,6 +20477,26 @@ end;
 {$IFNDEF TEST_INDEXOFCHARS_COMPAT}
 //[FUNCTION IndexOfChar]
 {$IFDEF ASM_UNICODE}
+function IndexOfChar( const S : KOLString; Chr : KOLChar ) : Integer;
+asm
+        CALL     EAX2PChar
+        PUSH     EAX
+        //PUSH     EDX
+        MOV      ECX, [EAX-4]
+        CALL     StrScanLen
+        //POP      ECX
+        POP      EDX
+        //TEST     EAX, EAX
+        //JE       @@exit__1
+        JZ       @@1
+        //CMP      [EAX-1], CL
+        //JE       @@1
+        LEA      EDX, [EAX+1]
+@@1:    SUB      EAX, EDX
+        //RET
+//@@exit__1:
+        //DEC      EAX
+end;
 {$ELSE ASM_VERSION} //Pascal
 function IndexOfChar( const S : KOLString; Chr : KOLChar ) : Integer;
 var //P, F : PChar;
@@ -20292,6 +20573,42 @@ end;
 
 //[FUNCTION IndexOfCharsMin]
 {$IFDEF ASM_UNICODE}
+function IndexOfCharsMin( const S, Chars : AnsiString ) : Integer;
+asm     PUSH     ESI
+        PUSH     EBX
+        PUSH     EAX
+        CALL     EDX2PChar
+        MOV      ESI, EDX
+
+        OR       EBX, -1
+        MOV      ECX, [EDX-4]
+        JECXZ    @@EXIT
+
+@@1:    LODSB
+
+        XCHG     EDX, EAX
+        POP      EAX
+        PUSH     EAX
+
+        PUSH     ECX
+        CALL     IndexOfChar
+        POP      ECX
+        TEST     EAX, EAX
+        JLE      @@NEXT
+
+        TEST     EBX, EBX
+        JLE      @@ASGN
+        CMP      EAX, EBX
+        JGE      @@NEXT
+@@ASGN:
+        XCHG     EAX, EBX
+@@NEXT: LOOP     @@1
+
+@@EXIT: XCHG     EAX, EBX
+        POP      ECX
+        POP      EBX
+        POP      ESI
+end;
 {$ELSE ASM_VERSION} //Pascal
 function IndexOfCharsMin( const S, Chars : KOLString ) : Integer;
 var I, J : Integer;
@@ -20332,6 +20649,67 @@ end;
 
 //[FUNCTION IndexOfStr]
 {$IFDEF ASM_UNICODE}
+function IndexOfStr( const S, Sub : KOLString ) : Integer;
+asm
+        PUSH     EBX
+        PUSH     ESI
+        PUSH     EDI
+
+        PUSH     EAX
+        MOV      EAX, EDX
+        PUSH     EDX
+        CALL     System.@LStrLen
+        MOV      EDI, EAX
+        POP      EAX
+        //CALL     System.@LStrToPChar
+        CALL     EAX2PChar
+        MOV      BL, [EAX]
+        XCHG     EAX, [ESP]
+        //CALL     System.@LStrToPChar
+        CALL     EAX2PChar
+
+        MOV      ESI, EAX
+
+        DEC      EAX
+@@1:    INC      EAX
+        MOV      DL, BL
+        MOV      ECX, [ESI-4]
+        SUB      ECX, EAX
+        ADD      ECX, ESI
+
+        CMP      ECX, EDI
+        JL       @@ret__1
+
+        CALL     StrScanLen
+        TEST     EAX, EAX
+        JE       @@exit__1
+        DEC      EAX
+
+        POP      EDX
+        PUSH     EDX
+
+        MOV      ECX, EDI
+        PUSH     EAX
+        //CALL     StrLComp
+        CALL     CompareMem
+        TEST     AL, AL
+        POP      EAX
+        JZ       @@1
+
+        SUB      EAX, ESI
+        INC      EAX
+        JMP      @@exit
+
+@@ret__1:
+        XOR      EAX, EAX
+@@exit__1:
+        DEC      EAX
+@@exit:
+        POP      EDX
+        POP      EDI
+        POP      ESI
+        POP      EBX
+end;
 {$ELSE ASM_VERSION} //Pascal
 function IndexOfStr( const S, Sub : KOLString ) : Integer;
 var I : Integer;
@@ -20955,6 +21333,81 @@ end;
 
 //[FUNCTION _StrSatisfy]
 {$IFDEF ASM_UNICODE}
+function _StrSatisfy( S, Mask : PKOLChar ) : Boolean;
+asm
+    TEST EAX, EAX
+    JZ   @@exit
+        XCHG     ECX, EAX
+        //       EDX <- Mask
+        //       ECX <- S
+        XOR      EAX, EAX
+        MOV      AL, '*'
+@@rest_satisfy:
+        PUSH     ECX
+        PUSH     EDX
+
+@@nx_char:
+        MOV      AH, [EDX]
+        OR       AH, [ECX]
+        JZ       @@fin //@@ret_true
+
+        MOV      AH, 0
+
+        CMP      word ptr [EDX], AX //'*'
+        JE       @@fin //@@ret_true
+
+        CMP      byte ptr [ECX], AH
+        JNE      @@10
+
+        DEC      EDX
+@@1:
+        INC      EDX
+        CMP      byte ptr [EDX], AL //'*'
+        JE       @@1
+
+        CMP      byte ptr [EDX], AH
+        SETZ     AL
+        JMP      @@fin
+
+@@10:   CMP      byte ptr [EDX], AH
+        JE       @@ret_false
+
+        CMP      byte ptr [EDX], '?'
+        JNE      @@11
+
+@@go_nx_char:
+        INC      ECX
+        INC      EDX
+        JMP      @@nx_char
+
+@@11:
+        CMP      byte ptr [EDX], AL //'*'
+        JNE      @@20
+
+        INC      EDX
+@@12:   CMP      byte ptr [ECX], AH
+        JE       @@ret_false
+
+        CALL     @@rest_satisfy
+        TEST     AL, AL
+        JNE      @@fin
+        MOV      AL, '*'
+
+        INC      ECX
+        JMP      @@12
+
+@@20:   MOV      AH, [EDX]
+        XOR      AH, [ECX]
+
+        JE       @@go_nx_char
+@@ret_false:
+        XOR      EAX, EAX
+
+@@fin:
+        POP      EDX
+        POP      ECX
+@@exit:
+end;
 {$ELSE ASM_VERSION} //Pascal
 function _StrSatisfy( S, Mask : PKOLChar ) : Boolean;
 label next_char;
@@ -20996,6 +21449,42 @@ end;
 
 //[FUNCTION StrSatisfy]
 {$IFDEF ASM_UNICODE}
+function StrSatisfy( const S, Mask: AnsiString ): Boolean;
+asm
+        PUSH     ESI
+        XCHG     ESI, EAX
+        PUSH     0
+        XCHG     EAX, EDX
+        CALL     EAX2PChar
+        MOV      EDX, ESP
+
+        CMP      byte ptr [EAX], 0
+        JZ       @@0
+        CALL     AnsiLowerCase
+@@0:
+        XCHG     EAX, ESI
+        PUSH     0
+        CALL     EAX2PChar
+        MOV      EDX, ESP
+
+        CMP      byte ptr [EAX], 0
+        JZ       @@1
+        CALL     AnsiLowerCase
+@@1:
+        POP      EAX
+        POP      EDX
+        PUSH     EDX
+        PUSH     EAX
+        CALL     _StrSatisfy
+
+        XCHG     ESI, EAX
+
+        CALL     RemoveStr
+        CALL     RemoveStr
+        XCHG     EAX, ESI
+
+        POP      ESI
+end;
 {$ELSE ASM_VERSION} //Pascal
 function StrSatisfy( const S, Mask: KOLString ): Boolean;
 begin
@@ -21009,6 +21498,36 @@ end;
 
 //[FUNCTION _2StrSatisfy]
 {$IFDEF ASM_UNICODE}
+function _2StrSatisfy( S, Mask: PAnsiChar ): Boolean;
+asm     //     //
+        PUSH   EBX
+        PUSH   ECX // TODO: remove
+        XCHG   EBX, EAX
+        PUSH   0
+        MOV    EAX, ESP
+        {$IFDEF _D2009orHigher}
+        XOR      ECX, ECX
+        {$ENDIF}
+        CALL   System.@LStrFromPChar
+        PUSH   0
+        MOV    EAX, ESP
+        MOV    EDX, EBX
+        {$IFDEF _D2009orHigher}
+        XOR      ECX, ECX
+        {$ENDIF}
+        CALL   System.@LStrFromPChar
+        POP    EAX
+        POP    EDX
+        PUSH   EDX
+        PUSH   EAX
+        CALL   StrSatisfy
+        XCHG   EBX, EAX
+        CALL   RemoveStr
+        CALL   RemoveStr
+        XCHG   EAX, EBX
+        POP    ECX
+        POP    EBX
+end;
 {$ELSE ASM_VERSION} // Pascal
 function _2StrSatisfy( S, Mask: PKOLChar ): Boolean;
 begin
@@ -21476,6 +21995,61 @@ end;
 
 //[FUNCTION DelimiterLast]
 {$IFDEF ASM_UNICODE}
+function __DelimiterLast( Str: PAnsiChar; Delimiters: PAnsiChar ): PAnsiChar;
+asm
+        PUSH     ESI
+
+        CALL     EAX2PChar
+
+        MOV      ESI, EDX
+        MOV      EDX, EAX
+
+@@tolast:
+        CMP      byte ptr [EAX], 0
+        JZ       @@next1
+        INC      EAX
+        JMP      @@tolast
+
+@@next1:
+        PUSH     EAX
+
+@@next:
+        LODSB
+        TEST     AL, AL
+        JZ       @@exit
+
+        PUSH     EDX
+        XCHG     EDX, EAX
+        CALL     StrRScan
+        POP      EDX
+
+        TEST     EAX, EAX
+        JZ       @@next
+
+        POP      ECX
+        CMP      byte ptr [ECX], 0
+        JZ       @@next1
+
+        CMP      EAX, ECX
+        JG       @@next1
+
+        PUSH     ECX
+        JLE      @@next
+
+@@exit: POP      EAX
+        POP      ESI
+end;
+
+function DelimiterLast( const Str, Delimiters: AnsiString ): Integer;
+asm
+        CALL     EAX2PChar
+        CALL     EDX2PChar
+        PUSH     EAX
+        CALL     __DelimiterLast
+        POP      EDX
+        SUB      EAX, EDX
+        INC      EAX
+end;
 {$ELSE ASM_VERSION} //Pascal
 function DelimiterLast( const Str, Delimiters: KOLString ): Integer;
 var PStr: PKOLChar;
@@ -21566,9 +22140,51 @@ end {$IFDEF F_P} [ 'EAX', 'EDX', 'ECX' ] {$ENDIF};
 {$IFNDEF _FPC}
 //[FUNCTION Format]
 {$IFDEF ASM_UNICODE}
+function Format( const fmt: KOLString; params: array of const ): AnsiString;
+asm
+        PUSH    ESI
+        PUSH    EDI
+        PUSH    EBX
+        MOV     EBX, ESP
+        {$IFDEF UNICODE_CTRLS}
+        ADD     ESP, -2048
+        {$ELSE}
+        ADD     ESP, -1024
+        {$ENDIF}
+        MOV     ESI, ESP
+
+        INC     ECX
+        JZ      @@2
+@@1:
+        MOV     EDI, [EDX + ECX*8 - 8]
+        PUSH    EDI
+        LOOP    @@1
+@@2:
+        PUSH    ESP
+        PUSH    EAX
+        PUSH    ESI
+
+        CALL    wvsprintf
+
+        MOV     EDX, ESI
+        MOV     EAX, @Result
+        {$IFDEF _D2009orHigher}
+        PUSH     ECX
+        XOR      ECX, ECX
+        {$ENDIF}
+        CALL    System.@LStrFromPChar
+        {$IFDEF _D2009orHigher}
+        POP      ECX
+        {$ENDIF}
+
+        MOV     ESP, EBX
+        POP     EBX
+        POP     EDI
+        POP     ESI
+end;
 {$ELSE ASM_VERSION} //Pascal
 function Format( const fmt: KOLString; params: Array of const ): KOLString;
-var Buffer: array[ 0..2047 ] of KOLChar;
+var Buffer: array[ 0..1023 ] of KOLChar;
     ElsArray, El: PDWORD;
     I : Integer;
     P : PDWORD;
@@ -21739,6 +22355,19 @@ end;
 //[FUNCTION FileExists]
 {$IFDEF WIN}
 {$IFDEF ASM_LOCAL}
+function FileExists( const FileName : KOLString ) : Boolean;
+const size_TWin32FindData = sizeof( {$IFDEF UNICODE_CTRLS} TWin32FindDataW {$ELSE} TWin32FindDataA {$ENDIF} );
+asm
+        CALL     EAX2PChar
+        PUSH     EAX
+        CALL     GetFileAttributes
+        INC      EAX
+        JZ       @@exit
+        DEC      EAX
+        {$IFDEF PARANOIA} DB $24, FILE_ATTRIBUTE_DIRECTORY {$ELSE} AND AL, FILE_ATTRIBUTE_DIRECTORY {$ENDIF}
+        SETZ     AL
+@@exit:
+end;
 {$ELSE ASM_VERSION} //Pascal
 function FileExists( const FileName : KOLString ) : Boolean;
 {$IFDEF FILE_EXISTS_EX}
@@ -21794,8 +22423,17 @@ end;
 //[FUNCTION FileSeek]
 {$IFDEF WIN}
 {$IFDEF ASM_STREAM}
+function FileSeek(Handle: THandle; {$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmMove; MoveMethod: TMoveMethod): TStrmSize;
+asm
+        MOVZX    ECX, CL
+        PUSH     ECX
+        PUSH     0
+        PUSH     EDX
+        PUSH     EAX
+        CALL     SetFilePointer
+end;
 {$ELSE ASM_VERSION} //Pascal
-function FileSeek(Handle: THandle; {$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmSize; MoveMethod: TMoveMethod): TStrmSize;
+function FileSeek(Handle: THandle; {$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmMove; MoveMethod: TMoveMethod): TStrmSize;
 {$IFDEF STREAM_LARGE64}
 var HiPtr: DWORD;
 {$ENDIF}
@@ -21854,9 +22492,9 @@ begin
   if Handle = 0 then Exit;
   Pos := FileSeek( Handle, 0, spCurrent );
   Size := GetFileSize( Handle, nil );
-  SetString( Result, nil, (Size - Pos + 1)*Sizeof( WideChar ) );
+  SetString( Result, nil, (Size - Pos + 1) div Sizeof( WideChar ) + 1 ); // fixed by zhoudi
   FileRead( Handle, Result[ 1 ], Size - Pos );
-  Result[ Size - Pos + 1 ] := #0;
+  Result[ Length(Result) ] := #0; // fixed by zhoudi 
 end;
 {$ENDIF _D2}
 
@@ -22081,6 +22719,13 @@ begin
   Result := Mem2File( Filename, Str, L ) = L;
 end;
 
+function WStr2File( Filename: PKOLChar; Str: PWideChar ): Boolean;
+var L: Integer;
+begin
+  L := WStrLen( Str );
+  Result := Mem2File( Filename, Str, L * Sizeof(WideChar) ) = L;
+end;
+
 //[function StrSaveToFile]
 function StrSaveToFile( const Filename: KOLString; const Str: AnsiString ): Boolean;
 begin
@@ -22107,9 +22752,11 @@ begin
 end;
 
 function WStrSaveToFile( const Filename: KOLString; const Str: WideString ): Boolean;
+var BytesToSave: Integer;
 begin
-  Result := Mem2File( PKOLChar( Filename ), PWideChar( Str ), Length( Str ) )
-            = Length( Str );
+  BytesToSave := Length( Str ) * Sizeof(WideChar);
+  Result := Mem2File( PKOLChar( Filename ), PWideChar( Str ), BytesToSave )
+            = BytesToSave; // fixed by zhoudi 
 end;
 {$ENDIF _D2}
 
@@ -22352,6 +22999,38 @@ end;
 
 //[FUNCTION GetStartDir]
 {$IFDEF ASM_UNICODE}
+function GetStartDir : AnsiString;
+asm
+        PUSH     EBX
+        MOV      EBX, EAX
+
+        XOR      EAX, EAX
+        MOV      AH, 2
+        SUB      ESP, EAX
+        MOV      EDX, ESP
+        PUSH     EAX
+        PUSH     EDX
+        PUSH     0
+        CALL     GetModuleFileName // in KOL_ANSI
+
+        LEA      EDX, [ESP + EAX]
+@@1:    DEC      EDX
+        CMP      byte ptr [EDX], '\'
+        JNZ      @@1
+
+        INC      EDX
+        MOV      byte ptr [EDX], 0
+
+        MOV      EAX, EBX
+        MOV      EDX, ESP
+        {$IFDEF _D2009orHigher}
+        XOR      ECX, ECX // TODO: fixme
+        {$ENDIF}
+        CALL     System.@LStrFromPChar // AnsiSafe!
+
+        ADD      ESP, 200h
+        POP      EBX
+end;
 {$ELSE ASM_VERSION} //Pascal
   {$IFDEF WIN}
     {$UNDEF LINUX_USE_HOME_STARTFDIR}
@@ -22380,6 +23059,14 @@ end;
 
 //[FUNCTION ExePath]
 function ExePath: KOLString;
+var Buffer: array[ 0..MAX_PATH+1 ] of KOLChar;
+begin
+  Buffer[ MAX_PATH+1 ] := #0;
+  GetModuleFileName( 0, Buffer, MAX_PATH+1 );
+  Result := Buffer;
+end;
+
+function ModulePath: KOLString;
 var Buffer: array[ 0..MAX_PATH+1 ] of KOLChar;
 begin
   Buffer[ MAX_PATH+1 ] := #0;
@@ -22587,19 +23274,6 @@ end;
 {$ENDIF}
 {$ENDIF ASM_VERSION}
 
-{$IFDEF ASM_LStrFromPCharLen}
-  {$DEFINE ASM_DIRDelimiters}
-{$ENDIF}
-
-{$IFDEF ASM_VERSION}
-  {$DEFINE ASM_DIRDelimiters}
-{$ENDIF ASM_VERSION}
-
-{$IFDEF ASM_DIRDelimiters}
-const
-  DirDelimiters: PAnsiChar = ':\/';
-{$ENDIF}
-
 function IsNetworkPath( const Path: KOLString ): Boolean;
 begin
   Result := (Length( Path ) >= 2) and (Path[1] = '\') and (Path[2] = '\');
@@ -22607,6 +23281,25 @@ end;
 
 //[FUNCTION ExtractFileName]
 {$IFDEF ASM_UNICODE}
+const
+  DirDelimiters: PAnsiChar = ':\/';
+function ExtractFileName( const Path : AnsiString ) : AnsiString;
+asm
+        PUSH     EDX
+        PUSH     EAX
+        MOV      EDX, [DirDelimiters]
+        CALL     __DelimiterLast
+        POP      EDX
+        CMP      byte ptr [EAX], 0
+        JZ       @@1
+        XCHG     EDX, EAX
+        INC      EDX
+@@1:    POP      EAX
+        {$IFDEF _D2009orHigher}
+        XOR      ECX, ECX // TODO: why __DelimiterLast destroyed ECX?
+        {$ENDIF}
+        CALL     System.@LStrFromPChar // Safe!
+end;
 {$ELSE ASM_VERSION} //Pascal
 function ExtractFileName( const Path : KOLString ) : KOLString;
 var P: PKOLChar;
@@ -23187,6 +23880,22 @@ end;
 
 //[FUNCTION FindFilter]
 {$IFDEF ASM_UNICODE}
+function FindFilter( const Filter: AnsiString): AnsiString;
+asm
+        XCHG     EAX, EDX
+        PUSH     EAX
+        CALL     System.@LStrAsg
+        POP      EAX
+        CMP      dword ptr [EAX], 0
+        JNE      @@exit
+        LEA      EDX, @@mask_all
+        {$IFDEF _D2009orHigher}
+        XOR      ECX, ECX // TODO: JE to JNZ
+        {$ENDIF}
+        JE       System.@LStrFromPChar
+@@mask_all:  DB  '*.*',0
+@@exit:
+end;
 {$ELSE ASM_VERSION} //Pascal
 function FindFilter(const Filter: KOLString): KOLString;
 begin
@@ -23216,6 +23925,29 @@ end;
 
 //[function TDirList.GetNames]
 {$IFDEF ASM_UNICODE}
+function TDirList.GetNames(Idx: Integer): Ansistring;
+asm
+        MOV      EAX, [EAX].fList
+        {$IFDEF TLIST_FAST}
+        PUSH     ECX
+        CALL     TList.Get
+        LEA      EDX, [EAX + offset TWin32FindData.cFileName] //
+        POP      EAX
+        {$IFDEF _D2009orHigher}
+        XOR      ECX, ECX // TODO: fixme
+        {$ENDIF}
+        CALL     System.@LStrFromPChar
+        {$ELSE}
+        MOV      EAX, [EAX].TList.fItems
+        MOV      EDX, [EAX + EDX*4]
+        ADD      EDX, offset TWin32FindData.cFileName //
+        MOV      EAX, ECX
+          {$IFDEF _D2009orHigher}
+          XOR      ECX, ECX // TODO: fixme
+          {$ENDIF}
+        CALL     System.@LStrFromPChar
+        {$ENDIF}
+end;
 {$ELSE ASM_VERSION} //Pascal
 function TDirList.GetNames(Idx: Integer): KOLString;
 begin
@@ -23618,6 +24350,61 @@ end;
 
 //[procedure TDirList.ScanDirectoryEx]
 {$IFDEF ASM_UNICODE}
+procedure TDirList.ScanDirectoryEx(const DirPath, Filters: AnsiString;
+  Attr: DWord);
+asm
+        PUSH     EBX
+        MOV      EBX, EAX
+
+        PUSHAD
+        LEA      EAX, [EBX].fFilters
+        CALL     Free_And_Nil
+
+        CALL     NewStrList
+        MOV      [EBX].fFilters, EAX
+        POPAD
+
+        PUSHAD
+        PUSH     0
+        MOV      EAX, ESP
+        MOV      EDX, ECX
+        CALL     System.@LStrLAsg
+@@1:    MOV      ECX, [ESP]
+        JECXZ    @@2
+        MOV      EAX, ESP
+        MOV      EDX, offset[@@semicolon]
+        PUSH     0
+        MOV      ECX, ESP
+        CALL     Parse
+        MOV      EAX, [ESP]
+        MOV      EDX, ESP
+        CALL     Trim
+        POP      EDX
+        PUSH     EDX
+        TEST     EDX, EDX
+        JZ       @@filt_added
+        MOV      EAX, [EBX].fFilters
+        CALL     TStrList.Add
+@@filt_added:
+        CALL     RemoveStr
+        JMP      @@1
+
+        //       ';' string literal
+        {$IFDEF _D2009orHigher}
+        DW       0, 1 // TODO: 1252? CP_ACP
+        {$ENDIF}
+        DD       -1, 1
+@@semicolon:
+        DB       ';',0
+
+@@2:    POP      ECX
+        POPAD
+        XOR      ECX, ECX
+        PUSH     [Attr]
+        CALL     ScanDirectory
+        POP      EBX
+@@exit:
+end;
 {$ELSE ASM_VERSION} //Pascal
 procedure TDirList.ScanDirectoryEx(const DirPath, Filters: KOLString;
   Attr: DWord);
@@ -24647,7 +25434,7 @@ begin
 end;
 
 //[function DateTime2StrShort]
-function DateTime2StrShort( D: TDateTime ): AnsiString;
+function DateTime2StrShort( D: TDateTime ): KOLString;
 var ST: TSystemTime;
 begin
   //--------- by Vadim Petrov --------++
@@ -24911,7 +25698,7 @@ end;
 {$ELSE not_USE_CONSTRUCTORS}
 //*
 //[function NewThread]
-function NewThread(const stackize: DWORD = 0): PThread;
+function NewThread: PThread;
 begin
   {$IFNDEF FPC105ORBELOW}
   IsMultiThread := True;
@@ -24923,8 +25710,8 @@ begin
   Result.FSuspended := True;
   {$IFDEF PSEUDO_THREADS}
   {$ELSE}
-  Result.FHandle := CreateThread( nil,         // no security
-                                  stackize,    // the same stack size
+  Result.FHandle := CreateThread( nil, // no security
+                                  0,   // the same stack size
                                   @ThreadFunc, // thread entry point
                                   Result,      // parameter to pass to ThreadFunc
                                   CREATE_SUSPENDED,   // always SUSPENDED
@@ -25479,6 +26266,10 @@ end;
 
 //[function TStream.GetSize]
 {$IFDEF ASM_STREAM}
+function TStream.GetSize: TStrmSize;
+asm
+        CALL     [EAX].fMethods.fGetSiz
+end;
 {$ELSE ASM_VERSION} //Pascal
 function TStream.GetSize: TStrmSize;
 begin
@@ -25488,6 +26279,10 @@ end;
 
 //[procedure TStream.SetSize]
 {$IFDEF ASM_STREAM}
+procedure TStream.SetSize(const NewSize: TStrmSize);
+asm
+        CALL     [EAX].fMethods.fSetSiz
+end;
 {$ELSE ASM_VERSION} //Pascal
 procedure TStream.SetSize(const NewSize: TStrmSize);
 begin
@@ -25503,6 +26298,10 @@ end;
 
 //[function TStream.Read]
 {$IFDEF ASM_STREAM}
+function TStream.Read(var Buffer; const Count: TStrmSize): TStrmSize;
+asm
+        CALL     [EAX].fMethods.fRead
+end;
 {$ELSE ASM_VERSION} //Pascal
 function TStream.Read(var Buffer; const Count: TStrmSize): TStrmSize;
 begin
@@ -25623,6 +26422,10 @@ end;
 
 //[function TStream.Write]
 {$IFDEF ASM_STREAM}
+function TStream.Write(var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize): TStrmSize;
+asm
+        CALL     [EAX].fMethods.fWrite
+end;
 {$ELSE ASM_VERSION} //Pascal
 function TStream.Write(var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize): TStrmSize;
 begin
@@ -25788,6 +26591,11 @@ end;
 
 //[function TStream.Seek]
 {$IFDEF ASM_STREAM}
+function TStream.Seek({$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmMove; MoveMethod: TMoveMethod): TStrmSize;
+//function TStream.Seek(MoveTo: TStrmMove; MoveMethod: TMoveMethod): TStrmSize;
+asm
+        CALL     [EAX].fMethods.fSeek
+end;
 {$ELSE ASM_VERSION} //Pascal
 function TStream.Seek({$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmMove; MoveMethod: TMoveMethod): TStrmSize;
 begin
@@ -25907,6 +26715,16 @@ end;
 
 //[FUNCTION WriteFileStreamEOF]
 {$IFDEF ASM_STREAM}
+function WriteFileStreamEOF( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+asm
+        PUSH     EBX
+        PUSH     [EAX].TStream.fData.fHandle
+        CALL     WriteFileStream
+        XCHG     EBX, EAX
+        CALL     SetEndOfFile
+        XCHG     EAX, EBX
+        POP      EBX
+end;
 {$ELSE ASM_VERSION} //Pascal
 function WriteFileStreamEOF( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
 begin
@@ -25938,6 +26756,29 @@ end;
 
 //[FUNCTION SeekMemStream]
 {$IFDEF ASM_STREAM}
+function SeekMemStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF}
+         MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
+asm
+        PUSH     EBX
+        MOV      EBX, EDX
+        AND      ECX, $FF
+        LOOP     @@not_from_cur
+        ADD      EBX, [EAX].TStream.fData.fPosition
+@@not_from_cur:
+        LOOP     @@not_from_end
+        ADD      EBX, [EAX].TStream.fData.fSize
+@@not_from_end:
+        CMP      EBX, [EAX].TStream.fData.fSize
+        JLE      @@space_ok
+        PUSH     EAX
+        MOV      EDX, EBX
+        CALL     TStream.SetSize
+        POP      EAX
+@@space_ok:
+        XCHG     EAX, EBX
+        MOV      [EBX].TStream.fData.fPosition, EAX
+        POP      EBX
+end;
 {$ELSE ASM_VERSION} //Pascal
 function SeekMemStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF}
          MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
@@ -25974,6 +26815,56 @@ end;
 
 //[PROCEDURE SetSizeMemStream]
 {$IFDEF ASM_STREAM}
+procedure SetSizeMemStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} NewSize: TStrmSize );
+asm
+        push     ebx
+        push     edx
+        xchg     ebx, eax
+        cmp      [ebx].TStream.fData.fCapacity, edx
+        jae      @@mem_ok
+        {$IFDEF OLD_MEMSTREAMS_SETSIZE}
+        or       edx, [CapacityMask]
+        inc      edx
+        {$ENDIF}
+        mov      [ebx].TStream.fData.fCapacity, edx
+        mov      ecx, [ebx].TStream.fMemory
+        jecxz    @@getmem
+        lea      eax, [ebx].TStream.fMemory
+        call     System.@ReallocMem
+        jmp      @@setmem
+
+@@getmem:
+        or       ecx, edx
+        jz       @@mem_ok
+        xchg     eax, ecx
+        call     System.@GetMem
+@@setmem:
+        mov      [ebx].TStream.fMemory, eax
+
+@@mem_ok:
+        pop      ecx // NewSize
+        inc      ecx
+        loop     @@set_new_sz
+        cmp      [ebx].TStream.fData.fSize, ecx
+        jz       @@set_new_sz
+
+        mov      [ebx].TStream.fData.fCapacity, ecx
+        xchg     ecx, [ebx].TStream.fMemory
+        jecxz    @@mem_freed
+        xchg     eax, ecx
+        call     System.@FreeMem
+@@mem_freed:
+        xor      ecx, ecx
+
+@@set_new_sz:
+        mov      [ebx].TStream.fData.fSize, ecx
+        cmp      [ebx].TStream.fData.fPosition, ecx
+        jb       @@exit
+        mov      [ebx].TStream.fData.fPosition, ecx
+
+@@exit:
+        pop      ebx
+end;
 {$ELSE ASM_VERSION} //Pascal
 procedure SetSizeMemStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} NewSize: TStrmSize );
 var S: PStream;
@@ -26015,6 +26906,25 @@ end;
 
 //[FUNCTION ReadMemStream]
 {$IFDEF ASM_STREAM}
+function ReadMemStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+asm
+        PUSH     EBX
+        XCHG     EBX, EAX
+        MOV      EAX, [EBX].TStream.fData.fPosition
+        ADD      EAX, ECX
+        CMP      EAX, [EBX].TStream.fData.fSize
+        JLE      @@count_ok
+        MOV      ECX, [EBX].TStream.fData.fSize
+        SUB      ECX, [EBX].TStream.fData.fPosition
+@@count_ok:
+        PUSH     ECX
+        MOV      EAX, [EBX].TStream.fMemory
+        ADD      EAX, [EBX].TStream.fData.fPosition
+        CALL     System.Move
+        POP      EAX
+        ADD      [EBX].TStream.fData.fPosition, EAX
+        POP      EBX
+end;
 {$ELSE ASM_VERSION} //Pascal
 function ReadMemStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
 var S: PStream;
@@ -26040,6 +26950,30 @@ end;
 
 //[FUNCTION WriteMemStream]
 {$IFDEF ASM_STREAM}
+function WriteMemStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+asm
+        PUSH     EBX
+        XCHG     EBX, EAX
+        MOV      EAX, [EBX].TStream.fData.fPosition
+        ADD      EAX, ECX
+        CMP      EAX, [EBX].TStream.fData.fSize
+        PUSH     EDX
+        PUSH     ECX
+        JLE      @@count_ok
+        XCHG     EDX, EAX
+        MOV      EAX, EBX
+        CALL     TStream.SetSize
+@@count_ok:
+        POP      ECX
+        POP      EAX
+        MOV      EDX, [EBX].TStream.fMemory
+        ADD      EDX, [EBX].TStream.fData.fPosition
+        PUSH     ECX
+        CALL     System.Move
+        POP      EAX
+        ADD      [EBX].TStream.fData.fPosition, EAX
+        POP      EBX
+end;
 {$ELSE ASM_VERSION} //Pascal
 function WriteMemStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
 var S: PStream;
@@ -26408,6 +27342,33 @@ end;
 
 //[FUNCTION WriteExMemoryStream]
 {$IFDEF ASM_STREAM}
+function WriteExMemoryStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+asm
+        PUSH     EBX
+        XCHG     EBX, EAX
+        MOV      EAX, [EBX].TStream.fData.fSize
+        SUB      EAX, [EBX].TStream.fData.fPosition
+        CMP      EAX, ECX
+        JGE      @@1
+        XCHG     ECX, EAX
+@@1:
+        PUSH     EDX
+        PUSH     ECX
+        JLE      @@count_ok
+        XCHG     EDX, EAX
+        MOV      EAX, EBX
+        CALL     TStream.SetSize
+@@count_ok:
+        POP      ECX
+        POP      EAX
+        MOV      EDX, [EBX].TStream.fMemory
+        ADD      EDX, [EBX].TStream.fData.fPosition
+        PUSH     ECX
+        CALL     System.Move
+        POP      EAX
+        ADD      [EBX].TStream.fData.fPosition, EAX
+        POP      EBX
+end;
 {$ELSE ASM_VERSION}
 function WriteExMemoryStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize; 
 var S: PStream;
@@ -26533,6 +27494,68 @@ end;
 {$ENDIF}
 
 {$IFDEF ASM_Resource2Stream}
+function Resource2Stream( DestStrm : PStream; Inst : HInst;
+                          ResName : PAnsiChar; ResType : PAnsiChar ): Integer;
+asm
+        PUSH     EBX
+        PUSH     ESI
+        MOV      EBX, EDX // EBX = Inst
+        PUSH     EAX      // DestStrm
+        PUSH     ResType
+        PUSH     ECX
+        PUSH     EDX
+        CALL     FindResource
+        TEST     EAX, EAX
+        JZ       @@exit0
+
+        PUSH     EAX
+        PUSH     EBX
+        PUSH     EAX
+        PUSH     EBX
+        CALL     SizeofResource
+        XCHG     EBX, EAX
+        CALL     LoadResource
+        TEST     EAX, EAX
+        JZ       @@exit0
+        XCHG     ESI, EAX
+
+        PUSH     ESI
+        CALL     GlobalLock
+        TEST     EAX, EAX
+        JNZ      @@P_ok
+
+        CALL     GetLastError
+        CMP      EAX, ERROR_INVALID_HANDLE
+        JNZ      @@exit_00
+        MOV      EAX, ESI
+
+@@P_ok:
+        XCHG     EDX, EAX
+        POP      EAX // DestStrm
+        PUSH     EDX
+        MOV      ECX, EBX
+        CALL     TStream.Write
+
+        //EAX = Result (length of written data)
+        XCHG     EBX, EAX
+        POP      EAX
+        CMP      ESI, EAX
+        JE       @@not_unlock
+
+        PUSH     ESI
+        CALL     GlobalUnlock
+@@not_unlock:
+        XCHG     EAX, EBX
+        JMP      @@exit
+
+@@exit_00:
+        XOR      EAX, EAX
+@@exit0:
+        POP      ECX
+@@exit:
+        POP      ESI
+        POP      EBX
+end;
 {$ELSE ASM_VERSION} //Pascal
 function Resource2Stream( DestStrm : PStream; Inst : HInst;
                           ResName : PKOLChar; ResType : PKOLChar ): Integer;
@@ -26728,16 +27751,172 @@ const
   IniBufferSize = 32767;
   IniBufferStrSize = IniBufferSize+4;         /// для махинаций :)
 
-//[procedure _FillStrList]
-{$IFDEF ASM_UNICODE}
-{$ELSE ASM_VERSION} //Pascal
-
 //[procedure TIniFile.GetSectionNames]
-  {$IFDEF UNICODE_CTRLS}
-procedure TIniFile.GetSectionNames(Names:PWStrList);
-  {$ELSE}
-procedure TIniFile.GetSectionNames(Names:PStrList);
-  {$ENDIF}
+{$IFDEF ASM_UNICODE}
+procedure _FillStrList;    // Эта часть кода общая для двух следующих процедур
+asm
+///////////////////////////////
+        OR      EAX,0
+        JE      @@EXIT                  //ERROR
+//        LEA     EAX,[EAX-IniBufferSize]
+//        JE      @@EXIT
+//      возможна нехватка Буфера... в принципе не ошибка :)
+//      возвращаем что влезло...
+//////////////////////////////
+@@LOOP:
+        LEA     EAX,[ESI+4]
+        CALL    StrLen
+        MOV     [ESI],EAX
+        LEA     EDX,[ESI+4]
+        INC     EAX
+        ADD     ESI,EAX
+
+        MOV     EAX,EDI
+
+        CALL    TStrList.ADD
+
+        CMP     byte ptr [ESI+4],0
+        JNE     @@LOOP
+
+@@EXIT:
+        POP     EAX
+        CALL    System.@FreeMem
+
+
+        POP     ECX
+        POP     EBX
+        POP     EDI
+        POP     ESI
+end;
+
+procedure TIniFile.GetSectionNames(Names: PStrList);
+asm
+        PUSH    ESI
+        PUSH    EDI
+        PUSH    EBX
+        PUSH    ECX
+
+        MOV     EBX,EAX
+        MOV     EAX, IniBufferStrSize
+        MOV     EDI,EDX
+
+        CALL    System.@GetMem
+        MOV     ESI,EAX
+        PUSH    EAX
+
+        PUSH    [EBX].fFileName
+        MOV     EAX,IniBufferSize
+        PUSH    EAX
+
+        LEA     EAX,[ESI+4]
+        PUSH    EAX
+
+        CALL    GetPrivateProfileSectionNames
+        JMP     _FillStrList
+end;
+
+procedure TIniFile.SectionData(Names: PStrList);
+asm
+        PUSH    ESI
+        PUSH    EDI
+        PUSH    EBX
+        PUSH    ECX
+
+        MOV     EBX,EAX
+        MOV     EAX, IniBufferStrSize
+        MOV     EDI,EDX
+
+        CALL    System.@GetMem
+        MOV     ESI,EAX
+        PUSH    EAX
+
+        OR     [EBX].fMode,0
+        JNE     @@DOWrite
+
+        PUSH    [EBX].fFileName
+        MOV     EAX,IniBufferSize
+        PUSH    EAX
+
+        LEA     EAX,[ESI+4]
+        PUSH    EAX
+        PUSH    [EBX].fSection
+
+        CALL    GetPrivateProfileSection
+        JMP     _FillStrList
+
+@@DOWrite:
+
+        PUSH    EBX
+        PUSH    ESI
+        PUSH    EDX
+        PUSH    EBP
+
+        MOV     EDX,0
+        MOV     EBP,[EDI].TStrList.fCount
+        MOV     EBX,IniBufferSize-2 // оставим место для #0#0
+
+{ECM+++>} OR      EBP,EBP  // otherwise GetPChars when StrList.Count = 0 crashed
+
+@@LOOP:
+        JE      @@ENDLOOP
+
+        OR      EBX,EBX
+        JE      @@ENDLOOP
+
+        PUSH    EDX
+        MOV     EAX,EDI
+        CALL    TStrList.GetPChars
+
+        PUSH    EAX
+        CALL    StrLen
+        POP     EAX
+
+        XOR     ECX,-1
+        MOV     EDX,ESI
+
+        SUB     EBX,ECX
+        JA      @@L1
+        ADD     ECX,EBX
+        XOR     EBX,EBX
+@@L1:
+
+        ADD     ESI,ECX
+
+        CALL    MOVE
+@@L2:
+        POP     EDX
+        INC     EDX
+        DEC     EBP
+        JMP     @@LOOP
+@@ENDLOOP:
+        MOV     WORD PTR [ESI],0
+
+        POP     EBP
+        POP     EDX
+        POP     ESI
+        POP     EBX
+///////////////////////////////////
+        MOV     EAX,EBX                 // нодо очищать
+        CALL    ClearSection
+//////////////////////////////////
+
+        PUSH    [EBX].fFileName
+        PUSH    ESI
+        PUSH    [EBX].fSection
+
+        CALL    WritePrivateProfileSection
+
+        POP     EAX
+        CALL    System.@FreeMem
+
+        POP     ECX
+        POP     EBX
+        POP     EDI
+        POP     ESI
+
+end;
+{$ELSE ASM_VERSION} //Pascal
+procedure TIniFile.GetSectionNames(Names:PXStrList);
 var
   i:integer;
   Pc:PKOLChar;
@@ -26756,7 +27935,7 @@ begin
 end;
 
 //[procedure TIniFile.SectionData]
-procedure TIniFile.SectionData(Names: {$IFDEF UNICODE_CTRLS} PWStrList {$ELSE} PStrList {$ENDIF});
+procedure TIniFile.SectionData(Names: PXStrList);
 var
   i:integer;
   Pc:PKOLChar;
@@ -27781,11 +28960,11 @@ begin
       MII.hSubMenu := FHandle;
     end;
 	{$IFNDEF UNICODE_CTRLS}
-    InsertMenuItem( FParentMenu.FHandle, Before, ByPosition,
+        InsertMenuItem( FParentMenu.FHandle, Before, ByPosition,
                     Windows.PMenuitemInfo( @ MII )^ );
 	{$ELSE}
 	InsertMenuItemW( FParentMenu.FHandle, Before, ByPosition,
-									Windows.PMenuitemInfoW( @ MII )^ );
+                    Windows.PMenuitemInfoW( @ MII )^ );
 	{$ENDIF}
   end
     else
@@ -27849,8 +29028,12 @@ begin
   while I <= High( Template ) do
   begin
     S := Template[ I ];
-    if (S = nil) or (S^ = #0) then break;
-    if String( S ) = {$IFDEF F_P}'' +{$ENDIF} ')' then
+    if  (S = nil) or (S^ = #0) then break;
+    {$IFDEF UNICODE_CTRLS}
+    if KOLString( S ) = {$IFDEF F_P}'' +{$ENDIF} ')' then
+    {$ELSE}
+    if  PWORD(S)^ = WORD(')') then
+    {$ENDIF}
     begin
        Result := I + 1;
        Exit;
@@ -27867,7 +29050,11 @@ begin
     FillChar( MII, Sizeof( MII ), #0 );
     MII.cbSize := MenuStructSize;
     MII.fMask := MIIM_DATA or MIIM_ID or MIIM_STATE or MIIM_SUBMENU or MIIM_TYPE;
-    if String( S ) <> {$IFDEF F_P}'' +{$ENDIF} '-' then
+    {$IFDEF UNICODE_CTRLS}
+    if  KOLString( S ) <> {$IFDEF F_P}'' +{$ENDIF} '-' then
+    {$ELSE}
+    if  PWORD(S)^ <> WORD('-') then
+    {$ENDIF}
     begin
       if (S^ = {$IFDEF F_P}'' +{$ENDIF} '-') or
          (S^ = {$IFDEF F_P}'' +{$ENDIF} '+') then
@@ -27903,15 +29090,21 @@ begin
       Item.FIsSeparator := TRUE;
       MII.fType := MFT_SEPARATOR;
       MII.fState := MFS_GRAYED;
-      MII.wID := 0;
+      //MII.wID := 0;
     end;
     Item.FId := FDynamicMenuID;
     Inc( FDynamicMenuID );
     MII.wID := Item.FId;
     if I <> High( Template ) then            //YS
     begin                                    //YS
-    S1 := Template[ I + 1 ];
-    if String( S1 ) = {$IFDEF F_P}'' +{$ENDIF} '(' then Item.FHandle := CreatePopupMenu;
+        S1 := Template[ I + 1 ];
+        {$IFDEF UNICODE_CTRLS}
+        if  KOLString( S1 ) = {$IFDEF F_P}'' +{$ENDIF} '(' then
+        {$ELSE}
+        //if  KOLString( S1 ) = {$IFDEF F_P}'' +{$ENDIF} '(' then
+        if  (S1 <> nil) and (PWORD(S1)^ = WORD('(')) then
+        {$ENDIF}
+            Item.FHandle := CreatePopupMenu;
     end;                                     //YS
     MII.hSubMenu := Item.FHandle;
     MII.dwTypeData := PKOLChar( S );
@@ -28677,6 +29870,25 @@ begin
   Result.fIsForm := TRUE;
 end;
 {$ENDIF ASM_VERSION}
+
+const Edgestyles: array[ TEdgeStyle ] of DWORD = ( WS_DLGFRAME, SS_SUNKEN, 0, 0, 0);
+
+function NewAlienPanel( AParentWnd: HWnd; EdgeStyle: TEdgeStyle ): PControl;
+begin
+    Result := _NewWindowed( nil, 'KOL', TRUE );
+    Result.fClsStyle := Result.fClsStyle or CS_DBLCLKS;
+    Result.FParentWnd := AParentWnd;
+    Result.AttachProc( WndProcForm );
+    Result.AttachProc( WndProcDoEraseBkgnd );
+    Result.fIsForm := TRUE;
+    Result.fIsControl := TRUE;
+    Result.fStyle := WS_VISIBLE or WS_CHILD or WS_TABSTOP or
+        WS_CLIPSIBLINGS or WS_CLIPCHILDREN or Edgestyles[ EdgeStyle ];
+    Result.fExStyle := Result.fExStyle //or WS_EX_CLIENTEDGE
+        or WS_EX_CONTROLPARENT;
+    Result.SetSize( 100, 64 );
+end;
+
 {$ENDIF GDI}
 {$IFDEF _X_}
 {$IFDEF GTK}
@@ -28736,7 +29948,7 @@ end;
 //===================== Applet button ========================//
 
 //[FUNCTION WndProcApp]
-{$IFDEF ASM_VERSION}
+//22{$IFDEF ASM_VERSION}
   function WndProcAppAsm(Self_: PControl; var Msg: TMsg; var Rslt: Integer): Boolean;
   asm
           CMP      word ptr [EDX].TMsg.message, WM_SETFOCUS
@@ -28787,7 +29999,7 @@ end;
           XOR      EAX, EAX
   @@exit:
   end;
-{$ENDIF}
+//22{$ENDIF}
 
 function WndProcAppPas(Self_: PControl; var Msg: TMsg; var Rslt: Integer): Boolean;
 begin
@@ -28834,6 +30046,122 @@ end;
 
 //[FUNCTION NewApplet]
 {$IFDEF ASM_TLIST}
+function NewApplet( const Caption: KOLString ): PControl;
+const AppClass: array[ 0..3 ] of KOLChar = ( 'A', 'p', 'p', #0 );
+asm
+        XOR      ECX, ECX
+        INC      ECX
+        MOV      [AppButtonUsed], CL
+        PUSH     EAX
+        MOV      EDX, offset[AppClass]
+        XOR      EAX, EAX
+        CALL     _NewWindowed
+        INC      [EAX].TControl.FIsApplet
+        MOV      word ptr [EAX].TControl.fStyle + 2, $90CA //WS_VISIBLE or WS_SYSMENU or WS_POPUP or WS_MINIMIZEBOX or WS_CAPTION
+        MOV      byte ptr [EAX].TControl.fExStyle + 2, WS_EX_APPWINDOW shr 16 // WS_EX_APPWINDOW = $40000
+        CALL     @@newapp1
+
+        PUSH     ESI // BODY of CreateAppButton here
+        PUSH     0
+        PUSH     [EAX].TControl.fHandle
+        CALL     GetSystemMenu
+        MOV      ESI, offset[DeleteMenu]
+
+        XCHG     ECX, EAX
+        MOV      EAX, SC_MAXIMIZE
+        CDQ
+
+        PUSH     EDX
+        PUSH     EAX
+        PUSH     ECX
+
+        PUSH     EDX
+        {$IFDEF PARANOIA} DB $2C, $20 {$ELSE} SUB AL, $20 {$ENDIF} // SC_MOVE
+        PUSH     EAX
+        PUSH     ECX
+
+        PUSH     EDX
+        {$IFDEF PARANOIA} DB $2C, $10 {$ELSE} SUB AL, $10 {$ENDIF} // SC_SIZE
+        PUSH     EAX
+        PUSH     ECX
+
+        PUSH     1    // MF_GRAYED or MF_BYCOMMAND
+        MOV      AX, SC_RESTORE
+        PUSH     EAX
+        PUSH     ECX
+
+        CALL     EnableMenuItem
+        CALL     ESI
+        CALL     ESI
+        CALL     ESI
+        POP      ESI
+@@ret_false:
+        XOR      EAX, EAX
+        RET
+
+@@chk_CLOSE:
+          CMP      word ptr [EDX].TMsg.message, WM_SYSCOMMAND
+          JNZ      @@ret_false
+          MOV      EDX, dword ptr [EDX].TMsg.wParam
+          AND      DX, $FFF0
+          CMP      DX, SC_CLOSE
+          JNZ      @@ret_false
+          PUSH     ECX
+          MOV      ECX, [EAX].TControl.fChildren
+          JECXZ    @@ret_false1
+          XCHG     EAX, ECX
+          MOV      ECX, [EAX].TList.fCount
+          JECXZ    @@ret_false1
+          MOV      EAX, [EAX].TList.fItems
+          MOV      ECX, dword ptr [EAX]
+          JECXZ    @@ret_false1
+          XCHG     EAX, ECX
+          PUSH     EAX
+          CALL     TControl.IsMainWindow
+          TEST     EAX, EAX
+          POP      EAX
+          JZ       @@ret_false1
+          CALL     TControl.Close
+          POP      ECX
+          XOR      EAX, EAX
+          MOV      dword ptr [ECX], EAX
+          INC      EAX
+          RET
+  @@ret_false1:
+          POP      ECX
+          JMP      @@ret_false
+
+@@newapp1:
+        //MOV      [EAX].TControl.FCreateWndExt, offset[CreateAppButton]
+        POP      [EAX].TControl.FCreateWndExt
+        PUSH     EAX
+        CALL     @@newapp2
+
+        // BODY of WndProcApp here:
+        CMP      word ptr [EDX].TMsg.message, WM_SETFOCUS
+        JNZ      @@chk_CLOSE
+        MOV      ECX, [EAX].TControl.FCurrentControl
+        JECXZ    @@ret_false
+        XCHG     EAX, ECX
+
+        PUSH     EAX
+        CALL     CallTControlCreateWindow
+        POP      EAX
+        PUSH     [EAX].TControl.fHandle
+
+        CALL     SetFocus
+        MOV      AL, 1
+        RET
+
+@@newapp2:
+        POP      EDX
+        CALL     TControl.AttachProc
+        POP      EAX
+        POP      EDX
+        PUSH     EAX
+        CALL     TControl.SetCaption
+        POP      EAX
+end;
 {$ELSE ASM_VERSION} //Pascal
 
 //[procedure CreateAppButton]
@@ -28917,6 +30245,102 @@ var CtlIdCount: WORD = $8000;
 //[FUNCTION _NewControl]
 {$IFDEF GDI}
 {$IFDEF ASM_UNICODE}
+function _NewControl( AParent: PControl; ControlClassName: PKOLChar;
+                      Style: DWORD; Ctl3D: Boolean; Actions: PCommandActions ): PControl;
+const szActions = sizeof(TCommandActions);
+asm
+        PUSH     EBX
+        PUSH     EAX  // push AParent
+        PUSH     ECX  // push Style
+        MOVZX    ECX, Ctl3D
+        CALL     _NewWindowed
+        XCHG     EBX, EAX
+        INC      [EBX].TControl.fIsControl
+        INC      [EBX].TControl.fVerticalAlign
+        MOV      EAX, Actions
+        TEST     EAX, EAX
+        JZ       @@noActions
+        LEA      EDX, [EBX].TControl.fCommandActions
+        XOR      ECX, ECX
+        MOV      CL, szActions
+        CALL     System.Move
+@@noActions:
+        POP      EDX  // pop Style
+        OR       EDX, WS_CLIPSIBLINGS or WS_CLIPCHILDREN
+        MOV      byte ptr [EBX].TControl.fLookTabKeys, $0F
+        CMP      [EBX].TControl.fCtl3D, 0
+        JZ       @@noCtl3D
+        AND      EDX, not WS_BORDER
+        OR       byte ptr [EBX].TControl.fExStyle + 1, WS_EX_CLIENTEDGE shr 8
+@@noCtl3D:
+        MOV      [EBX].TControl.fStyle, EDX
+        TEST     EDX, WS_VISIBLE
+        SETNZ    AL
+        MOV      [EBX].TControl.fVisible, AL
+        TEST     EDX, WS_TABSTOP
+        POP      ECX // pop AParent
+        PUSHFD
+        JECXZ    @@noParent
+
+        PUSH     ESI
+        PUSH     EDI
+        LEA      ESI, [ECX].TControl.fMargin
+        LEA      EDI, [EBX].TControl.fBoundsRect
+        LODSD
+        {$IFNDEF SMALLEST_CODE}
+        PUSH     EAX
+        ADD      EAX, [ESI+24] // AParent.fClientLeft
+        {$ENDIF}
+        STOSD    // fBoundsRect.Left
+        {$IFNDEF SMALLEST_CODE}
+        POP      EAX
+        PUSH     EAX
+        ADD      EAX, [ESI+16] // AParent.fClientTop
+        {$ENDIF}
+        STOSD    // fBoundsRect.Top
+        {$IFNDEF SMALLEST_CODE}
+        XCHG     EDX, EAX
+        POP      EAX
+        {$ENDIF}
+        ADD      EAX, 64
+        STOSD    // fBoundsRect.Right
+        {$IFNDEF SMALLEST_CODE}
+        XCHG     EAX, EDX
+        ADD      EAX, 64
+        {$ENDIF}
+        STOSD    // fBoundsRect.Bottom}
+        POP      EDI
+        POP      ESI
+
+        MOV      EAX, [ECX].TControl.fCursor
+        MOV      [EBX].TControl.fCursor, EAX
+        XCHG     EAX, ECX
+        CALL     TControl.ParentForm
+        XCHG     ECX, EAX
+        JECXZ    @@noParent
+        INC      [ECX].TControl.fTabOrder
+        MOV      EDX, [ECX].TControl.fTabOrder
+        MOV      [EBX].TControl.fTabOrder, EDX
+@@noParent:
+        POPFD
+        JZ       @@noTabStop
+        INC      [EBX].TControl.fTabstop
+        JECXZ    @@noTabstop
+        XCHG     EAX, ECX
+        MOV      ECX, [EAX].TControl.FCurrentControl
+        INC      ECX
+        LOOP     @@noTabStop
+        MOV      [EAX].TControl.FCurrentControl, EBX
+@@noTabStop:
+        MOVZX    EDX, [CtlIdCount]
+        INC      [CtlIdCount]
+        MOV      [EBX].TControl.fMenu, EDX
+        MOV      EDX, offset[WndProcCtrl]
+        MOV      EAX, EBX
+        CALL     TControl.AttachProc
+        XCHG     EAX, EBX
+        POP      EBX
+end;
 {$ELSE ASM_VERSION} //Pascal
 function _NewControl( AParent: PControl; ControlClassName: PKOLChar;
   Style: DWORD; Ctl3D: Boolean; Actions: PCommandActions ): PControl;
@@ -28934,13 +30358,17 @@ begin
   begin
     with Result.fBoundsRect do
     begin
-     Left := AParent.fMargin + AParent.fClientLeft;
-     Top  := AParent.fMargin + AParent.fClientTop;
-     Right := Left + 64;
-     Bottom := Top + 64;
+        Left := AParent.fMargin + AParent.fClientLeft;
+        Top  := AParent.fMargin + AParent.fClientTop;
+        Right := Left + 64;
+        Bottom := Top + 64;
     end;
-    Inc( AParent.ParentForm.fTabOrder );
-    Result.fTabOrder := AParent.ParentForm.fTabOrder;
+    Form := AParent.ParentForm;
+    if  Form <> nil then
+    begin
+        Inc( Form.fTabOrder );
+        Result.fTabOrder := Form.fTabOrder;
+    end;
     Result.fCursor := AParent.fCursor;
   end;
   Result.fLookTabKeys := [ tkTab, tkLeftRight, tkUpDown, tkPageUpPageDn ];
@@ -29095,9 +30523,9 @@ begin
 end;
 {$ELSE USE_CONSTRUCTORS}
 
-{$IFDEF ASM_VERSION}
+//22{$IFDEF ASM_VERSION}
 const ButtonClass: array[ 0..6 ] of KOLChar = ( 'B','U','T','T','O','N',#0 );
-{$ENDIF ASM_VERSION}
+//22{$ENDIF ASM_VERSION}
 
 //[FUNCTION NewButton]
 {$IFDEF ASM_VERSION}
@@ -30271,7 +31699,7 @@ end;
 function NewRadiobox( AParent: PControl; const Caption: KOLString ): PControl;
 begin
   Result := NewCheckbox( AParent, Caption );
-  Result.fStyle := WS_VISIBLE or WS_CHILD or 
+  Result.fStyle := WS_VISIBLE or WS_CHILD or
             BS_RADIOBUTTON or WS_TABSTOP or WS_GROUP or BS_NOTIFY;
   Result.fControlClick := ClickRadio;
   if AParent <> nil then
@@ -30298,9 +31726,6 @@ end;
 
 {$ENDIF WIN_GDI}
 {$IFNDEF USE_CONSTRUCTORS}
-{$IFDEF ASM_VERSION}
-const StaticClass: Array[0..6] of AnsiChar=('S','T','A','T','I','C',#0);
-{$ENDIF ASM_VERSION}
 {$ENDIF not USE_CONSTRUCTORS}
 {$IFDEF USE_CONSTRUCTORS}
 //[function NewLabel]
@@ -30314,6 +31739,45 @@ end;
 //[FUNCTION NewLabel]
 {$IFDEF GDI}
 {$IFDEF ASM_UNICODE}
+const StaticClass: Array[0..6] of AnsiChar=('S','T','A','T','I','C',#0);
+function NewLabel( AParent: PControl; const Caption: KOLString ): PControl;
+asm
+        PUSH     EDX
+
+        PUSH     0
+        PUSH     offset[LabelActions]
+        MOV      ECX, WS_VISIBLE or WS_CHILD or SS_LEFTNOWORDWRAP or SS_NOPREFIX or SS_NOTIFY
+        MOV      EDX, offset[StaticClass]
+        CALL     _NewControl
+        INC      [EAX].TControl.fIsStaticControl
+        INC      [EAX].TControl.fSizeRedraw
+        MOV      EDX, [EAX].TControl.fBoundsRect.Top
+        ADD      EDX, 22
+        MOV      [EAX].TControl.fBoundsRect.Bottom, EDX
+        POP      EDX
+        PUSH     EAX
+        CALL     TControl.SetCaption
+        POP      EAX
+        
+{$IFDEF GRAPHCTL_XPSTYLES}
+        PUSH     EDX
+        MOV      DL, [EAX].TControl.fTransparent
+        MOV      [EAX].TControl.fClassicTransparent, DL
+        POP      EDX
+        
+        PUSH     EDX
+        PUSH     EAX
+        CALL     Attach_WM_THEMECHANGED
+        POP      EAX
+        POP      EDX
+
+        PUSH     EDX
+        PUSH     EAX
+        CALL     XP_Themes_For_Label
+        POP      EAX
+        POP      EDX
+{$ENDIF}
+end;
 {$ELSE ASM_VERSION} //Pascal
 function NewLabel( AParent: PControl; const Caption: KOLString ): PControl;
 begin
@@ -30736,7 +32200,6 @@ end;
 //[function NewScrollBox]
 function NewScrollBox( AParent: PControl; EdgeStyle: TEdgeStyle;
          Bars: TScrollerBars ): PControl;
-const Edgestyles: array[ TEdgeStyle ] of DWORD = ( WS_DLGFRAME, SS_SUNKEN, 0, 0, 0);
 var SBFlag: Integer;
 begin
   SBFlag := EdgeStyles[ EdgeStyle ];
@@ -31030,6 +32493,57 @@ end;
 
 //[FUNCTION NewGroupbox]
 {$IFDEF ASM_UNICODE}
+function NewGroupbox( AParent: PControl; const Caption: KOLString ): PControl;
+asm
+        PUSH     EDX
+        PUSH     0
+        PUSH     offset[ButtonActions]
+        MOV      EDX, offset[ButtonClass]
+        MOV      ECX, WS_VISIBLE or WS_CHILD or BS_GROUPBOX or WS_CLIPCHILDREN or WS_CLIPSIBLINGS
+        CALL     _NewControl
+        OR       [EAX].TControl.fExStyle, WS_EX_CONTROLPARENT
+        MOV      EDX, [EAX].TControl.fBoundsRect.Left
+        ADD      EDX, 100
+        MOV      [EAX].TControl.fBoundsRect.Right, EDX
+        MOV      EDX, [EAX].TControl.fBoundsRect.Top
+        ADD      EDX, 100
+        MOV      [EAX].TControl.fBoundsRect.Bottom, EDX
+        MOV      [EAX].TControl.fClientTop, 22
+        XOR      EDX, EDX
+        MOV      [EAX].TControl.fTabstop, DL
+        MOV      DL, 2
+        ADD      [EAX].TControl.fClientBottom, EDX
+        ADD      [EAX].TControl.fClientLeft, EDX
+        ADD      [EAX].TControl.fClientRight, EDX
+        POP      EDX
+        PUSH     EAX
+        CALL     TControl.SetCaption
+        POP      EAX
+        PUSH     EAX
+        INC      [EAX].TControl.fIsGroupBox
+        MOV      EDX, offset[WndProcDoEraseBkgnd]
+        CALL     TControl.AttachProc
+        POP      EAX
+
+{$IFDEF GRAPHCTL_XPSTYLES}
+        PUSH     EDX
+        MOV      DL, [EAX].TControl.fTransparent
+        MOV      [EAX].TControl.fClassicTransparent, DL
+        POP      EDX
+
+        PUSH     EDX
+        PUSH     EAX
+        CALL     Attach_WM_THEMECHANGED
+        POP      EAX
+        POP      EDX
+
+        PUSH     EDX
+        PUSH     EAX
+        CALL     XP_Themes_For_GroupBox
+        POP      EAX
+        POP      EDX
+{$ENDIF}
+end;
 {$ELSE ASM_VERSION} //Pascal
 function NewGroupbox( AParent: PControl; const Caption: KOLString ): PControl;
 begin
@@ -31080,9 +32594,78 @@ end;
 
 //[FUNCTION NewPanel]
 {$IFDEF ASM_UNICODE}
+function NewPanel( AParent: PControl; EdgeStyle: TEdgeStyle ): PControl;
+const CreateStyle = WS_VISIBLE or WS_CHILD or SS_LEFTNOWORDWRAP or
+                    SS_NOPREFIX or SS_NOTIFY;
+asm
+{$IFDEF GRAPHCTL_XPSTYLES}
+        MOVZX    EDX, EdgeStyle
+        PUSH     EDX
+{$ENDIF}
+
+        PUSH     EDX
+        MOV      EDX, offset[StaticClass]
+        MOV      ECX, CreateStyle
+        PUSH     0
+        PUSH     offset[LabelActions]
+        CALL     _NewControl
+        ADD      [EAX].TControl.fBoundsRect.Right, 100-64
+        ADD      [EAX].TControl.fBoundsRect.Bottom, 100-64
+        OR       byte ptr [EAX].TControl.fExStyle+2, 1
+        POP      ECX
+        CMP      CL, 1
+        JG       @@exit
+        JE       @@sunken
+        OR       byte ptr [EAX].TControl.fStyle+2, $40
+{$IFDEF GRAPHCTL_XPSTYLES}
+        JMP      @@visual
+{$ELSE}
+        RET
+{$ENDIF}
+@@sunken:
+        OR       byte ptr [EAX].TControl.fStyle+1, $10
+@@exit:
+
+{$IFDEF GRAPHCTL_XPSTYLES}
+@@visual:
+        CMP      AppTheming, TRUE
+        JNE      @@es_none_
+        CMP      CL, 1
+        JG       @@es_none_
+        JE       @@not_sunken
+        AND      byte ptr [EAX].TControl.fStyle+2, $00
+        JNE      @@es_none_
+@@not_sunken:
+        AND      byte ptr [EAX].TControl.fStyle+1, $00
+@@es_none_:
+
+        PUSH     EBX
+        MOV      BL, [EAX].TControl.fTransparent
+        MOV      [EAX].TControl.fClassicTransparent, BL
+        POP      EBX
+        
+        POP      EDX
+        PUSH     EAX
+        PUSH     EDX
+        CALL     TControl.SetEdgeStyle
+        POP      EDX
+        POP      EAX
+
+        PUSH     EDX
+        PUSH     EAX
+        CALL     Attach_WM_THEMECHANGED
+        POP      EAX
+        POP      EDX
+
+        PUSH     EDX
+        PUSH     EAX
+        CALL     XP_Themes_For_Panel
+        POP      EAX
+        POP      EDX
+{$ENDIF}
+end;
 {$ELSE ASM_VERSION} //Pascal
 function NewPanel( AParent: PControl; EdgeStyle: TEdgeStyle ): PControl;
-const Edgestyles: array[ TEdgeStyle ] of DWORD = ( WS_DLGFRAME, SS_SUNKEN, 0, 0, 0 );
 begin
   Result := _NewControl( AParent, 'STATIC', WS_VISIBLE or WS_CHILD or SS_NOTIFY or
                          SS_LEFTNOWORDWRAP or SS_NOPREFIX, False, @LabelActions );
@@ -31755,6 +33338,43 @@ end;
 //[END NewEditbox]
 {$ELSE not_USE_CONSTRUCTORS}
 
+{$IFDEF _D3orHigher}
+function WndProcUnicodeChars( Sender: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean;
+var WStr: KOLString;
+    RepeatCount: Integer;
+begin
+    Result := FALSE;
+    (*if  (Msg.message = WM_KEYDOWN) and
+        (Msg.wParam = $E7 {VK_PACKET}) then
+    begin
+        Sender.fColumn := 1;
+    end
+      else*)
+    if  //(Sender.fColumn = 1) and
+        (Msg.message = WM_CHAR) and (Msg.wParam <> 8) then
+    begin
+        Result := TRUE;
+        WStr := WideChar(Msg.wParam);
+        if  WStr <> '' then
+        begin
+            RepeatCount := Msg.lParam and $FFFF;
+            if  RepeatCount > 1 then
+            begin
+                for RepeatCount := 2 to RepeatCount do
+                    WStr := WStr + WStr[1];
+            end;
+            Sender.ReplaceSelection( WStr, TRUE );
+        end;
+        Rslt := 0;
+    end
+      {else
+    if  Msg.message = WM_KEYUP then
+    begin
+        Sender.fColumn := 0;
+    end};
+end;
+{$ENDIF _D3orHigher}
+
 //[FUNCTION NewEditBox]
 {$IFDEF ASM_VERSION}
 {$ELSE ASM_VERSION} //Pascal
@@ -31782,6 +33402,11 @@ begin
      Result.fLookTabKeys := [ tkTab ];
   if eoWantTab in Options then
      Result.fLookTabKeys := Result.fLookTabKeys - [ tkTab ];
+  {$IFDEF UNICODE_CTRLS}
+  {$IFDEF _D3orHigher}
+  Result.AttachProc( WndProcUnicodeChars );
+  {$ENDIF}
+  {$ENDIF}
 end;
 {$ENDIF ASM_VERSION}
 //[END NewEditBox]
@@ -31809,6 +33434,29 @@ end;
 
 //[FUNCTION NewListbox]
 {$IFDEF ASM_UNICODE}
+const ListBoxClass : Array[ 0..7 ] of AnsiChar = ( 'L','I','S','T','B','O','X',#0 );
+function NewListbox( AParent: PControl; Options: TListOptions ): PControl;
+asm
+        PUSH     EAX
+        PUSH     EDX
+        MOV      EAX, ESP
+        MOV      EDX, offset[ListFlags]
+        XOR      ECX, ECX
+        MOV      CL, 11
+        CALL     MakeFlags
+        POP      EDX
+        OR       EAX, WS_VISIBLE or WS_CHILD or WS_TABSTOP or WS_BORDER or WS_VSCROLL or LBS_NOTIFY
+        XCHG     ECX, EAX
+        POP      EAX
+        PUSH     1
+        PUSH     offset[ListActions]
+        MOV      EDX, offset[ListBoxClass]
+        CALL     _NewControl
+        ADD      [EAX].TControl.fBoundsRect.Right, 100
+        ADD      [EAX].TControl.fBoundsRect.Bottom, 200-64
+        MOV      [EAX].TControl.fColor, clWindow
+        MOV      [EAX].TControl.fLookTabKeys, 3
+end;
 {$ELSE ASM_VERSION} //Pascal
 function NewListbox( AParent: PControl; Options: TListOptions ): PControl;
 var Flags: Integer;
@@ -31999,6 +33647,34 @@ end;
 
 //[PROCEDURE CreateComboboxWnd]
 {$IFDEF ASM_UNICODE}
+procedure CreateComboboxWnd( Combo: PControl );
+//const PrevProcStr: PAnsiChar = 'PREV_PROC'; //************ Remarked By M.Gerasimov
+asm
+        PUSH     EDI
+        PUSH     EBX
+        XCHG     EBX, EAX
+        PUSH     GW_CHILD
+        PUSH     [EBX].TControl.fHandle
+@@getwindow:
+        CALL     GetWindow
+        TEST     EAX, EAX
+        JZ       @@fin
+        PUSH     offset[WndFuncCombo]
+        PUSH     GWL_WNDPROC
+        PUSH     EAX
+        XCHG     EDI, EAX
+        CALL     SetWindowLong
+        PUSH     EAX
+        PUSH     offset [ID_PREVPROC]                       //
+        PUSH     EDI
+        CALL     SetProp
+@@2getnext:
+        PUSH     GW_HWNDNEXT
+        PUSH     EDI
+        JMP      @@getwindow
+@@fin:  POP      EBX
+        POP      EDI
+end;
 {$ELSE ASM_VERSION} //Pascal
 procedure CreateComboboxWnd( Combo: PControl );
 var W : HWND;
@@ -32033,6 +33709,11 @@ end;
 
 //[function WndProcCombo]
 function WndProcCombo( Sender: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean;
+{$IFDEF UNICODE_CTRLS}
+var s: KOLString;
+    w: PWideChar;
+    L: Integer;
+{$ENDIF}
 begin
   Result := FALSE;
   if (Msg.message >= WM_CTLCOLORMSGBOX) and (Msg.message <= WM_CTLCOLORSTATIC) then
@@ -32077,7 +33758,26 @@ begin
   end
     else
   if Msg.message = WM_DESTROY then
-    RemoveChldPrevProc( Sender.Handle );
+    RemoveChldPrevProc( Sender.Handle )
+  {$IFDEF UNICODE_CTRLS}
+    else
+  if  (Msg.message = CB_INSERTSTRING)
+  or  (Msg.message = CB_ADDSTRING) then
+  begin
+      if  not Sender.fIsButton then
+      begin
+          Sender.fIsButton := TRUE;
+          w := Pointer( Msg.lParam );
+          L := WStrLen( w );
+          SetLength( s, L );
+          move( w^, s[1], L * SizeOf(KOLChar) );
+          Rslt := SendMessageW( Msg.hwnd, Msg.message, Msg.wParam,
+               Integer( @s[1] ) );
+          Result := TRUE;
+          Sender.fIsButton := FALSE;
+      end;
+  end;
+  {$ENDIF}
 end;
 
 const ComboFlags: array[ TComboOption ] of Integer = (
@@ -32134,6 +33834,29 @@ end;
 
 //[FUNCTION WndProcResiz]
 {$IFDEF ASM_TLIST}
+function WndProcResize(Self_: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean;
+asm
+        PUSH     ESI
+        CMP      word ptr [EDX].TMsg.message, WM_SIZE
+        JNZ      @@exit
+
+        MOV      ESI, [EAX].TControl.fChildren
+        MOV      ECX, [ESI].TList.fCount
+        JECXZ    @@exit
+        MOV      ESI, [ESI].TList.fItems
+@@loo:  PUSH     ECX
+        LODSD
+        PUSH     EAX
+        PUSH     EAX
+        PUSH     CM_SIZE
+        PUSH     EAX
+        CALL     TControl.Perform
+        POP      ECX
+        LOOP     @@loo
+
+@@exit: XOR      EAX, EAX
+        POP      ESI
+end;
 {$ELSE ASM_VERSION} //Pascal
 function WndProcResize(Self_: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean;
 var I: Integer;
@@ -32417,6 +34140,243 @@ end;
 
 //[FUNCTION WndProcTreeView]
 {$IFDEF ASM_UNICODE}
+function WndProcTreeView( Self_: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean;
+asm     //cmd    //opd
+        CMP      word ptr [EDX].TMsg.message, WM_NOTIFY
+        JNZ      @@ret_false
+        PUSH     EBX
+        XCHG     EBX, EAX
+        MOV      EDX, [EDX].TMsg.lParam
+        LEA      EAX, [EBX].TControl.fOnTVBeginDrag
+        CMP      word ptr [EDX].TNMTreeView.hdr.code, NM_RCLICK
+        JNE      @@chk_TVN_BEGINDRAG
+        PUSH     ECX
+        PUSH     ECX
+        PUSH     ESP
+        CALL     GetCursorPos
+        MOV      EAX, EBX
+        MOV      EDX, ESP
+        MOV      ECX, EDX
+        CALL     TControl.Screen2Client
+        POP      EAX
+        AND      EAX, $FFFF
+        POP      EDX
+        SHL      EDX, 16
+        OR       EAX, EDX
+        PUSH     EAX
+        CALL     GetShiftState
+        PUSH     EAX
+        PUSH     WM_RBUTTONUP
+        PUSH     [EBX].TControl.fHandle
+        CALL     PostMessage
+        JMP      @@2fin_false1
+
+@@chk_TVN_BEGINDRAG:
+        {$IFDEF UNICODE_CTRLS}
+        CMP      word ptr [EDX].TNMTreeView.hdr.code, TVN_BEGINDRAGW
+        JZ       @@event_drag
+        CMP      word ptr [EDX].TNMTreeView.hdr.code, TVN_BEGINRDRAGW
+        JZ       @@event_drag
+        {$ENDIF UNICODE_CTRLS}
+        CMP      word ptr [EDX].TNMTreeView.hdr.code, TVN_BEGINDRAG
+        JZ       @@event_drag
+        CMP      word ptr [EDX].TNMTreeView.hdr.code, TVN_BEGINRDRAG
+        JNZ      @@chk_BEGINLABELEDIT
+@@event_drag:
+        MOV      EDX, [EDX].TNMTreeView.itemNew.hItem
+@@event_call:
+        MOV      ECX, [EAX].TMethod.Code
+        JECXZ    @@2fin_false1
+        MOV      EAX, [EAX].TMethod.Data
+        XCHG     EBX, ECX
+        XCHG     EDX, ECX
+        CALL     EBX
+@@2fin_false1:   JMP      @@fin_false
+@@chk_BEGINLABELEDIT:
+        LEA      EAX, [EBX].TControl.fOnTVBeginEdit
+        {$IFDEF UNICODE_CTRLS}
+        CMP      word ptr [EDX].TNMTreeView.hdr.code, TVN_BEGINLABELEDITW
+        JZ       @@beginlabeledit
+        {$ENDIF UNICODE_CTRLS}
+        CMP      word ptr [EDX].TNMTreeView.hdr.code, TVN_BEGINLABELEDIT
+        JNZ      @@chk_ITEMEXPANDED //@@chk_DELETEITEM
+@@beginlabeledit:
+
+        CMP      [EBX].TControl.fDragging, 0
+        JZ       @@allow_LABELEDIT
+        XOR      EAX, EAX
+        INC      EAX
+        MOV      [ECX], EAX
+        JMP      @@ret_true
+
+@@allow_LABELEDIT:
+        PUSH     ECX // @Rslt
+
+        MOV      ECX, [EAX].TMethod.Code
+        JECXZ    @@2fin_false1
+        PUSH     EBX
+        XCHG     EBX, ECX
+        MOV      EDX, [EDX].TTVDispInfo.item.hItem
+        XCHG     EDX, ECX
+        MOV      EAX, [EAX].TMethod.Data
+        CALL     EBX
+        TEST     AL, AL
+        SETZ     AL        // Rslt := not event result;
+        POP      EBX
+        JZ       @@ret_EAX
+        INC      [EBX].TControl.fEditing
+        JMP      @@ret_EAX
+
+@@call_EBX:
+        CALL     EBX
+@@2fin_false:
+        JMP      @@fin_false
+@@chk_ITEMEXPANDED:
+        LEA      EAX, [EBX].TControl.fOnTVExpanded
+        {$IFDEF UNICODE_CTRLS}
+        CMP      word ptr [EDX].TNMTreeView.hdr.code, TVN_ITEMEXPANDEDW
+        JZ       @@itemexpanded
+        {$ENDIF UNICODE_CTRLS}
+        CMP      word ptr [EDX].TNMTreeView.hdr.code, TVN_ITEMEXPANDED
+        JNZ      @@chk_SELCHANGING
+@@itemexpanded:
+        MOV      ECX, [EAX].TMethod.Code
+        JECXZ    @@2fin_false
+        CMP      [EDX].TNMTreeView.action, TVE_EXPAND
+        PUSH     ECX
+        SETZ     CL
+        XCHG     ECX, [ESP]
+        JMP      @@event_drag
+@@chk_SELCHANGING:
+        CMP      word ptr [EDX].TNMTreeView.hdr.code, TVN_SELCHANGING
+        JNE      @@chk_ITEMEXPANDING
+        XCHG     EAX, ECX
+        MOV      ECX, [EBX].TControl.fOnTVSelChanging.TMethod.Code
+@@2fin_false2:
+        JECXZ    @@2fin_false
+        PUSH     EAX  //@Rslt
+        PUSH     [EDX].TNMTreeView.itemNew.hItem
+        XCHG     ECX, EBX //EBX=OnTVSelChanging.Code ECX=Sender
+        XCHG     ECX, EDX //EDX=Sender ECX=Msg
+        MOV      ECX, [ECX].TNMTreeView.itemOld.hItem
+        MOV      EAX, [EDX].TControl.fOnTVSelChanging.TMethod.Data
+        CALL     EBX
+        XOR      AL, 1
+        MOVZX    EAX, AL
+        JMP      @@ret_EAX
+
+@@chk_ITEMEXPANDING:
+        {$IFDEF UNICODE_CTRLS}
+        CMP      word ptr [EDX].TNMTreeView.hdr.code, TVN_ITEMEXPANDINGW
+        JZ       @@itemexpanding
+        {$ENDIF UNICODE_CTRLS}
+        CMP      word ptr [EDX].TNMTreeView.hdr.code, TVN_ITEMEXPANDING
+        JNE      @@chk_ENDLABELEDIT
+@@itemexpanding:
+        XCHG     EAX, ECX
+        MOV      ECX, [EBX].TControl.fOnTVExpanding.TMethod.Code
+        JECXZ    @@2fin_false2
+        PUSH     EAX // @Rslt
+        CMP      [EDX].TNMTreeView.action, TVE_EXPAND
+        PUSH     ECX
+        SETZ     CL
+        XCHG     ECX, [ESP]
+        XCHG     ECX, EBX  //EBX=OnTVExpanding.Code ECX=Seneder
+        XCHG     EDX, ECX  //ECX=Msg EDX=Sender
+        MOV      ECX, [ECX].TNMTreeView.itemNew.hItem //ECX=Item
+        MOV      EAX, [EDX].TControl.fOnTVExpanding.TMethod.Data //EAX=object
+@@111:
+        CALL     EBX
+@@ret_EAX:
+        POP      EDX //EDX=@Rslt
+        MOVZX    EAX, AL
+        NEG      EAX
+        MOV      [EDX], EAX
+@@ret_true:
+        MOV      AL, 1
+        POP      EBX
+        RET
+@@chk_ENDLABELEDIT:
+        {$IFDEF UNICODE_CTRLS}
+        CMP      word ptr [EDX].TNMTreeView.hdr.code, TVN_ENDLABELEDITW
+        JZ       @@endlabeledit
+        {$ENDIF UNICODE_CTRLS}
+        CMP      word ptr [EDX].TNMTreeView.hdr.code, TVN_ENDLABELEDIT
+        JNZ      @@chk_SELCHANGED
+@@endlabeledit:
+        MOV      [EBX].TControl.fEditing, 0
+        XCHG     EAX, ECX
+        MOV      ECX, [EBX].TControl.fOnTVEndEdit.TMethod.Code
+        JECXZ    @@ret_1
+        PUSH     EAX
+        PUSH     EBX
+        PUSH     0
+
+        XCHG     EDX, EBX
+        MOV      EAX, [EBX].TTVDispInfo.item.pszText
+        PUSH     EDX
+        PUSH     ECX
+        XCHG     EAX, EDX
+        {$IFDEF UNICODE_CTRLS}
+        CMP      [EBX].TNMTreeView.hdr.code, TVN_ENDLABELEDITW
+        JNZ      @@endlabeleditA
+        CALL     TControl.TVGetItemTextW
+        JMP      @@NewTxt_ready
+@@endlabeleditA:
+        {$ENDIF UNICODE_CTRLS}
+        TEST     EDX, EDX
+        JNZ      @@prepare_NewTxt
+        // NewTxt := [EDX].TControl.TVItemText[ hItem ]
+        LEA      ECX, [ESP + 8]
+        MOV      EDX, [EBX].TTVDispInfo.item.hItem
+        CALL     TControl.TVGetItemText
+        JMP      @@NewTxt_ready
+@@prepare_NewTxt:
+        LEA      EAX, [ESP+8]
+        {$IFDEF _D2009orHigher}
+        PUSH     ECX // TODO: wakeup me
+        XOR      ECX, ECX
+        {$ENDIF}
+        CALL     System.@LStrFromPChar
+        {$IFDEF _D2009orHigher}
+        POP      ECX
+        {$ENDIF}
+@@NewTxt_ready:
+        POP      ECX
+        POP      EDX
+        POP      EAX
+        PUSH     EAX
+        PUSH     EAX
+        MOV      EAX, [EDX].TControl.fOnTVEndEdit.TMethod.Data
+        MOV      EBX, [EBX].TTVDispInfo.item.hItem
+        XCHG     ECX, EBX
+        CALL     EBX
+        XCHG     EBX, EAX
+        CALL     RemoveStr
+        XCHG     EAX, EBX
+        POP      EBX
+        JMP      @@ret_EAX
+@@ret_1:
+        INC      ECX
+        MOV      [EAX], ECX
+        JMP      @@ret_true
+
+@@chk_SELCHANGED:
+        {$IFDEF UNICODE_CTRLS}
+        CMP      word ptr [EDX].TNMTreeView.hdr.code, TVN_SELCHANGEDW
+        JZ       @@selchanged
+        {$ENDIF UNICODE_CTRLS}
+        CMP      word ptr [EDX].TNMTreeView.hdr.code, TVN_SELCHANGED
+        JNZ      @@fin_false
+@@selchanged:
+        XCHG     EAX, EBX
+        CALL     TControl.DoSelChange
+
+@@fin_false:
+        POP      EBX
+@@ret_false:
+        XOR      EAX, EAX
+end;
 {$ELSE ASM_VERSION} //Pascal
 function WndProcTreeView( Self_: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean;
 var NM: PNMTreeView;
@@ -32741,6 +34701,76 @@ end;
 
 //[FUNCTION NewTabControl]
 {$IFDEF ASM_UNICODE}
+function NewTabControl( AParent: PControl; const Tabs: array of PKOLChar; Options: TTabControlOptions;
+         ImgList: PImageList; ImgList1stIdx: Integer ): PControl;
+const lenf=high(TabControlFlags); //+++
+asm     //cmd    //opd
+        PUSH     EBX
+        PUSH     ESI
+        PUSH     EDI
+        XCHG     EBX, EAX
+        PUSH     EDX
+        PUSH     ECX
+        LEA      EAX, [Options]
+        MOV      EDX, offset[TabControlFlags]
+        XOR      ECX, ECX
+        MOV      CL, lenf
+        CALL     MakeFlags
+        TEST     byte ptr [Options], 4
+        JZ       @@0
+        OR       EAX, WS_TABSTOP or TCS_FOCUSONBUTTONDOWN
+@@0:    OR       EAX, WS_CHILD or WS_CLIPSIBLINGS or WS_CLIPCHILDREN or WS_VISIBLE
+        XCHG     ECX, EAX
+        XCHG     EAX, EBX
+        MOV      EDX, offset[WC_TABCONTROL]
+        PUSH     1
+        PUSH     offset[TabControlActions]
+        CALL     _NewCommonControl
+        MOV      EBX, EAX
+        TEST     [Options], 2 shl (tcoBorder - 1)
+        JNZ      @@borderfixed
+        AND      [EBX].TControl.fExStyle, not WS_EX_CLIENTEDGE
+@@borderfixed:
+        MOV      EDX, offset[WndProcTabControl]
+        CALL     TControl.AttachProc
+        ADD      [EBX].TControl.fBoundsRect.Right, 100-64
+        ADD      [EBX].TControl.fBoundsRect.Bottom, 100-64
+        MOV      ECX, [ImgList]
+        JECXZ    @@2
+        XCHG     EAX, ECX
+        CALL     TImageList.GetHandle
+        PUSH     EAX
+        PUSH     0
+        PUSH     TCM_SETIMAGELIST
+        PUSH     EBX
+        CALL     TControl.Perform
+@@2:
+        POP      EDI // EDI = High(Tabs)
+        POP      ESI // ESI = Tabs
+        XOR      EDX, EDX // EDX := 0 (=I)
+        MOV      EAX, [ImgList1stIdx] //(=II)
+@@loop:
+        CMP      EDX, EDI
+        JG       @@e_loop
+        PUSH     EAX
+        PUSH     EDX
+        PUSH     EAX
+        LODSD
+        XCHG     ECX, EAX
+        MOV      EAX, EBX
+        CALL     TControl.TC_Insert
+        POP      EDX
+        POP      EAX
+        INC      EAX
+        INC      EDX
+        JMP      @@loop
+@@e_loop:
+        MOV      byte ptr [EBX].TControl.fLookTabKeys, 1
+        XCHG     EAX, EBX
+        POP      EDI
+        POP      ESI
+        POP      EBX
+end;
 {$ELSE ASM_VERSION} //Pascal
 function NewTabControl( AParent: PControl; const Tabs: array of PKOLChar; Options: TTabControlOptions;
          ImgList: PImageList; ImgList1stIdx: Integer ): PControl;
@@ -33039,6 +35069,142 @@ end;
 
 //[FUNCTION NewToolbar]
 {$IFDEF ASM_UNICODE}
+function NewToolbar( AParent: PControl; Align: TControlAlign; Options: TToolbarOptions;
+                     Bitmap: HBitmap; const Buttons: array of PKOLChar;
+                     const BtnImgIdxArray: array of Integer ) : PControl;
+const szTBButton = Sizeof( TTBButton );
+      Option3DBorder = 1 shl Ord( tbo3DBorder );
+asm     //cmd    //opd
+   PUSH EDI
+        MOVZX    EDX, DL
+        PUSH     EDX // Align
+        PUSH     EAX // AParent
+
+        XOR      EAX, EAX
+        TEST     CL, Option3DBorder
+        SETNZ    AL
+        PUSH     EAX
+
+        PUSH     ECX // Options
+
+        MOV      AL, ICC_BAR_CLASSES
+        CALL     DoInitCommonControls
+
+        MOV      EAX, ESP
+        MOV      EDX, offset[ToolbarOptions]
+        XOR      ECX, ECX
+        MOV      CL, 6
+        CALL     MakeFlags
+        POP      EDX
+
+        PUSH     0
+        XCHG     ECX, EAX // ECX = MakeFlags(...)
+   MOV  EDI, ECX
+        MOV      EAX, [ESP+8] // EAX = AParent
+        MOV      EDX, [ESP+12] // EDX = Align
+        OR       ECX, [EDX*4+offset ToolbarAligns]
+        OR       ECX, WS_CHILD or WS_VISIBLE or TBSTYLE_TOOLTIPS
+        MOV      EDX, offset[ TOOLBARCLASSNAME ]
+        CALL     _NewCommonControl
+        MOV      [EAX].TControl.fCommandActions.aClear, offset[ClearToolbar]
+        MOV      [EAX].TControl.fCommandActions.aGetCount, TB_BUTTONCOUNT
+        INC      [EAX].TControl.fIsButton
+        POP      EDX // pop AParent
+        POP      EDX // EDX = Align
+        PUSH     EDX
+        TEST     EDX, EDX
+        JE       @@zero_bounds
+        ADD      [EAX].TControl.fBoundsRect.Bottom, 26-64
+        ADD      [EAX].TControl.fBoundsRect.Right, 1000-64
+        JMP      @@bounds_ready
+@@zero_bounds:
+        MOV      [EAX].TControl.fBoundsRect.Left, EDX
+        MOV      [EAX].TControl.fBoundsRect.Top, EDX
+        MOV      [EAX].TControl.fBoundsRect.Right, EDX
+        MOV      [EAX].TControl.fBoundsRect.Bottom, EDX
+@@bounds_ready:
+        PUSH     EBX
+        PUSH     ESI
+        XCHG     EBX, EAX
+        MOV      ESI, offset[TControl.Perform]
+        PUSH     0
+        PUSH     0
+        PUSH     TB_GETEXTENDEDSTYLE
+        PUSH     EBX
+        CALL     ESI
+        OR       EAX, TBSTYLE_EX_DRAWDDARROWS
+        PUSH     EAX
+        PUSH     0
+        PUSH     TB_SETEXTENDEDSTYLE
+        PUSH     EBX
+        CALL     ESI
+        MOV      EDX, offset[WndProcToolbarCtrl]
+        MOV      EAX, EBX
+        CALL     TControl.AttachProc
+        MOV      EDX, offset[WndProcDoEraseBkgnd]
+        MOV      EAX, EBX
+        CALL     TControl.AttachProc
+        PUSH     0
+        PUSH     szTBButton
+        PUSH     TB_BUTTONSTRUCTSIZE
+        PUSH     EBX
+        CALL     ESI
+        PUSH     0
+        PUSH     [EBX].TControl.fMargin
+        PUSH     TB_SETINDENT
+        PUSH     EBX
+        CALL     ESI
+        MOV      EAX, [ESP+8] // Align
+        {$IFDEF PARANOIA} DB $2C, 1 {$ELSE} SUB AL, 1 {$ENDIF}
+        JL       @@bounds_correct
+        JE       @@corr_right
+        {$IFDEF PARANOIA} DB $2C, 2 {$ELSE} SUB AL, 2 {$ENDIF}
+        JNE      @@corr_bottom
+@@corr_right:
+        MOV      EDX, [EBX].TControl.fBoundsRect.Left
+        ADD      EDX, 24
+        MOV      [EBX].TControl.fBoundsRect.Right, EDX
+        JMP      @@bounds_correct
+@@corr_bottom:
+        MOV      EDX, [EBX].TControl.fBoundsRect.Top
+        ADD      EDX, 22
+        MOV      [EBX].TControl.fBoundsrect.Bottom, EDX
+@@bounds_correct:
+        MOV      EDX, [Bitmap]
+        TEST     EDX, EDX
+        JZ       @@bitmap_added
+        MOV      EAX, EBX
+        CALL     TControl.TBAddBitmap
+@@bitmap_added:
+
+        PUSH     dword ptr [BtnImgIdxArray]
+        PUSH     dword ptr [BtnImgIdxArray-4]
+        MOV      ECX, [Buttons-4]
+        MOV      EDX, [Buttons]
+        MOV      EAX, EBX
+        CALL     TControl.TBAddButtons
+
+        PUSH     0
+        PUSH     0
+        PUSH     WM_SIZE
+        PUSH     EBX
+        CALL     ESI
+// ---
+{+|ecm|}
+// ---
+        MOV      EDX,EDI
+        OR       EDX,[EBX].TControl.FStyle
+        MOV      EAX,EBX
+        CALL     TControl.SetStyle
+//  ---
+{/+|ecm|}
+//  ---
+        XCHG     EAX, EBX
+        POP      ESI
+        POP      EBX
+        POP      EDX
+   POP  EDI
+end;
 {$ELSE ASM_VERSION} //Pascal
 function NewToolbar( AParent: PControl; Align: TControlAlign; Options: TToolbarOptions;
                      Bitmap: HBitmap; const Buttons: array of PKOLChar;
@@ -33152,9 +35318,15 @@ end;
 
 procedure TControl.SetDateTime(Value: TDateTime);
 var ST: TSystemTime;
+    D0: TDateTime;
 begin
-  if not IsNAN( Value ) then
-    DateTime2SystemTime( Value, ST );
+  if  not IsNAN( Value ) then
+  begin
+      EncodeDate( 1899, 12, 31, D0 );
+      if  Trunc( Value ) < D0 then
+          Value := Frac( Value ) + D0;
+      DateTime2SystemTime( Value, ST );
+  end;
   Perform( DTM_SETSYSTEMTIME, Integer( IsNAN( Value ) ) , Integer( @ ST ) );
 end;
 
@@ -33369,6 +35541,105 @@ end;
 
 //[FUNCTION NewRichEdit1]
 {$IFDEF ASM_UNICODE}
+function NewRichEdit1( AParent: PControl; Options: TEditOptions ): PControl;
+const
+  RichNamesCount = High( RichEditLibnames ) + 1;
+asm
+        PUSH     EDX
+
+        MOV      ECX, [FRichEditModule]
+        INC      ECX
+        LOOP     @@loaded
+        PUSHAD
+        {$IFNDEF SMALLEST_CODE}
+        {$IFNDEF SMALLER_CODE}
+        PUSH     SEM_NOOPENFILEERRORBOX or SEM_FAILCRITICALERRORS
+        CALL     SetErrorMode
+        PUSH     EAX
+        {$ENDIF}
+        {$ENDIF}
+@@search_richedit:
+        MOV      BX, RichNamesCount + $400
+        LEA      ESI, [RichEditLibNames]
+        LEA      EDI, [RichEditClasses]
+        CMP      [RichEditIdx], 0
+        JZ       @@loo
+        LEA      ESI, [ESI+(RichNamesCount-1)*4]
+        LEA      EDI, [EDI+(RichNamesCount-1)*4]
+        NEG      BH
+@@loo:
+        MOV      ECX, [EDI]
+        MOV      [RichEditClass], ECX
+        MOVSX    ECX, BH
+        ADD      EDI, ECX
+        MOV      EAX, [ESI]
+        ADD      ESI, ECX
+        PUSH     EAX
+        CALL     LoadLibrary
+        CMP      EAX, HINSTANCE_ERROR
+        JG       @@break
+        DEC      BL
+        JNZ      @@loo
+        JMP      @@fault
+@@break:
+        MOV      [FRichEditModule], EAX
+@@fault:
+        {$IFNDEF SMALLEST_CODE}
+        {$IFNDEF SMALLER_CODE}
+        CALL     SetErrorMode
+        {$ENDIF}
+        {$ENDIF}
+        POPAD
+@@loaded:
+        PUSH     EAX
+        PUSH     EDX
+        MOV      EAX, ESP
+        MOV      EDX, offset[RichEditFlags]
+        XOR      ECX, ECX
+        MOV      CL, 10
+        CALL     MakeFlags
+        XCHG     ECX, EAX
+        POP      EDX
+        POP      EAX
+        PUSH     1
+        PUSH     offset[RichEditActions]
+        MOV      EDX, [RichEditClass]
+        OR       ECX, WS_VISIBLE or WS_CHILD or WS_TABSTOP or WS_BORDER or ES_MULTILINE
+        CALL     _NewCommonControl
+        INC      [EAX].TControl.fIgnoreDefault
+        POP      EDX
+        TEST     DH, 4 // is eoWantTab in Options ?
+        SETZ     DL
+        MOV      [EAX].TControl.fLookTabKeys, DL
+        PUSH     EBX
+        MOV      EBX, EAX
+        MOV      EDX, offset[WndProcRichEditNotify]
+        CALL     TControl.AttachProc
+        MOV      [EBX].TControl.fDoubleBuffered, 0
+        INC      [EBX].TControl.fCannotDoubleBuf
+        ADD      [EBX].TControl.fBoundsRect.Right, 100-64
+        ADD      [EBX].TControl.fBoundsRect.Bottom, 200-64
+        PUSH     ENM_CHANGE or ENM_SELCHANGE or ENM_REQUESTRESIZE or ENM_PROTECTED or $04000000
+        PUSH     0
+        PUSH     EM_SETEVENTMASK
+        PUSH     EBX
+        CALL     TControl.Perform
+        MOV      EAX, clWindow
+        MOV      [EBX].TControl.fColor, EAX
+        CALL     Color2RGB
+        PUSH     EAX
+        PUSH     0
+        PUSH     EM_SETBKGNDCOLOR
+        PUSH     EBX
+        CALL     TControl.Perform
+        {$IFDEF RICHEDIT_XPBORDER}
+        MOV      EDX, offset[WndProc_RichEditXPBorder]
+        MOV      EAX, EBX
+        CALL     TControl.AttachProc
+        {$ENDIF RICHEDIT_XPBORDER}
+        XCHG     EAX, EBX
+        POP      EBX
+end;
 {$ELSE ASM_VERSION} //Pascal
 function NewRichEdit1( AParent: PControl; Options: TEditOptions ): PControl;
 var Flags, I, d, Last, SaveErrMode: Integer;
@@ -33676,6 +35947,12 @@ end;
 {$ENDIF _X_}
 {$IFDEF WIN_GDI}
 
+procedure TControl.InitOrthaned( AParentWnd: HWnd ); 
+begin
+    Init;
+    FParentWnd := AParentWnd;
+end;
+
 //[destructor TControl.Destroy]
 {$IFDEF ASM_VERSION}
 {$ELSE ASM_VERSION} //Pascal
@@ -33845,11 +36122,11 @@ end;
 {$ENDIF ASM_VERSION}
 
 //[function TControl.GetParentWindow]
-{$IFDEF ASM_VERSION}
+{$IFDEF ASM_noVERSION}
 {$ELSE ASM_VERSION} //Pascal
 function TControl.GetParentWindow: HWnd;
 begin
-  if fHandle = 0 then
+  {if fHandle = 0 then
   begin
     Result := 0;
     if fParent = nil then Exit;
@@ -33860,11 +36137,39 @@ begin
     Result := GetWindow( fHandle, GW_OWNER );
     if (Result = 0) and (fParent <> nil) then
       Result := fParent.GetWindowHandle;
-  end;
+  end;}
+  Result := GetParentWnd( TRUE );
 end;
 {$ENDIF ASM_VERSION}
 
 {$IFDEF ASM_UNICODE}
+function TControl.GetWindowHandle: HWnd;
+asm
+         MOV      ECX, [EAX].fHandle
+         JECXZ    @@1
+         XCHG     EAX, ECX
+         RET
+@@1:
+         PUSH     EBX
+         MOV      EBX, EAX
+         CMP      [EBX].fCreateVisible, 0
+         JNZ      @@2
+
+         XOR      EDX, EDX
+         CALL     TControl.Set_Visible
+
+         MOV      EAX, EBX
+         CALL     CallTControlCreateWindow
+         { This is a call to Pascal piece of code, which
+           calls virtual method TControl.CreateWindow }
+
+         INC      [EBX].fCreateHidden
+         JMP      @@0
+
+@@2:     CALL     CallTControlCreateWindow
+@@0:     MOV      EAX, [EBX].fHandle
+         POP      EBX
+end;
 {$ELSE ASM_VERSION} //Pascal
 function TControl.GetWindowHandle: HWnd;
 begin
@@ -33952,6 +36257,238 @@ end;
 {+}
 //[function TControl.CreateWindow]
 {$IFDEF ASM_UNICODE}
+function TControl.CreateWindow: Boolean;
+const
+  CS_OFF = CS_OWNDC or CS_CLASSDC or CS_PARENTDC or CS_GLOBALCLASS;
+  CS_ON = 0; //CS_VREDRAW or CS_HREDRAW;
+  szWndClass = sizeof( TWndClass );
+  int_IDC_ARROW = integer( IDC_ARROW );
+asm
+        PUSH     EBX
+        XCHG     EBX, EAX
+        {$IFDEF DEBUG_CREATEWINDOW}
+        MOV     EAX, EBX
+        CALL    Debug_CreateWindow1
+        {$ENDIF}
+        MOV      ECX, [EBX].fParent
+        JECXZ    @@chk_handle
+        XCHG     EAX, ECX
+        CALL     GetWindowHandle
+        TEST     EAX, EAX
+        JZ       @@ret_0
+@@chk_handle:
+        MOV      ECX, [EBX].fHandle
+        JECXZ    @@prepare_Params
+        MOV      DL, 0
+        MOV      EAX, EBX
+        CMP      [EBX].fCreateHidden, DL
+        JZ       @@create_children
+        CALL     CreateChildWindows
+        MOV      EAX, EBX
+        MOV      DL, 1
+        CALL     Set_Visible
+        MOV      [EBX].fCreateHidden, 0
+        JMP      @@ret_true
+@@create_children:
+        CALL     CreateChildWindows
+@@ret_true:
+        MOV      AL, 1
+@@ret_0:
+        POP      EBX
+        RET
+@@prepare_params:
+        {$IFDEF USE_GRAPHCTLS}
+        MOV      AL, [EBX].fWindowed
+        CMP      AL, 0
+        JZ       @@ret_0
+        {$ENDIF}
+        PUSH     EBP
+        MOV      EBP, ESP
+
+        PUSH     ECX        // Params.WindowClass.lpszClassName := nil
+        PUSH     ECX        // Params.WindowClass.lpszMenuName := nil
+        PUSH     ECX        // Params.WindowClass.hbrBackground := 0
+        PUSH     int_IDC_ARROW
+        PUSH     ECX
+        CALL     LoadCursor
+        PUSH     EAX        // Params.WindowClass.hCursor := LoadCursor( 0, IDC_ARROW )
+        XOR      ECX, ECX
+        PUSH     ECX        // Params.WindowClass.hIcon := 0
+        PUSH     [hInstance]// Params.WindowClass.hInstance := hInstance
+        PUSH     ECX        // Params.WindowClass.cbWndExtra := 0
+        PUSH     ECX        // Params.WindowClass.cbClsExtra := 0
+        PUSH     [EBX].fDefWndProc     // Params.WindowClass.lpfnWndProc := fDefWndProc
+        PUSH     [EBX].fClsStyle       // Params.WindowClass.style := fStyle
+        ADD      ESP, -64
+        PUSH     ECX
+        MOV      EAX, EBX
+        MOV      EDX, ESP
+        CALL     get_ClassName
+        POP      EDX
+        MOV      EAX, ESP
+        PUSH     EDX
+        //CALL     StrPCopy    // StrPCopy( Params.WinClsNamBuf, ClassName )
+        CALL     StrCopy
+        CALL     RemoveStr
+        PUSH     0           // Params.Param := nil
+        PUSH     [hInstance] // Params.Inst := hInstance
+        PUSH     [EBX].fMenu // Params.Menu := fMenu
+        MOV      DL, 1
+        MOV      EAX, EBX
+        CALL     GetParentWnd
+        PUSH     EAX         // Params.WndParent := GetParentWnd( True )
+
+        MOV      ECX, CW_USEDEFAULT
+        MOV      EAX, [EBX].fBoundsRect.Bottom
+        MOV      EDX, [EBX].fBoundsRect.Top
+        SUB      EAX, EDX
+        JNZ      @@1
+        MOV      EAX, ECX
+@@1:    PUSH     EAX         // Params.Height := Height | CW_UseDefault
+        MOV      EAX, [EBX].fBoundsRect.Right
+        SUB      EAX, [EBX].fBoundsRect.Left
+        {$IFDEF USE_CMOV}
+        CMOVZ    EAX, ECX
+        {$ELSE}
+        JNZ      @@2
+        MOV      EAX, ECX
+@@2:    {$ENDIF}
+
+        PUSH     EAX         // Params.Width := Width | CW_UseDefault
+        MOV      EAX, [EBX].fBoundsRect.Left
+        CMP      [EBX].fIsControl, CL
+        JNZ      @@3
+        TEST     byte ptr [EBX].fChangedPosSz, 3
+        JNZ      @@3
+        MOV      EDX, ECX
+        XCHG     EAX, ECX
+@@3:    PUSH     EDX         // Params.Y := Top | CW_UseDefault
+        PUSH     EAX         // Params.X := Left | CW_UseDefault
+        PUSH     [EBX].fStyle    // Params.Style := fStyle
+        PUSH     [EBX].fCaption  // Params.Caption := fCaption
+        LEA      EAX, [ESP+40]
+        PUSH     EAX         // Params.WinClassName := @Params.WinClsNamBuf
+        PUSH     [EBX].fExStyle  // Params.ExStyle := fExStyle
+
+        MOV      ECX, [EBX].fControlClassName
+        JECXZ    @@registerClass
+        LEA      EAX, [ESP].TCreateWndParams.WindowClass
+        PUSH     EAX           // @Params.WindowClass
+        PUSH     ECX           // fControlClassName
+        PUSH     [hInstance]   // hInstance
+        CALL     GetClassInfo
+        MOV      EAX, [ESP].TCreateWndParams.Inst
+        MOV      [ESP].TCreateWndParams.WindowClass.hInstance, EAX
+        AND      [ESP].TCreateWndParams.WindowClass.style, not CS_OFF
+@@registerClass:
+        CMP      [EBX].fDefWndProc, 0
+        JNE      @@fDefWndProc_ready
+        MOV      EAX, [ESP].TCreateWndParams.WindowClass.lpfnWndProc
+        MOV      [EBX].fDefWndProc, EAX
+@@fDefWndProc_ready:
+        MOV      ECX, [ESP].TCreateWndParams.WndParent
+        INC      ECX
+        LOOP     @@registerClass1
+        TEST     byte ptr [ESP].TCreateWndParams.Style+3, $40
+        XCHG     EAX, ECX
+        JNZ      @@fin
+@@registerClass1:
+        MOV      EAX, [ESP].TCreateWndParams.WinClassName
+        MOV      EDX, [ESP].TCreateWndParams.WindowClass.hInstance
+        ADD      ESP, -szWndClass
+        PUSH     ESP
+        PUSH     EAX
+        PUSH     EDX
+        CALL     GetClassInfo
+        ADD      ESP, szWndClass
+        TEST     EAX, EAX
+        JNZ      @@registered
+        MOV      EAX, [ESP].TCreateWndParams.WinClassName
+        MOV      [ESP].TCreateWndParams.WindowClass.lpszClassName, EAX
+        MOV      [ESP].TCreateWndParams.WindowClass.lpfnWndProc, offset WndFunc
+        LEA      EAX, [ESP].TCreateWndParams.WindowClass
+        PUSH     EAX
+        CALL     RegisterClass
+        TEST     EAX, EAX
+        JZ       @@fin
+@@registered:
+        MOV      [CreatingWindow], EBX
+        {$IFDEF DEBUG_CREATEWINDOW}
+        MOV     EAX, EBX
+        MOV     EDX, ESP
+        CALL    Debug_CreateWindow2
+        {$ENDIF}
+        CALL     CreateWindowEx
+        MOV      [EBX].fHandle, EAX
+        TEST     EAX, EAX
+        JZ       @@fin
+        PUSH     EAX
+        {$IFDEF USE_PROP}
+        PUSH     offset ID_SELF
+        {$ELSE}
+        PUSH     GWL_USERDATA
+        {$ENDIF}
+        PUSH     EAX
+
+        PUSH     0
+        PUSH     $10002 //UIS_CLEAR or (UISF_HIDEFOCUS shl 16)
+        PUSH     $0128  //WM_UPDATEUISTATE
+        PUSH     EAX
+        CALL     SendMessage
+
+        {$IFDEF USE_PROP}
+        CALL     GetProp
+        {$ELSE}
+        CALL     GetWindowLong
+        {$ENDIF}
+        XCHG     ECX, EAX
+        POP      EAX
+        INC      ECX
+        LOOP     @@propSet
+        MOV      [CreatingWindow], ECX
+        PUSH     EBX
+        {$IFDEF USE_PROP}
+        PUSH     offset ID_SELF
+        PUSH     EAX
+        CALL     SetProp
+        {$ELSE}
+        PUSH     GWL_USERDATA
+        PUSH     EAX
+        CALL     SetWindowLong
+        {$ENDIF}
+@@propSet:
+        {$IFDEF SMALLEST_CODE}
+        {$ELSE}
+        CMP      [EBX].fIsControl, 0
+        JNZ      @@iconSet
+        MOV      EAX, EBX
+        CALL     GetIcon
+        PUSH     EAX
+        PUSH     1
+        PUSH     WM_SETICON
+        PUSH     EBX
+        CALL     Perform
+@@iconSet:
+        {$ENDIF}
+        MOV      ECX, [EBX].fCreateWndExt
+        JECXZ    @@dblbufcreate
+        MOV      EAX, EBX
+        CALL     ECX
+@@dblbufcreate:
+@@applyfont:
+        MOV      EAX, EBX
+        CALL     ApplyFont2Wnd
+        MOV      EAX, EBX
+        CALL     ApplyFont2Wnd
+        XCHG     EAX, EBX
+        CALL     CreateChildWindows
+        MOV      AL, 1
+@@fin:
+        MOV      ESP, EBP
+        POP      EBP
+@@ret_false:
+        POP      EBX
+end;
 {$ELSE ASM_VERSION} //Pascal
 function TControl.CreateWindow: Boolean;
 const
@@ -34018,7 +36555,7 @@ begin
    StrCopy( Params.WinClsNamBuf, @ SubClassName[ 1 ] );
    {$ELSE}
    TempOleStr := StringToOleStr(AnsiString(SubClassName));
-   lstrcpyW(Params.WinClsNamBuf, TempOleStr);
+   lstrcpyW(Params.WinClsNamBuf, TempOleStr); // vampir_infernal 15.10.2008
    SysFreeString( TempOleStr );
    {$ENDIF}
    {$ENDIF}
@@ -34036,8 +36573,8 @@ begin
    Params.X := fBoundsRect.Left;
    if not fIsControl and (fChangedPosSz and 3 = 0) then
    begin
-     Params.Y := CW_UseDefault;
-     Params.X := CW_UseDefault;
+       Params.Y := CW_UseDefault;
+       Params.X := CW_UseDefault;
    end;
    Params.Style := fStyle;
    Params.Caption := PKOLChar( fCaption );
@@ -34049,15 +36586,15 @@ begin
    {$ENDIF INPACKAGE}
    if fControlClassName <> nil then
    begin
-	 GetClassInfo( hInstance,fControlClassName,Params.WindowClass );
-     Params.WindowClass.hInstance := Params.Inst;
-	 Params.WindowClass.style := Params.WindowClass.style and
+       GetClassInfo( hInstance,fControlClassName,Params.WindowClass );
+       Params.WindowClass.hInstance := Params.Inst;
+       Params.WindowClass.style := Params.WindowClass.style and
 	   not CS_OFF or CS_ON;
    end;
-   if fDefWndProc = nil then
-     fDefWndProc := {$ifdef FPC21}@{$endif}Params.WindowClass.lpfnWndProc;
-   if Params.WndParent = 0 then
-	 if Params.Style and WS_CHILD <> 0 then Exit;
+   if  fDefWndProc = nil then
+       fDefWndProc := {$ifdef FPC21}@{$endif}Params.WindowClass.lpfnWndProc;
+   if  Params.WndParent = 0 then
+       if Params.Style and WS_CHILD <> 0 then Exit;
 
 	 {$IFNDEF UNICODE_CTRLS}
 	 ClassRegistered := GetClassInfo( Params.WindowClass.hInstance,Params.WinClassName, TempClass );
@@ -34314,6 +36851,57 @@ end;
 
 //[FUNCTION WndProcKeybd]
 {$IFDEF ASM_UNICODE}
+function WndProcKeybd( Self_: PControl; var Msg: TMsg; var Rslt: Integer): Boolean;
+asm
+        PUSH     EBX
+        MOV      ECX, [EDX].TMsg.message
+        SUB      CX, $100
+        CMP      ECX, 5
+        JA       @@fin_false
+        XCHG     EBX, EAX   // EBX = @Self
+        XCHG     EAX, ECX   // EAX = message - WM_KEYFIRST
+        LEA      ECX, [EBX].TControl.fOnKeyUp
+        JZ       @@event
+        {$IFDEF PARANOIA} DB $34, 1 {$ELSE} XOR AL, 1 {$ENDIF}
+        JZ       @@event
+        LEA      ECX, [EBX].TControl.fOnKeyDown
+        {$IFDEF PARANOIA} DB $34, 1 {$ELSE} XOR AL, 1 {$ENDIF}
+        JZ       @@event
+        {$IFDEF PARANOIA} DB $34, 4 {$ELSE} XOR AL, 4 {$ENDIF}
+        JZ       @@event
+        LEA      ECX, [EBX].TControl.fOnChar
+        {$IFDEF PARANOIA} DB $34, 6 {$ELSE} XOR AL, 2 xor 4 {$ENDIF}
+        JZ       @@event
+        {$IFDEF PARANOIA} DB $34, 4 {$ELSE} XOR AL, 6 xor 2 {$ENDIF}
+        JNZ      @@fin_false
+@@event:
+        CMP      word ptr [ECX].TMethod.Code+2, 0
+        JZ       @@fin_false
+        PUSH     EDX
+        PUSH     ECX
+        LEA      ECX, [EDX].TMsg.wParam
+        PUSH     ECX
+        CALL     GetShiftState
+        POP      ECX         // @wParam
+        XCHG     EAX, [ESP]  // ShiftState; EAX=@event
+        MOV      EDX, EBX    // @Self
+        MOV      EBX, [EAX].TMethod.Code
+        MOV      EAX, [EAX].TMethod.Data
+        CALL     EBX
+
+        POP      EDX
+        MOV      ECX, [EDX].TMsg.wParam
+        JECXZ    @@fin_true
+
+@@fin_false:
+        XOR      EAX, EAX
+        POP      EBX
+        RET
+
+@@fin_true:
+        MOV      AL, 1
+        POP      EBX
+end;
 {$ELSE ASM_VERSION} //Pascal
 function WndProcKeybd(Self_: PControl; var Msg: TMsg; var Rslt: Integer): Boolean;
 var C : KOLChar;
@@ -35470,7 +38058,7 @@ end;
 {$IFDEF ASM_VERSION}
 {$ELSE ASM_VERSION} //Pascal
 function TControl.GetBoundsRect: TRect;
-var W: PControl;
+var W: HWnd;
     P: TPoint;
 begin
    Result := fBoundsRect;
@@ -35479,11 +38067,11 @@ begin
       GetWindowRect( fHandle, Result );
       if fIsControl or fIsMDIChild then
       begin
-        W := fParent; // WindowedParent;
-        if W <> nil then
+        W := ParentWindow;
+        if W <> 0 then
         begin
           P.x := 0; P.y := 0;
-          P := W.Client2Screen( P );
+          Windows.ClientToScreen( W, P );
           OffsetRect( Result, -P.x, -P.y );
         end;
       end;
@@ -35649,7 +38237,6 @@ end;
 {$ENDIF ASM_VERSION}
 
 {$ENDIF WIN_GDI}
-
 
 //[function TControl.ClientRect]
 {$IFDEF GDI}
@@ -35912,6 +38499,34 @@ end;
 {$IFDEF WIN_GDI}
 //[function TControl.get_ClassName]
 {$IFDEF ASM_UNICODE}
+function TControl.get_ClassName: AnsiString;
+asm
+        PUSH      EBX
+        XCHG      EBX, EAX
+        XCHG      EAX, EDX
+        MOV       EDX, [EBX].fControlClassName
+        PUSH      EAX
+        {$IFDEF _D2009orHigher}
+        XOR       ECX, ECX // TODO: _@LStrFromPChar
+        {$ENDIF}
+        CALL      System.@LStrFromPChar // EAX^ := String(EDX)
+        POP       EAX
+        CMP       [EBX].fCtlClsNameChg, 0
+        JNZ       @@exit
+        MOV       ECX, [EAX]
+        MOV       EDX, offset[ @@obj ]
+        CALL      System.@LStrCat3 // EAX^ := EDX + ECX
+        JMP       @@exit
+
+        {$IFDEF _D2009orHigher}
+        DW        1252, 1  // CP_ANSI_LATIN1, Byte // TODO: CP_ACP
+        {$ENDIF}
+        DD        -1, 4    // FFFFFFFF 04000000 obj_, 0
+@@obj:  DB        'obj_', 0
+
+@@exit:
+        POP       EBX
+end;
 {$ELSE ASM_VERSION} //Pascal
 function TControl.get_ClassName: KOLString;
 begin
@@ -36188,6 +38803,11 @@ begin
 end;                       // can not be virtual (as an _object_ - not a class - constructor)
 {$ENDIF GTK}
 {$ENDIF _X_}
+
+constructor TControl.CreateOrthaned( AParentWnd: HWnd );
+begin
+    InitOrthaned( AParentWnd );
+end;
 
 //[function TControl.GetLeft]
 {$IFDEF ASM_VERSION}
@@ -36501,7 +39121,7 @@ end;
 function TControl.GetParentWnd( NeedHandle: Boolean ): HWnd;
 var C: PControl;
 begin
-   Result := 0;
+   Result := FParentWnd;
    C := fParent; // WindowedParent;
    if C <> nil then
    begin
@@ -36551,6 +39171,33 @@ end;
 
 //[procedure TControl.DestroyChildren]
 {$IFDEF ASM_TLIST}
+procedure TControl.DestroyChildren;
+asm
+        PUSH      ESI
+
+        MOV       EAX, [EAX].fChildren
+        PUSH      EAX
+        MOV       ECX, [EAX].TList.fCount
+        JECXZ     @@clear
+        MOV       ESI, [EAX].TList.fItems
+        LEA       ESI, [ESI + ECX*4 - 4]  // is order really important ?
+
+@@loop: STD                               //
+        LODSD
+        CLD                               //
+
+        PUSH      ECX
+        CALL      TObj.RefDec
+        POP       ECX
+
+        LOOP      @@loop
+
+@@clear:
+        POP       EAX
+        CALL      TList.Clear
+
+        POP       ESI
+end;
 {$ELSE ASM_VERSION} //Pascal
 procedure TControl.DestroyChildren;
 var I: Integer;
@@ -39033,6 +41680,85 @@ end;
 
 //[function TControl.GetItems]
 {$IFDEF ASM_UNICODE}
+function TControl.GetItems(Idx: Integer): AnsiString;
+asm
+        PUSH     ESI
+        PUSH     EDI
+        PUSH     EBX
+        PUSH     EBP
+        MOV      EBP, ESP
+
+        MOV      EBX, EAX       // @Self
+        MOV      ESI, EDX       // Idx
+        MOV      EDI, ECX       // @Result
+
+        CALL     Item2Pos
+        PUSH     0              // push  0
+        PUSH     EAX            // store Pos
+
+        XCHG     EDX, EAX
+        MOV      EAX, EBX
+        CALL     Pos2Item       // EAX = Idx'
+        XCHG     ESI, EAX       // ESI = Idx'
+
+        XOR      EAX, EAX
+        MOVZX    ECX, [EBX].fCommandActions.aGetItemLength
+        JECXZ    @@ret_empty
+
+        PUSH     ECX            // push aGetItemLength
+
+        PUSH     EBX
+        CALL     Perform
+
+        TEST     EAX, EAX
+        JZ       @@ret_empty
+
+        PUSH     EAX              // save L
+        ADD      EAX, 4
+
+        CALL     System.@GetMem   // GetMem( L+4 )
+        POP      EDX              // restore L
+        LEA      ECX, [EDX+1]
+        MOV      dword ptr [EAX], ECX
+        MOVZX    ECX, [EBX].fCommandActions.aGetItemText
+        JECXZ    @@ret_buf
+
+        PUSH     EDX              // save L
+        //MOV      word ptr [EAX], DX
+
+        PUSH     EAX
+          PUSH     EAX            // push Buf
+          PUSH     ESI            // push Idx
+
+          PUSH     ECX            // push aGetItemText
+          PUSH     EBX
+          CALL     Perform
+        POP      EAX
+
+        POP      EDX
+@@ret_buf:
+        MOV      byte ptr [EAX + EDX], 0   // Buf[ L ] := #0
+
+@@ret_empty:     // EAX = 0
+        XCHG     EDX, EAX
+        MOV      EAX, EDI
+        PUSH     EDX
+        {$IFDEF _D2009orHigher}
+        XOR      ECX, ECX // TODO: safe?
+        {$ENDIF}
+        CALL     System.@LStrFromPChar
+        POP      ECX
+        JECXZ    @@exit
+        XCHG     EAX, ECX
+        CALL     System.@FreeMem
+
+@@exit:
+        MOV      ESP, EBP
+        POP      EBP
+        POP      EBX
+        POP      EDI
+        POP      ESI
+end;
 {$ELSE ASM_VERSION} //Pascal
 function TControl.GetItems(Idx: Integer): KOLString;
 var L, Pos: Integer;
@@ -39058,6 +41784,109 @@ end;
 
 //[procedure TControl.SetItems]
 {$IFDEF ASM_UNICODE}
+procedure TControl.SetItems(Idx: Integer; const Value: AnsiString);
+asm
+        PUSH     EDI
+        PUSH     EBX
+        XCHG     EBX, EAX
+        XCHG     EDI, EDX       // EDI = Idx
+        CALL     ECX2PChar
+        PUSH     ECX       // @Value[1]
+
+        MOVZX    ECX, [EBX].fCommandActions.aSetItemText
+        JECXZ    @@1
+
+        PUSH     0
+        PUSH     ECX
+
+        MOV      EDX, EDI
+        MOV      EAX, EBX
+        CALL     Item2Pos
+        PUSH     EAX            // store Strt
+
+        MOV      EDX, EDI
+        INC      EDX
+        MOV      EAX, EBX
+        CALL     Item2Pos
+        POP      EDX            // EDX = Strt
+
+        SUB      EAX, EDX
+        PUSH     EAX            // store L
+
+        MOV      EAX, EBX
+        CALL     SetSelStart
+
+        POP      EDX            // EDX = L
+        PUSH     EBX            // prepare @Self for Perform
+        XCHG     EAX, EBX
+        CALL     SetSelLength
+
+        // @Value[1] already in stack,
+        // 0 already in stack
+        // aSetItemText already in stack
+        // @Self already in stack
+
+        CALL     Perform
+        JMP      @@exit
+
+@@1:    // @Value[1] in stack already
+        POP      EDX
+        MOVZX    ECX, [EBX].fCommandActions.aDeleteItem
+        JECXZ    @@exit
+
+        {$IFNDEF  NOT_FIX_CURINDEX}
+        PUSH     ESI
+        PUSH     EBP
+
+        PUSH     EDX
+
+        MOV      EAX, EBX               // +AK
+        CALL     GetCurIndex            // +AK
+        XCHG     ESI, EAX    // ESI = TmpCurIdx
+
+        MOV      EAX, EBX
+        MOV      EDX, EDI
+        CALL     GetItemData
+        XCHG     EBP, EAX   // EBP = TmpData
+
+        MOV      EDX, EDI
+        MOV      EAX, EBX
+        CALL     Delete
+
+        MOV      EAX, EBX               // *AK
+        MOV      EDX, EDI
+        POP      ECX
+        CALL     Insert
+
+        MOV      ECX, EBP // ECX = TmpData
+        MOV      EDX, EDI
+        MOV      EAX, EBX
+        CALL     SetItemData
+
+        XCHG     EAX, EBX               // +AK
+        MOV      EDX, ESI               // +AK
+        CALL     SetCurIndex            // +AK
+
+        POP      EBP
+        POP      ESI
+        {$ELSE NOT_FIX_CURINDEX}
+        PUSH     EDX
+
+        MOV      EDX, EDI
+        MOV      EAX, EBX
+        CALL     Delete
+
+        XCHG     EAX, EBX
+        XCHG     EDX, EDI
+
+        POP      ECX
+        CALL     Insert
+        {$ENDIF NOT_FIX_CURINDEX}
+
+@@exit:
+        POP      EBX
+        POP      EDI
+end;
 {$ELSE ASM_VERSION} //Pascal
 procedure TControl.SetItems(Idx: Integer; const Value: KOLString);
 var Strt, L : DWORD;
@@ -39265,6 +42094,54 @@ end;
 
 //[function TControl.Add]
 {$IFDEF ASM_UNICODE}
+function TControl.Add(const S: KOLString): Integer;
+asm
+        PUSH     EBX
+        MOV      EBX, EAX               // EBX = @Self
+
+        MOVZX    ECX, [EBX].fCommandActions.aAddItem   // ECX = aAddItem
+        JECXZ    @@chk_addtext
+
+        CALL     EDX2PChar
+        PUSH     EDX
+        PUSH     0
+        PUSH     ECX
+        PUSH     EBX
+        CALL     Perform
+        PUSH     EAX
+
+        MOV      EAX, EBX
+        CALL     TControl.GetItemsCount
+        XCHG     EAX, ECX
+        LOOP     @@ret_EAX
+
+        XCHG     EAX, EBX
+        INC      ECX
+        XOR      EDX, EDX
+        CALL     TControl.SetItemSelected
+@@ret_EAX:
+        POP      EAX
+        JMP      @@exit
+
+@@chk_addtext:
+        MOV      ECX, [EBX].fCommandActions.aAddText
+        JECXZ    @@add_text_simple
+
+        CALL     ECX
+        JMP      @@exit_0
+
+@@add_text_simple:
+        LEA      EAX, [EBX].fCaption
+        CALL     System.@LStrCat
+        MOV      EDX, [EBX].fCaption
+        MOV      EAX, EBX
+        CALL     SetCaption
+
+@@exit_0:
+        XOR      EAX, EAX
+@@exit:
+        POP      EBX
+end;
 {$ELSE ASM_VERSION} //Pascal
 function TControl.Add(const S: KOLString): Integer;
 begin
@@ -39297,6 +42174,22 @@ end;
 
 //[function TControl.Insert]
 {$IFDEF ASM_UNICODE}
+function TControl.Insert(Idx: Integer; const S: AnsiString): Integer;
+asm
+         CALL    ECX2PChar
+         PUSH    ECX
+         MOVZX   ECX, [EAX].fCommandActions.aInsertItem
+         JECXZ   @@exit_1
+
+         PUSH    EDX
+         PUSH    ECX
+         PUSH    EAX
+         CALL    Perform
+         RET
+
+@@exit_1:OR      EAX, -1
+         POP     ECX
+end;
 {$ELSE ASM_VERSION} //Pascal
 function TControl.Insert(Idx: Integer; const S: KOLString): Integer;
 begin
@@ -39431,6 +42324,93 @@ end;
 
 //[FUNCTION CollectTabControls]
 {$IFDEF ASM_TLIST}
+function CollectTabControls( Form: PControl ): PList;
+asm
+        PUSH     EDI
+        PUSH     EAX
+        CALL     NewList
+        XCHG     EDI, EAX
+        POP      EAX
+        CALL     @@collecttab
+        XCHG     EAX, EDI
+        POP      EDI
+        RET
+@@collecttab:
+        { <- EDI = Result:PList
+             EAX = Form (or Control)
+        }
+        PUSH     EBP
+        XOR      EBP, EBP // Result := FALSE;
+        PUSH     ESI
+        PUSH     EBX
+        MOV      EDX, [EAX].TControl.fChildren
+        MOV      ECX, [EDX].TList.fCount
+        MOV      ESI, [EDX].TList.fItems
+        JECXZ    @@e_loop
+@@loo:  PUSH     ECX
+        LODSD
+
+          PUSH     EAX
+
+        TEST     byte ptr [EAX].TControl.fStyle+2, WS_TABSTOP shr 16
+        JZ       @@call_recur
+
+        MOV      DL, [EAX].TControl.fTabStop
+        AND      DL, [EAX].TControl.fEnabled
+        JZ       @@call_recur
+
+        CALL     TControl.GetToBeVisible
+        TEST     AL, AL
+        POP      EAX
+        JZ       @@next
+        PUSH     EAX
+
+          XCHG     EDX, EAX
+          PUSH     ESI
+          MOV      ECX, [EDI].TList.fCount
+          MOV      ESI, [EDI].TList.fItems
+          XOR      EBX, EBX
+          JECXZ    @@e_loo2
+@@loo2:   LODSD
+          MOV      EAX, [EAX].TControl.fTabOrder
+          CMP      EAX, [EDX].TControl.fTabOrder
+          JLE      @@next2
+          POP      ESI
+          MOV      ECX, EDX
+          MOV      EDX, EBX
+          MOV      EAX, EDI
+          CALL     TList.Insert
+          JMP      @@call_recur
+
+@@next2:  INC      EBX
+          LOOP     @@loo2
+@@e_loo2:
+          POP      ESI
+          MOV      EAX, EDI
+          CALL     TList.Add
+
+@@call_recur:
+          OR       EBP, 1 // Result := TRUE;
+          POP      EAX
+          MOVZX    ECX, [EAX].TControl.fEnabled
+          JECXZ    @@next
+          PUSH     EAX
+          CALL     @@collecttab
+          POP      EDX
+          JZ       @@next
+
+          MOV      EAX, EDI
+          CALL     TList.Remove
+
+@@next: POP      ECX
+        LOOP     @@loo
+
+@@e_loop:
+        POP      EBX
+        POP      ESI
+        TEST     EBP, EBP
+        POP      EBP
+end;
 {$ELSE ASM_VERSION} //Pascal
 function CollectTabControls( Form: PControl ): PList;
 var R: PList;
@@ -39497,6 +42477,122 @@ end;
 
 //[PROCEDURE Tabulate2Next]
 {$IFDEF ASM_TLIST}
+procedure Tabulate2Next( Form: PControl; Dir: Integer );
+asm
+        PUSHAD
+        PUSH     EAX      // save Form
+        MOV      EBX, EAX
+        MOV      EBP, EDX // EBP = Dir (direction <0 or >0)
+        CALL     CollectTabControls
+        XCHG     EDI, EAX // EDI = CL (list of controls)
+
+        MOV      ECX, [EBX].TControl.fCurrentControl // C := Form.fCurrentControl
+        XOR      EBX, EBX // I = 0
+        JECXZ    @@1
+        MOV      EBX, [ECX].TControl.fTabOrder // I = C.fTabOrder
+@@1:
+        MOV      ECX, [EDI].TList.fCount
+        MOV      ESI, [EDI].TList.fItems
+        XOR      EDX, EDX
+        PUSH     EDX      // Ctrl1 = nil
+        PUSH     EDX      // Ctrl2 = nil
+        TEST     ECX, ECX
+        JZ       @@e_loop
+
+@@loop: PUSH     ECX
+        LODSD
+        CMP      [EAX].TControl.fTabOrder, EBX
+        JZ       @@next
+
+        MOV      ECX, [ESP+8] // ECX = Ctrl1
+        JECXZ    @@c1nil
+        MOV      ECX, [ECX].TControl.fTabOrder // ECX = Ctrl1.fTabOrder
+        TEST     EBP, EBP
+        JGE      @@c1ge
+
+        CMP      [EAX].TControl.fTabOrder, EBX
+        JGE      @@2
+        CMP      [EAX].TControl.fTabOrder, ECX
+        JLE      @@2
+
+@@c1new:
+        MOV      [ESP+8], EAX // Ctrl1 := C
+        JMP      @@2
+
+@@c1ge: CMP      [EAX].TControl.fTabOrder, EBX
+        JLE      @@2
+        CMP      [EAX].TControl.fTabOrder, ECX
+        JL       @@c1new
+        JMP      @@2
+
+@@c1nil:
+        TEST     EBP, EBP
+        JL       @@c1nil_dirL
+        CMP      [EAX].TControl.fTabOrder, EBX
+        JG       @@c1new
+        JMP      @@2
+
+@@c1nil_dirL:
+        CMP      [EAX].TControl.fTabOrder, EBX
+        JL       @@c1new
+
+@@2:
+        MOV      ECX, [ESP+4] // ECX = Ctrl2
+        JECXZ    @@c2new
+        MOV      ECX, [ECX].TControl.fTabOrder
+
+        TEST     EBP, EBP
+        JL       @@c2dirL
+        CMP      [EAX].TControl.fTabOrder, ECX
+        JGE      @@next
+        JMP      @@c2new
+
+@@c2dirL:
+        CMP      [EAX].TControl.fTabOrder, ECX
+        JLE      @@next
+@@c2new:
+        MOV      [ESP+4], EAX
+
+@@next: POP      ECX
+        DEC      ECX
+        JNZ      @@loop
+        //LOOP     @@loop
+@@e_loop:
+
+        POP      EDX // Ctrl2
+        POP      ECX // Ctrl1
+        INC      ECX
+        LOOP     @@3
+        MOV      ECX, EDX
+@@3:
+        POP      EBX // EBX = Form
+        JECXZ    @@exit
+
+        XCHG     EAX, ECX
+        {$IFDEF USE_GRAPHCTLS}
+        CMP      [EAX].TControl.fWindowed, 0
+        JZ       @@4
+        {$ENDIF}
+        MOV      ECX, [EAX].TControl.fHandle
+        JECXZ    @@no_handle
+@@4:
+        INC      [EAX].TControl.fClickDisabled
+
+        PUSH     EAX
+        MOV      DL, 1
+        CALL     TControl.SetFocused
+        POP      EAX
+
+        DEC      [EAX].TControl.fClickDisabled
+
+@@no_handle:
+        MOV      [EBX].TControl.fCurrentControl, EAX
+
+@@exit:
+        XCHG     EAX, EDI
+        CALL     TObj.RefDec
+        POPAD
+end;
 {$ELSE ASM_VERSION} //Pascal
 procedure Tabulate2Next( Form: PControl; Dir: Integer );
 var CL : PList;
@@ -39579,6 +42675,215 @@ end;
 
 //[FUNCTION Tabulate2ControlEx]
 {$IFDEF ASM_TLIST}
+function Tabulate2ControlEx( Self_: PControl; Key: DWORD; checkOnly: Boolean ): Boolean;
+asm
+        PUSH     EDI
+        MOVZX    EDI, CL
+        TEST     byte ptr [EAX].TControl.fLookTabKeys, 1
+        JZ       @@1
+@@0:
+        MOV      ECX, EDX
+        AND      CL, 7Fh
+        CMP      CL, VK_TAB
+        JNE      @@1
+
+        PUSH     EDX
+        CALL     TControl.ParentForm
+        POP      EDX
+        MOVSX    EDX, DL
+        TEST     EDX, EDX
+        JS       @@tab
+
+        PUSH     EAX
+
+        PUSH     VK_SHIFT
+        CALL     GetAsyncKeyState
+        SAR      EAX, 31
+        {$IFDEF PARANOIA} DB $0C, $01 {$ELSE} OR AL, 1 {$ENDIF}
+        MOV      EDX, EAX
+
+        POP      EAX
+@@tab:
+        TEST     EDI, EDI
+        POP      EDI
+        JNZ      @@no_tab
+        CALL     Tabulate2Next
+@@no_tab:
+        MOV      AL, 1
+        RET
+
+@@data: DB VK_LEFT, VK_LEFT
+        DD offset[@@left]
+        DB VK_UP, 2
+        DB VK_RIGHT, VK_RIGHT
+        DD offset[@@right]
+        DB VK_DOWN, 2
+        DB VK_UP, VK_PRIOR
+        DD offset[@@up]
+        DB VK_TAB or 80h, $C
+        DB VK_DOWN, VK_NEXT
+        DD offset[@@down]
+        DB VK_TAB, $C
+
+@@1:
+        // EAX <- Self_:PControl
+        //  DL <- Key
+        PUSH     ESI
+        MOV      ESI, offset[@@data]-6
+        MOV      DH, 9
+        PUSH     EAX
+@@loop:
+        ADD      DH, DH
+        JNB      @@l1
+        JMP      @@abort
+@@fault1:
+        POP      EDI
+        POPAD
+        PUSH     EAX
+@@abort:
+        POP      EAX
+@@abort1:
+        POP      ESI
+        POP      EDI
+        XOR      EAX, EAX
+        RET
+
+@@right:
+        MOV      EAX, [ESP].TRect.Left
+        SUB      EAX, [ESP+16].TRect.Left
+@@left_right:
+        JL       @@next1
+        MOV      EDX, [ESP].TRect.Bottom
+        SUB      EDX, [ESP+16].TRect.Top
+        JL       @@next1
+        MOV      EDX, [ESP].TRect.Top
+        SUB      EDX, [ESP+16].TRect.Bottom
+        JGE      @@next1
+@@chk_dist:
+        CMP      EAX, EDI
+        JA       @@next1
+        MOV      EDI, EAX
+        MOV      EAX, [EBX+ECX*4-4]
+        MOV      [ESP+36], EAX     // Found = Ctrl
+        JMP      @@next1
+
+@@l1:
+        LODSD
+        LODSW
+        LODSW
+        CMP      AL, DL
+        JE       @@2
+        CMP      AH, DL
+        JNE      @@loop
+
+@@2:
+        PUSH     ESI
+        LODSD
+        LODSW
+        POP      ESI
+        XCHG     EDX, EAX
+        POP      EAX
+        TEST     [EAX].TControl.fLookTabKeys, DH
+        JZ       @@abort1
+
+        PUSHAD
+        PUSH     EDI
+        CALL     TControl.ParentForm
+        MOV      ECX, [EAX].TControl.fCurrentControl
+        JECXZ    @@fault1
+        MOV      EBP, ECX           // EBP = CurCtrl
+
+        PUSH     EAX                // save Form
+        MOV      EBX, EAX
+        CALL     CollectTabControls
+        PUSH     0                  // save Found = nil
+        PUSH     EAX                // save CollectedList
+        MOV      EDI, EAX
+
+        MOV      EBX, [EDI].TList.fItems
+        ADD      ESP, -16
+        PUSH     ESP
+        PUSH     [EBP].TControl.fHandle
+        CALL     GetWindowRect
+
+        MOV      ECX, [EDI].TList.fCount
+        OR       EDI, -1            // EDI = minDist
+@@loop1:
+        MOV      EAX, [EBX+ECX*4-4]
+        CMP      EAX, EBP
+        JE       @@next
+        {}
+        MOV      DL, [EAX].TControl.fEnabled
+        AND      DL, [EAX].TControl.fTabstop
+        JZ       @@next
+        {}
+        ADD      ESP, -16
+        MOV      EDX, ESP
+        PUSH     ECX
+        PUSH     EDX
+        PUSH     [EAX].TControl.fHandle
+        CALL     GetWindowRect
+        POP      ECX
+        JMP      dword ptr [ESI]
+
+@@left:
+        MOV      EAX, [ESP+16].TRect.Left
+        SUB      EAX, [ESP].TRect.Left
+        JMP      @@left_right
+
+@@not_found:
+        POP      EDI
+        POPAD
+        MOV      DL, [ESI+4]
+        POP      ESI
+        JMP      @@0
+
+@@up:
+        MOV      EAX, [ESP+16].TRect.Top
+        SUB      EAX, [ESP].TRect.Top
+        JMP      @@up_down
+@@down:
+        MOV      EAX, [ESP].TRect.Top
+        SUB      EAX, [ESP+16].TRect.Top
+@@up_down:
+        JL       @@next1
+        MOV      EDX, [ESP].TRect.Right
+        SUB      EDX, [ESP+16].TRect.Left
+        JL       @@next1
+        MOV      EDX, [ESP].TRect.Left
+        SUB      EDX, [ESP+16].TRect.Right
+        JL       @@chk_dist
+
+@@next1:
+        ADD      ESP, 16
+@@next:
+        LOOP     @@loop1
+        ADD      ESP, 16
+        POP      EAX       // pop CollectedList
+        CALL     TObj.RefDec
+        POP      ECX       // pop Found
+        POP      EAX       // pop Form
+        JECXZ    @@not_found
+
+        POP      EDI
+        TEST     EDI, EDI
+        JNZ      @@no_go
+
+        MOV      [EAX].TControl.fCurrentControl, ECX
+        INC      [ECX].TControl.fClickDisabled
+        PUSH     ECX
+        MOV      ECX, [ECX].TControl.fHandle
+        JECXZ    @@4
+        PUSH     ECX
+        CALL     Windows.SetFocus
+@@4:    POP      ECX
+        DEC      [ECX].TControl.fClickDisabled
+@@no_go:
+        POPAD
+        POP      ESI
+        POP      EDI
+        MOV      AL, 1      // Result = True
+end;
 {$ELSE ASM_VERSION} //Pascal
 function Tabulate2ControlEx( Self_: PControl; Key: DWORD; checkOnly: Boolean ): Boolean;
 label search_tabcontrol;
@@ -40328,6 +43633,26 @@ end;
 
 //[procedure TTrayIcon.SetTooltip]
 {$IFDEF ASM_UNICODE}
+procedure TTrayIcon.SetTooltip(const Value: AnsiString);
+asm
+        PUSH     EBX
+        XCHG     EBX, EAX
+        MOV      EAX, [EBX].fTooltip
+        PUSH     EDX
+        CALL     System.@LStrCmp
+        POP      EDX
+        JE       @@exit
+        LEA      EAX, [EBX].fTooltip
+        CALL     System.@LStrAsg
+        CMP      [EBX].fActive, 0
+        JE       @@exit
+        XOR      EDX, EDX
+        INC      EDX     // EDX = NIM_MODIFY
+        XCHG     EAX, EBX
+        CALL     SetTrayIcon
+@@exit:
+        POP      EBX
+end;
 {$ELSE ASM_VERSION} //Pascal
 procedure TTrayIcon.SetTooltip(const Value: KOLString);
 begin
@@ -40340,6 +43665,53 @@ end;
 
 //[procedure TTrayIcon.SetTrayIcon]
 {$IFDEF ASM_UNICODE}
+procedure TTrayIcon.SetTrayIcon(const Value: DWORD);
+const sz_tid = sizeof( TNotifyIconData );
+asm
+        CMP      [AppletTerminated], 0
+        JE       @@1
+        MOV      DL, NIM_DELETE
+@@1:
+        PUSH     EBX
+        PUSH     ESI
+        MOV      ESI, EAX
+        MOV      EBX, EDX
+
+        XOR      ECX, ECX
+        PUSH     ECX
+        ADD      ESP, -60
+        MOV      EDX, [ESI].fToolTip
+        CALL     EDX2PChar
+        MOV      EAX, ESP
+        MOV      CL, 63
+        CALL     StrLCopy
+
+        PUSH     [ESI].fIcon
+        PUSH     CM_TRAYICON
+        XOR      EDX, EDX
+        CMP      BL, NIM_DELETE
+        JE       @@2
+        MOV      DL, NIF_ICON or NIF_MESSAGE or NIF_TIP
+@@2:    PUSH     EDX
+        PUSH     ESI
+        MOV      EAX, [ESI].FWnd
+        TEST     EAX, EAX
+        JNZ      @@3
+        MOV      EAX, [ESI].fControl
+        MOV      EAX, [EAX].TControl.fHandle
+@@3:
+        PUSH     EAX
+        PUSH     sz_tid
+
+        PUSH     ESP
+        PUSH     EBX
+        CALL     Shell_NotifyIcon
+
+        ADD      ESP, sz_tid
+        POP      ESI
+        POP      EBX
+@@exit:
+end;
 {$ELSE ASM_VERSION} //Pascal
 procedure TTrayIcon.SetTrayIcon(const Value: DWORD);
 var NID : {$IFDEF UNICODE_CTRLS} TNotifyIconDataW {$ELSE} TNotifyIconData {$ENDIF};
@@ -40475,6 +43847,53 @@ var
 
 //[FUNCTION WndProcJustOneNotify]
 {$IFDEF ASM_UNICODE}
+function WndProcJustOneNotify( Control: PControl; var Msg: TMsg; var Rslt: Integer ) : Boolean;
+asm
+        PUSH     EBP
+        MOV      EBP, ESP
+        PUSHAD
+        CALL     WndProcJustOne
+        POPAD
+        XOR      EAX, EAX
+        PUSH     ECX
+          MOV      ECX, [EDX].TMsg.message
+          SUB      ECX, [JustOneMsg]
+        POP      ECX
+        JNE      @@exit
+        MOV      [ECX], EAX
+        CMP      [OnAnotherInstance].TMethod.Code, EAX
+        JE       @@exit_1
+
+        //MOV      EAX, (MAX_PATH + 3) and 0FFFFCh
+        MOV      AH, 2
+        SUB      ESP, EAX
+
+        MOV      ECX, ESP
+        PUSH     EAX
+        PUSH     ECX
+        PUSH     [EDX].TMsg.lParam
+        CALL     GetWindowText
+
+        MOV      EDX, ESP
+        PUSH     0
+        MOV      EAX, ESP
+        {$IFDEF _D2009orHigher}
+        XOR      ECX, ECX // TODO: safe?
+        {$ENDIF}
+        CALL     System.@LStrFromPChar
+
+        MOV      EDX, [ESP]
+        MOV      EAX, [OnAnotherInstance].TMethod.Data
+        CALL     [OnAnotherInstance].TMethod.Code
+
+        MOV      EAX, ESP
+        CALL     System.@LStrClr
+@@exit_1:
+        MOV      AL, 1
+@@exit:
+        MOV      ESP, EBP
+        POP      EBP
+end;
 {$ELSE ASM_UNICODE} //Pascal
 function WndProcJustOneNotify( Control: PControl; var Msg: TMsg; var Rslt: Integer ) : Boolean;
 var Buf : array[0..MAX_PATH] of KOLChar;
@@ -40506,6 +43925,98 @@ external user32 name 'BroadcastSystemMessage';
 
 //[FUNCTION JustOneNotify]
 {$IFDEF ASM_UNICODE}
+function JustOneNotify( Wnd: PControl; const Identifier : AnsiString;
+                        const aOnAnotherInstance: TOnAnotherInstance ) : Boolean;
+asm
+        PUSHAD
+        MOV      EBP, ESP
+
+        XCHG     EAX, EDX
+        PUSH     EAX
+        CALL     System.@LStrLen
+        POP      EDX
+        ADD      EAX, EAX
+        SUB      ESP, EAX
+        MOV      EAX, ESP
+        CALL     StrPCopy
+        PUSH     '.ega'
+        PUSH     'sseM'
+        PUSH     ESP
+        CALL     RegisterWindowMessage
+        MOV      [JustOneMsg], EAX
+        TEST     EAX, EAX
+
+        MOV      ESP, EBP
+        POPAD
+        JE       @@exit_f
+
+        PUSHAD
+        CALL     JustOne
+        DEC      AL
+        POPAD
+        JZ       @@exit_t
+
+        PUSH     EBX
+        XCHG     EBX, EAX
+        XOR      EDX, EDX
+        XCHG     [EBX].TControl.fCaption, EDX
+        PUSH     EDX
+
+        CALL     GetCommandLine
+        XCHG     EDX, EAX
+        LEA      EAX, [EBX].TControl.fCaption
+        {$IFDEF _D2009orHigher}
+        PUSH     ECX
+        XOR      ECX, ECX // TODO: fixme
+        {$ENDIF}
+        CALL     System.@LStrFromPChar
+        {$IFDEF _D2009orHigher}
+        POP      ECX
+        {$ENDIF}
+        MOV      EAX, EBX
+        MOV      EDX, [EBX].TControl.fCaption
+        CALL     TControl.SetCaption
+        MOV      EAX, EBX
+        CALL     TControl.GetWindowHandle
+        TEST     EAX, EAX
+        JZ       @@rest_cap
+
+        PUSH     BSM_APPLICATIONS
+        MOV      EDX, ESP
+
+        PUSH     EAX
+        PUSH     0
+        PUSH     [JustOneMsg]
+        PUSH     EDX
+        PUSH     BSF_QUERY or BSF_IGNORECURRENTTASK
+        CALL     BroadcastSystemMessage
+
+        POP      EDX
+@@rest_cap:
+        LEA      EAX, [EBX].TControl.fCaption
+        CALL     System.@LStrClr
+        POP      EDX
+        MOV      [EBX].TControl.fCaption, EDX
+        MOV      EAX, EBX
+        CALL     TControl.SetCaption
+        POP      EBX
+@@exit_f:
+        XOR      EAX, EAX
+        JMP      @@exit
+
+@@exit_t:
+        PUSHAD
+        LEA      ESI, [aOnAnotherInstance]
+        LEA      EDI, [OnAnotherInstance]
+        MOVSD
+        MOVSD
+        MOV      EDX, offset[WndProcJustOneNotify]
+        CALL     TControl.AttachProc
+        POPAD
+
+        MOV      AL, 1
+@@exit:
+end;
 {$ELSE ASM_VERSION} //Pascal
 function JustOneNotify( Wnd: PControl; const Identifier : KOLString;
                         const aOnAnotherInstance: TOnAnotherInstance ) : Boolean;
@@ -40669,6 +44180,12 @@ end;
 
 //[function TStrList.GetPChars]
 {$IFDEF ASM_TLIST}
+function TStrList.GetPChars(Idx: Integer): PAnsiChar;
+asm
+        MOV      EAX, [EAX].fList
+        MOV      EAX, [EAX].TList.fItems
+        MOV      EAX, [EAX+EDX*4]
+end;
 {$ELSE ASM_VERSION} //Pascal
 function TStrList.GetPChars(Idx: Integer): PAnsiChar;
 begin
@@ -40679,6 +44196,69 @@ end;
 //[function TStrList.GetTextStr]
 
 {$IFDEF ASM_TLIST}
+function TStrList.GetTextStr: Ansistring;
+asm
+        PUSH     ESI
+        PUSH     EDI
+        MOV      ECX, [EAX].fCount
+        MOV      EAX, [EAX].fList
+        PUSH     ECX
+        JECXZ    @@1
+        MOV      ESI, [EAX].TList.fItems
+@@1:    PUSH     ESI
+        XCHG     EAX, EDX
+        XOR      EDX, EDX
+        JECXZ    @@10
+        PUSH     EAX
+@@loo1:
+        PUSH     ECX
+        PUSH     EDX
+        LODSD
+        CALL     StrLen
+        POP      EDX
+        LEA      EDX, [EDX+EAX+2]
+        POP      ECX
+        LOOP     @@loo1
+
+        POP      EAX
+        POP      ESI
+        XCHG     ECX, EDX
+        PUSH     EAX
+@@10:
+        {$IFDEF _D2}
+        CALL     _LStrFromPCharLen
+        {$ELSE}
+        {$IFDEF _D2009orHigher}
+        XOR      ECX, ECX // TODO: safe?
+        {$ENDIF}
+        CALL     System.@LStrFromPCharLen
+        {$ENDIF}
+
+        POP      EDI
+        POP      ECX
+        JECXZ    @@exit
+        MOV      EDI, [EDI]
+
+@@loo2: PUSH     ECX
+        LODSD
+        PUSH     EAX
+        CALL     StrLen
+        XCHG     ECX, EAX
+        POP      EAX
+        XCHG     EAX, ESI
+        REP      MOVSB
+        XCHG     ESI, EAX
+        MOV      AX, $0A0D
+        STOSW
+        POP      ECX
+        LOOP     @@loo2
+
+        XCHG     EAX, ECX
+        STOSB
+@@exit:
+        POP      EDI
+        POP      ESI
+end;
 {$ELSE ASM_VERSION} //Pascal
 function TStrList.GetTextStr: Ansistring;
 var
@@ -40718,6 +44298,35 @@ end;
 
 //[function TStrList.IndexOf]
 {$IFDEF ASM_TLIST}
+function TStrList.IndexOf(const S: Ansistring): integer;
+asm
+        PUSH     EDI
+        PUSH     ESI
+        PUSH     EBX
+        OR       EDI, -1
+        MOV      ECX, [EAX].fCount
+        JECXZ    @@exit
+        MOV      ESI, [EAX].fList
+        MOV      ESI, [ESI].TList.fItems
+        CALL     EDX2PChar
+        MOVZX    EBX, BYTE[EDX]
+@@loo:  LODSD
+        INC      EDI
+        CMP      BL, BYTE[EAX]
+        JNE      @@1
+        PUSH     EDX
+        PUSH     ECX
+        CALL     StrComp
+        POP      ECX
+        POP      EDX
+        JE       @@exit
+@@1:    LOOP     @@loo
+        OR       EDI, -1
+@@exit: XCHG     EAX, EDI
+        POP      EBX
+        POP      ESI
+        POP      EDI
+end;
 {$ELSE ASM_VERSION} //Pascal
 function TStrList.IndexOf(const S: AnsiString): integer;
 var Word1: Word;
@@ -40779,9 +44388,10 @@ end;
 //[function TStrList.Find]
 function TStrList.Find(const S: AnsiString; var Index: Integer): Boolean;
 var
-  L, H, I, C: Integer;
+  L, H, C: Integer;
 begin
   Result := FALSE;
+  Index := 0;
   L := 0;
   H := FCount - 1;
   if  H < 0 then Exit; // === if FCount = 0 then Exit;
@@ -40799,26 +44409,31 @@ begin
       else
           fCompareStrListFun := StrComp_NoCase;
   end;
+  C := 0;
   while L <= H do
   begin
-    I := (L + H) shr 1;
-    C := fCompareStrListFun( PAnsiChar( fList.Items[ I ] ),
+    Index := (L + H) shr 1;
+    C := fCompareStrListFun( PAnsiChar( fList.Items[ Index ] ),
                              PAnsiChar( S ) );
-    if C < 0 then L := I + 1 else
+    if C < 0 then L := Index + 1 else
     begin
-      H := I - 1;
+      H := Index - 1;
       if C = 0 then
       begin
         Result := TRUE;
-        L := I;
-        break;
+        //Index := I;
+        Exit;
       end;
     end;
   end;
+  //Index := L;
+  if  C < 0 then Index := -L;
+  {if  L >= Count then
+      Dec( L );
   Index := L;
   if  not Result then
       Result := fCompareStrListFun( PAnsiChar( fList.Items[ L ] ),
-                                    PAnsiChar( S ) ) = 0;
+                                    PAnsiChar( S ) ) = 0;}
 end;
 
 //[function TStrList.FindFirst]
@@ -40871,6 +44486,144 @@ end;
 
 //[procedure TStrList.SetText]
 {$IFDEF ASM_TLIST}
+procedure TStrList.SetText(const S: Ansistring; Append2List: boolean);
+asm
+        DEC      CL
+        JZ       @@1
+        PUSHAD
+        CALL     Clear
+        POPAD
+@@1:    CALL     EDX2PChar
+        JZ       @@exit
+
+        PUSH     EBX
+        PUSH     EDI
+        MOV      EBX, EAX
+        MOV      EDI, [EBX].fTextSiz
+
+        MOV      EAX, [EDX-4] // EAX = Length(S)
+        INC      EAX
+        PUSH     EAX
+
+        // add S to text buffer
+
+        PUSH     EDX
+        PUSH     [EBX].fTextBuf
+        ADD      EAX, [EBX].fTextSiz
+        CALL     System.@GetMem
+        MOV      [EBX].fTextBuf, EAX
+
+        MOV      ECX, EDI
+        XCHG     EDX, EAX
+        POP      EAX
+        JECXZ    @@atb_fin
+        PUSH     EAX
+        CALL     System.Move
+
+        POP      EDX
+        PUSH     EDX
+
+        PUSH     ESI
+        MOV      ESI, [EBX].fList
+        MOV      ESI, [ESI].TList.fItems
+        MOV      ECX, [EBX].fCount
+
+@@atb_loo:
+        LODSD
+        SUB      EAX, EDX
+        CMP      EAX, [EBX].fTextSiz
+        JAE      @@atb_nxt
+
+        ADD      EAX, [EBX].fTextBuf
+        MOV      [ESI-4], EAX
+
+@@atb_nxt: LOOP  @@atb_loo
+
+        POP      ESI
+        POP      EAX
+        CALL     System.@FreeMem
+@@atb_fin:
+        POP      EAX
+
+        MOV      EDX, EDI
+        ADD      EDX, [EBX].fTextBuf
+        POP      ECX
+        PUSH     ECX
+        ADD      [EBX].fTextSiz, ECX
+
+        CALL     System.Move
+
+@@eatb:
+        ADD      EDI, [EBX].fTextBuf // EDI ~ P
+
+        MOV      ECX, [EBX].fList
+        INC      ECX
+        LOOP     @@2
+        CALL     NewList
+        MOV      [EBX].fList, EAX
+@@2:
+        POP      ECX
+        MOV      EDX, [EBX].fCount
+
+        PUSH     EDI
+        PUSH     ECX
+        MOV      AL, $0D
+
+@@loo1: CMP      byte ptr [EDI], 0
+        JZ       @@eloo1
+
+        INC      EDX
+        REPNZ    SCASB
+        JNZ      @@eloo1
+
+        CMP      byte ptr [EDI], $0A
+        JNZ      @@loo1
+        INC      EDI
+        LOOP     @@loo1
+
+@@eloo1:
+        MOV      [EBX].fCount, EDX
+
+        MOV      EAX, [EBX].fList
+        {$IFNDEF TLIST_FAST}
+        PUSH     EDX
+        PUSH     EAX
+        CMP      EDX, [EAX].TList.fCapacity
+        JLE      @@3
+        CALL     TList.SetCapacity
+@@3:    POP      EAX
+        POP      ECX
+        {$ENDIF TLIST_FAST}
+
+        XCHG     ECX, [EAX].TList.fCount
+        MOV      EDX, [EAX].TList.fItems
+        LEA      EDX, [EDX+ECX*4]
+
+        POP      ECX
+        POP      EDI
+
+        MOV      EAX, $0D
+@@loo2: CMP      byte ptr [EDI], AH
+        JZ       @@eloo2
+
+        MOV      [EDX], EDI
+        ADD      EDX, 4
+
+        REPNZ    SCASB
+        JNZ      @@eloo2
+
+        MOV      [EDI-1], AH
+
+        CMP      byte ptr [EDI], $0A
+        JNZ      @@loo2
+        INC      EDI
+        LOOP     @@loo2
+@@eloo2:
+
+        POP      EDI
+        POP      EBX
+@@exit:
+end;
 {$ELSE ASM_VERSION} //Pascal
 //[procedure TStrList.SetText]
 procedure TStrList.SetText(const S: Ansistring; Append2List: Boolean);
@@ -40967,6 +44720,15 @@ end;
 
 //[FUNCTION CompareStrListItems_NoCase]
 {$IFDEF ASM_TLIST}
+function CompareStrListItems_NoCase( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
+asm
+        MOV      EAX, [EAX].TStrList.fList
+        MOV      EAX, [EAX].TList.fItems
+        MOV      EDX, [EAX+EDX*4]
+        MOV      EAX, [EAX+ECX*4]
+        XCHG     EAX, EDX
+        JMP      StrComp_NoCase
+end;
 {$ELSE ASM_VERSION} //Pascal
 function CompareStrListItems_NoCase( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
 var S1, S2 : PAnsiChar;
@@ -40980,6 +44742,15 @@ end;
 
 //[FUNCTION CompareStrListItems]
 {$IFDEF ASM_TLIST}
+function CompareStrListItems_Case( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
+asm
+        MOV      EAX, [EAX].TStrList.fList
+        MOV      EAX, [EAX].TList.fItems
+        MOV      EDX, [EAX+EDX*4]
+        MOV      EAX, [EAX+ECX*4]
+        XCHG     EAX, EDX
+        JMP      StrComp
+end;
 {$ELSE ASM_VERSION} //Pascal
 function CompareStrListItems_Case( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
 var S1, S2 : PAnsiChar;
@@ -40993,6 +44764,15 @@ end;
 
 //[FUNCTION CompareAnsiStrListItems]
 {$IFDEF ASM_TLIST}
+function CompareAnsiStrListItems( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
+asm
+        MOV      EAX, [EAX].TStrList.fList
+        MOV      EAX, [EAX].TList.fItems
+        MOV      EDX, [EAX+EDX*4]
+        MOV      EAX, [EAX+ECX*4]
+        XCHG     EAX, EDX
+        JMP      _AnsiCompareStrNoCase
+end;
 {$ELSE ASM_VERSION} //Pascal
 function CompareAnsiStrListItems( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
 var S1, S2 : PAnsiChar;
@@ -41006,6 +44786,15 @@ end;
 
 //[FUNCTION CompareAnsiStrListItems_Case]
 {$IFDEF ASM_TLIST}
+function CompareAnsiStrListItems_Case( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
+asm
+        MOV      EAX, [EAX].TStrList.fList
+        MOV      EAX, [EAX].TList.fItems
+        MOV      EDX, [EAX+EDX*4]
+        MOV      EAX, [EAX+ECX*4]
+        XCHG     EAX, EDX
+        JMP      _AnsiCompareStr
+end;
 {$ELSE ASM_VERSION} //Pascal
 function CompareAnsiStrListItems_Case( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
 var S1, S2 : PAnsiChar;
@@ -41183,6 +44972,38 @@ end;
 
 //[function TStrList.AppendToFile]
 {$IFDEF ASM_UNICODE}
+function TStrList.AppendToFile(const FileName: Ansistring): Boolean;
+asm
+        PUSH     EBX
+        MOV      EBX, EDX
+        PUSH     0
+        MOV      EDX, ESP
+        CALL     GetTextStr
+        XCHG     EAX, EBX
+        MOV      EDX, ofOpenWrite or ofOpenAlways
+        CALL     FileCreate
+        MOV      EBX, EAX
+        INC      EAX
+        JZ       @@exit
+        DEC      EAX
+        XOR      EDX, EDX
+        XOR      ECX, ECX
+        MOV      CL, spEnd
+        CALL     FileSeek
+        POP      EAX
+        PUSH     EAX
+        CALL     System.@LStrLen
+        XCHG     ECX, EAX
+        MOV      EAX, EBX
+        POP      EDX
+        PUSH     EDX
+        CALL     FileWrite
+        XCHG     EAX, EBX
+        CALL     FileClose
+@@exit:
+        CALL     RemoveStr
+        POP      EBX
+end;
 {$ELSE ASM_VERSION} //Pascal
 function TStrList.AppendToFile(const FileName: KOLString): Boolean;
 var F: HFile;
@@ -41204,6 +45025,51 @@ end;
 
 //[function TStrList.LoadFromFile]
 {$IFDEF ASM_UNICODE}
+function TStrList.LoadFromFile(const FileName: AnsiString): Boolean;
+asm
+      PUSH     EAX
+        XCHG     EAX, EDX
+        MOV      EDX, ofOpenRead or ofShareDenyWrite or ofOpenExisting
+        CALL     FileCreate
+        INC      EAX
+        JZ       @@exit
+        DEC      EAX
+        PUSH     EBX
+        XCHG     EBX, EAX
+        PUSH     0
+        PUSH     EBX
+        CALL     GetFileSize
+        XOR      EDX, EDX
+        PUSH     EDX
+        XCHG     ECX, EAX
+        MOV      EAX, ESP
+        PUSH     ECX
+        {$IFDEF _D2}
+        CALL     _LStrFromPCharLen
+        {$ELSE}
+        {$IFDEF _D2009orHigher}
+        PUSH EDX // ushort 0, CodePage?
+        {$ENDIF}
+        CALL     System.@LStrFromPCharLen
+        {$ENDIF}
+        POP      ECX
+        MOV      EAX, EBX
+        POP      EDX
+        PUSH     EDX
+        CALL     FileRead
+        XCHG     EAX, EBX
+        CALL     FileClose
+        POP      EDX
+        POP      EBX
+      POP      EAX     // TODO: Dangerous LAnsiStrFromPCharLen
+        PUSH     EDX
+        XOR      ECX, ECX
+        CALL     SetText
+        CALL     RemoveStr
+        PUSH     EDX
+        MOV      AL, 1
+@@exit: POP      EDX
+end;
 {$ELSE ASM_VERSION} //Pascal
 function TStrList.LoadFromFile(const FileName: KOLString): Boolean;
 var Buf: AnsiString;
@@ -41226,6 +45092,44 @@ end;
 
 //[procedure TStrList.LoadFromStream]
 {$IFDEF ASM_STREAM}
+procedure TStrList.LoadFromStream(Stream: PStream; Append2List: boolean);
+asm
+        PUSH     EAX
+        PUSH     ECX
+        PUSH     EBX
+        XCHG     EAX, EDX
+        MOV      EBX, EAX
+        CALL     TStream.GetSize
+        PUSH     EAX
+        MOV      EAX, EBX
+        CALL     TStream.GetPosition
+        POP      ECX
+        SUB      ECX, EAX
+        XOR      EDX, EDX
+        PUSH     EDX
+        MOV      EAX, ESP
+        PUSH     ECX
+        {$IFDEF _D2}
+        CALL     _LStrFromPCharLen
+        {$ELSE}
+        {$IFDEF _D2009orHigher}
+        push     0 // TODO: fixme
+        {$ENDIF}
+        CALL     System.@LStrFromPCharLen
+        {$ENDIF}
+        POP      ECX
+        POP      EDX
+        XCHG     EAX, EBX
+        PUSH     EDX
+        CALL     TStream.Read
+        POP      EDX
+        POP      EBX
+        POP      ECX
+        POP      EAX
+        PUSH     EDX
+        CALL     SetText
+        CALL     RemoveStr
+end;
 {$ELSE ASM_VERSION} //Pascal
 procedure TStrList.LoadFromStream(Stream: PStream; Append2List: Boolean);
 var Buf: AnsiString;
@@ -41252,6 +45156,40 @@ end;
 
 //[function TStrList.SaveToFile]
 {$IFDEF ASM_UNICODE}
+function TStrList.SaveToFile(const FileName: Ansistring): Boolean;
+asm
+        PUSH     EBX
+        PUSH     EAX
+        XCHG     EAX, EDX
+        MOV      EDX, ofOpenWrite or ofCreateAlways
+        CALL     FileCreate
+        INC      EAX
+        JZ       @@exit
+        DEC      EAX
+        XCHG     EBX, EAX
+        POP      EAX
+        PUSH     0
+        MOV      EDX, ESP
+        CALL     GetTextStr
+        POP      EAX
+        PUSH     EAX
+        CALL     System.@LStrLen
+        XCHG     ECX, EAX
+        POP      EDX
+        PUSH     EDX
+        MOV      EAX, EBX
+        CALL     FileWrite
+        PUSH     EBX
+        CALL     SetEndOfFile
+        XCHG     EAX, EBX
+        CALL     FileClose
+        CALL     RemoveStr
+        PUSH     EDX
+        INC      EAX
+@@exit:
+        POP      EDX
+        POP      EBX
+end;
 {$ELSE ASM_VERSION} //Pascal
 function TStrList.SaveToFile(const FileName: KOLString): Boolean;
 var F: HFile;
@@ -44000,7 +47938,9 @@ begin
     SBGetScrollInfo(SI);
     if (SI.nMax = 0) and (SI.nMin = 0) then
       SI.nMax := 1;
+    {$IFDEF SCROLL_OLD} // by QAZ
     SI.nMax := SI.nMax - Integer(SI.nPage) + Value;
+    {$ENDIF}
     SI.nPage := Value;
     SBSetScrollInfo(SI);
   end;
@@ -44019,7 +47959,8 @@ procedure TControl.SetSBMinMax(const Value: TPoint);
 begin
   GetSBMinMax;
   if (Handle <> 0) then
-    SetScrollRange(Handle, SB_CTL, Value.X, Value.Y + SBPageSize - 1, True)
+    SetScrollRange(Handle, SB_CTL, Value.X,
+        Value.Y {$IFDEF SCROLL_OLD} + SBPageSize {$ENDIF (by QAZ)} - 1, True)
   else
     fSBMinMax := Value;
 end;
@@ -44076,6 +48017,176 @@ end;
 
 //[function TOpenSaveDialog.Execute]
 {$IFDEF ASM_UNICODE}
+function TOpenSaveDialog.Execute: Boolean;
+asm
+        PUSH     EBX
+        XCHG     EBX, EAX
+
+        XOR      ECX, ECX
+        {$IFDEF OpenSaveDialog_Extended}
+        MOVZX    EAX, [EBX].NoPlaceBar
+        PUSH     EAX
+        PUSH     ECX
+        PUSH     ECX
+        PUSH     [EBX].TemplateName
+        PUSH     [EBX].HookProc
+        {$ELSE}
+        PUSH     ECX                      // prepare lpTemplateName = nil
+        PUSH     ECX                      // prepare lpfnHook = nil
+        {$ENDIF}
+        PUSH     EBX                      // prepare lCustData = @Self
+        MOV      EDX, [EBX].FDefExtension
+        CALL     EDX2PChar
+        PUSH     EDX                      // prepare lpstrDefExt = FDefExtension
+        PUSH     ECX                      // prepare nFileExtension, nFileOffset: Word = 0, 0
+        // prepare flags:
+        LEA      EAX, [EBX].FOptions
+        MOV      EDX, Offset[@@OpenSaveFlags]
+        {$IFDEF OpenSaveDialog_Extended}
+        MOV      CL, 14
+        {$ELSE}
+        MOV      CL, 12
+        {$ENDIF}
+        CALL     MakeFlags
+        XOR      ECX, ECX
+        OR       EAX, OFN_EXPLORER or OFN_LONGNAMES or OFN_ENABLESIZING
+        PUSH     EAX                       // push Flags
+        PUSH     [EBX].FTitle              // prepare lpstrTitle
+        PUSH     [EBX].FInitialDir         // prepare lpstrInitialDir
+        PUSH     ECX                       // prepare nMaxFileTitle = 0
+        PUSH     ECX                       // prepare lpstrFileTitle = nil
+        TEST     AH, 2      // MultiSelect?
+        MOV      EAX, 65520
+        JNZ      @@1
+        MOV      AX, MAX_PATH+2
+@@1:    PUSH     EAX                       // prepare nMaxFile
+        CALL     System.@GetMem
+        POP      ECX
+        PUSH     ECX
+        PUSH     EAX                       // prepare lpStrFile
+        XOR      EDX, EDX
+
+@@2:    MOV      EDX, [EBX].fFileName // no, fill it initilly by FileName
+        CALL     EDX2PChar
+        DEC      ECX // added 5 october 2003 to prevent possible error if FileName too big
+        CALL     StrLCopy
+        XOR      EDX, EDX
+
+        PUSH     [EBX].FFilterIndex        // prepare nFilterIndex
+        PUSH     EDX                       // prepare nMaxCustFilter
+        PUSH     EDX                       // prepare lpstrCustomFilter
+        PUSH     EDX                       // prepare lpstrFilter = nil
+        MOV      EAX, ESP
+        OR       EDX, [EBX].FFilter
+        JZ       @@5
+
+        MOV      ECX, offset[@@0]
+        CALL     System.@LStrCat3          // prepare lpStrFilter = FFilter + #0
+        POP      EAX
+        PUSH     EAX
+        XOR      EDX, EDX
+@@3:    INC      EAX   // filter is not starting from ';' or '|'...
+        CMP      [EAX], DL
+        JZ       @@5
+        CMP      byte ptr [EAX], '|'
+        JNZ      @@3
+@@4:    MOV      [EAX], DL
+        JMP      @@3
+@@OpenSaveFlags:
+        DD OFN_CREATEPROMPT, OFN_EXTENSIONDIFFERENT, OFN_FILEMUSTEXIST
+        DD OFN_HIDEREADONLY, OFN_NOCHANGEDIR, OFN_NODEREFERENCELINKS
+        DD OFN_ALLOWMULTISELECT, OFN_NONETWORKBUTTON, OFN_NOREADONLYRETURN
+        DD OFN_OVERWRITEPROMPT, OFN_PATHMUSTEXIST, OFN_READONLY, OFN_NOVALIDATE
+        {$IFDEF OpenSaveDialog_Extended}
+        DD OFN_ENABLETEMPLATE, OFN_ENABLEHOOK
+        {$ENDIF}
+
+        {$IFDEF _D2009orHigher}
+        DW       0, 1 // TODO: 1252, 1
+        {$ENDIF}
+        DD       -1, 1
+@@0:    DB       0
+
+
+@@5:
+        PUSH     [hInstance]               // prepare hInstance
+
+        MOV      ECX, [EBX].TControl.fWnd
+        INC      ECX
+        LOOP     @@6
+        MOV      ECX, [Applet]
+        JECXZ    @@6
+        MOV      ECX, [ECX].TControl.fHandle
+@@6:    PUSH     ECX                       // prepare hWndOwner
+        {$IFDEF OpenSaveDialog_Extended}
+        CALL     WinVer
+        CMP      AL, wvNT
+        MOV      DL, 76+12
+        JA       @@6a
+        CMP      AL, wvME
+        JE       @@6a
+        MOV      DL, 76
+@@6a:   MOVZX    EAX, DL
+        PUSH     EAX
+        {$ELSE}
+        PUSH     76                        // prepare lStructSize
+        {$ENDIF}
+
+        PUSH     ESP
+        CMP      [EBX].TControl.FOpenDialog, 0
+        JZ       @@7
+        CALL     GetOpenFileName
+        JMP      @@8
+@@7:    CALL     GetSaveFileName
+@@8:
+        PUSH     EAX
+        XOR      EDX, EDX
+        TEST     EAX, EAX
+        JZ       @@10
+
+        MOV      EAX, [ESP+4].TOpenFileName.nFilterIndex
+        MOV      [EBX].FFilterIndex, EAX
+
+        TEST     BYTE PTR [ESP+4].TOpenFileName.Flags, OFN_READONLY
+        SETNZ    AL
+        MOV      [EBX].fOpenReadOnly, AL
+
+        MOV      EAX, [ESP+4].TOpenFileName.lpstrFile
+        MOV      EDX, EAX
+        XOR      ECX, ECX
+
+        TEST     [EBX].FOptions, 1 shl OSAllowMultiSelect
+        JZ       @@10
+
+        DEC      EAX
+@@9:    INC      EAX
+        CMP      byte ptr [EAX], CL
+        JNZ      @@9
+        CMP      byte ptr [EAX+1], CL
+        JZ       @@10
+        MOV      byte ptr [EAX], 13
+        JMP      @@9
+
+@@10:
+        LEA      EAX, [EBX].FFileName
+        {$IFDEF _D2009orHigher}
+        XOR      ECX, ECX // TODO: safe? check CL
+        {$ENDIF}
+        CALL     System.@LStrFromPChar
+        MOV      EAX, [ESP+4].TOpenFileName.lpstrFile
+        CALL     System.@FreeMem // v1.86 +AK
+
+        LEA      EAX, [ESP+4].TOpenFileName.lpstrFilter
+        CALL     System.@LStrClr
+
+        POP      EAX
+        {$IFDEF OpenSaveDialog_Extended}
+        ADD      ESP, 76+12
+        {$ELSE}
+        ADD      ESP, 76
+        {$ENDIF}
+        POP      EBX
+end;
 {$ELSE ASM_VERSION} //Pascal
 function TOpenSaveDialog.Execute: Boolean;
 const OpenSaveFlags: array[ TOpenSaveOption ] of Integer = (
@@ -44408,6 +48519,43 @@ end;
 
 //[FUNCTION OpenDirSelChangeCallBack]
 {$IFDEF ASM_UNICODE}
+function OpenDirSelChangeCallBack( Wnd: HWnd; Msg: DWORD; lParam, lpData: LParam ):
+         Integer; stdcall;
+asm
+        MOV      EAX, [lpData]
+        MOV      ECX, [EAX].TOpenDirDialog.FOnSelChanged.TMethod.Code
+        JECXZ    @@exit
+
+        LEA      EDX, [EAX].TOpenDirDialog.FBuf
+        PUSH     EDX
+        PUSH     [lParam]
+        CALL     SHGetPathFromIDListA
+
+        MOV      EDX, [lpData]
+        LEA      ECX, [EDX].TOpenDirDialog.FBuf
+        PUSH     0
+        PUSH     ESP
+        LEA      EAX, [EDX].TOpenDirDialog.FStatusText
+        PUSH     EAX
+        MOV      EAX, [EDX].TOpenDirDialog.FOnSelChanged.TMethod.Data
+        CALL     dword ptr [EDX].TOpenDirDialog.FOnSelChanged.TMethod.Code
+        PUSH     0
+        PUSH     BFFM_ENABLEOK
+        PUSH     [Wnd]
+        CALL     SendMessage
+@@1:
+        MOV      EDX, [lpData]
+        MOV      ECX, [EDX].TOpenDirDialog.FStatusText
+        JECXZ    @@exit
+
+        PUSH     ECX
+        PUSH     0
+        PUSH     BFFM_SETSTATUSTEXT
+        PUSH     [Wnd]
+        CALL     SendMessage
+
+@@exit: XOR      EAX, EAX
+end;
 {$ELSE ASM_VERSION} //Pascal
 function OpenDirSelChangeCallBack( Wnd: HWnd; Msg: DWORD; lParam, lpData: LParam ):
          Integer; stdcall;
@@ -44746,6 +48894,203 @@ end;
 
 //[function TControl.TBAddInsButtons]
 {$IFDEF ASM_UNICODE}
+function TControl.TBAddInsButtons(Idx: Integer; const Buttons: array of PKOLChar;
+  const BtnImgIdxArray: array of Integer): Integer; stdcall;
+asm
+        { [EBP+$8] = @Self
+          [EBP+$C] = Idx
+          [EBP+$10] = Buttons
+          [EBP+$14] = High(Butons)
+          [EBP+$18] = BtnImgIdxArray
+          [EBP+$1C] = High(BtnImgIdxArray)
+        }
+        PUSH     EBX
+        PUSH     ESI
+        PUSH     EDI
+        OR       EBX, -1
+        MOV      EAX, 20
+        MOV      ECX, [EBP+$14]
+        CMP      ECX, EBX
+        JLE      @@fin
+        INC      ECX
+        MUL      ECX
+        CALL     System.@GetMem
+        PUSH     EAX           // save AB to FreeMem after
+        MOV      EDX, EBX
+        DEC      EDX           // nBmp := -2
+
+        MOV      ECX, [EBP+$14]
+        INC      ECX
+        JZ       @@exit
+
+        MOV      ECX, [EBP+$1C]
+        INC      ECX
+        JZ       @@1
+        MOV      ECX, [BtnImgIdxArray]
+        MOV      EDX, [ECX]
+        DEC      EDX           // nBmp := BtnImgIdxArray[ 0 ] - 1
+@@1:    MOV      ECX, [EBP+$14]
+        INC      ECX
+        MOV      ESI, [Buttons]
+        MOV      EDI, EAX      // EDI = PAB
+        PUSH     0             // N:=0 in [EBP-$14]
+        // -- impossible?-- JZ       @@break
+@@loop:
+        LODSD
+        TEST     EAX, EAX
+        JZ       @@break
+        PUSH     ECX
+
+        CMP      word ptr [EAX], '-'
+        JNE      @@2
+
+        OR       EAX, -1
+        STOSD
+        MOV      EAX, [ToolbarsIDcmd]
+        TEST     EBX, EBX
+        {$IFDEF USE_CMOV}
+        CMOVL    EBX, EAX
+        {$ELSE}
+        JGE      @@b0
+        MOV      EBX, EAX
+@@b0:   {$ENDIF}
+
+        //INC      [ToolbarsIDcmd]
+        STOSD
+        XOR      EAX, EAX
+        INC      AH  // TBSTYLE_SEP = 1
+        STOSD
+        DEC      AH
+        STOSD
+        DEC      EAX
+        JMP      @@3
+
+        {$IFDEF _D2009orHigher}
+        DW       0, 1 // TODO: 1252, 1
+        {$ENDIF}
+        DD       -1, 1
+@@0:    DB       0
+
+@@2:
+        INC      EDX  // Inc( nBmp )
+        PUSH     EAX
+
+        MOV      EAX, [EBP+$1C]
+        MOV      ECX, [EBP-$14]
+        CMP      EAX, ECX
+        MOV      EAX, EDX
+        JL       @@21
+        MOV      EAX, [BtnImgIdxArray]
+        MOV      EAX, [EAX+ECX*4]
+@@21:   STOSD
+
+        TEST     EDX, EDX
+        JGE      @@2a
+        DEC      EDX
+@@2a:
+
+        MOV      EAX, [ToolbarsIDcmd]
+        //INC      [ToolbarsIDcmd]
+        STOSD
+        TEST     EBX, EBX
+        {$IFDEF USE_CMOV}
+        CMOVL    EBX, EAX
+        {$ELSE}
+        JGE      @@210
+        MOV      EBX, EAX
+@@210:  {$ENDIF}
+
+        POP      ECX
+        MOV      AX, $1004 // AL=fsState=_ENABLED, AH=fsStyle=_AUTOSIZE
+        CMP      byte ptr [ECX], '^'
+        JNE      @@22
+        MOV      AH, TBSTYLE_DROPDOWN or TBSTYLE_AUTOSIZE
+        INC      ECX
+@@22:   CMP      byte ptr [ECX], '-'
+        JZ       @@23
+        CMP      byte ptr [ECX], '+'
+        JNZ      @@24
+        MOV      AL, TBSTATE_ENABLED or TBSTATE_CHECKED
+@@23:   INC      ECX
+        OR       AH, TBSTYLE_CHECK
+        CMP      byte ptr [ECX], '!'
+        JNZ      @@24
+        OR       AH, TBSTYLE_GROUP
+        INC      ECX
+@@24:   {$IFDEF TOOLBAR_DOT_NOAUTOSIZE_BUTTON}
+        CMP      byte ptr [ECX], '.'
+        JNZ      @@25
+        AND      AH, not TBSTYLE_AUTOSIZE
+        INC      ECX
+@@25:
+        {$ENDIF TOOLBAR_DOT_NOAUTOSIZE_BUTTON}
+        STOSD
+        MOV      EAX, [EBP+8]
+        STOSD
+        OR       EAX, -1
+        CMP      word ptr [ECX], ' '
+        JZ       @@3
+        CMP      byte ptr [ECX], 0
+        JZ       @@3
+
+        PUSH     EDX
+        PUSH     0
+        MOV      EDX, ECX
+        MOV      EAX, ESP
+        {$IFDEF _D2009orHigher}
+        PUSH     ECX
+        XOR      ECX, ECX // TODO: fixme? safe?
+        {$ENDIF}
+        CALL     System.@LStrFromPChar
+        {$IFDEF _D2009orHigher}
+        POP      ECX
+        {$ENDIF}
+        MOV      EAX, ESP
+        MOV      EDX, offset[@@0]
+        CALL     System.@LStrCat
+        PUSH     dword ptr [ESP]
+        PUSH     0
+        PUSH     TB_ADDSTRING
+        PUSH     dword ptr [EBP+8]
+        CALL     Perform
+        STOSD
+
+        CALL     RemoveStr
+        POP      EDX
+        JMP      @@30
+
+@@3:    STOSD
+@@30:   INC      dword ptr [EBP-$14]
+        INC      [ToolbarsIDcmd]
+        POP      ECX
+        DEC      ECX
+        JNZ      @@loop
+@@break:
+        POP      ECX
+        JECXZ    @@exit
+        PUSH     dword ptr [ESP]
+        MOV      EAX, [Idx]
+        TEST     EAX, EAX
+        JGE      @@31
+
+        PUSH     ECX
+        PUSH     TB_ADDBUTTONS
+        JMP      @@32
+@@31:
+        PUSH     EAX
+        PUSH     TB_INSERTBUTTON
+@@32:
+        PUSH     dword ptr [EBP+8]
+        CALL     Perform
+@@exit:
+        POP      EAX
+        CALL     System.@FreeMem
+@@fin:
+        POP      EDI
+        POP      ESI
+        XCHG     EAX, EBX
+        POP      EBX
+end;
 {$ELSE ASM_VERSION} //Pascal
 function TControl.TBAddInsButtons(Idx: Integer; const Buttons: array of PKOLChar;
   const BtnImgIdxArray: array of Integer): Integer; stdcall;
@@ -45046,6 +49391,30 @@ end;
 
 //[function TControl.TBGetButtonText]
 {$IFDEF ASM_UNICODE}
+function TControl.TBGetButtonText( BtnID: Integer ): AnsiString;
+asm
+        PUSH     ECX
+        ADD      ESP, -1024
+        PUSH     ESP
+        PUSH     EAX
+        CALL     GetTBBtnGoodID
+        POP      EDX
+        PUSH     EAX
+        PUSH     TB_GETBUTTONTEXT
+        PUSH     EDX
+        CALL     Perform
+        TEST     EAX, EAX
+        JLE      @@2
+        MOV      EDX, ESP
+        JMP      @@1
+@@2:    XOR      EDX, EDX
+@@1:    MOV      EAX, [ESP+1024]
+        {$IFDEF _D2009orHigher}
+        XOR      ECX, ECX // TODO: fixme
+        {$ENDIF}
+        CALL     System.@LStrFromPChar
+        ADD      ESP, 1028
+end;
 {$ELSE ASM_VERSION} //Pascal
 function TControl.TBGetButtonText( BtnID: Integer ): KOLString;
 var Buffer: array[ 0..1023 ] of KOLChar;
@@ -46918,6 +51287,35 @@ end;
 
 //[procedure TBitmap.LoadFromResourceName]
 {$IFDEF ASM_UNICODE}
+procedure TBitmap.LoadFromResourceName(Inst: DWORD; ResName: PAnsiChar);
+asm
+        PUSH     EBX
+        MOV      EBX, EAX
+        PUSHAD
+        CALL     Clear
+        POPAD
+        XOR      EAX, EAX
+        PUSH     ECX
+        MOVZX    ECX, [EBX].fHandleType
+        INC      ECX
+        LOOP     @@1
+        MOV      AH, LR_CREATEDIBSECTION shr 8 // = $2000
+@@1:    MOV      AL, LR_DEFAULTSIZE // = $40
+        POP      ECX
+        PUSH     EAX
+        PUSH     0
+        PUSH     0
+        PUSH     IMAGE_BITMAP
+        PUSH     ECX
+        PUSH     EDX
+        CALL     LoadImage
+        TEST     EAX, EAX
+        JZ       @@exit
+        XCHG     EDX, EAX
+        XCHG     EAX, EBX
+        CALL     SetHandle
+@@exit: POP      EBX
+end;
 {$ELSE ASM_VERSION} //Pascal
 procedure TBitmap.LoadFromResourceName(Inst: DWORD; ResName: PKOLChar);
 var ResHandle: HBitmap;
@@ -47685,6 +52083,89 @@ end;
 
 //[procedure TBitmap.SaveToStream]
 {$IFDEF ASM_STREAM}
+procedure TBitmap.SaveToStream(Strm: PStream);
+type  tBFH = TBitmapFileHeader;
+      tBIH = TBitmapInfoHeader;
+const szBIH = Sizeof( tBIH );
+      szBFH = Sizeof( tBFH );
+asm
+        PUSH     EBX
+        PUSH     ESI
+        MOV      EBX, EAX
+        MOV      ESI, EDX
+        CALL     GetEmpty
+        JZ       @@exit
+        MOV      EAX, ESI
+        CALL     TStream.GetPosition
+        PUSH     EAX
+
+        MOV      EAX, EBX
+        XOR      EDX, EDX // EDX = bmDIB
+        CALL     SetHandleType
+        XOR      EAX, EAX
+        MOV      EDX, [EBX].fDIBHeader
+        MOVZX    ECX, [EDX].TBitmapInfoHeader.biBitCount
+        CMP      CL, 8
+        JG       @@1
+        MOV      AL, 4
+        SHL      EAX, CL
+@@1:
+          PUSH     EAX                        // ColorsSize
+        LEA      ECX, [EAX + szBFH + szBIH]
+        CMP      [EDX].TBitmapInfoHeader.biCompression, 0
+        JZ       @@10
+        ADD      ECX, 74
+@@10:
+        PUSH     ECX                        // BFH.bfOffBits
+        PUSH     0
+        ADD      ECX, [EBX].fDIBSize
+        PUSH     ECX
+        MOV      CX, $4D42
+        PUSH     CX
+        XOR      ECX, ECX
+        MOV      EDX, ESP
+        MOV      CL, szBFH
+          PUSH     ECX
+        MOV      EAX, ESI
+        CALL     TStream.Write
+          POP      ECX
+        ADD      ESP, szBFH
+        XOR      EAX, ECX
+          POP      ECX  // ColorsSize
+        JNZ      @@ewrite
+
+        MOV      EDX, [EBX].fDIBHeader
+        CMP      [EDX].TBitmapInfoHeader.biCompression, 0
+        JZ       @@11
+        ADD      ECX, 74
+@@11:
+
+        ADD      ECX, szBIH
+        PUSH     ECX
+        MOV      EAX, ESI
+        CALL     TStream.Write
+        POP      ECX
+        XOR      EAX, ECX
+        JNZ      @@ewrite
+
+        MOV      ECX, [EBX].fDIBSize
+        MOV      EDX, [EBX].fDIBBits
+        MOV      EAX, ESI
+        PUSH     ECX
+        CALL     TStream.Write
+        POP      ECX
+        XOR      EAX, ECX
+
+@@ewrite:
+        POP      EDX
+        JZ       @@exit
+        XCHG     EAX, ESI
+        XOR      ECX, ECX
+        CALL     TStream.Seek
+@@exit:
+        POP      ESI
+        POP      EBX
+end;
 {$ELSE ASM_VERSION} //Pascal
 procedure TBitmap.SaveToStream(Strm: PStream);
 var BFH : TBitmapFileHeader;
@@ -50813,8 +55294,8 @@ begin
     Result.Color := CF.crTextColor;
   Result.FontPitch := TFontPitch( CF.bPitchAndFamily and 3 );
   Result.FontCharset := CF.bCharSet;
-  if CF.szFaceName[1] = #0 then
-    Result.FontName := KOLString(PWideChar(@CF.szFaceName[0])) // TODO: fixme
+  if (PWord( @CF.szFaceName[0] )^ shr 8) = 0 then
+    Result.FontName := KOLString(PWideChar(@CF.szFaceName[0]))
   else
     Result.FontName := AnsiString(@CF.szFaceName[0]); // real T,0 works fine.
   Result.OnChange := RESetFont;
@@ -51633,6 +56114,64 @@ end;
 
 //[FUNCTION EnumDynHandlers]
 {$IFDEF ASM_TLIST}
+function EnumDynHandlers( Self_: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean;
+asm     //cmd    //opd
+        CMP      [EAX].TControl.fRefCount, 0
+        JL       @@fin_false
+        PUSHAD
+        MOV      EBX, EAX
+        MOV      EBP, ECX
+        MOV      ECX, [EBX].TControl.fDynHandlers
+        JECXZ    @@ret_false
+        MOV      ESI, ECX
+        MOV      ECX, [ESI].TList.fCount
+        JECXZ    @@ret_false
+        MOV      EDI, ECX
+        SHR      EDI, 1
+        CALL     TControl.RefInc
+@@loo:  DEC      EDI
+        JS       @@e_loo
+        PUSH     EDX
+        PUSH     EBX
+{$IFNDEF SMALLEST_CODE}
+{$IFNDEF ENUM_DYN_HANDLERS_AFTER_RUN}
+        XOR      EAX, EAX
+        CMP      [AppletTerminated], AL
+        JZ       @@do_call
+        MOV      ECX, [ESI].TList.fItems
+        MOV      ECX, [ECX+EDI*8+4]
+        JECXZ    @@skip_call
+{$ENDIF}
+{$ENDIF}
+@@do_call:
+        MOV      EAX, [ESI].TList.fItems
+        MOV      EAX, [EAX+EDI*8]
+        XCHG     EAX, EBX
+        MOV      ECX, EBP
+        CALL     EBX
+@@skip_call:
+        POP      EBX
+        POP      EDX
+        TEST     AL, AL
+        JZ       @@loo
+@@ret_true:
+        MOV      EAX, EBX
+        CALL     TControl.RefDec
+        POPAD
+        MOV      AL, 1
+        RET
+@@e_loo:
+        XOR      EAX, EAX
+        INC      EAX
+        CMP      [EBX].TControl.fRefCount, EAX
+        JE       @@ret_true
+        MOV      EAX, EBX
+        CALL     TControl.RefDec
+@@ret_false:
+        POPAD
+@@fin_false:
+        XOR      EAX, EAX
+end;
 {$ELSE ASM_VERSION} //Pascal
 function EnumDynHandlers( Self_: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean;
 var I: Integer;
@@ -51743,10 +56282,149 @@ end;
 {$ENDIF ASM_VERSION}
 
 //[function WndProcAutoPopupMenu]
+{$IFDEF nASM_VERSION}
 function WndProcAutoPopupMenu( Control: PControl; var Msg: TMsg; var MsgRslt: Integer ): Boolean;
-var R: TRect;
+asm
+    CMP  WORD PTR[EDX].TMsg.message, WM_CONTEXTMENU
+    JNZ  @@ret_0
+    CMP  DWORD PTR[EAX].TControl.fAutoPopupMenu, 0
+    JZ   @@ret_0
+    PUSH ESI
+    PUSH EDI
+    PUSH EBX
+    XCHG ESI, EAX // ESI = Control
+    MOV  EDI, EDX
+
+    MOVSX EAX, WORD PTR[EDX].TMsg.lParam+2
+    PUSH  EAX  // P.Y
+    MOVSX EAX, WORD PTR[EDX].TMsg.lParam
+    PUSH  EAX  // P.X
+
+    CMP   DWORD PTR[EDX].TMsg.lParam, -1
+    JNZ   @@auto_popup
+
+    MOV   EAX, ESI
+    CALL  TControl.GetCurIndex
+    CMP   EAX, 0
+    JL    @@coords_2screen
+    // EAX = I
+
+    MOVZX EBX, WORD PTR[ESI].TControl.fCommandActions.aItem2XY
+    CMP   EBX, 0
+    JZ    @@coords_2screen
+
+    CMP   BX, EM_POSFROMCHAR
+    JNZ   @@chk_LB_LV_TC
+
+    PUSH  1
+    MOV   EAX, ESI
+    CALL  TControl.GetSelStart
+    PUSH  EAX
+    MOV   EAX, ESI
+    CALL  TControl.GetSelLength
+    ADD   DWORD PTR[ESP], EAX
+    PUSH  EBX
+    PUSH  ESI
+    CALL  TControl.Perform
+    MOVSX EBX, AX
+    SHR   EAX, 16
+    MOVSX EAX, AX
+    POP   ECX
+    POP   ECX
+    PUSH  EAX
+    PUSH  EBX
+    JMP   @@check_bounds
+
+@@chk_LB_LV_TC:
+    CMP   BX, LB_GETITEMRECT
+    JZ    @@LB_LV_TC
+    CMP   BX, LVM_GETITEMRECT
+    JZ    @@LB_LV_TC
+    CMP   BX, TCM_GETITEMRECT
+    JNZ   @@chk_TVM
+@@LB_LV_TC: // EAX = I
+    PUSH  ECX
+    PUSH  LVIR_BOUNDS
+    PUSH  ESP // @R
+    PUSH  EAX // I
+    JMP   @@get_2
+    { PUSH  EBX // M
+      PUSH  ESI // Control
+      CALL  TControl.Perform
+      POP   EAX
+      POP   ECX
+      POP   ECX
+      PUSH  EAX
+      JMP   @@check_bounds }
+
+@@chk_TVM:
+    CMP   BX, TVM_GETITEMRECT
+    JNZ   @@check_bounds
+
+    MOV   EDX, TVGN_CARET
+    MOV   EAX, ESI
+    CALL  TControl.TVGetItemIdx
+    PUSH  ECX
+    PUSH  EAX
+    PUSH  ESP // @R
+    PUSH  1   // 1
+@@get_2:
+    PUSH  EBX // M
+    PUSH  ESI // Control
+    CALL  TControl.Perform
+    POP   EAX
+    POP   ECX
+    POP   ECX
+    PUSH  EAX
+
+@@check_bounds:
+    POP   EBX // P.X
+    POP   EDI // P.Y
+    SUB   ESP, 16
+    MOV   EDX, ESP
+    MOV   EAX, ESI
+    CALL  TControl.ClientRect
+
+    POP   EAX // R.Left == 0
+    POP   EAX // R.Top  == 0
+    POP   EAX // R.Right
+    CMP   EBX, EAX
+    JLE   @@1
+    XCHG  EBX, EAX
+@@1:POP   EAX // R.Bottom
+    CMP   EDI, EAX
+    JLE   @@2
+    XCHG  EDI, EAX
+@@2:PUSH  EDI // P.Y
+    PUSH  EBX // P.X
+
+@@coords_2screen:
+    MOV  EDX, ESP
+    MOV  EAX, ESI
+    MOV  ECX, EDX
+    CALL TControl.Client2Screen
+
+@@auto_popup:
+    POP  EDX  // P.X
+    POP  ECX  // P.Y
+    MOV  EAX, [ESI].TControl.fAutoPopupMenu
+    CALL TMenu.Popup
+
+    POP  EBX
+    POP  EDI
+    POP  ESI
+    OR   EAX, -1
+    RET
+@@ret_0:
+    XOR  EAX, EAX
+end;
+{$ELSE ASM_VERSION}
+function WndProcAutoPopupMenu( Control: PControl; var Msg: TMsg; var MsgRslt: Integer ): Boolean;
+var {$IFNDEF SMALLEST_CODE}
+    R: TRect;
     M: Word;
     I: Integer;
+    {$ENDIF SMALLEST_CODE}
     P: TPoint;
 begin
   if (Msg.message = WM_CONTEXTMENU) and
@@ -51757,6 +56435,7 @@ begin
     {$ENDIF USE_MENU_CURCTL}
     P.X := SmallInt( LoWord( Msg.lParam ) );
     P.Y := SmallInt( HiWord( Msg.lParam ) );
+    {$IFNDEF SMALLEST_CODE}
     if (Msg.lParam = -1) then
     begin
       I := Control.CurIndex;
@@ -51796,12 +56475,14 @@ begin
       end;
       P := Control.Client2Screen( P );
     end;
+    {$ENDIF SMALLEST_CODE}
     PMenu( Control.fAutoPopupMenu ).Popup( P.X, P.Y );
     Result := TRUE;
   end
     else
   Result := FALSE;
 end;
+{$ENDIF ASM_VERSION}
 
 //[procedure TControl.SetAutoPopupMenu]
 procedure TControl.SetAutoPopupMenu(PopupMenu: PObj);
@@ -54108,14 +58789,37 @@ begin
   END;
 end;
 
+{function EnumWorkerW( W: HWnd; PW: PHWnd ): Bool; stdcall;
+//var ClassBuf: array[ 0..31 ] of Char;
+begin
+    //GetClassName( W, ClassBuf, 31 );
+    //if  ClassBuf = 'WorkerW' then
+    begin
+        PW^ := findwindowex( W, 0, SHELLDLL_DefView_str, nil );
+        if  PW^ <> 0 then
+        begin
+            Result := FALSE;
+            Exit;
+        end;
+    end;
+    Result := TRUE;
+end;}
+
 //[function GetDesktopRect]
 function GetDesktopRect : TRect;
 var W1, W2 : HWnd;
 begin
+  if  WinVer >= wvVista then
+  begin
+      Result := GetWorkArea;
+      Exit;
+  end;
   Result := MakeRect( 0, 0, GetSystemMetrics( SM_CXSCREEN ), GetSystemMetrics( SM_CYSCREEN ) );
-  W2 := findwindow(nil,'Program Manager');
+  W2 := findwindow('Progman',nil);
   W1 := findwindowex(W2,0,'SHELLDLL_DefView',nil);
-  if W1 = 0 then Exit;
+  {if  W1 = 0 then
+      EnumWindows( @EnumWorkerW, Integer(@W1) );}
+  if  W1 = 0 then Exit;
   GetWindowRect( W1, Result );
 end;
 
@@ -56003,7 +60707,6 @@ end;                                                                            
                                                                                 //
 //[constructor TControl.CreatePanel]
 constructor TControl.CreatePanel(AParent: PControl; AStyle: TEdgeStyle);        //
-const Edgestyles: array[ TEdgeStyle ] of DWORD = ( WS_DLGFRAME, SS_SUNKEN, 0 ); //
 begin                                                                           //
   CreateControl( AParent, 'STATIC', WS_VISIBLE or WS_CHILD or                   //
                          SS_LEFTNOWORDWRAP or SS_NOPREFIX or SS_NOTIFY, False,  //
@@ -58081,3 +62784,4 @@ finalization
 
 //[END OF KOL.pas]
 end.
+
