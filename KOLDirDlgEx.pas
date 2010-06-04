@@ -4,6 +4,9 @@ interface
 
 uses Windows, Messages, KOL {$IFDEF USE_GRUSH}, ToGrush, KOLGRushControls {$ENDIF};
 
+{$I KOLDEF.INC}
+{$I DELPHIDEF.INC}
+
 {$IFDEF EXTERNAL_DEFINES}
         {$INCLUDE EXTERNAL_DEFINES.INC}
 {$ENDIF EXTERNAL_DEFINES}
@@ -63,7 +66,7 @@ const
   WM_USER_RESCANTREE = WM_USER;
 
 type
-  TFindFirstFileEx = function(lpFileName: PAnsiChar; fInfoLevelId: TFindexInfoLevels;
+  TFindFirstFileEx = function(lpFileName: PKOLChar; fInfoLevelId: TFindexInfoLevels;
     lpFindFileData: Pointer; fSearchOp: TFindexSearchOps; lpSearchFilter: Pointer;
     dwAdditionalFlags: DWORD): THandle; stdcall;
 
@@ -75,13 +78,13 @@ type
     DirTree: PControl;
     BtnPanel: PControl;
     RescanningNode, RescanningTree: Boolean;
-    FPath, FRecycledName: String;
+    FPath, FRecycledName: KOLString;
     FRemoteIconSysIdx: Integer;
     FFindFirstFileEx: TFindFirstFileEx;
     k32: THandle;
     DialogForm, MsgPanel: PControl;
     function GetFindFirstFileEx: TFindFirstFileEx;
-    procedure SetPath(const Value: String);
+    procedure SetPath(const Value: KOLString);
     function GetDialogForm: PControl;
     procedure DoOK( Sender: PObj );
     procedure DoCancel( Sender: PObj );
@@ -90,7 +93,7 @@ type
     function DoMsg( var Msg: TMsg; var Rslt: Integer ): Boolean;
     function DoExpanding( Sender: PControl; Item: THandle; Expand: Boolean )
                  : Boolean;
-    function DoFilterAttrs( Attrs: DWORD; const APath: String ): Boolean;
+    function DoFilterAttrs( Attrs: DWORD; const APath: KOLString ): Boolean;
     procedure Rescantree;
     procedure RescanNode( node: Integer );
     procedure RescanDisks;
@@ -101,7 +104,7 @@ type
     procedure DeleteNode( node: Integer );
     procedure DestroyingForm( Sender: PObj );
   public
-    OKCaption, CancelCaption: String;
+    OKCaption, CancelCaption: KOLString;
     FilterAttrs: DWORD;
     FilterRecycled: Boolean;
     Title: String;
@@ -112,8 +115,8 @@ type
        add your own controls, event handlers and so on. }
     destructor Destroy; virtual;
     function Execute: Boolean;
-    property InitialPath: String read FPath write SetPath;
-    property Path: String read FPath write SetPath;
+    property InitialPath: KOLString read FPath write SetPath;
+    property Path: KOLString read FPath write SetPath;
     property FastScan: Boolean read FFastScan write FFastScan;
     procedure DoubleClick( Sender: PControl; var M: TMouseEventData );
   {$IFDEF DIRDLGEX_LINKSPANEL}
@@ -128,8 +131,8 @@ type
     function GetLinksPanelOn: Boolean;
     procedure SetLinksPanelOn( const Value: Boolean );
     function GetLinksCount: Integer;
-    function GetLinks(idx: Integer): String;
-    procedure SetLinks(idx: Integer; const Value: String);
+    function GetLinks(idx: Integer): KOLString;
+    procedure SetLinks(idx: Integer; const Value: KOLString);
     procedure SetupLinksTapeHeight;
     procedure SetUpTaborders;
     procedure LinksUpClick( Sender: PControl; var Mouse: TMouseEventData );
@@ -144,11 +147,11 @@ type
   public
     property LinksPanelOn: Boolean read GetLinksPanelOn write SetLinksPanelOn;
     property LinksCount: Integer read GetLinksCount;
-    property Links[ idx: Integer ]: String read GetLinks write SetLinks;
+    property Links[ idx: Integer ]: KOLString read GetLinks write SetLinks;
     procedure AddLinks( SL: PStrList );
     function CollectLinks: PStrList;
-    function LinkPresent( const s: String ): Boolean;
-    procedure RemoveLink( const s: String );
+    function LinkPresent( const s: KOLString ): Boolean;
+    procedure RemoveLink( const s: KOLString );
     procedure ClearLinks;
   {$ENDIF DIRDLGEX_LINKSPANEL}
   end;
@@ -175,11 +178,11 @@ begin
 end;
 
 procedure NewPanelWithSingleButtonToolbar( AParent: PControl; W, H: Integer;
-  A: TControlAlign; Bmp: PBitmap; const C, T: String; var Pn, Bar: PControl;
+  A: TControlAlign; Bmp: PBitmap; const C, T: KOLString; var Pn, Bar: PControl;
   const ClickEvent: TOnEvent; DownEvent, ReleaseEvent, BarMouseDnEvent: TOnMouse;
   P: PMenu );
 var i: Integer;
-    Buffer: PChar;
+    Buffer: PKOLChar;
 begin
   Pn := NewPanel( AParent, esNone ).SetSize( 0, H ).SetAlign( A );
   Pn.Border := 0;
@@ -189,7 +192,9 @@ begin
     [ PKOLChar( {$IFDEF TOOLBAR_DOT_NOAUTOSIZE_BUTTON} '.' + {$ENDIF} C ) ], [ 0 ] );
   Buffer := AllocMem( Length( T ) + 1 );
   if T <> '' then
-    StrCopy( Buffer, PChar( T ) );
+    {$IFDEF UNICODE_CTRLS} WStrCopy
+    {$ELSE}                StrCopy
+    {$ENDIF} ( Buffer, PKOLChar( T ) );
   {$IFDEF USE_GRUSH}
   i := 0;
   {$IFDEF TOGRUSH_OPTIONAL}
@@ -273,7 +278,7 @@ end;
 
 procedure TOpenDirDialogEx.CheckNodeHasChildren(node: Integer);
 var HasSubDirs: Boolean;
-    txt: String;
+    txt: KOLString;
     F: THandle;
     Find32: TWin32FindData;
     ii, n: Integer;
@@ -283,7 +288,7 @@ begin
   if (Length( txt ) = 2) then
     if (txt[ 2 ] = ':') then
     begin
-      ii := GetDriveTypeA( PChar( txt + '\' ) );
+      ii := GetDriveType( PKOLChar( txt + '\' ) );
       if IntIn( ii, [ DRIVE_REMOVABLE, DRIVE_REMOTE, DRIVE_CDROM ] ) then
         HasSubDirs := TRUE;
     end;
@@ -292,7 +297,7 @@ begin
     if WinVer >= wvNT then
     begin
       _FindFirstFileEx;
-      F := FFindFirstFileEx( PChar( DirTree.TVItemPath( node, '\' ) + '\*.*' ),
+      F := FFindFirstFileEx( PKOLChar( DirTree.TVItemPath( node, '\' ) + '\*.*' ),
         FindExInfoStandard, @ Find32, FindExSearchLimitToDirectories, nil, 0 );
       if F <> INVALID_HANDLE_VALUE then
       begin
@@ -639,7 +644,7 @@ begin
     RescanNode( Item );
 end;
 
-function TOpenDirDialogEx.DoFilterAttrs(Attrs: DWORD; const APath: String): Boolean;
+function TOpenDirDialogEx.DoFilterAttrs(Attrs: DWORD; const APath: KOLString): Boolean;
 begin
   Result := (Attrs and FilterAttrs = 0);
   if not Result then Exit;
@@ -783,7 +788,7 @@ begin
 end;
 
 {$IFDEF DIRDLGEX_LINKSPANEL}
-function TOpenDirDialogEx.GetLinks(idx: Integer): String;
+function TOpenDirDialogEx.GetLinks(idx: Integer): KOLString;
 begin
   Result := '';
   if (LinksList <> nil) and (LinksList.Count > idx) then
@@ -816,7 +821,7 @@ begin
   end;
 end;
 
-function TOpenDirDialogEx.LinkPresent(const s: String): Boolean;
+function TOpenDirDialogEx.LinkPresent(const s: KOLString): Boolean;
 begin
   Result := (LinksList <> nil) and
             (LinksList.IndexOf_NoCase(
@@ -909,7 +914,7 @@ begin
 end;
 
 {$IFDEF DIRDLGEX_LINKSPANEL}
-procedure TOpenDirDialogEx.RemoveLink(const s: String);
+procedure TOpenDirDialogEx.RemoveLink(const s: KOLString);
 var i: Integer;
     Pn: PControl;
 begin
@@ -950,7 +955,7 @@ procedure TOpenDirDialogEx.RescanNode(node: Integer);
 { (ѕере)сканирование поддиректорий в заданной узлом node родительской папке.
   ≈сли node = 0, то сканируетс€ список дисков на уровне корн€ дерева.
 }
-var p, s: String;
+var p, s: KOLString;
     DL: PDirList;
     i, j, n, d, m, ii: Integer;
     Find32: TWin32FindData;
@@ -987,7 +992,7 @@ begin
       if WinVer >= wvNT then // используетс€ более быстрый вариант - дл€ NT/2K/XP
       begin
         _FindFirstFileEx;
-        F := FFindFirstFileEx( PChar( p + '*.*' ), FindExInfoStandard, @ Find32,
+        F := FFindFirstFileEx( PKOLChar( p + '*.*' ), FindExInfoStandard, @ Find32,
           FindExSearchLimitToDirectories, nil, 0 );
         if F <> INVALID_HANDLE_VALUE then
         begin
@@ -1153,7 +1158,7 @@ begin
         DirTree.TVItemSelImg[ node ] := ii;
         if (Length( n ) = 2) and (n[ 2 ] = ':') then
         begin
-          if not IntIn( GetDriveTypeA( PChar( n + '\' ) ),
+          if not IntIn( GetDriveType( PKOLChar( n + '\' ) ),
                   [ DRIVE_REMOVABLE, DRIVE_REMOTE, DRIVE_CDROM ] ) then
             RescanNode( node );
         end
@@ -1171,7 +1176,7 @@ begin
 end;
 
 {$IFDEF DIRDLGEX_LINKSPANEL}
-procedure TOpenDirDialogEx.SetLinks(idx: Integer; const Value: String);
+procedure TOpenDirDialogEx.SetLinks(idx: Integer; const Value: KOLString);
 var Bar, Pn: PControl;
     Bmp: PBitmap;
     Ico: PIcon;
@@ -1245,7 +1250,7 @@ begin
 end;
 {$ENDIF DIRDLGEX_LINKSPANEL}
 
-procedure TOpenDirDialogEx.SetPath(const Value: String);
+procedure TOpenDirDialogEx.SetPath(const Value: KOLString);
 begin
   FPath := Value;
   if FPath <> '' then

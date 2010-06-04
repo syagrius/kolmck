@@ -7035,6 +7035,11 @@ begin
       SL.Add( Prefix + AName + '.LVColOrder[ ' + IntToStr( I ) + ' ] := ' +
               IntToStr( Col.LVColOrder ) + ';' );
   end;
+  //+++++++++++++++++++++++++++++ 2.93
+  if (lvoEditLabel in Options) and not Assigned( OnEndEditLVItem ) then
+  begin
+      SL.Add( Prefix + AName + '.OnEndEditLVItem := nil;' );
+  end;
 end;
 
 procedure TKOLListView.SetupLast(SL: TStringList; const AName, AParent,

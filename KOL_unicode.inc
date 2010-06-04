@@ -752,6 +752,24 @@ const
   IDC_HAND = MakeIntResource(32649);
   IDC_APPSTARTING = MakeIntResource(32650);
   IDC_HELP = MakeIntResource(32651);
+  RT_CURSOR       = PKOLChar(1);
+  RT_BITMAP       = PKOLChar(2);
+  RT_ICON         = PKOLChar(3);
+  RT_MENU         = PKOLChar(4);
+  RT_DIALOG       = PKOLChar(5);
+  RT_STRING       = PKOLChar(6);
+  RT_FONTDIR      = PKOLChar(7);
+  RT_FONT         = PKOLChar(8);
+  RT_ACCELERATOR  = PKOLChar(9);
+  RT_RCDATA       = PKOLChar(10);
+  RT_MESSAGETABLE = PKOLChar(11);
+  RT_VERSION      = PKOLChar(16);
+  RT_DLGINCLUDE   = PKOLChar(17);
+  RT_PLUGPLAY     = PKOLChar(19);
+  RT_VXD          = PKOLChar(20);
+  RT_ANICURSOR    = PKOLChar(21);
+  RT_ANIICON      = PKOLChar(22);
+
 {$ENDIF interface_part} ////////////////////////////////////////////////////////
 
 {$IFDEF implementation_part} ///////////////////////////////////////////////////

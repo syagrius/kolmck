@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 // KOL_ASM.inc ()to be inlude in KOL.pas)
-// v 2.91
+// v 2.93
 function MsgBox( const S: KOLString; Flags: DWORD ): DWORD;
 asm
         PUSH      EDX
@@ -327,12 +327,16 @@ end;
 procedure TList.SetCapacity( Value: Integer );
 asm
   {$IFDEF TLIST_FAST}
+  XOR  ECX, ECX
+  MOV  CH,  1
+  CMP  EDX, ECX
+  JLE  @@256
+  MOV  EDX, ECX
+@@256:
   CMP  [EAX].fUseBlocks, 0
   JZ   @@old
   CMP  [EAX].fBlockList, 0
-  JNZ  @@just_set
-  CMP  EDX, 256
-  JLE  @@old
+  JZ   @@old
 @@just_set:
   MOV  [EAX].fCapacity, EDX
   RET
@@ -2087,30 +2091,6 @@ asm
         POP      EBX
 end;
 
-procedure TCanvas.TextOut(X, Y: Integer; const Text: AnsiString); stdcall;
-asm
-        PUSH     EBX
-        MOV      EBX, [EBP+8]
-
-        MOV      EAX, [Text]
-        PUSH     EAX
-        CALL     System.@LStrLen
-        XCHG     EAX, [ESP]             // prepare Length(Text)
-
-        //CALL     System.@LStrToPChar  // string does not need to be null-terminated !
-        PUSH     EAX                    // prepare PChar(Text)
-        PUSH     [Y]                    // prepare Y
-        PUSH     [X]                    // prepare X
-
-        PUSH     HandleValid or FontValid or BrushValid or ChangingCanvas
-        PUSH     EBX
-        CALL     RequiredState
-        PUSH     EAX                    // prepare fHandle
-        CALL     Windows.TextOutA // KOL_ANSI
-
-        POP      EBX
-end;
-
 procedure TCanvas.TextRect(const Rect: TRect; X, Y: Integer; const Text: Ansistring);
 asm
         PUSH     EBX
@@ -3799,6 +3779,7 @@ asm
  {$ENDIF}
 end;
 {$ENDIF BITBTN_ASM}
+
 
 function NewCheckbox( AParent: PControl; const Caption: KOLString ): PControl;
 asm
@@ -6292,7 +6273,6 @@ asm
     {$ENDIF}
 end;
 
-{$IFDEF ASM_VERSION}
 function TControl.GetBoundsRect: TRect;
 asm
         PUSH      ESI
@@ -6356,7 +6336,6 @@ asm
         POP       EDI
         POP       ESI
 end;
-{$ENDIF}
 
 procedure HelpGetBoundsRect;
 asm
@@ -12941,7 +12920,6 @@ asm     //cmd    //opd
 end;
 
 {$IFNDEF OLD_ALIGN}
-{$IFDEF ASM_VERSION}
 procedure AlignChildrenProc(Sender: PObj);
 const AlignModes = (1 shl byte(caBottom))+(1 shl byte(caTop))+
                  (((1 shl byte(caRight)) +(1 shl byte(caLeft)))shl 8)+
@@ -13136,7 +13114,6 @@ asm     //cmd    //opd
         POP      EBX
         POP      EBP
 end;
-{$ENDIF ASM_VERSION}
 {$ENDIF OLD_ALIGN}
 
 function WndProcUpdate( Sender: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean;
@@ -13264,5 +13241,6 @@ asm
  MOV   byte ptr [SaveWinVer], AL
 @@exit:
 end;        
+
 
 //======================================== THE END OF FILE KOL_ASM.inc

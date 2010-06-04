@@ -15,7 +15,7 @@
 
 //[VERSION]
 ****************************************************************
-* VERSION 2.91
+* VERSION 2.93
 ****************************************************************
 //[END OF VERSION]
 
@@ -839,10 +839,10 @@ type
     {$ENDIF}
   protected
     {$IFDEF TLIST_FAST}
-    fUseBlocks: Boolean;
     fBlockList: PList;
     fLastKnownBlockIdx: Integer;
     fLastKnownCountBefore: Integer;
+    fUseBlocks: Boolean;
     {$ENDIF}
   public
     procedure Clear;
@@ -1770,6 +1770,8 @@ procedure WStrLCopy( Dest, Src: PWideChar; MaxLen: Integer );
 {* Copies null-terminated Unicode string (terminated null also copied). }
 function WStrCmp( W1, W2: PWideChar ): Integer;
 {* Compares two null-terminated Unicode strings. }
+function WStrCmp_NoCase( W1, W2: PWideChar ): Integer;
+{* Compares two null-terminated Unicode strings. }
 {$ENDIF _FPC}
 
 {$IFDEF WIN_GDI}
@@ -1840,6 +1842,8 @@ type
     {* See also TStrList.Move }
     function IndexOf( const s: WideString ): Integer;
     {* }
+    function IndexOf_NoCase( const s: WideString ): Integer;
+    {* }
     function Last: WideString;
     {* }
     procedure Put(Idx: integer; const Value: WideString);
@@ -1901,14 +1905,23 @@ function NewWStrListEx: PWStrListEx;
 {$IFNDEF _D2}
 type TKOLStrList = TWStrList;
      PKOLStrList = PWStrList;
+     TKOLStrListEx = TWStrListEx;
+     PKOLStrListEx = PWStrListEx;
 {$ELSE}
 type TKOLStrList = TStrList;
      PKOLStrList = PStrList;
+     TKOLStrListEx = TStrListEx;
+     PKOLStrListEx = PStrListEx;
 {$ENDIF}
 {$ELSE}
 type TKOLStrList = TStrList;
      PKOLStrList = PStrList;
+     TKOLStrListEx = TStrListEx;
+     PKOLStrListEx = PStrListEx;
 {$ENDIF}
+
+function NewKOLStrList: PKOLStrList;
+function NewKOLStrListEx: PKOLStrListEx;
 
 {+}
 ////////////////////////////////////////////////////////////////////////////////
@@ -2622,7 +2635,9 @@ type
     procedure RoundRect(X1, Y1, X2, Y2, X3, Y3: Integer);
     {* Draws a rounded rectangle. For more info, see Delphi TCanvas help. }
     {$ENDIF GDI}
-    procedure TextOut(X, Y: Integer; const Text: AnsiString); stdcall;
+    procedure TextOutA(X, Y: Integer; const Text: AnsiString); stdcall;
+    {* Draws an ANSI text. For more info, see Delphi TCanvas help. }
+    procedure TextOut(X, Y: Integer; const Text: KOLString); stdcall;
     {* Draws a text. For more info, see Delphi TCanvas help. }
     procedure ExtTextOut( X, Y: Integer; Options: DWORD; const Rect: TRect; const Text: AnsiString;
               const Spacing: array of Integer );
@@ -10668,18 +10683,29 @@ function Format( const fmt: KOLString; params: array of const ): KOLString;
 //[String FUNCTIONS DECLARATIONS]
 function StrComp(const Str1, Str2: PAnsiChar): Integer;
 {* Compares two strings fast. -1: Str1<Str2; 0: Str1=Str2; +1: Str1>Str2 }
+{$IFDEF SMALLER_CODE}
 function StrComp_NoCase(const Str1, Str2: PAnsiChar): Integer;
 {* Compares two strings fast without case sensitivity.
    Returns: -1 when Str1<Str2; 0 when Str1=Str2; +1 when Str1>Str2 }
-function StrLComp(const Str1, Str2: PAnsiChar; MaxLen: Cardinal): Integer;
-{* Compare two strings (fast). Terminating 0 is not considered, so if
-   strings are equal, comparing is continued up to MaxLen bytes.
-   Since this, pass minimum of lengths as MaxLen. }
 function StrLComp_NoCase(const Str1, Str2: PAnsiChar; MaxLen: Cardinal): Integer;
 {* Compare two strings fast without case sensitivity.
    Terminating 0 is not considered, so if strings are equal,
    comparing is continued up to MaxLen bytes.
    Since this, pass minimum of lengths as MaxLen. }
+{$ELSE}
+function StrComp_NoCase1(const Str1, Str2: PAnsiChar): Integer;
+var StrComp_NoCase: function(const Str1, Str2: PAnsiChar): Integer = StrComp_NoCase1;
+{* Compares two strings fast without case sensitivity.
+   Returns: -1 when Str1<Str2; 0 when Str1=Str2; +1 when Str1>Str2 }
+function StrLComp_NoCase1(const Str1, Str2: PAnsiChar; MaxLen: Cardinal): Integer;
+var StrLComp_NoCase: function(const Str1, Str2: PAnsiChar; MaxLen: Cardinal): Integer = StrLComp_NoCase1;
+{$ENDIF}
+
+function StrLComp(const Str1, Str2: PAnsiChar; MaxLen: Cardinal): Integer;
+{* Compare two strings (fast). Terminating 0 is not considered, so if
+   strings are equal, comparing is continued up to MaxLen bytes.
+   Since this, pass minimum of lengths as MaxLen. }
+
 function StrCopy( Dest, Source: PAnsiChar ): PAnsiChar;
 {* Copy source string to destination (fast). Pointer to Dest is returned. }
 function StrCat( Dest, Source: PAnsiChar ): PAnsiChar;
@@ -11288,7 +11314,7 @@ function FileIconSysIdxOffline( const Path: KOLString ): Integer;
 function DirIconSysIdxOffline( const Path: KOLString ): Integer;
 {* The same as FileIconSysIdxOffline, but for a folder rather then for a file. }
 {$ENDIF WIN} //-----------------------------------------------------------------
-procedure LogFileOutput( const filepath, str: AnsiString );
+procedure LogFileOutput( const filepath, str: KOLString );
 {* Debug function. Use it to append given string to the end of the given file. }
 
 function Str2File( Filename: PKOLChar; Str: PAnsiChar ): Boolean;
@@ -11578,11 +11604,11 @@ function RegKeySetDateTime(Key: HKey; const ValueName: KOLString; DateTime: TDat
 //-------------------------------------------------------
 // registry functions by Valerian Luft <luft@valerian.de>
 //-------------------------------------------------------
-function RegKeyGetSubKeys( const Key: HKEY; List: PStrList): Boolean;
+function RegKeyGetSubKeys( const Key: HKEY; List: PKOLStrList): Boolean;
 {* The function enumerates subkeys of the specified open registry key.
    True is returned, if successful.
 }
-function RegKeyGetValueNames(const Key: HKEY; List: PStrList): Boolean;
+function RegKeyGetValueNames(const Key: HKEY; List: PKOLStrList): Boolean;
 {* The function enumerates value names of the specified open registry key.
    True is returned, if successful.
 }
@@ -11976,12 +12002,6 @@ type
   {++}(*TIniFile = class;*){--}
   PIniFile = {-}^{+}TIniFile;
 
-{$IFDEF UNICODE_CTRLS}
-  PXStrList = PWStrList;
-{$ELSE}
-  PXStrList = PStrList;
-{$ENDIF}
-
 { ----------------------------------------------------------------------
                 TIniFile - store/load data to ini-files
 ----------------------------------------------------------------------- }
@@ -12038,11 +12058,11 @@ type
     {* Clears given key in current section. }
 
     /////////////// + by Vyacheslav A. Gavrik:
-    procedure GetSectionNames(Names:PXStrList);
+    procedure GetSectionNames(Names:PKOLStrList);
     {* Retrieves section names, storing it in string list passed as a parameter.
        String list does not cleared before processing. Section names are added
        to the end of the string list. }
-    procedure SectionData(Names:PXStrList);
+    procedure SectionData(Names:PKOLStrList);
     {* Read/write current section content to/from string list. (Depending on
        current Mode value). }
     ///////////////
@@ -13863,7 +13883,6 @@ asm
 end;
 
 {$IFDEF _D3orHigher}
-// TODO: In my memories LStrClr can sometimes safely used for WideString
 //[PROCEDURE RemoveWStr]
 procedure RemoveWStr;
 asm
@@ -13875,7 +13894,7 @@ asm
         XCHG     EAX, [ESP]
         PUSH     EAX
         MOV      EAX, ESP
-        CALL     System.@WStrClr // It's better make an new function instead around UNICODE_CTRLS here
+        CALL     System.@WStrClr 
         POP      EAX
 end;
 {$ENDIF _D3orHigher}
@@ -15016,11 +15035,11 @@ begin
   {$IFDEF DEBUG_ENDSESSION}
   if EndSession_Initiated then
     LogFileOutput( GetStartDir + 'es_debug.txt',
-                   'FINALLED: ' + Int2Hex( DWORD( @ Self )
+                   'FINALLED: ' + Int2Hex( DWORD( @ Self ), 8 )
                    {$IFDEF USE_NAMES}
                    + ' (name:' + FName + ')'
                    {$ENDIF}
-                   , 8 ) );
+                    );
   {$ENDIF}
   {$IFDEF USE_NAMES}
   fName := '';
@@ -15415,7 +15434,11 @@ end;
 procedure TList.SetCapacity( Value: Integer );
 begin
   {$IFDEF TLIST_FAST}
-  if fUseBlocks and (Assigned( fBlockList ) or (Value > 256)) then
+  if  Value > 256 then // Capacitity в обычном смысле работает только для первого
+      Value := 256;    // блока - до 256 элементов, далее оно смысла не имеет,
+                       // т.к. все прочие блоки всегда содержат по 256 позиций
+                       // для элементов, независимо от процента использования.
+  if fUseBlocks and (Assigned( fBlockList ) {or (Value > 256)}) then
   begin
     fCapacity := Value;
   end
@@ -18027,48 +18050,6 @@ end;
 {$ENDIF ASM_VERSION}
 {$ENDIF WIN_GDI}
 
-(*function TCanvas.RequiredState(ReqState: DWORD): HDC; stdcall; //todo:
-var NeededState: Byte;
-//var c: TGdkColor;
-begin
-  {if Boolean(ReqState and ChangingCanvas) then
-     Changing;}
-  ReqState := ReqState and (BrushValid or FontValid or PenValid);
-  NeededState := Byte( ReqState ) and not fState;
-  //Result := nil;
-  { if Boolean(ReqState and HandleValid) then
-    begin
-      if GetHandle = 0 then Exit; // Important!
-    end;}
-  if NeededState <> 0 then
-  begin
-    if Boolean( NeededState and PenValid ) then
-    begin
-      //CreatePen;
-      if not assigned( fPen ) then
-        fPen := NewPen;
-      if fPen.fData.Pen.Style in [psDash, psDot, psDashDot, psDashDotDot] then
-        NeededState := NeededState or BrushValid;
-    end;
-    if Boolean( NeededState and BrushValid ) then
-    begin
-      //CreateBrush;
-      if not Assigned( fBrush ) then
-        fBrush := NewBrush;
-      //c := Color2GDKColor( fBrush.Color );
-      //gdk_gc_set_rgb_fg_color( fHandle, @ c );
-      //todo: what with BrushBitmap and BrushStyle ?
-    end;
-    if Boolean( NeededState and FontValid ) then
-    begin
-      //CreateFont;
-      if not Assigned( fFont ) then
-        fFont := NewFont;
-    end;
-    fState := fState or NeededState;
-  end;
-  Result := fHandle;
-end;*)
 {$IFDEF _X_}
 {$IFDEF GTK}
 procedure TCanvas.ForeBack(fg_color, bk_color: TColor); // install colors just before drawing
@@ -18585,13 +18566,43 @@ end;
 
 //[procedure TCanvas.TextOut]
 {$IFDEF GDI}
-{$IFDEF ASM_VERSION}
-{$ELSE ASM_VERSION} //Pascal
-procedure TCanvas.TextOut(X, Y: Integer; const Text: AnsiString); stdcall;
+procedure TCanvas.TextOutA(X, Y: Integer; const Text: AnsiString); stdcall;
 begin
   RequiredState( HandleValid or FontValid or BrushValid or ChangingCanvas );
-  Windows.TextOutA(FHandle, X, Y, PAnsiChar(Text), Length(Text)); // TODO: TextOutW
-  //MoveTo(X + TextWidth(Text), Y); -- by suggestion of Alexey (Lecha2002)
+  Windows.TextOutA(FHandle, X, Y, PAnsiChar(Text), Length(Text));
+end;
+
+{$IFDEF ASM_UNICODE}
+procedure TCanvas.TextOut(X, Y: Integer; const Text: KOLString); stdcall;
+asm
+        PUSH     EBX
+        MOV      EBX, [EBP+8]
+
+        MOV      EAX, [Text]
+        PUSH     EAX
+        CALL     System.@LStrLen
+        XCHG     EAX, [ESP]             // prepare Length(Text)
+
+        //CALL     System.@LStrToPChar  // string does not need to be null-terminated !
+        PUSH     EAX                    // prepare PChar(Text)
+        PUSH     [Y]                    // prepare Y
+        PUSH     [X]                    // prepare X
+
+        PUSH     HandleValid or FontValid or BrushValid or ChangingCanvas
+        PUSH     EBX
+        CALL     RequiredState
+        PUSH     EAX                    // prepare fHandle
+        CALL     Windows.TextOutA // KOL_ANSI
+
+        POP      EBX
+end;
+{$ELSE ASM_VERSION} //Pascal
+procedure TCanvas.TextOut(X, Y: Integer; const Text: KOLString); stdcall;
+begin
+  RequiredState( HandleValid or FontValid or BrushValid or ChangingCanvas );
+  {$IFDEF UNICODE_CTRLS}Windows.TextOutW
+  {$ELSE}               Windows.TextOutA
+  {$ENDIF}(FHandle, X, Y, PKOLChar(Text), Length(Text));
 end;
 {$ENDIF ASM_VERSION}
 {$ENDIF GDI}
@@ -18604,37 +18615,6 @@ begin
   if Brush.BrushStyle <> bsClear then Options := ETO_OPAQUE;
   ExtTextOut( X, Y, Options, MakeRect( 0,0,0,0 ), Text, [ ] );
 end;
-(*var context: PPangoContext;
-    layout: PPangoLayout;
-    w, h: Integer;
-begin
-  RequiredState( {HandleValid or} FontValid or BrushValid or ChangingCanvas );
-  if fOwnerControl <> nil then
-  begin
-    context := nil;
-    layout := gtk_widget_create_pango_layout(
-      PControl( fOwnerControl ).fEventboxHandle, nil );
-  end
-    else
-  begin //todo: seems not working in such way... What to do for memory bitmap?
-    context := pango_context_new;
-    //layout := gtk_widget_create_pango_layout( fHandle, PChar( Text ) );
-    layout := pango_layout_new( context );
-  end;
-  pango_layout_set_font_description( layout, Font.FontHandle );
-  pango_layout_set_text( layout, PAnsiChar( Text ), Length( Text ) );
-  if Brush.BrushStyle <> bsClear then
-  begin
-    pango_layout_get_size( layout, @ w, @ h );
-    ForeBack( Brush.Color, Brush.Color );
-    gdk_draw_rectangle( fDrawable, fHandle, 1, X, Y, w div PANGO_SCALE, h div PANGO_SCALE );
-  end;
-  ForeBack( Font.Color, Brush.Color );
-  gdk_draw_layout( fDrawable, fHandle, X, Y, layout );
-  g_object_unref( layout );
-  if context <> nil then
-    g_object_unref( context );
-end;*)
 {$ENDIF GTK}
 {$ENDIF _X_}
 
@@ -18711,8 +18691,7 @@ begin
     h := h div PANGO_SCALE;
   end;
   pixmap := gdk_pixmap_new( PControl( fOwnerControl ).fEventboxHandle.window,
-                            //todo: use MainForm
-    w, h, -1 );
+    w, h, -1 ); //todo: use MainForm
   if Options and ETO_OPAQUE <> 0 then
   begin
     ForeBack( Brush.Color, Brush.Color );
@@ -19787,7 +19766,9 @@ function ToRadix( number: Radix_Int; radix: Integer; min_digits: Integer ): KOLS
 var Buf: array[ 0..64 ] of KOLChar;
     p: PKOLChar;
     n: Integer;
+    {$IFDEF _D5orHigher}
     numd: Extended;
+    {$ENDIF}
 begin
   Assert( (radix >= 2) and (radix <= 36), 'Radix base must be between 2 and 36' );
   Assert( min_digits <= 64, 'Maximum possible digits number is 64' );
@@ -21501,7 +21482,7 @@ end;
 function _2StrSatisfy( S, Mask: PAnsiChar ): Boolean;
 asm     //     //
         PUSH   EBX
-        PUSH   ECX // TODO: remove
+        PUSH   ECX 
         XCHG   EBX, EAX
         PUSH   0
         MOV    EAX, ESP
@@ -21738,6 +21719,21 @@ asm
         POP     EDI
 end {$IFDEF F_P} [ 'EAX', 'EDX', 'ECX' ] {$ENDIF};
 
+var Upper: array[ AnsiChar ] of AnsiChar;
+    Upper_initialized: Boolean;
+
+procedure Init_Upper;
+var c: Char;
+begin
+    if  not Upper_initialized then
+    begin
+        for c := Low(c) to High(c) do
+            Upper[c] := AnsiUpperCase(c+' ')[1];
+        Upper_initialized := TRUE;
+    end;
+end;
+
+{$IFDEF SMALLER_CODE}
 function StrComp_NoCase(const Str1, Str2: PAnsiChar): Integer;
 asm
   {$IFDEF F_P}
@@ -21830,6 +21826,70 @@ asm
         POP     ESI
         POP     EDI
 end {$IFDEF F_P} [ 'EAX', 'EDX', 'ECX' ] {$ENDIF};
+{$ELSE not SMALLER_CODE}
+function StrComp_NoCase2(const Str1, Str2: PAnsiChar): Integer;
+asm
+  {$IFDEF F_P}
+        MOV     EAX, [Str1]
+        MOV     EDX, [Str2]
+  {$ENDIF F_P}
+        PUSH    ESI
+        XCHG    ESI, EAX
+  @@1:  MOVZX   EAX, BYTE PTR [EDX]
+        INC     EDX
+        MOV     CL,  BYTE PTR [EAX+Upper]
+        LODSB
+        SUB     CL,  BYTE PTR [EAX+Upper]
+        JNZ     @@fin
+        CMP     AL,  CL
+        JNZ     @@1
+  @@fin:MOVSX   EAX, CL
+        POP     ESI
+end {$IFDEF F_P} [ 'EAX', 'EDX', 'ECX' ] {$ENDIF};
+
+function StrComp_NoCase1(const Str1, Str2: PAnsiChar): Integer;
+begin
+    Init_Upper;
+    StrComp_NoCase := @StrComp_NoCase2;
+    Result := StrComp_NoCase2( Str1, Str2 );
+end;
+
+//[function StrLComp_NoCase]
+function StrLComp_NoCase2(const Str1, Str2: PAnsiChar; MaxLen: Cardinal): Integer;
+asm
+  {$IFDEF F_P}
+        MOV     EAX, [Str1]
+        MOV     EDX, [Str2]
+        MOV     ECX, [MaxLen]
+  {$ENDIF F_P}
+        PUSH    EDI
+        PUSH    ESI
+        PUSH    EBX
+        MOV     EDI,EDX
+        XCHG    ESI,EAX
+        XOR     EBX, EBX
+        JECXZ   @@fin
+  @@1:  MOV     AL, BYTE PTR [EDI]
+        INC     EDI
+        MOV     BL, BYTE PTR [EAX+Upper]
+        LODSB
+        SUB     BL, BYTE PTR [EAX+Upper]
+        JNZ     @@fin
+        AND     AL, BL
+        JNZ     @@1
+  @@fin:MOVSX   EAX, BL
+        POP     EBX
+        POP     ESI
+        POP     EDI
+end {$IFDEF F_P} [ 'EAX', 'EDX', 'ECX' ] {$ENDIF};
+
+function StrLComp_NoCase1(const Str1, Str2: PAnsiChar;  MaxLen: Cardinal): Integer;
+begin
+    Init_Upper;
+    StrComp_NoCase := @StrComp_NoCase2;
+    Result := StrLComp_NoCase2( Str1, Str2, MaxLen );
+end;
+{$ENDIF}
 
 //[function StrLComp]
 function StrLComp(const Str1, Str2: PAnsiChar; MaxLen: Cardinal): Integer; assembler;
@@ -22200,7 +22260,7 @@ begin
     El^ := DWORD( P );
     Inc( El );
   end;
-  wvsprintf( PKOLChar(@Buffer[0]), PKOLChar( fmt ), Pointer( ElsArray ) ); // TODO: why valist is pchar?
+  wvsprintf( PKOLChar(@Buffer[0]), PKOLChar( fmt ), Pointer( ElsArray ) );
   Result := Buffer;
   if ElsArray <> nil then
      FreeMem( ElsArray );
@@ -22263,7 +22323,7 @@ asm
         SUB     EDX,EAX
         SHR     EDX,1
 @@5:    POP     ECX
-        JMP     LStrFromPWCharLen // TODO: no need push 0 in FPC current build
+        JMP     LStrFromPWCharLen 
 end {$IFDEF F_P} [ 'EAX', 'EDX', 'ECX' ] {$ENDIF};
 {$ENDIF _FPC}
 
@@ -22682,15 +22742,15 @@ end;
 {$ENDIF WIN}
 
 //[procedure LogFileOutput]
-procedure LogFileOutput( const filepath, str: AnsiString );
+procedure LogFileOutput( const filepath, str: KOLString );
 var F: THandle;
-    Tmp: AnsiString;
+    Tmp: KOLString;
 begin
   F := FileCreate( filepath, ofOpenWrite or ofOpenAlways or ofShareDenyWrite );
   if F = INVALID_HANDLE_VALUE then Exit;
   FileSeek( F, 0, spEnd );
   Tmp := str + {$IFDEF LIN} #10 {$ELSE} #13#10 {$ENDIF};
-  FileWrite( F, PAnsiChar( Tmp )^, Length( Tmp ) );
+  FileWrite( F, PKOLChar( Tmp )^, Length( Tmp ) * Sizeof(KOLChar) );
   FileClose( F );
 end;
 
@@ -23024,7 +23084,7 @@ asm
         MOV      EAX, EBX
         MOV      EDX, ESP
         {$IFDEF _D2009orHigher}
-        XOR      ECX, ECX // TODO: fixme
+        XOR      ECX, ECX
         {$ENDIF}
         CALL     System.@LStrFromPChar // AnsiSafe!
 
@@ -23156,7 +23216,7 @@ asm
   {$ENDIF}
   mov  edx, [esp]
   mov  eax, [esp+4]
-  call System.@LStrCat // TODO: Only EAX, EDX?
+  call System.@LStrCat 
   call RemoveStr
   pop  eax
 @@exit:
@@ -23237,7 +23297,7 @@ asm
 @@ret_0:
         POP      EAX
         {$IFDEF _D2009orHigher}
-        PUSH     0 // TODO: can't find an 0 register
+        PUSH     0 
         {$ENDIF}
         CALL     System.@LStrFromPCharLen
 end;
@@ -23296,7 +23356,7 @@ asm
         INC      EDX
 @@1:    POP      EAX
         {$IFDEF _D2009orHigher}
-        XOR      ECX, ECX // TODO: why __DelimiterLast destroyed ECX?
+        XOR      ECX, ECX 
         {$ENDIF}
         CALL     System.@LStrFromPChar // Safe!
 end;
@@ -23367,12 +23427,12 @@ asm
 @@1:    XCHG     EDX, EAX
         POP      EAX
         {$IFDEF _D2009orHigher}
-        PUSH     ECX // TODO: confirm to remove ecx protecion
+        PUSH     ECX
         XOR      ECX, ECX
         {$ENDIF}
-        CALL     System.@LStrFromPChar // TODO: dangerous KOLString may need WStrFromPWideChar
+        CALL     System.@LStrFromPChar
         {$IFDEF _D2009orHigher}
-        POP      ECX // this routine havn't touch ECX
+        POP      ECX // this routine hasn't touch ECX
         {$ENDIF}
 end;
 {$ELSE ASM_VERSION} //Pascal
@@ -23479,14 +23539,16 @@ begin
 end;
 
 //[function PixelsLength]
-function PixelsLength( DC: HDC; const Text: AnsiString ): Integer;
+function PixelsLength( DC: HDC; const Text: KOLString ): Integer;
 var Sz: TSize;
 begin
   if DC = 0 then
     Result := Length( Text )
   else
   begin
-    Windows.GetTextExtentPoint32A( DC, PAnsiChar( Text ), Length( Text ), Sz ); // TODO: KOL_ANSI
+    {$IFDEF UNICODE_CTRLS}Windows.GetTextExtentPoint32W
+    {$ELSE}               Windows.GetTextExtentPoint32A
+    {$ENDIF}( DC, PKOLChar( Text ), Length( Text ), Sz );
     Result := Sz.cx;
   end;
 end;
@@ -23552,7 +23614,7 @@ begin
       Root := False;
     if S[1] = '.' then
       Delete(S, 1, 4);
-    P := Pos( KOLString('\'), S ); // TODO: add APos?
+    P := Pos( KOLString('\'), S ); 
     if P <> 0 then
     begin
       Delete(S, 1, P);
@@ -23628,7 +23690,7 @@ end;
 
 //[function GetTempDir]
 {$IFDEF ASM_UNICODE}
-function GetTempDir : KOLString; // TODO: dangerous KOLString
+function GetTempDir : KOLString; 
 asm
   push eax
   sub esp, 264
@@ -23638,7 +23700,7 @@ asm
   mov  edx, esp
   mov  eax, [esp+264]
   {$IFDEF _D2009orHigher}
-  xor  ecx, ecx // TODO: I consider IncludeTrailingPathDelimiter affect ECX
+  xor  ecx, ecx 
   {$ENDIF}
   call System.@LStrFromPChar
   add esp, 264
@@ -23676,7 +23738,7 @@ asm
   {$IFDEF _D2009orHigher}
   xor ecx, ecx // ecx is argument
   {$ENDIF}
-  call System.@LStrFromPChar // TODO: fixme KOLString != AnsiString
+  call System.@LStrFromPChar 
   add  esp, 268
 end;
 {$ELSE PASCAL}
@@ -23890,7 +23952,7 @@ asm
         JNE      @@exit
         LEA      EDX, @@mask_all
         {$IFDEF _D2009orHigher}
-        XOR      ECX, ECX // TODO: JE to JNZ
+        XOR      ECX, ECX 
         {$ENDIF}
         JE       System.@LStrFromPChar
 @@mask_all:  DB  '*.*',0
@@ -23934,7 +23996,7 @@ asm
         LEA      EDX, [EAX + offset TWin32FindData.cFileName] //
         POP      EAX
         {$IFDEF _D2009orHigher}
-        XOR      ECX, ECX // TODO: fixme
+        XOR      ECX, ECX
         {$ENDIF}
         CALL     System.@LStrFromPChar
         {$ELSE}
@@ -23943,7 +24005,7 @@ asm
         ADD      EDX, offset TWin32FindData.cFileName //
         MOV      EAX, ECX
           {$IFDEF _D2009orHigher}
-          XOR      ECX, ECX // TODO: fixme
+          XOR      ECX, ECX 
           {$ENDIF}
         CALL     System.@LStrFromPChar
         {$ENDIF}
@@ -24192,7 +24254,7 @@ asm
         DB       '*.*', 0 // PCHAR
         
         {$IFDEF _D2009orHigher}
-        DW       0, 1 // TODO: 1252, 1
+        DW       0, 1 
         {$ENDIF}
         DD       -1, 1
 @@star: DB       '*', 0
@@ -24391,7 +24453,7 @@ asm
 
         //       ';' string literal
         {$IFDEF _D2009orHigher}
-        DW       0, 1 // TODO: 1252? CP_ACP
+        DW       0, 1 
         {$ENDIF}
         DD       -1, 1
 @@semicolon:
@@ -24539,7 +24601,7 @@ asm
         JNE      @@exit
 
         {$IFDEF _D2009orHigher}
-        DW       0, 1 // TODO: 1252, 1
+        DW       0, 1 
         {$ENDIF}
         DD       -1, 1
 @@point:DB       '.',0
@@ -24968,7 +25030,7 @@ nil, nil) = ERROR_SUCCESS then
   end;
 end;
 {$ELSE} // new (faster) version by Alex Shyshko (Psychedelic)
-function RegKeyGetSubKeys(const Key: HKEY; List: PStrList) : Boolean;
+function RegKeyGetSubKeys(const Key: HKEY; List: PKOLStrList) : Boolean;
 var
   i, MaxSubKeyLen, Size: DWORD;
   Buf: PKOLChar;
@@ -24987,7 +25049,7 @@ begin
 
       while RegEnumKeyEx(Key,i,buf,Size,nil,nil,nil,nil) <> ERROR_NO_MORE_ITEMS do
       begin
-       List.Add(KOLString(Buf));  // TODO: PKOLStrList;
+       List.Add(KOLString(Buf));
        Size:=MaxSubKeyLen + 1;
        inc(i);
       end;
@@ -25025,7 +25087,7 @@ begin
   end ;
 end;
 {$ELSE} // new (faster) version by Alex Shyshko (Psychedelic)
-function RegKeyGetValueNames(const Key: HKEY; List: PStrList) : Boolean;
+function RegKeyGetValueNames(const Key: HKEY; List: PKOLStrList) : Boolean;
 var
   i, MaxValueNameLen, Size: DWORD;
   Buf: PKOLchar;
@@ -25044,7 +25106,7 @@ begin
 
       while RegEnumValue(Key,i,buf,Size,nil,nil,nil,nil) <> ERROR_NO_MORE_ITEMS do
       begin
-       List.Add(KOLString(Buf)); // TODO: PKOLStrList
+       List.Add(KOLString(Buf)); 
        Size:=MaxValueNameLen+1;
        inc(i);
       end;
@@ -27916,7 +27978,7 @@ asm
 
 end;
 {$ELSE ASM_VERSION} //Pascal
-procedure TIniFile.GetSectionNames(Names:PXStrList);
+procedure TIniFile.GetSectionNames(Names:PKOLStrList);
 var
   i:integer;
   Pc:PKOLChar;
@@ -27935,7 +27997,7 @@ begin
 end;
 
 //[procedure TIniFile.SectionData]
-procedure TIniFile.SectionData(Names: PXStrList);
+procedure TIniFile.SectionData(Names: PKOLStrList);
 var
   i:integer;
   Pc:PKOLChar;
@@ -30411,7 +30473,7 @@ begin
   Result := _NewWindowed( AParent, ControlClassName, widget, need_eventbox );
   Result.fIsControl := True;
   Result.fVerticalAlign := vaTop;
-  Result.{todo: remove f}fVisible := (Style and WS_VISIBLE) <> 0;
+  Result.fVisible := (Style and WS_VISIBLE) <> 0;
   Result.fTabstop := (Style and WS_TABSTOP) <> 0;
   if (AParent <> nil) then
   begin
@@ -30664,7 +30726,7 @@ begin
       W := Sz.cx;
       Windows.GetTextExtentPoint32( DC, '_', 1, Sz ); // A/W KOL_ANSI
       H := Sz.cy - 1;
-      Windows.GetTextExtentPoint32( DC, @ CapTxtOrig[ I + 1 ], 1, Sz ); // TODO: fixme (MBCS)
+      Windows.GetTextExtentPoint32( DC, @ CapTxtOrig[ I + 1 ], 1, Sz ); 
       Windows.MoveToEx( DC, X + W, Y + H, nil );
 
       Pen := CreatePen( PS_SOLID, 0, Color2RGB( Color ) );
@@ -31407,13 +31469,10 @@ begin
         OldFont := SelectObject( DIS.hDC, Self_.fFont.Handle );
       OldTextColor := SetTextColor( DIS.hDC, Color2RGB( Self_.fTextColor ) );
 
-      {$IFDEF UNICODE_CTRLS}
-      Windows.GetTextExtentPoint32W( DIS.hDC, PWideChar( CapText ), Length( CapText ),
+      {$IFDEF UNICODE_CTRLS}Windows.GetTextExtentPoint32W
+      {$ELSE}               Windows.GetTextExtentPoint32A
+      {$ENDIF}( DIS.hDC, PKOLChar( CapText ), Length( CapText ),
         TextSz );
-      {$ELSE}
-      Windows.GetTextExtentPoint32A( DIS.hDC, PAnsiChar( CapText ), Length( CapText ),
-        TextSz );
-      {$ENDIF}
       W := TxRect.Right - TxRect.Left;
       H := TxRect.Bottom - TxRect.Top;
       Y := TxRect.Top + (H - TextSz.cy) div 2;
@@ -32163,11 +32222,7 @@ begin
   SI.cbSize := Sizeof( SI );
   SI.fMask := SIF_RANGE or SIF_POS or SIF_PAGE or
               {$IFDEF F_P}$10{$ELSE}SIF_TRACKPOS{$ENDIF};
-  {$IFDEF _D2}
   GetScrollInfo( Sender.fHandle, Bar, SI );
-  {$ELSE}
-  GetScrollInfo( Sender.fHandle, Bar, SI );
-  {$ENDIF}
   SI.fMask := SIF_POS;
   case LoWord( Msg.wParam ) of
   SB_BOTTOM:    SI.nPos := SI.nMax;
@@ -33351,7 +33406,14 @@ begin
     end
       else*)
     if  //(Sender.fColumn = 1) and
-        (Msg.message = WM_CHAR) and (Msg.wParam <> 8) then
+        (Msg.message = WM_CHAR) //and (Msg.wParam <> 8)
+        and (Msg.wParam >= 32)
+        {$IFDEF UNICODE_CHAR_EXTCTL}
+        and (GetKeyState(VK_CONTROL) >= 0)
+        and (GetKeyState(VK_ALT) >= 0)
+        and (GetKeyState(VK_LWIN) >= 0)
+        and (GetKeyState(VK_RWIN) >= 0)
+        {$ENDIF} then
     begin
         Result := TRUE;
         WStr := WideChar(Msg.wParam);
@@ -34334,7 +34396,7 @@ asm     //cmd    //opd
 @@prepare_NewTxt:
         LEA      EAX, [ESP+8]
         {$IFDEF _D2009orHigher}
-        PUSH     ECX // TODO: wakeup me
+        PUSH     ECX
         XOR      ECX, ECX
         {$ENDIF}
         CALL     System.@LStrFromPChar
@@ -35830,7 +35892,7 @@ begin
     Log( '//// OleInit OK: call NewRichEdit1' );
     {$ENDIF INPACKAGE}
     {$IFDEF UNICODE_CTRLS}
-    RichEditIdx := 0; // TODO: fixme KOLChar mis sync with Index
+    RichEditIdx := 0; 
     {$ELSE}
     RichEditIdx := 0; // Richedit20A / RichEdit
     {$ENDIF}
@@ -38507,7 +38569,7 @@ asm
         MOV       EDX, [EBX].fControlClassName
         PUSH      EAX
         {$IFDEF _D2009orHigher}
-        XOR       ECX, ECX // TODO: _@LStrFromPChar
+        XOR       ECX, ECX 
         {$ENDIF}
         CALL      System.@LStrFromPChar // EAX^ := String(EDX)
         POP       EAX
@@ -41744,7 +41806,7 @@ asm
         MOV      EAX, EDI
         PUSH     EDX
         {$IFDEF _D2009orHigher}
-        XOR      ECX, ECX // TODO: safe?
+        XOR      ECX, ECX 
         {$ENDIF}
         CALL     System.@LStrFromPChar
         POP      ECX
@@ -43270,16 +43332,7 @@ var Array_gc: PPGdkGC;
 begin
   if fInBkPaint then Array_gc := @ fEventboxHandle.style.bg_gc[ 0 ]
   else
-  //if fInPaint then
     Array_gc := @ fEventboxHandle.style.fg_gc[ 0 ];
-  {CASE fEventboxHandle.state OF
-  GTK_STATE_NORMAL     : Result := Array_gc[ 0 ];
-  GTK_STATE_ACTIVE     : Result := Array_gc[ 1 ];
-  GTK_STATE_PRELIGHT   : Result := Array_gc[ 2 ];
-  GTK_STATE_SELECTED   : Result := Array_gc[ 3 ];
-  GTK_STATE_INSENSITIVE: Result := Array_gc[ 4 ];
-  else                   Result := Array_gc[ 0 ];
-  END;}
   CASE fEventboxHandle.state OF
   GTK_STATE_NORMAL,
   GTK_STATE_ACTIVE,
@@ -43294,16 +43347,11 @@ function TControl.GetCanvas: PCanvas;
 begin
   if not assigned( fCanvas ) then
   begin
-    fCanvas := NewCanvas( nil {fHandle.style.fg_gc[0]} );
+    fCanvas := NewCanvas( nil );
     fCanvas.OnGetHandle := ProvideCanvasHandle;
     fCanvas.fOwnerControl := @Self;
     fCanvas.fDrawable := Pointer( fEventboxHandle.window );
-    {if assigned( fFont ) then
-      fCanvas.fFont := fCanvas.fFont.Assign( fFont );}
-    {if assigned( fBrush ) then
-      fCanvas.fBrush := fCanvas.fBrush.Assign( fBrush );}
   end;
-  //fCanvas.fHandle := fEventboxHandle.style.fg_gc[ 0 ]; // todo: setup desired context
   fCanvas.GetHandle; // получим здесь тот контекст, который соответствует
                      // текущему состоянию контрола (если это контрол) и текущей
                      // стадии рисования
@@ -43878,7 +43926,7 @@ asm
         PUSH     0
         MOV      EAX, ESP
         {$IFDEF _D2009orHigher}
-        XOR      ECX, ECX // TODO: safe?
+        XOR      ECX, ECX 
         {$ENDIF}
         CALL     System.@LStrFromPChar
 
@@ -43967,7 +44015,7 @@ asm
         LEA      EAX, [EBX].TControl.fCaption
         {$IFDEF _D2009orHigher}
         PUSH     ECX
-        XOR      ECX, ECX // TODO: fixme
+        XOR      ECX, ECX 
         {$ENDIF}
         CALL     System.@LStrFromPChar
         {$IFDEF _D2009orHigher}
@@ -44229,7 +44277,7 @@ asm
         CALL     _LStrFromPCharLen
         {$ELSE}
         {$IFDEF _D2009orHigher}
-        XOR      ECX, ECX // TODO: safe?
+        XOR      ECX, ECX 
         {$ENDIF}
         CALL     System.@LStrFromPCharLen
         {$ENDIF}
@@ -44349,31 +44397,44 @@ end;
 
 //[function TStrList.IndexOf]
 function TStrList.IndexOf_NoCase(const S: AnsiString): integer;
+var tmp: PAnsiChar;
+    c: AnsiChar;
 begin
   if  S = '' then
-begin
-  for Result := 0 to fCount - 1 do
-          if  PAnsiChar( fList.Items[Result] )^ = #0 then Exit;
+  begin
+      for Result := 0 to fCount - 1 do
+              if  PAnsiChar( fList.Items[Result] )^ = #0 then Exit;
   end
     else
   begin
+      if  not Upper_initialized then
+          Init_Upper;
       for Result := 0 to fCount - 1 do
-        if  (PWord( PAnsiChar(S) )^ = PWord( PAnsiChar( fList.Items[Result] ) )^)
-        and (_AnsiCompareStrNoCaseA( PAnsiChar( S ), fList.Items[Result] ) = 0) then Exit;
+      begin
+        tmp := fList.Items[Result];
+        c := Upper[S[1]];
+        if  (c = Upper[tmp^]) and
+            (_AnsiCompareStrNoCaseA( PAnsiChar( S ), tmp ) = 0) then Exit;
+      end;
   end;
   Result := -1;
 end;
 
 function TStrList.IndexOfStrL_NoCase( Str: PAnsiChar; L: Integer ): integer;
 begin
-  for Result := 0 to fCount - 1 do
-    if (StrLen( PAnsiChar( fList.
-      {$IFDEF TLIST_FAST} Items {$ELSE} fItems {$ENDIF}[ Result ]
-      ) ) = DWORD( L )) and
-       (StrLComp_NoCase( Str, PAnsiChar(
-       fList.{$IFDEF TLIST_FAST} Items {$ELSE} fItems {$ENDIF}[ Result ]
-       ), L ) = 0) then Exit;
-  Result := -1;
+  if  L = 0 then
+      Result := 0
+  else
+  begin
+      for Result := 0 to fCount - 1 do
+        if (StrLen( PAnsiChar( fList.
+          {$IFDEF TLIST_FAST} Items {$ELSE} fItems {$ENDIF}[ Result ]
+          ) ) = DWORD( L )) and
+           (StrLComp_NoCase( Str, PAnsiChar(
+           fList.{$IFDEF TLIST_FAST} Items {$ELSE} fItems {$ENDIF}[ Result ]
+           ), L ) = 0) then Exit;
+      Result := -1;
+  end;
 end;
 
 function CompareAnsiCase( const S1, S2: PAnsiChar ): Integer;
@@ -45061,7 +45122,7 @@ asm
         CALL     FileClose
         POP      EDX
         POP      EBX
-      POP      EAX     // TODO: Dangerous LAnsiStrFromPCharLen
+      POP      EAX     
         PUSH     EDX
         XOR      ECX, ECX
         CALL     SetText
@@ -45112,8 +45173,8 @@ asm
         {$IFDEF _D2}
         CALL     _LStrFromPCharLen
         {$ELSE}
-        {$IFDEF _D2009orHigher}
-        push     0 // TODO: fixme
+        {$IFDEF _D2009orHigher} 
+        push     0
         {$ENDIF}
         CALL     System.@LStrFromPCharLen
         {$ENDIF}
@@ -45278,7 +45339,17 @@ asm
          POP      ESI
 end;
 
-{ TStrListEx }
+function WStrCmp_NoCase( W1, W2: PWideChar ): Integer;
+begin
+    Result := 0;
+    while (AnsiUpperCase( '' + W1^ ) = AnsiUpperCase( '' + W2^ )) do
+    begin
+        if  W1^ = #0 then Exit;
+        inc( W1 );
+        inc( W2 );
+    end;
+    Result := Integer(W1^) - Integer(W2^);
+end;{ TStrListEx }
 
 //[function NewStrListEx]
 function NewStrListEx: PStrListEx;
@@ -45943,6 +46014,39 @@ begin
   Result := -1;
 end;
 
+function TWStrList.IndexOf_NoCase( const s: WideString ): Integer;
+var i: Integer;
+    p: PWideChar;
+begin
+  if  s = '' then
+  begin
+      for i := 0 to fList.fCount-1 do
+      begin
+          p := ItemPtrs[ i ];
+          if (p = nil) or
+             (p^ = #0) then
+          begin
+              Result := i;
+              Exit;
+          end;
+      end;
+  end
+    else
+  begin
+      for i := 0 to Count-1 do
+      begin
+        p := ItemPtrs[ i ];
+        if (p <> nil) and
+           (WStrCmp_NoCase( PWideChar( s ), p ) = 0) then
+        begin
+          Result := i;
+          Exit;
+        end;
+      end;
+  end;
+  Result := -1;
+end;
+
 function TWStrList.Last: WideString;
 begin
   if Count <= 0 then Result := ''
@@ -46080,13 +46184,21 @@ end;
 {$ENDIF WIN_GDI}
 {+}
 
+function NewKOLStrList: PKOLStrList;
+begin
+  new( Result, Create );
+end;
+
+function NewKOLStrListEx: PKOLStrListEx;
+begin
+  new( Result, Create );
+end;
 
 //////////////////////////////////////////////////////////////////////////
 //                            S  O  R  T  I  N  G
 //////////////////////////////////////////////////////////////////////////
 
 { -- qsort -- }
-
 //[PROCEDURE SortData]
 {$IFDEF ASM_VERSION} // translated to BASM by Kladov Vladimir
 procedure SortData( const Data: Pointer; const uNElem: Dword;
@@ -47651,7 +47763,7 @@ begin
   Log( '->TControl.Perform' );
   TRY
   {$ENDIF INPACKAGE}
-  Result := SendMessage( GetWindowHandle, msgcode, wParam, lParam ); // TODO: ANSI?
+  Result := SendMessage( GetWindowHandle, msgcode, wParam, lParam ); 
   {$IFDEF INPACKAGE}
     LogOK;
   FINALLY
@@ -47936,10 +48048,12 @@ begin
     SI.cbSize := SizeOf(SI);
     SI.fMask := SIF_PAGE or SIF_RANGE;
     SBGetScrollInfo(SI);
-    if (SI.nMax = 0) and (SI.nMin = 0) then
-      SI.nMax := 1;
     {$IFDEF SCROLL_OLD} // by QAZ
-    SI.nMax := SI.nMax - Integer(SI.nPage) + Value;
+        {$IFDEF SCROLL_OLD_MAX1}
+        if (SI.nMax = 0) and (SI.nMin = 0) then
+          SI.nMax := 1;
+        {$ENDIF}
+        SI.nMax := SI.nMax - Integer(SI.nPage) + Value;
     {$ENDIF}
     SI.nPage := Value;
     SBSetScrollInfo(SI);
@@ -47960,7 +48074,7 @@ begin
   GetSBMinMax;
   if (Handle <> 0) then
     SetScrollRange(Handle, SB_CTL, Value.X,
-        Value.Y {$IFDEF SCROLL_OLD} + SBPageSize {$ENDIF (by QAZ)} - 1, True)
+        Value.Y {$IFDEF SCROLL_OLD} + SBPageSize - 1{$ENDIF (by QAZ)} , True)
   else
     fSBMinMax := Value;
 end;
@@ -48102,7 +48216,7 @@ asm
         {$ENDIF}
 
         {$IFDEF _D2009orHigher}
-        DW       0, 1 // TODO: 1252, 1
+        DW       0, 1 
         {$ENDIF}
         DD       -1, 1
 @@0:    DB       0
@@ -48170,7 +48284,7 @@ asm
 @@10:
         LEA      EAX, [EBX].FFileName
         {$IFDEF _D2009orHigher}
-        XOR      ECX, ECX // TODO: safe? check CL
+        XOR      ECX, ECX
         {$ENDIF}
         CALL     System.@LStrFromPChar
         MOV      EAX, [ESP+4].TOpenFileName.lpstrFile
@@ -48593,7 +48707,7 @@ const
 var Self_ : POpenDirDialog;
     {$IFDEF NEW_OPEN_DIR_STYLE_EX}
     WList: HWnd;
-    ClassBuf: array[ 0..127 ] of KOLChar; // TODO: Why KOLChar
+    ClassBuf: array[ 0..127 ] of KOLChar; 
     {$ENDIF}
 begin
   Self_ := Pointer( lpData );
@@ -48617,7 +48731,7 @@ begin
         end;
       end;
       PostMessage( Wnd, {$IFDEF UNICODE_CTRLS} BFFM_SETSELECTIONW
-                        {$ELSE} BFFM_SETSELECTION {$ENDIF}, 1, Integer( PAnsiChar(
+                        {$ELSE} BFFM_SETSELECTION {$ENDIF}, 1, Integer( PKOLChar(
         ExtractFilePath( Self_.FInitialPath ) ) ) );
       PostMessage( WND, WM_KEYDOWN, VK_ADD, 0 );
       PostMessage( WND, WM_KEYUP, VK_ADD, 0 );
@@ -48966,7 +49080,7 @@ asm
         JMP      @@3
 
         {$IFDEF _D2009orHigher}
-        DW       0, 1 // TODO: 1252, 1
+        DW       0, 1 
         {$ENDIF}
         DD       -1, 1
 @@0:    DB       0
@@ -49039,7 +49153,7 @@ asm
         MOV      EAX, ESP
         {$IFDEF _D2009orHigher}
         PUSH     ECX
-        XOR      ECX, ECX // TODO: fixme? safe?
+        XOR      ECX, ECX 
         {$ENDIF}
         CALL     System.@LStrFromPChar
         {$IFDEF _D2009orHigher}
@@ -49410,7 +49524,7 @@ asm
 @@2:    XOR      EDX, EDX
 @@1:    MOV      EAX, [ESP+1024]
         {$IFDEF _D2009orHigher}
-        XOR      ECX, ECX // TODO: fixme
+        XOR      ECX, ECX 
         {$ENDIF}
         CALL     System.@LStrFromPChar
         ADD      ESP, 1028
@@ -49468,7 +49582,6 @@ begin
 end;
 
 //[procedure TControl.TBSetTooltips]
-// TODO: apply testcase
 {$IFDEF ASM_VERSION} //{$IFDEF ASM_UNICODE}
 {$ELSE ASM_VERSION} //Pascal
 procedure TControl.TBSetTooltips(BtnID1st: Integer;
@@ -55733,7 +55846,7 @@ var Flags: Integer;
 begin
   Flags := Integer( ScanForward );
 {$IFDEF _D2009orHigher}
-{$WARN SYMBOL_DEPRECATED OFF} // TODO: check deprecate state
+{$WARN SYMBOL_DEPRECATED OFF} // check deprecate state
 {$ENDIF}
   if WholeWord then Flags := Flags or FT_WHOLEWORD;
   if MatchCase then Flags := Flags or FT_MATCHCASE;
@@ -55756,7 +55869,7 @@ var Flags: Integer;
 begin
  Flags := Integer( ScanForward );
 {$IFDEF _D2009orHigher}
-{$WARN SYMBOL_DEPRECATED OFF} // TODO: check deprecate state
+{$WARN SYMBOL_DEPRECATED OFF} // check deprecate state
 {$ENDIF}
  if WholeWord then Flags := Flags or FT_WHOLEWORD;
  if MatchCase then Flags := Flags or FT_MATCHCASE;
@@ -58852,7 +58965,8 @@ begin
   if DfltDirectory <> '' then
     DfltDir := PKOLChar( DfltDirectory );
   App := AppPath;
-  if (pos( KOLString(' '), App ) > 0) and (pos( KOLString('"'), App ) <= 0) then // TODO: APos
+  //if (pos( KOLString(' '), App ) > 0) and (pos( KOLString('"'), App ) <= 0) then
+  if (App <> '') and (App[1] <> '"') and (pos( KOLString(' '), App ) > 0) then
     App := '"' + App + '"';
   if (App <> '') and (CmdLine <> '') then
     App := App + ' ';
@@ -61186,7 +61300,9 @@ begin
   end;
 
   R1 := R;
-  Windows.{$IFDEF UNICODE_CTRLS}DrawTextW{$ELSE}DrawTextA{$ENDIF}( DC, PKOLChar( Ctl.Caption ), Length( Ctl.Caption ), R,
+  {$IFDEF UNICODE_CTRLS}Windows.DrawTextW
+  {$ELSE}               Windows.DrawTextA
+  {$ENDIF}( DC, PKOLChar( Ctl.Caption ), Length( Ctl.Caption ), R,
     Fmt or DT_CALCRECT ); // TODO: fixme (Length('kanji') != WStrLen('kanji'))
   CASE Ctl.fTextAlign OF
   taCenter:
@@ -61210,7 +61326,9 @@ begin
   begin
     OldBk := SetBkMode( DC, TRANSPARENT );
     OldBrush := SelectObject( DC, GetStockObject( NULL_BRUSH ) );
-    Windows.{$IFDEF UNICODE_CTRLS}DrawTextW{$ELSE}DrawTextA{$ENDIF}( DC, PKOLChar( Ctl.Caption ), Length( Ctl.Caption ), R, Fmt ); // TODO: fixme
+    {$IFDEF UNICODE_CTRLS}Windows.DrawTextW
+    {$ELSE}               Windows.DrawTextA
+    {$ENDIF}( DC, PKOLChar( Ctl.Caption ), Length( Ctl.Caption ), R, Fmt );
     SelectObject( DC, OldBrush );
     SetBkMode( DC, OldBk );
   end

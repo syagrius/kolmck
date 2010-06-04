@@ -461,7 +461,8 @@ type
 
 //[NewDirChangeNotifier DECLARATION]
 function NewDirChangeNotifier( const Path: KOLString; Filter: TFileChangeFilter;
-                               WatchSubtree: Boolean; ChangeProc: TOnDirChange ): PDirChange;
+                               WatchSubtree: Boolean; ChangeProc: TOnDirChange )
+                               : PDirChange;
 {* Creates notification object TDirChange. If something wrong (e.g.,
    passed directory does not exist), nil is returned as a result. When change
    is notified, ChangeProc is called always in main thread context.
@@ -2223,13 +2224,13 @@ const FilterFlags: array[ TFileChangeFilters ] of Integer = (
       $40 {FILE_NOTIFY_CHANGE_CREATION}, FILE_NOTIFY_CHANGE_SECURITY );
 
 //[FUNCTION _NewDirChgNotifier]
-{$IFDEF ASM_VERSION}
+{$IFDEF ASM_UNICODE}
 function _NewDirChgNotifier: PDirChange;
 begin
   New( Result, Create );
 end;
 //[function NewDirChangeNotifier]
-function NewDirChangeNotifier( const Path: AnsiString; Filter: TFileChangeFilter;
+function NewDirChangeNotifier( const Path: KOLString; Filter: TFileChangeFilter;
                                WatchSubtree: Boolean; ChangeProc: TOnDirChange )
                                : PDirChange;
 const Dflt_Flags = FILE_NOTIFY_CHANGE_FILE_NAME or FILE_NOTIFY_CHANGE_DIR_NAME or
