@@ -34,7 +34,7 @@ interface
 {$ENDIF}
 
 uses
- Windows, KOL, KOLZlib {$IFDEF PNG_MMX}, Mmx {$ENDIF};
+ Windows, KOL, KolZLibBzip {$IFDEF PNG_MMX}, Mmx {$ENDIF};
 
 const
   {Avaliable PNG filters for mode 0}

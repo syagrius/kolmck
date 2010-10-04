@@ -140,13 +140,12 @@ type
     Extra: string;
   end;
 
-function gZipCompressStream(inStream, outStream: PStream; var gzHdr: TgzipHeader;
-  level: TZCompressionLevel = zcDefault; strategy: TZCompressionStrategy = zcsDefault): Integer; overload;
-function gZipCompressStream(inStream, outStream: PStream;
-  level: TZCompressionLevel = zcDefault; strategy: TZCompressionStrategy = zcsDefault): Integer; overload;
+function gZipCompressStream(inStream, outStream: PStream; var gzHdr: TgzipHeader; level: TZCompressionLevel = zcDefault; strategy: TZCompressionStrategy = zcsDefault): Integer; overload;
+function gZipCompressStream(inStream, outStream: PStream; level: TZCompressionLevel = zcDefault; strategy: TZCompressionStrategy = zcsDefault): Integer; overload;
 function gZipDecompressStreamHeader(inStream: PStream; var gzHdr: TgzipHeader): Integer;
 function gZipDecompressStreamBody(inStream, outStream: PStream): Integer;
 function gZipDecompressStream(inStream, outStream: PStream; var gzHdr: TgzipHeader): Integer;
+function gZipDecompressString(const S: String): String;
 
 {*******************************************************}
 {                                                       }
@@ -193,7 +192,34 @@ function BZDecompressBuf(const InBuf: Pointer; InBytes: Integer;
 function BZCompressStream(inStream, outStream: PStream; BlockSize100k: TBlockSize100k = 5): Integer;
 function BZDecompressStream(inStream, outStream: PStream): Integer;
 
-implementation
+
+{** deflate routines ********************************************************}
+
+function deflateInit_(var strm: TZStreamRec; level: Integer; version: PChar;
+  recsize: Integer): Integer; external;
+
+function DeflateInit2_(var strm: TZStreamRec; level: integer; method: integer; windowBits: integer;
+  memLevel: integer; strategy: integer; version: PChar; recsize: integer): integer; external;
+
+function deflate(var strm: TZStreamRec; flush: Integer): Integer;
+  external;
+
+function deflateEnd(var strm: TZStreamRec): Integer; external;
+
+{** inflate routines ********************************************************}
+
+function inflateInit_(var strm: TZStreamRec; version: PChar;
+  recsize: Integer): Integer; external;
+
+function inflateInit2_(var strm: TZStreamRec; windowBits: integer;
+  version: PChar; recsize: integer): integer; external;
+
+function inflate(var strm: TZStreamRec; flush: Integer): Integer;
+  external;
+
+function inflateEnd(var strm: TZStreamRec): Integer; external;
+
+function inflateReset(var strm: TZStreamRec): Integer; external;
 
 const
   gzBufferSize      = 16384;
@@ -485,25 +511,6 @@ const
     -$434B9993, -$478A8426, -$4AC9A2FD, -$4E08BF4C
     );
 
-procedure _bz_internal_error(errcode: Integer); cdecl;
-begin
-{$IFDEF USE_EXCEPTIONS}
-  //raise EBZip2Error.CreateFmt('Compression Error %d', [errcode]);
-  raise Exception.CreateFMT(e_Convert, 'Compression Error %d', [errcode]);
-  // I don't know, what make in {$ELSE} :(
-{$ENDIF}
-end;
-
-function _malloc(size: Integer): Pointer; cdecl;
-begin
-  GetMem(Result, Size);
-end;
-
-procedure _free(block: Pointer); cdecl;
-begin
-  FreeMem(block);
-end;
-
 // deflate compresses data
 
 function BZ2_bzCompressInit(var strm: TBZStreamRec; blockSize100k: Integer;
@@ -527,6 +534,32 @@ function BZ2_bzDecompressEnd(var strm: TBZStreamRec): Integer; stdcall; external
 
 function BZ2_bzBuffToBuffDecompress(dest: Pointer; var destLen: Integer; source: Pointer;
   sourceLen, small, verbosity: Integer): Integer; stdcall; external;
+
+{** utility routines  *******************************************************}
+
+function adler32; external;
+function compressBound; external;
+
+implementation
+
+procedure _bz_internal_error(errcode: Integer); cdecl;
+begin
+{$IFDEF USE_EXCEPTIONS}
+  //raise EBZip2Error.CreateFmt('Compression Error %d', [errcode]);
+  raise Exception.CreateFMT(e_Convert, 'Compression Error %d', [errcode]);
+  // I don't know, what make in {$ELSE} :(
+{$ENDIF}
+end;
+
+function _malloc(size: Integer): Pointer; cdecl;
+begin
+  GetMem(Result, Size);
+end;
+
+procedure _free(block: Pointer); cdecl;
+begin
+  FreeMem(block);
+end;
 
 function bzip2AllocMem(AppData: Pointer; Items, Size: Integer): Pointer; cdecl;
 begin
@@ -561,41 +594,10 @@ asm
 end;
 {****************************************************************************}
 
-{** deflate routines ********************************************************}
-
-function deflateInit_(var strm: TZStreamRec; level: Integer; version: PChar;
-  recsize: Integer): Integer; external;
-
-function DeflateInit2_(var strm: TZStreamRec; level: integer; method: integer; windowBits: integer;
-  memLevel: integer; strategy: integer; version: PChar; recsize: integer): integer; external;
-
-function deflate(var strm: TZStreamRec; flush: Integer): Integer;
-  external;
-
-function deflateEnd(var strm: TZStreamRec): Integer; external;
-
-{** inflate routines ********************************************************}
-
-function inflateInit_(var strm: TZStreamRec; version: PChar;
-  recsize: Integer): Integer; external;
-
-function inflateInit2_(var strm: TZStreamRec; windowBits: integer;
-  version: PChar; recsize: integer): integer; external;
-
-function inflate(var strm: TZStreamRec; flush: Integer): Integer;
-  external;
-
-function inflateEnd(var strm: TZStreamRec): Integer; external;
-
-function inflateReset(var strm: TZStreamRec): Integer; external;
-
 {** utility routines  *******************************************************}
 
-function adler32; external;
 //function crc32; external;
-
-function CRC32(CRC: Cardinal; const Data: PChar; cbData: Cardinal): Cardinal;
-  assembler;
+function CRC32(CRC: Cardinal; const Data: PChar; cbData: Cardinal): Cardinal; assembler;
 asm
       or     edx, edx
       je     @@exi
@@ -684,8 +686,6 @@ DD 0b40bbe37h, 0c30c8ea1h, 05a05df1bh, 02d02ef8dh
 
 end;
 
-function compressBound; external;
-
 {** zlib function implementations *******************************************}
 
 function zcalloc(opaque: Pointer; items, size: Integer): Pointer;
@@ -717,8 +717,7 @@ begin
   result := DeflateInit_(stream, level, ZLIB_VERSION, SizeOf(TZStreamRec));
 end;
 
-function DeflateInit2(var stream: TZStreamRec; level, method, windowBits,
-  memLevel, strategy: Integer): Integer;
+function DeflateInit2(var stream: TZStreamRec; level, method, windowBits, memLevel, strategy: Integer): Integer;
 begin
   result := DeflateInit2_(stream, level, method, windowBits, memLevel,
     strategy, ZLIB_VERSION, SizeOf(TZStreamRec));
@@ -764,9 +763,7 @@ end;
 {****************************************************************************}
 {****************************************************************************}
 
-function ZCompressBuf(const inBuffer: Pointer; inSize: Integer;
-  out outBuffer: Pointer; out outSize: Integer;
-  level: TZCompressionLevel): Integer;
+function ZCompressBuf(const inBuffer: Pointer; inSize: Integer; out outBuffer: Pointer; out outSize: Integer; level: TZCompressionLevel): Integer;
 const
   delta             = 256;
 var
@@ -829,8 +826,7 @@ begin
   end;
 end;
 
-function ZCompressBuf2(const inBuffer: Pointer; inSize: Integer;
-  out outBuffer: Pointer; out outSize: Integer): Integer;
+function ZCompressBuf2(const inBuffer: Pointer; inSize: Integer; out outBuffer: Pointer; out outSize: Integer): Integer;
 const
   delta             = 256;
 var
@@ -894,8 +890,7 @@ begin
   end;
 end;
 
-function ZDecompressBuf(const inBuffer: Pointer; inSize: Integer;
-  out outBuffer: Pointer; out outSize: Integer; outEstimate: Integer): Integer;
+function ZDecompressBuf(const inBuffer: Pointer; inSize: Integer; out outBuffer: Pointer; out outSize: Integer; outEstimate: Integer): Integer;
 var
   zstream           : TZStreamRec;
   delta             : Integer;
@@ -1022,8 +1017,7 @@ end;
 
 {** stream routines *********************************************************}
 
-function ZCompressStream(inStream, outStream: PStream;
-  level: TZCompressionLevel): Integer;
+function ZCompressStream(inStream, outStream: PStream; level: TZCompressionLevel): Integer;
 const
   bufferSize        = 32768;
 var
@@ -1034,8 +1028,8 @@ var
   outSize           : Integer;
 begin
   FillChar(zstream, SizeOf(TZStreamRec), 0);
-  Result := Z_OK;
 {$IFDEF USE_EXCEPTIONS}
+  Result := Z_OK;
   ZCompressCheck(DeflateInit(zstream, ZLevels[level]));
 {$ELSE}
   Result := DeflateInit(zstream, ZLevels[level]);
@@ -1179,8 +1173,7 @@ begin
   Result := (Usec / 86400) + UnixDateDelta;
 end;
 
-function gZipCompressStream(inStream, outStream: PStream; var gzHdr: TgzipHeader;
-  level: TZCompressionLevel = zcDefault; strategy: TZCompressionStrategy = zcsDefault): Integer;
+function gZipCompressStream(inStream, outStream: PStream; var gzHdr: TgzipHeader; level: TZCompressionLevel = zcDefault; strategy: TZCompressionStrategy = zcsDefault): Integer;
 var
   rSize,
     wSize,
@@ -1394,8 +1387,7 @@ begin
   end;
 end;
 
-function gZipCompressStream(inStream, outStream: PStream;
-  level: TZCompressionLevel = zcDefault; strategy: TZCompressionStrategy = zcsDefault): Integer; overload;
+function gZipCompressStream(inStream, outStream: PStream; level: TZCompressionLevel = zcDefault; strategy: TZCompressionStrategy = zcsDefault): Integer; overload;
 var
   gzHdr             : TgzipHeader;
 begin
@@ -1558,7 +1550,7 @@ begin
       startCRC := PChar(oBuffer);
       zStream.next_out := PChar(oBuffer);
       zStream.avail_out := gzBufferSize;
-      rSize := 0;
+//      rSize := 0;
       Result := Z_OK;
       while zStream.avail_out <> 0 do begin
         // not transparent
@@ -1635,6 +1627,28 @@ begin
     Result := gZipDecompressStreamBody(inStream, outStream);
 end;
 
+function gZipDecompressString(const S: String): String;
+var
+  Rslt:      Integer;
+  gzHdr:     TgzipHeader;
+  inStream:  PStream;
+  outStream: PStream;
+begin
+  Result := '';
+  inStream := NewExMemoryStream(@S[1], Length(S));
+  Rslt := gZipDecompressStreamHeader(inStream, gzHdr);
+  if (Rslt >= 0) then begin
+    outStream := NewMemoryStream;
+    Rslt := gZipDecompressStreamBody(inStream, outStream);
+    if (Rslt >= 0) then begin
+      outStream.Position := 0;
+      Result := outStream.ReadStrLen(outStream.Size);
+    end;
+    outStream.Free;
+  end;
+  inStream.Free;
+end;
+
 {****************************************************************************}
 {** BZip implementation *****************************************************}
 {****************************************************************************}
@@ -1655,8 +1669,7 @@ begin
 end;
 {$ENDIF}
 
-function BZCompressBuf(const InBuf: Pointer; InBytes: Integer;
-  out OutBuf: Pointer; out OutBytes: Integer): Integer;
+function BZCompressBuf(const InBuf: Pointer; InBytes: Integer; out OutBuf: Pointer; out OutBytes: Integer): Integer;
 var
   strm              : TBZStreamRec;
   P                 : Pointer;
@@ -1718,8 +1731,7 @@ begin
   end;
 end;
 
-function BZDecompressBuf(const InBuf: Pointer; InBytes: Integer;
-  OutEstimate: Integer; out OutBuf: Pointer; out OutBytes: Integer): Integer;
+function BZDecompressBuf(const InBuf: Pointer; InBytes: Integer; OutEstimate: Integer; out OutBuf: Pointer; out OutBytes: Integer): Integer;
 var
   strm              : TBZStreamRec;
   P                 : Pointer;
@@ -1923,4 +1935,3 @@ begin
 end;
 
 end.
-
