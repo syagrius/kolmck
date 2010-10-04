@@ -10579,6 +10579,7 @@ type
 //[Integer FUNCTIONS DECLARATIONS]
    procedure Swap( var X, Y: Integer ); overload;
    procedure Swap(var X, Y: Byte); overload;
+   procedure Swap(var X, Y: String); overload;
    {* exchanging values }
    function Min( X, Y: Integer ): Integer;
    {* minimum of two integers }
@@ -14667,6 +14668,15 @@ end;
 procedure Swap(var X, Y: Byte); overload;
 var
   T: Byte;
+begin
+  T := X;
+  X := Y;
+  Y := T;
+end;
+
+procedure Swap(var X, Y: String); overload;
+var
+  T: String;
 begin
   T := X;
   X := Y;
