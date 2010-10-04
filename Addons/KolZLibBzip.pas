@@ -540,6 +540,9 @@ function BZ2_bzBuffToBuffDecompress(dest: Pointer; var destLen: Integer; source:
 function adler32; external;
 function compressBound; external;
 
+//
+function InflateInit(var stream: TZStreamRec): Integer;
+
 implementation
 
 procedure _bz_internal_error(errcode: Integer); cdecl;

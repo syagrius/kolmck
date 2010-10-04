@@ -89,7 +89,6 @@ contains
   MCKGRushRadioBoxEditor in 'MCKGRushRadioBoxEditor.pas',
   tinyPNG in 'tinyPNG.pas',
   tinyJPGGIFBMP in 'tinyJPGGIFBMP.pas',
-  MZLib in 'MZLib.pas',
   KOLGRushControls in 'KOLGRushControls.pas';
 
 end.

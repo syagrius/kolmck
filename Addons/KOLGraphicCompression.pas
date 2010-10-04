@@ -73,7 +73,7 @@ interface
 {$I KOLDEF.INC}
 
 uses Windows, KOL, {$IFDEF NOT_USE_KOL_ERR}sysutils {$ELSE}Err {$ENDIF}, Errors,
-  MZLib {$IFDEF GIF_MMX}, Mmx {$ENDIF}; // general inflate/deflate and LZ77 compression support
+  KolZLibBzip {$IFDEF GIF_MMX}, Mmx {$ENDIF}; // general inflate/deflate and LZ77 compression support
 
 type
   // abstract decoder class to define the base functionality of an encoder/decoder
@@ -229,7 +229,7 @@ type
   PLZ77Decoder = ^TLZ77Decoder;
   TLZ77Decoder = {$IFDEF NOCLASSES} object(TDecoder) {$ELSE} class(TDecoder) {$ENDIF}
   private
-    FStream: TZState;
+    FStream: TZStreamRec;
     FZLibResult,         // contains the return code of the last ZLib operation
     FFlushMode: integer; // one of flush constants declard in ZLib.pas
                          // this is usually Z_FINISH for PSP and Z_PARTIAL_FLUSH for PNG
@@ -1819,17 +1819,17 @@ end;
 
 procedure TLZ77Decoder.Decode(var Source,Dest: pointer; PackedSize,UnpackedSize: integer);
 begin
-  FStream.NextInput:=Source;
-  FStream.AvailableInput:=PackedSize;
+  FStream.next_in := Source;
+  FStream.avail_in := PackedSize;
   if FAutoReset then FZLibResult:=InflateReset(FStream);
   if FZLibResult=Z_OK then
     begin
-      FStream.NextOutput:=Dest;
-      FStream.AvailableOutput:=UnpackedSize;
+      FStream.next_out:=Dest;
+      FStream.avail_out:=UnpackedSize;
       FZLibResult:=Inflate(FStream,FFlushMode);
       // advance pointers so used input can be calculated
-      Source:=FStream.NextInput;
-      Dest:=FStream.NextOutput;
+      Source:=FStream.next_in;
+      Dest:=FStream.next_out;
     end;
 end;
 
@@ -1851,14 +1851,14 @@ end;
 
 function TLZ77Decoder.GetAvailableInput: integer;
 begin
-  Result:=FStream.AvailableInput;
+  Result:=FStream.avail_in;
 end;
 
 //----------------------------------------------------------------------------------------------------------------------
 
 function TLZ77Decoder.GetAvailableOutput: integer;
 begin
-  Result:=FStream.AvailableOutput;
+  Result:=FStream.avail_out;
 end;
 
 //----------------- TThunderDecoder ------------------------------------------------------------------------------------

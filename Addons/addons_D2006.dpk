@@ -83,7 +83,6 @@ contains
   XPMenus in 'XPMenus.pas',
   tinyPNG in 'tinyPNG.pas',
   tinyJPGGIFBMP in 'tinyJPGGIFBMP.pas',
-  MZLib in 'MZLib.pas',
   mckWebBrowser in 'mckWebBrowser.pas',
   mckDHTML in 'mckDHTML.pas';
 

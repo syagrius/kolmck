@@ -87,31 +87,10 @@ unit tinyPNG;
 //  probable error.
 //******************************************************************************
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 interface
 
-uses windows, KOL, MZLib;
+uses
+  Windows, KOL, KolZLibBzip;
 
 {$IFDEF MOSTCOMPATIBILITY}
     {$DEFINE csG}
@@ -253,7 +232,7 @@ var     CM: TColorManager;
         IP: TImageProperties;
         Header: TPNGChunkHeader;
         Description: TIHDRChunk;
-        InflateStream: TZState;
+        InflateStream: TZStreamRec;
 
         RowBuffer: array[Boolean] of PChar;
         RawBuffer: Pointer;
@@ -902,10 +881,10 @@ begin
     {$IFNDEF USEHACKS}
     result := false;
     {$ENDIF USEHACKS}
-    InflateStream.NextOutput := Buffer;
-    InflateStream.AvailableOutput := Bytes;
+    InflateStream.next_out := Buffer;
+    InflateStream.avail_out := Bytes;
     repeat
-        if InflateStream.AvailableInput = 0 then begin
+        if InflateStream.avail_in = 0 then begin
             IDATSize:=0;
             while IDATSize=0 do begin
                 {$IFNDEF USEHACKS}
@@ -923,16 +902,16 @@ begin
                 {$ENDIF USEHACKS}
             end;
         end;
-        InflateStream.NextInput := CurrentSource;
-        InflateStream.AvailableInput := IDATSize-(Integer(CurrentSource)-Integer(RawBuffer));
+        InflateStream.next_in := CurrentSource;
+        InflateStream.avail_in := IDATSize-(Integer(CurrentSource)-Integer(RawBuffer));
         ZLibResult := Inflate(InflateStream, Z_PARTIAL_FLUSH);
-        CurrentSource := InflateStream.NextInput;
+        CurrentSource := InflateStream.next_in;
         if ZLibResult = Z_STREAM_END then begin
-            if (InflateStream.AvailableOutput <> 0) or (InflateStream.AvailableInput<>0) then exit;
+            if (InflateStream.avail_out <> 0) or (InflateStream.avail_in<>0) then exit;
             Break;
         end;
         if ZLibResult <> Z_OK then exit;
-    until InflateStream.AvailableOutput = 0;
+    until InflateStream.avail_out = 0;
     {$IFNDEF USEHACKS}
     result := true;
     {$ENDIF USEHACKS}

@@ -503,7 +503,7 @@ var
 
 implementation
 
-uses {$IFDEF NOT_USE_KOL_ERR}Math, {$ELSE}KOLMath, {$ENDIF} MZLib;
+uses {$IFDEF NOT_USE_KOL_ERR}Math, {$ELSE}KOLMath, {$ENDIF} KolZLibBzip;
 
 const
   PNG = 'PNG';
