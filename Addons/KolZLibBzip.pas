@@ -245,16 +245,16 @@ const
   {** link zlib 1.2.1 *********************************************************}
   {** bcc32 flags: -c -6 -O2 -Ve -X- -pr -a8 -b -d -k- -vi -tWM -r -RT-        }
 
-{$L zlib/adler32.obj}
-{$L zlib/compress.obj}
-  {.$L zlib/crc32.obj}
-{$L zlib/deflate.obj}
-{$L zlib/infback.obj}
-{$L zlib/inffast.obj}
-{$L zlib/inflate.obj}
-{$L zlib/inftrees.obj}
-{$L zlib/trees.obj}
-{$L zlib/uncompr.obj}
+{$L zlib\adler32.obj}
+{$L zlib\compress.obj}
+  {.$L zlib\crc32.obj}
+{$L zlib\deflate.obj}
+{$L zlib\infback.obj}
+{$L zlib\inffast.obj}
+{$L zlib\inflate.obj}
+{$L zlib\inftrees.obj}
+{$L zlib\trees.obj}
+{$L zlib\uncompr.obj}
 
   {*****************************************************************************
   *  note: do not reorder the above -- doing so will result in external        *
