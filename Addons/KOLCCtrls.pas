@@ -166,7 +166,6 @@ type
     procedure SetWidth(Value: Integer);
     procedure DoClick(Sender: PObj);
     procedure SetPath(Value: string);
-    procedure DoChange(Obj: PObj);
   protected
     { Protected declarations }
   public
@@ -203,7 +202,7 @@ type
     fIntegralHeight: Boolean;
     fFileList: PDirList;
     fControl: PControl;
-    fPath: string;
+    fPath: KOLString;
     fFont: PGraphicTool;
     FOnSelChange: TOnEvent;
     fDoCase: TCase;
@@ -225,7 +224,7 @@ type
     function GetWidth: Integer;
     procedure SetWidth(Value: Integer);
     procedure DoSelChange(Sender: PObj);
-    procedure SetPath(Value: string);
+    procedure SetPath(Value: KOLString);
     procedure SetFilters(Value: string);
     procedure SetIntegralHeight(Value: Boolean);
     function GetCurIndex: Integer;
@@ -257,7 +256,7 @@ type
     property Color: TColor read fColor write fColor;
     property Font: PGraphicTool read GetFont write SetFont;
     property IntegralHeight: Boolean read fIntegralHeight write SetIntegralHeight;
-    property Path: string read fPath write SetPath;
+    property Path: KOLstring read fPath write SetPath;
     property Filters: string read fFilters write SetFilters;
     property OnSelChange: TOnEvent read FOnSelChange write FOnSelChange;
     property OnPaint: TOnPaint read FOnPaint write FOnPaint;
@@ -344,7 +343,7 @@ type
     fInitialized: Integer;
     fCurIndex: Integer;
     fControl: PControl;
-    fDrive: char;
+    fDrive: KOLChar;
     fFont: PGraphicTool;
     fLVBkColor: Integer;
     fOnChange: TOnEvent;
@@ -359,7 +358,7 @@ type
     procedure SetHeight(Value: Integer);
     function GetWidth: Integer;
     procedure SetWidth(Value: Integer);
-    procedure SetDrive(Value: char);
+    procedure SetDrive(Value: KOLChar);
     procedure BuildList;
     procedure DoChange(Obj: PObj);
     //    procedure DoChangeInternal(Obj: PObj);
@@ -378,7 +377,7 @@ type
     { Public declarations }
     property DirectoryListBox: PSPCDirectoryList read fDirectoryListBox write fDirectoryListBox;
     property Font: PGraphicTool read GetFont write SetFont;
-    property Drive: char read fDrive write SetDrive;
+    property Drive: KOLChar read fDrive write SetDrive;
     property CurIndex: Integer read fCurIndex write fCurIndex;
     property LVBkColor: Integer read fLVBkColor write fLVBkColor;
     property OnChange: TOnEvent read fOnChange write fOnChange;
@@ -684,11 +683,6 @@ begin
   end;
 end;
 
-procedure TSPCDirectoryEdit.DoChange;
-begin
-  if Assigned(fOnChange) then fOnChange(@Self);
-end;
-
 function TSPCDirectoryEdit.GetHeight: Integer;
 begin
   Result := fControl.Height;
@@ -838,6 +832,7 @@ begin
     if fValue[Length(fValue)] = '\' then TPath := fValue else TPath := fValue + '\';
     fPath := TPath;
     fDriveShown := False;
+    fImgIndex := -1;
     repeat
       if fTotalTree > 0 then fImgIndex := 1;
       if not fDriveShown then begin
@@ -958,7 +953,7 @@ end;
 procedure TSPCDriveCombo.DoChange(Obj: PObj);
 begin
   Drive := fControl.Items[fControl.CurIndex][1];
-  SetCurrentDirectory(PChar(Drive + ':\'));
+  SetCurrentDirectory(PKOLChar(Drive + ':\'));
   if Assigned(fOnChange) then fOnChange(@Self);
   if Assigned(fDirectoryListBox) then fDirectoryListBox.Path := Drive;
 end;
@@ -1002,7 +997,7 @@ end;
 
 procedure TSPCDriveCombo.SetDrive;
 var
-  fC                : Char;
+  fC                : KOLChar;
 begin
   fControl.Font.Assign(fFont);
   fControl.Color := fColor;
@@ -1016,22 +1011,24 @@ begin
   if Assigned(fOnChange) then if fInitialized = 2 then fOnChange(@Self);
 end;
 
-function VolumeID(DriveChar: Char): string;
+function VolumeID(DriveChar: KOLChar): string;
 var
   NotUsed, VolFlags : DWORD;
-  Buf               : array[0..MAX_PATH] of Char;
+  Buf               : array[0..MAX_PATH] of KOLChar;
 begin
-  if GetVolumeInformation(PChar(DriveChar + ':\'), Buf, DWORD(sizeof(Buf)), nil, NotUsed, VolFlags, nil, 0) then Result := Copy(Buf, 1, StrLen(Buf)) else
+  if GetVolumeInformation(PKOLChar(DriveChar + ':\'), Buf, DWORD(sizeof(Buf)), nil, NotUsed, VolFlags, nil, 0) then
+    Result := buf//Copy(Buf, 1, StrLen(Buf))
+  else
     Result := '';
 end;
 
-function dr_property(path: string): string;
+function dr_property(path: KOLString): KOLString;
 var
-  Cpath             : Pchar;
-  Spath             : Char;
+  Cpath             : PKOLChar;
+  Spath             : KOLChar;
 begin
   Result := '';
-  Cpath := PChar(Copy(path, 1, 2));
+  Cpath := PKOLChar(Copy(path, 1, 2));
   Spath := Cpath[0];
   case GetDriveType(Cpath) of
     0: Result := '<unknown>'; //Не известен
@@ -1107,7 +1104,7 @@ begin
     end;
     Ico := FileIconSystemIdx(PControl(Sender).Items[ItemIdx][1] + ':\');
     fIcons.Draw(Ico, DC, Rect.Left + 1, Rect.Top);
-    DrawText(DC, PChar(PControl(Sender).Items[ItemIdx]), Length(PControl(Sender).Items[ItemIdx]), T_Rect, DT_SINGLELINE or DT_VCENTER or DT_NOPREFIX);
+    DrawText(DC, PKOLChar(PControl(Sender).Items[ItemIdx]), Length(PControl(Sender).Items[ItemIdx]), T_Rect, DT_SINGLELINE or DT_VCENTER or DT_NOPREFIX);
   end;
  // PControl(Sender).Update;
   Result := True;         ///
@@ -1228,7 +1225,7 @@ begin
   fControl.Font.Assign(Value);
 end;
 
-procedure TSPCFileList.SetPath(Value: string);
+procedure TSPCFileList.SetPath(Value: KOLstring);
 var
   i                 : Integer;
   fValue            : string;
@@ -1434,7 +1431,7 @@ begin
     end;
     Ico := FileIconSystemIdx(Path + PControl(Sender).Items[ItemIdx]);
     fIcons.Draw(Ico, DC, Rect.Left + 1, Rect.Top);
-    DrawText(DC, PChar(PControl(Sender).Items[ItemIdx]), Length(PControl(Sender).Items[ItemIdx]), T_Rect, DT_SINGLELINE or DT_VCENTER or DT_NOPREFIX);
+    DrawText(DC, PKOLChar(PControl(Sender).Items[ItemIdx]), Length(PControl(Sender).Items[ItemIdx]), T_Rect, DT_SINGLELINE or DT_VCENTER or DT_NOPREFIX);
   end;
   PControl(Sender).Update;
   Result := True;         ///
@@ -1442,7 +1439,14 @@ end;
 
 procedure TSPCFileList.DoMouseDblClk(Sender: PControl; var Mouse: TMouseEventData);
 begin
-  if ExecuteOnDblClk then ShellExecuteA(fControl.Handle, nil, PChar(Path + Sender.Items[CurIndex]), '', '', SW_SHOW) else
+  if ExecuteOnDblClk then
+    {$IFDEF UNICODE_CTRLS}
+    ShellExecuteW
+    {$ELSE}
+    ShellExecuteA
+    {$ENDIF}
+    (fControl.Handle, nil, PKOLChar(Path + Sender.Items[CurIndex]), '', '', SW_SHOW)
+  else
     if Assigned(fOnMouseDblClick) then fOnMouseDblClick(@Self, Mouse);
 end;
 
@@ -1669,7 +1673,7 @@ var
 begin
   Style := $00000000;
   Style := Style or WS_VISIBLE or WS_CHILD or WS_CLIPSIBLINGS or WS_CLIPCHILDREN; //msctls_statusbar32
-  c := _NewControl(AOwner, PChar('msctls_statusbar32'), Style, True, nil);
+  c := _NewControl(AOwner, 'msctls_statusbar32', Style, True, nil);
   //  c:=_NewStatusBar(AOwner);
   c.Style := Style;
   c.ExStyle := c.ExStyle xor WS_EX_CLIENTEDGE;

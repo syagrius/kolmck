@@ -43,8 +43,7 @@ uses Windows, KOL, Messages;
 
 type
 {$ENDIF Frame}
-{$IFDEF interface}
-
+{$IFDEF interface_part}
 
   TFE = (eTextColor, eBkColor, eAPDelay, eRDelay, eIDelay);
 
@@ -60,14 +59,14 @@ type
   PMHToolTip = ^TMHToolTip;
   TKOLMHToolTip = PMHToolTip;
 
-{$ENDIF interface}
+{$ENDIF interface_part}
 
 {$IFDEF pre_interface}
   PMHHint = ^TMHHint;
   TKOLMHHint = PMHHint;
 {$ENDIF pre_interface}
 
-{$IFDEF interface}
+{$IFDEF interface_part}
 
   TMHToolTipManager = object(TObj)
   protected
@@ -79,6 +78,7 @@ type
     function CreateNeed(FI: TFI): PMHToolTip;
   end;
 
+  //P_MHHint = ^TMHHint;
   TMHHint = object(TObj)
   private
     function GetManager:PMHToolTipManager;
@@ -191,7 +191,7 @@ function NewMHToolTip(AParent: PControl): PMHToolTip;
 var
   Manager: PMHToolTipManager;
 
-{$ENDIF interface}
+{$ENDIF interface_part}
 
 {$IFDEF Frame}
 
@@ -214,21 +214,18 @@ const
   Result := False;}
 //end;
 
-
-
 function NewMHToolTip(AParent: PControl): PMHToolTip;
 //var
 //  Data: PDateTimePickerData;
 //  T: TWndClassEx;
-//  a: integer;
+//var a: integer;
 const
   CS_DROPSHADOW = $00020000;
 begin
   DoInitCommonControls(ICC_BAR_CLASSES);
   New(Result, Create);
 
-  Result.fHandle := CreateWindowEx(0, TOOLTIPS_CLASS, '', 0, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, AParent.Handle, 0, HInstance, nil);
-
+  Result.fHandle := CreateWindowEx(WS_EX_TOPMOST, TOOLTIPS_CLASS, '', 0, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, AParent.GetWindowHandle, 0, HInstance, nil);
 //  SetClassLong(Result.handle,GCL_STYLE,CS_DROPSHADOW);
 
 //  Result := PMHToolTip(_NewControl(AParent, TOOLTIPS_CLASS, 0, False, 0)); //PMHToolTip(_NewCommonControl(AParent,TOOLTIPS_CLASS, 0{TTS_ALWAYSTIP}{WS_CHILD or WS_VISIBLE},False,0));
@@ -378,7 +375,7 @@ end;
 
 procedure TMHToolTip.Popup;
 begin
-  SendMessage(fHandle, TTM_POPUP, 0, 0);
+  SendMessage(fHandle, $0422 {TTM_POPUP}, 0, 0);
 end;
 
 {function TMHToolTip.GetText: string;
@@ -451,6 +448,7 @@ begin
     ToolTip := nil; // ???
     HasTool := False; // ???
   end;
+  A.Add2AutoFree(Result);
 end;
 
 function NewManager: PMHToolTipManager;
@@ -593,11 +591,7 @@ begin
 
   with TI do
   begin
-    uFlags := TTF_SUBCLASS; // Spec 
-    //rect := Parent.ClientRect; // Spec
-    rect := MakeRect( 0, 0, 2048, 1600 );
-    // это ничему не мешает, и обеспечивает независимость от размера контрола,
-    // который может изменяться в процессе работы
+    uFlags := TTF_SUBCLASS or TTF_IDISHWND; // Spec
     lpszText := PKOLChar(Value); // Spec
   end;
 
@@ -827,6 +821,7 @@ end;
 destructor TMHHint.Destroy;
 var
   TI: TToolInfo;
+  i: integer;
 begin
   with TI do
   begin
@@ -837,7 +832,15 @@ begin
 
   SendMessage(ToolTip.handle, TTM_DELTOOL, 0, DWORD(@TI));
   ToolTip.Count := ToolTip.Count - 1;
-  Manager.Free;
+  if ToolTip.Count <= 0 then begin
+    i:=Length(Manager.TTT);
+    if i > 1 then begin
+      Manager.TTT[i - 1].Free;
+      SetLength(Manager.TTT, i - 1);
+    end
+    else
+      Free_And_Nil(Manager);
+  end;
   inherited;
 end;
 
@@ -932,8 +935,3 @@ function GetHint: PMHHint;
   {$IFDEF var}
     fHint: PMHHint;
   {$ENDIF var}
-
-
-
-
-

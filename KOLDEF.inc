@@ -173,7 +173,7 @@ That is all to have full compatibility.
  {$DEFINE _D7}
  {$DEFINE _D7orHigher}
 {$ENDIF}
-{$ENDIF}
+{$ENDIF FPC}
 
 {$IFNDEF _NOT_KOLCtrlWrapper_}
  {$DEFINE _KOLCtrlWrapper_}
@@ -232,5 +232,21 @@ That is all to have full compatibility.
  {$DEFINE PARANOIA} //seems not needed under D6 !!! Inprise fixed this, finally... 
 {$ENDIF}
 
-// use _SetDIBPixelsTrueColorWithAlpha for 32bit
-{$DEFINE FIXDIB32}
+
+{$IFNDEF USE_OLD_FLAGS}
+         {$DEFINE USE_FLAGS}
+{$ELSE}  {$UNDEF  USE_FLAGS}
+{$ENDIF}
+{$IFnDEF EVENTS_STATIC}
+         {$DEFINE EVENTS_DYNAMIC}
+{$ENDIF}
+{$IFnDEF CMDACTIONS_RECORD}
+         {$DEFINE COMMANDACTIONS_OBJ}
+         {$DEFINE PACK_COMMANDACTIONS}
+         {$IFDEF  NOT_PACK_COMMANDACTIONS}
+                  {$UNDEF PACK_COMMANDACTIONS}
+         {$ENDIF}
+{$ENDIF}
+
+
+

@@ -36,6 +36,11 @@ modified last time, this is not a version of KOLadd itself.
 {$IFDEF EXTERNAL_DEFINES}
         {$INCLUDE EXTERNAL_DEFINES.INC}
 {$ENDIF EXTERNAL_DEFINES}
+{$IFDEF INPACKAGE}
+  {$IFDEF _D2009orHigher}
+      {$DEFINE UNICODE_CTRLS}
+  {$ENDIF}
+{$ENDIF}
 
 unit KOLadd;
 
@@ -56,10 +61,7 @@ uses Windows, Messages, KOL;
 |                                                                              |
 (------------------------------------------------------------------------------}
 type
-
-//[TListEx DEFINITION]
-  {++}(*TListEx = class;*){--}
-  PListEx = {-}^{+}TListEx;
+  PListEx = ^TListEx;
   TListEx = object( TObj )
   {* Extended list, with Objects[ ] property. Created calling NewListEx function. }
   protected
@@ -71,7 +73,7 @@ type
     function GetAddBy: Integer;
     procedure Set_AddBy(const Value: Integer);
   public
-    destructor Destroy; {-}virtual;{+}{++}(*override;*){--}
+    destructor Destroy; virtual;
     {* }
     property AddBy: Integer read GetAddBy write Set_AddBy;
     {* }
@@ -122,9 +124,7 @@ function NewListEx: PListEx;
 |                                                                              |
 (------------------------------------------------------------------------------}
 type
-//[TBits DEFINITION]
-  {++}(*TBits = class;*){--}
-  PBits = {-}^{+}TBits;
+  PBits = ^TBits;
   TBits = object( TObj )
   {* Variable-length bits array object. Created using function NewBits. See also
      |<a href="kol_pas.htm#Small bit arrays (max 32 bits in array)">
@@ -139,7 +139,7 @@ type
     function GetSize: Integer;
     procedure SetCapacity(const Value: Integer);
   public
-    destructor Destroy; {-}virtual;{+}{++}(*override;*){--}
+    destructor Destroy; virtual;
     {* }
     property Bits[ Idx: Integer ]: Boolean read GetBit write SetBit;
     {* }
@@ -214,8 +214,7 @@ type
     procedure Put(Idx: integer; const Value: AnsiString);
     procedure SetTextStr(const Value: AnsiString);
     function GetPChars( Idx: Integer ): PAnsiChar;
-  {++}(*public*){--}
-    destructor Destroy; {-}virtual;{+}{++}(*override;*){--}
+    destructor Destroy; virtual;
   public
     function AddAnsi( const S: AnsiString ): Integer;
     {* Adds Ansi AnsiString to a list. }
@@ -332,10 +331,8 @@ var Upper: array[ Char ] of AnsiChar;
 procedure InitUpper;
           {* Call this fuction ones to fill Upper[ ] table before using it. }
 
-//[CABINET FILES OBJECT]
 type
-  {++}(*TCabFile = class;*){--}
-  PCABFile = {-}^{+}TCABFile;
+  PCABFile = ^TCABFile;
 
   TOnNextCAB = function( Sender: PCABFile ): KOLString of object;
   TOnCABFile = function( Sender: PCABFile; var FileName: KOLString ): Boolean of object;
@@ -351,8 +348,8 @@ type
      The only what need to use this object, setupapi.dll. It is provided
      with all latest versions of Windows. }
   protected
-    FPaths: {$IFDEF UNICODE_CTRLS} PWStrList {$ELSE} PStrList {$ENDIF};
-    FNames: {$IFDEF UNICODE_CTRLS} PWStrList {$ELSE} PStrList {$ENDIF};
+    FPaths: PKOLStrList;
+    FNames: PKOLStrList;
     FOnNextCAB: TOnNextCAB;
     FOnFile: TOnCABFile;
     FTargetPath: KOLString;
@@ -365,7 +362,7 @@ type
     FGettingNames: Boolean;
     FCurCAB: Integer;
   public
-    destructor Destroy; {-}virtual;{+}{++}(*override;*){--}
+    destructor Destroy; virtual;
     {* }
     property Paths[ Idx: Integer ]: KOLString read GetPaths;
     {* A list of CAB-files. It is stored, when constructing function
@@ -415,10 +412,8 @@ function OpenCABFile( const APaths: array of AnsiString ): PCABFile;
    will be called, or (and) user will be prompted to browse file during
    executing (i.e. Extracting). }
 
-//[DIRCHANGE]
 type
-  {++}(*TDirChange = class;*){--}
-  PDirChange = {-}^{+}TDirChange;
+  PDirChange = ^TDirChange;
   {* }
 
   TOnDirChange = procedure (Sender: PDirChange; const Path: KOLString) of object;
@@ -435,7 +430,6 @@ type
                           TDirChange object
 
 ----------------------------------------------------------------------- }
-//[TDirChange DEFINITION]
   TDirChange = object(TObj)
   {* Object type to monitor changes in certain folder. }
   protected
@@ -446,8 +440,7 @@ type
     function Execute( Sender: PThread ): Integer;
     procedure Changed;
   protected
-  {++}(*public*){--}
-    destructor Destroy; {-}virtual;{+}{++}(*override;*){--}
+    destructor Destroy; virtual;
     {*}
   public
     property Handle: THandle read FHandle;
@@ -457,9 +450,7 @@ type
        is under monitoring). }
     property OnChange: TOnDirChange read FOnChange write FOnChange;
   end;
-//[END OF TDirChange DEFINITION]
 
-//[NewDirChangeNotifier DECLARATION]
 function NewDirChangeNotifier( const Path: KOLString; Filter: TFileChangeFilter;
                                WatchSubtree: Boolean; ChangeProc: TOnDirChange )
                                : PDirChange;
@@ -470,17 +461,13 @@ function NewDirChangeNotifier( const Path: KOLString; Filter: TFileChangeFilter;
    If empty filter is passed, default filter is used:
    [fncFileName..fncLastWrite]. }
 
-//[METAFILES]
-
 type
-  {++}(*TMetafile = class;*){--}
-  PMetafile = {-}^{+}TMetafile;
+  PMetafile = ^TMetafile;
 { ----------------------------------------------------------------------
 
       TMetafile - Windows metafile and Enchanced Metafile image
 
 ----------------------------------------------------------------------- }
-//[TMetafile DEFINITION]
   TMetafile = object( TObj )
   {* Object type to incapsulate metafile image. }
   protected
@@ -492,7 +479,7 @@ type
     fHeader: PEnhMetaHeader;
     procedure RetrieveHeader;
   public
-    destructor Destroy; {-}virtual;{+}{++}(*override;*){--}
+    destructor Destroy; virtual;
     {* }
     procedure Clear;
     {* }
@@ -559,14 +546,11 @@ type
     UpdateProc: TOnUpdateCtrlEvent;
   end;
 
-  {++}(* TAction = class;*){--}
-  PAction = {-}^{+}TAction;
+  PAction = ^TAction;
 
-  {++}(* TActionList = class;*){--}
-  PActionList = {-}^{+}TActionList;
+  PActionList = ^TActionList;
 
-//[TAction DEFINITION]
-  TAction = {-} object( TObj ) {+}{++}(*class*){--}
+  TAction = object( TObj )
   {*! Use action objects, in conjunction with action lists, to centralize the response
       to user commands (actions).
       Use AddControl, AddMenuItem, AddToolbarButton methods to link controls to an action.
@@ -604,7 +588,7 @@ type
     procedure UpdateToolbar(Sender: PControlRec);
 
   public
-    destructor Destroy; {-}virtual;{+}{++}(*override;*){--}
+    destructor Destroy; virtual;
     procedure LinkControl(Ctrl: PControl);
     {* Add a link to a TControl or descendant control. }
     procedure LinkMenuItem(Menu: PMenu; MenuItemIdx: integer);
@@ -630,10 +614,8 @@ type
     property OnExecute: TOnEvent read FOnExecute write SetOnExecute;
     {* This event is executed when user clicks on a linked object or Execute method was called. }
   end;
-//[END OF TAction DEFINITION]
 
-//[TActionList DEFINITION]
-  TActionList = {-} object( TObj ) {+}{++}(*class*){--}
+  TActionList = object( TObj )
   {*! TActionList maintains a list of actions used with components and controls,
      such as menu items and buttons.
      Action lists are used, in conjunction with actions, to centralize the response
@@ -651,7 +633,7 @@ type
   protected
     procedure DoUpdateActions(Sender: PObj);
   public
-    destructor Destroy; {-}virtual;{+}{++}(*override;*){--}
+    destructor Destroy; virtual;
     function Add(const ACaption, AHint: KOLString; OnExecute: TOnEvent): PAction;
     {* Add a new action to the list. Returns pointer to action object. }
     procedure Delete(Idx: integer);
@@ -666,18 +648,14 @@ type
     {* Event handler to update actions state. This event is called each time when application
       goes in the idle state (no messages in the queue). }
   end;
-//[END OF TActionList DEFINITION]
 
-//[NewActionList DECLARATION]
 function NewActionList(AOwner: PControl): PActionList;
 {* Action list constructor. AOwner - owner form. }
 
 { -- tree (non-visual) -- }
 
 type
-//[TTree DEFINITION]
-  {++}(*TTree = class;*){--}
-  PTree = {-}^{+}TTree;
+  PTree = ^TTree;
   TTree = object( TObj )
   {* Object to store tree-like data in memory (non-visual). }
   protected
@@ -706,11 +684,9 @@ type
     constructor CreateTree( AParent: PTree; const AName: AnsiString );
     {* }
     {$ENDIF}
-  {++}(*public*){--}
-    destructor Destroy; {-}virtual;{+}{++}(*override;*){--}
+    destructor Destroy; virtual;
     {* }
-  {++}(*protected*){--}
-    procedure Init; {-}virtual;{+}{++}(*override;*){--}
+    procedure Init; virtual;
   public
     procedure Clear;
     {* Destoyes all child nodes. }
@@ -872,24 +848,18 @@ implementation
 (------------------------------------------------------------------------------}
 { TListEx }
 
-//[function NewListEx]
 function NewListEx: PListEx;
 begin
-  {-}
   new( Result, Create );
-  {+}{++}(*Result := PListEx.Create;*){--}
   Result.fList := NewList;
   Result.fObjects := NewList;
 end;
-//[END NewListEx]
 
-//[procedure TListEx.Add]
 procedure TListEx.Add(Value: Pointer);
 begin
   AddObj( Value, nil );
 end;
 
-//[procedure TListEx.AddObj]
 procedure TListEx.AddObj(Value, Obj: Pointer);
 var C: Integer;
 begin
@@ -898,7 +868,6 @@ begin
   fObjects.Insert( C, Obj );
 end;
 
-//[procedure TListEx.Clear]
 procedure TListEx.Clear;
 begin
   fList.Clear;
@@ -1020,19 +989,13 @@ type
   TBitsList = object( TList )
   end;
 
-
-//[function NewBits]
 function NewBits: PBits;
 begin
-  {-}
   new( Result, Create );
-  {+}{++}(*Result := PBits.Create;*){--}
   Result.fList := NewList;
   {$IFDEF TLIST_FAST} Result.fList.UseBlocks:= False; {$ENDIF}
-  //Result.fList.fAddBy := 1;
 end;
 
-//[procedure TBits.AssignBits]
 procedure TBits.AssignBits(ToIdx: Integer; FromBits: PBits; FromIdx,
   N: Integer);
 var i: Integer;
@@ -2001,24 +1964,21 @@ end;
 function OpenCABFile( const APaths: array of AnsiString ): PCABFile;
 var I: Integer;
 begin
-  {-}
   New( Result, Create );
-  {+}{++}(*Result := PCABFile.Create;*){--}
   Result.FSetupapi := LoadLibrary( 'setupapi.dll' );
-  Result.FNames := {$IFDEF UNICODE_CTRLS} NewWStrList {$ELSE} NewStrList {$ENDIF};
-  Result.FPaths := {$IFDEF UNICODE_CTRLS} NewWStrList {$ELSE} NewStrList {$ENDIF};
+  Result.FNames := NewKOLStrList;
+  Result.FPaths := NewKOLStrList;
   for I := 0 to High( APaths ) do
-    Result.FPaths.Add( KOLString(APaths[ I ]) );
+      Result.FPaths.Add( KOLString(APaths[ I ]) );
 end;
 
-//[destructor TCABFile.Destroy]
 destructor TCABFile.Destroy;
 begin
   FNames.Free;
   FPaths.Free;
   FTargetPath := '';
-  if FSetupapi <> 0 then
-    FreeLibrary( FSetupapi );
+  if  FSetupapi <> 0 then
+      FreeLibrary( FSetupapi );
   inherited;
 end;
 
@@ -2289,9 +2249,7 @@ function NewDirChangeNotifier( const Path: KOLString; Filter: TFileChangeFilter;
                                : PDirChange;
 var Flags: DWORD;
 begin
-  {-}
   New( Result, Create );
-  {+}{++}(*Result := PDirChange.Create;*){--}
 
   Result.FPath := Path;
   Result.FOnChange := ChangeProc;
@@ -2300,16 +2258,16 @@ begin
       FILE_NOTIFY_CHANGE_ATTRIBUTES or FILE_NOTIFY_CHANGE_SIZE or
       FILE_NOTIFY_CHANGE_LAST_WRITE
   else
-    Flags := MakeFlags( @Filter, FilterFlags );
+      Flags := MakeFlags( @Filter, FilterFlags );
   Result.FinEvent := CreateEvent( nil, TRUE, FALSE, nil );
   Result.FHandle := FindFirstChangeNotification(PKOLChar(Result.FPath),
                     Bool( Integer( WatchSubtree ) ), Flags);
-  if Result.FHandle <> INVALID_HANDLE_VALUE then
-    Result.FMonitor := NewThreadAutoFree( Result.Execute )
+  if  Result.FHandle <> INVALID_HANDLE_VALUE then
+      Result.FMonitor := NewThreadEx( Result.Execute )
   else //MsgOK( 'Can not monitor ' + Result.FPath + #13'Error ' + Int2Str( GetLastError ) );
   begin
-    Result.Free;
-    Result := nil;
+      Result.Free;
+      Result := nil;
   end;
 end;
 {$ENDIF ASM_VERSION}
@@ -2337,7 +2295,7 @@ begin
 end;
 {$ENDIF ASM_VERSION}
 
-{$IFDEF ASM_VERSION}
+{$IFDEF noASM_VERSION}
 //[destructor TDirChange.Destroy]
 destructor TDirChange.Destroy;
 asm
@@ -2367,8 +2325,9 @@ begin
     OnChange := nil;
     SetEvent( FinEvent );
   end;
-  //if FMonitor <> nil then
-  //   FMonitor.Free;
+  FMonitor.WaitFor;
+  FMonitor.Free;
+  CloseHandle( FinEvent );
   FPath := '';
   inherited;
 end;
@@ -2417,27 +2376,23 @@ var Handles: array[ 0..1 ] of THandle;
 begin
   Handles[ 0 ] := FHandle;
   Handles[ 1 ] := FinEvent;
-  while TRUE do
-    case WaitForMultipleObjects(2, @ Handles[ 0 ], FALSE, INFINITE) of
+  while not AppletTerminated do
+    case WaitForMultipleObjects(2, @ Handles[ 0 ], FALSE, 1000) of
     WAIT_OBJECT_0:
       begin
         if AppletTerminated then break;
         Applet.GetWindowHandle;
         Sender.Synchronize( Changed );
         FindNextChangeNotification(Handles[ 0 ]);
-        {for i := 1 to 10 do
-        begin
-          Sleep( 10 );
-          if AppletTerminated then break;
-        end;}
       end;
+    WAIT_TIMEOUT: Sleep( 100 );
     else break;
     end;
   {$IFDEF SAFE_CODE}
   TRY
   {$ENDIF}
   FindCloseChangeNotification( Handles[ 0 ] );
-  CloseHandle( Handles[ 1 ] );
+  //CloseHandle( Handles[ 1 ] );
   {$IFDEF SAFE_CODE}
   EXCEPT
   END;
@@ -2454,24 +2409,13 @@ end;
 //
 ////////////////////////////////////////////////////////////////////////
 
-{++}(*
-//[API SetEnhMetaFileBits]
-function SetEnhMetaFileBits; external gdi32 name 'SetEnhMetaFileBits';
-function PlayEnhMetaFile; external gdi32 name 'PlayEnhMetaFile';
-*){--}
-
-//[function NewMetafile]
 function NewMetafile: PMetafile;
 begin
-  {-}
   new( Result, Create );
-  {+}{++}(*Result := PMetafile.Create;*){--}
 end;
-//[END NewMetafile]
 
 { TMetafile }
 
-//[procedure TMetafile.Clear]
 procedure TMetafile.Clear;
 begin
   if fHandle <> 0 then
@@ -2479,7 +2423,6 @@ begin
   fHandle := 0;
 end;
 
-//[destructor TMetafile.Destroy]
 destructor TMetafile.Destroy;
 begin
   if fHeader <> nil then
@@ -2488,39 +2431,32 @@ begin
   inherited;
 end;
 
-//[procedure TMetafile.Draw]
 procedure TMetafile.Draw(DC: HDC; X, Y: Integer);
 begin
   StretchDraw( DC, MakeRect( X, Y, X + Width, Y + Height ) );
 end;
 
-//[function TMetafile.Empty]
 function TMetafile.Empty: Boolean;
 begin
   Result := fHandle = 0;
 end;
 
-//[function TMetafile.GetHeight]
 function TMetafile.GetHeight: Integer;
 begin
   Result := 0;
   if Empty then Exit;
   RetrieveHeader;
   Result := fHeader.rclBounds.Bottom - fHeader.rclBounds.Top;
-  //Result := fHeader.rclFrame.Bottom - fHeader.rclFrame.Top;
 end;
 
-//[function TMetafile.GetWidth]
 function TMetafile.GetWidth: Integer;
 begin
   Result := 0;
   if Empty then Exit;
   RetrieveHeader;
   Result := fHeader.rclBounds.Right - fHeader.rclBounds.Left;
-  //Result := fHeader.rclFrame.Right - fHeader.rclFrame.Left;
 end;
 
-//[function TMetafile.LoadFromFile]
 function TMetafile.LoadFromFile(const Filename: AnsiString): Boolean;
 var Strm: PStream;
 begin
@@ -2529,7 +2465,6 @@ begin
   Strm.Free;
 end;
 
-//[function ComputeAldusChecksum]
 function ComputeAldusChecksum(var WMF: TMetafileHeader): Word;
 type
   PWord = ^Word;
@@ -2547,7 +2482,6 @@ begin
   end;
 end;
 
-//[function TMetafile.LoadFromStream]
 function TMetafile.LoadFromStream(Strm: PStream): Boolean;
 var WMF: TMetaFileHeader;
     WmfHdr: TMetaHeader;
@@ -2785,7 +2719,7 @@ var
   c, ss: KOLstring;
 
 begin
-  i:=Pos(#9, Value);
+  i:= IndexOfChar(Value, #9); //Pos(#9, Value);
   if i <> 0 then begin
     c:=Copy(Value, 1, i - 1);
     ss:=Copy(Value, i + 1, MaxInt);
@@ -3393,8 +3327,9 @@ begin
   AppCtl := Applet;
   AppletTerminated := FALSE;
   Title := 'Information';
-  if pos( '/', Answers ) > 0 then
-    Title := 'Question';
+  //if pos( '/', Answers ) > 0 then
+  if  IndexOfChar(Answers, '/') > 0 then
+      Title := 'Question';
   {$IFNDEF NO_CHECK_STAYONTOP}
   DoStayOnTop := FALSE;
   {$ENDIF  NO_CHECK_STAYONTOP}

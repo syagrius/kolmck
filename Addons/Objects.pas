@@ -112,7 +112,7 @@ begin
     if InstBlockCount = 0 then begin
        VirtualFree(InstBlockList, 0, MEM_RELEASE);
        InstBlockList := nil;
-       ObjectInstance := nil;
+//       ObjectInstance := nil;
     end;
   end;
 end;

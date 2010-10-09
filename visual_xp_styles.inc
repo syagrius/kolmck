@@ -1,6 +1,6 @@
 // Name:   KOL Addon - Visual XP Styles
-// Rev.:   1.98
-// Date:   04 may 2010
+// Rev.:   1.99 + KOL 3.00.A
+// Date:   02 oct 2010
 // Author: MTsv DN
 // Thanks: mdw, Vladimir Kladov
 
@@ -168,9 +168,9 @@ var
  Bmp : HBITMAP;
 begin
  // Checking user owner-draw
- if Assigned(Sender.fOnPaint) and (@Sender.fOnPaint <> @WndSplitterXPDraw) then
+ if Assigned(Sender.EV.fOnPaint) and (@Sender.EV.fOnPaint <> @WndSplitterXPDraw) then
   begin
-   Sender.fOnPaint(Sender, DC);
+   Sender.EV.fOnPaint(Sender, DC);
    exit;
   end;
   
@@ -182,18 +182,19 @@ begin
  DeleteObject(Brush);
 
  // Creating brush and pen
- if Sender.fPressed then
-  begin
-   Bmp := CreateBitmap(2, 2, 1, 1, @Bit);
-   B := CreatePatternBrush(Bmp);
-   fDC := SelectObject(DC, B);
-   // Drawing splitter
-   PatBlt   (DC, 0, 0, Sender.Width, Sender.Height, PATINVERT);
-   // Destroying  brush and pen
-   SelectObject(DC, fDC);
-   DeleteObject(B);
-   DeleteObject(Bmp);
-  end;
+ if  {$IFDEF USE_FLAGS} G4_Pressed in Sender.fFlagsG4
+     {$ELSE} Sender.fPressed {$ENDIF} then
+ begin
+     Bmp := CreateBitmap(2, 2, 1, 1, @Bit);
+     B := CreatePatternBrush(Bmp);
+     fDC := SelectObject(DC, B);
+     // Drawing splitter
+     PatBlt   (DC, 0, 0, Sender.Width, Sender.Height, PATINVERT);
+     // Destroying  brush and pen
+     SelectObject(DC, fDC);
+     DeleteObject(B);
+     DeleteObject(Bmp);
+ end;
 end;
 //*************************** Drawing TabControl Page ************************//
 procedure WndTabXPDraw( Dummy : Pointer; Sender: PControl; DC: HDC );
@@ -204,9 +205,9 @@ var
  fDC : HDC;
 begin
  // Checking user owner-draw
- if Assigned(Sender.fOnPaint) and (@Sender.fOnPaint <> @WndTabXPDraw) then
+ if Assigned(Sender.EV.fOnPaint) and (@Sender.EV.fOnPaint <> @WndTabXPDraw) then
   begin
-   Sender.fOnPaint(Sender, DC);
+   Sender.EV.fOnPaint(Sender, DC);
    exit;
   end;
    hThemes := OpenThemeData(Sender.fHandle, 'TAB');
@@ -244,9 +245,9 @@ var
  Pen : HPEN;
 begin
  // Checking user owner-draw
- if Assigned(Sender.fOnPaint) and (@Sender.fOnPaint <> @WndPanelXPDraw) then
+ if Assigned(Sender.EV.fOnPaint) and (@Sender.EV.fOnPaint <> @WndPanelXPDraw) then
   begin
-   Sender.fOnPaint(Sender, DC);
+   Sender.EV.fOnPaint(Sender, DC);
    exit;
   end;
 
@@ -270,16 +271,18 @@ begin
   end;
 
  // Draw back layer
- if (Sender.fedgeStyle = esTransparent) or (Sender.fTransparent) then else
+ if (Sender.EdgeStyle = esTransparent) or
+    ({$IFDEF USE_FLAGS} (G2_Transparent in Sender.fFlagsG2)
+     {$ELSE} Sender.fTransparent {$ENDIF}) then else
   begin
    Brush := CreateSolidBrush(Color2RGB(Sender.fParent.Color));
    fDC1 := SelectObject(DC, Brush);
    FillRect(DC, RClient, Brush);
 
-   case Sender.fedgeStyle of
+   case Sender.EdgeStyle of
    esRaised, esLowered:
     begin
-     Sender.fStyle := Sender.fStyle and (not SS_SUNKEN) and (not WS_DLGFRAME);
+     Sender.fStyle.Value := Sender.fStyle.Value and (not SS_SUNKEN) and (not WS_DLGFRAME);
      Sender.fExStyle := Sender.fExStyle and (not WS_EX_STATICEDGE) or WS_EX_WINDOWEDGE;
 
      Pen := CreatePen(PS_SOLID, 1, Color2RGB(clLtGrey));
@@ -299,12 +302,16 @@ begin
   begin
    hThemes := OpenThemeData(Sender.fHandle, 'button');
    Color := Sender.Font.Color;
-   if hThemes <> 0 then
-    begin
-     if not Sender.fEnabled then
-      GetThemeColor(hThemes, 1, 4, 3803, Color);
-     CloseThemeData(hThemes);
-    end;
+   if  hThemes <> 0 then
+   begin
+       {$IFDEF USE_FLAGS}
+       if  (F3_Disabled in Sender.fStyle.f3_Style) then
+       {$ELSE}
+       if  not Sender.fEnabled then
+       {$ENDIF}
+           GetThemeColor(hThemes, 1, 4, 3803, Color);
+       CloseThemeData(hThemes);
+   end;
    RText := MakeRect(2, 2, Sender.Width-2, Sender.Height-2);
 
    // Create font
@@ -335,9 +342,9 @@ var
  TextWidth, TextHeight : Integer;
 begin
  // Checking user owner-draw
- if Assigned(Sender.fOnPaint) and (@Sender.fOnPaint <> @WndGroupBoxXPDraw) then
+ if Assigned(Sender.EV.fOnPaint) and (@Sender.EV.fOnPaint <> @WndGroupBoxXPDraw) then
   begin
-   Sender.fOnPaint(Sender, DC);
+   Sender.EV.fOnPaint(Sender, DC);
    exit;
   end;
   
@@ -419,13 +426,23 @@ begin
  if hThemes <> 0 then
   begin
    Sender.Color := Sender.fParent.fColor;
-   if Sender.fEnabled then fState := 1 else fState := 2;
+   {$IFDEF USE_FLAGS}
+   if  not (F3_Disabled in Sender.fStyle.f3_Style) then
+   {$ELSE}
+   if  Sender.fEnabled then
+   {$ENDIF}
+       fState := 1 else fState := 2;
    // Drawing GroupBox rect "step by step"
    DrawThemeBackground(hThemes, DC, 4{BP_GROUPBOX}, fState{GBS_XXXXXX},  RClient, @RClipMain);
    DrawThemeBackground(hThemes, DC, 4{BP_GROUPBOX}, fState{GBS_XXXXXX},  RClient, @RClipLeft);
    DrawThemeBackground(hThemes, DC, 4{BP_GROUPBOX}, fState{GBS_XXXXXX},  RClient, @RClipRight);
    // Drawing GroupBox text
-   if not Sender.fEnabled then GetThemeColor(hThemes, {WP_CAPTION} 1, {CS_DISABLED} 3, 3803, Color)
+   {$IFDEF USE_FLAGS}
+   if  F3_Disabled in Sender.fStyle.f3_Style then
+   {$ELSE}
+   if  not Sender.fEnabled then
+   {$ENDIF}
+       GetThemeColor(hThemes, {WP_CAPTION} 1, {CS_DISABLED} 3, 3803, Color)
     else GetThemeColor(hThemes, {WP_CAPTION} 1, {CS_ACTIVE} 1, 3803, Color);
    // Close themes
    CloseThemeData(hThemes);
@@ -460,9 +477,9 @@ var
  Brush : HBRUSH;
 begin
  // Checking user owner-draw
- if Assigned(Sender.fOnPaint) and (@Sender.fOnPaint <> @WndCheckBoxXPDraw) then
+ if Assigned(Sender.EV.fOnPaint) and (@Sender.EV.fOnPaint <> @WndCheckBoxXPDraw) then
   begin
-   Sender.fOnPaint(Sender, DC);
+   Sender.EV.fOnPaint(Sender, DC);
    exit;
   end;
   
@@ -475,47 +492,59 @@ begin
  RClient := Sender.ClientRect;
  RCheck := RClient;
  RCheck.Right := RCheck.Left + W;
- if Sender.fWordWrap then
-  RCheck.Top := RCheck.Top + Sender.Border
+ if  {$IFDEF USE_FLAGS} G1_WordWrap in Sender.fFlagsG1
+     {$ELSE}            Sender.fWordWrap {$ENDIF} then
+     RCheck.Top := RCheck.Top + Sender.Border
  else
-  RCheck.Top := RCheck.Top + (RCheck.Bottom - RCheck.Top - H) div 2;
+     RCheck.Top := RCheck.Top + (RCheck.Bottom - RCheck.Top - H) div 2;
  RCheck.Bottom := RCheck.Top + H;
  RText := MakeRect(RCheck.Right + Sender.Border, RCheck.Top,
                    RClient.Right, RCheck.Bottom);
  // Getting state
  fState := 1; {CBS_UNCHECKEDNORMAL}
- if not Sender.fEnabled then
-  fState := 4 {CBS_UNCHECKEDDISABLED}
+ {$IFDEF USE_FLAGS}
+ if  F3_Disabled in Sender.fStyle.f3_Style then
+ {$ELSE}
+ if  not Sender.fEnabled then
+ {$ENDIF}
+     fState := 4 {CBS_UNCHECKEDDISABLED}
  else
- if Sender.fHot then
-  fState := 2; {CBS_UNCHECKEDHOT}
- if Sender.fPressed then
-  fState := 3{CBS_UNCHECKEDPRESSED};
+ if  {$IFDEF USE_FLAGS} G4_Hot in Sender.fFlagsG4
+     {$ELSE} Sender.fHot {$ENDIF} then
+     fState := 2; {CBS_UNCHECKEDHOT}
+ if  {$IFDEF USE_FLAGS} G4_Pressed in Sender.fFlagsG4
+     {$ELSE} Sender.fPressed {$ENDIF} then
+     fState := 3{CBS_UNCHECKEDPRESSED};
  case Sender.Check3 of
-  tsChecked : Inc( fState, 4 );
-  tsIndeterminate : Inc( fState, 8 );
+ tsChecked : Inc( fState, 4 );
+ tsIndeterminate : Inc( fState, 8 );
  end;
 
  // Draw back layer
- if not Sender.fTransparent then
-  begin
-   Brush := CreateSolidBrush(Color2RGB(Sender.fParent.Color));
-   fDC := SelectObject(DC, Brush);
-   FillRect(DC, RClient, Brush);
-   SelectObject(DC, fDC);
-   DeleteObject(Brush);
-  end;
+ if  {$IFDEF USE_FLAGS} not( G2_Transparent in Sender.fFlagsG2 )
+     {$ELSE} not Sender.fTransparent {$ENDIF} then
+ begin
+     Brush := CreateSolidBrush(Color2RGB(Sender.fParent.Color));
+     fDC := SelectObject(DC, Brush);
+     FillRect(DC, RClient, Brush);
+     SelectObject(DC, fDC);
+     DeleteObject(Brush);
+ end;
 
  // Draw theme
  Color := Sender.Font.Color;
  hThemes := OpenThemeData(Sender.fHandle, 'button');
  if hThemes <> 0 then
-  begin
-   if not Sender.fEnabled then
-    GetThemeColor(hThemes, 1, 4, 3803, Color);
-   DrawThemeBackground(hThemes, DC, 3 {BP_CHECKBOX}, fState, RCheck, @RCheck);
-   CloseThemeData(hThemes);
-  end;
+ begin
+     {$IFDEF USE_FLAGS}
+     if  F3_Disabled in Sender.fStyle.f3_Style then
+     {$ELSE}
+     if  not Sender.fEnabled then
+     {$ENDIF}
+         GetThemeColor(hThemes, 1, 4, 3803, Color);
+     DrawThemeBackground(hThemes, DC, 3 {BP_CHECKBOX}, fState, RCheck, @RCheck);
+     CloseThemeData(hThemes);
+ end;
   
  // Create font
  F := CreateNewFont(Sender);
@@ -548,9 +577,9 @@ var
  Brush : HBRUSH;
 begin
  // Checking user owner-draw
- if Assigned(Sender.fOnPaint) and (@Sender.fOnPaint <> @WndRadioBoxXPDraw) then
+ if Assigned(Sender.EV.fOnPaint) and (@Sender.EV.fOnPaint <> @WndRadioBoxXPDraw) then
   begin
-   Sender.fOnPaint(Sender, DC);
+   Sender.EV.fOnPaint(Sender, DC);
    exit;
   end;
   
@@ -563,45 +592,57 @@ begin
  RClient := Sender.ClientRect;
  RDot := RClient;
  RDot.Right := RDot.Left + W;
- if Sender.fWordWrap then
-  RDot.Top := RDot.Top + Sender.Border
+ if  {$IFDEF USE_FLAGS} G1_WordWrap in Sender.fFlagsG1
+     {$ELSE}            Sender.fWordWrap {$ENDIF} then
+     RDot.Top := RDot.Top + Sender.Border
  else
-  RDot.Top := RDot.Top + (RDot.Bottom - RDot.Top - H) div 2;
+     RDot.Top := RDot.Top + (RDot.Bottom - RDot.Top - H) div 2;
  RDot.Bottom := RDot.Top + H;
  RText := MakeRect(RDot.Right + Sender.Border, RDot.Top,
                    RClient.Right, RDot.Bottom);
  // Getting state
  fState := 1; {CBS_UNCHECKEDNORMAL}
- if not Sender.fEnabled then
-  fState := 4 {CBS_UNCHECKEDDISABLED}
+ {$IFDEF USE_FLAGS}
+ if  F3_Disabled in Sender.fStyle.f3_Style then
+ {$ELSE}
+ if  not Sender.fEnabled then
+ {$ENDIF}
+     fState := 4 {CBS_UNCHECKEDDISABLED}
  else
- if Sender.fHot then
-  fState := 2; {CBS_UNCHECKEDHOT}
- if Sender.fPressed then
-  fState := 3{CBS_UNCHECKEDPRESSED};
+ if  {$IFDEF USE_FLAGS} G4_Hot in Sender.fFlagsG4
+     {$ELSE} Sender.fHot {$ENDIF} then
+     fState := 2; {CBS_UNCHECKEDHOT}
+ if  {$IFDEF USE_FLAGS} G4_Pressed in Sender.fFlagsG4
+     {$ELSE} Sender.fPressed {$ENDIF} then
+     fState := 3{CBS_UNCHECKEDPRESSED};
  if Sender.Checked then
   Inc( fState, 4 );
 
  // Draw back layer
- if not Sender.fTransparent then
-  begin
-   Brush := CreateSolidBrush(Color2RGB(Sender.fParent.Color));
-   fDC := SelectObject(DC, Brush);
-   FillRect(DC, RClient, Brush);
-   SelectObject(DC, fDC);
-   DeleteObject(Brush);
-  end;
+ if  {$IFDEF USE_FLAGS} not( G2_Transparent in Sender.fFlagsG2 )
+     {$ELSE} not Sender.fTransparent {$ENDIF} then
+ begin
+     Brush := CreateSolidBrush(Color2RGB(Sender.fParent.Color));
+     fDC := SelectObject(DC, Brush);
+     FillRect(DC, RClient, Brush);
+     SelectObject(DC, fDC);
+     DeleteObject(Brush);
+ end;
 
  // Draw theme
  Color := Sender.Font.Color;
  hThemes := OpenThemeData(Sender.fHandle, 'button');
  if hThemes <> 0 then
-  begin
-   if not Sender.fEnabled then
-    GetThemeColor(hThemes, 1, 4, 3803, Color);
-   DrawThemeBackground(hThemes, DC, 2 {BP_RADIOBOX}, fState, RDot, @RDot);
-   CloseThemeData(hThemes);
-  end;
+ begin
+     {$IFDEF USE_FLAGS}
+     if  F3_Disabled in Sender.fStyle.f3_Style then
+     {$ELSE}
+     if  not Sender.fEnabled then
+     {$ENDIF}
+         GetThemeColor(hThemes, 1, 4, 3803, Color);
+     DrawThemeBackground(hThemes, DC, 2 {BP_RADIOBOX}, fState, RDot, @RDot);
+     CloseThemeData(hThemes);
+ end;
   
  // Create font
  F := CreateNewFont(Sender);
@@ -620,6 +661,7 @@ begin
  // Draw focusrect
  if GetFocus = Sender.fHandle then DrawFocusRect(DC, RText);
 end;
+
 //******************** Drawing Button and BitButton control ******************//
 procedure WndButtonXPDraw( Dummy : Pointer; Sender: PControl; DC: HDC );
 var
@@ -646,103 +688,116 @@ var
  il : PImageList;
 begin
  // Checking user owner-draw
- if Assigned(Sender.fOnPaint) and (@Sender.fOnPaint <> @WndButtonXPDraw) then
-  begin
-   Sender.fOnPaint(Sender, DC);
-   exit;
-  end;
- if Assigned(Sender.fOnBitBtnDraw) then
-  begin
+ if  Assigned(Sender.EV.fOnPaint)
+ and (TMethod(Sender.EV.fOnPaint).Code <> @WndButtonXPDraw) then
+ begin
+     Sender.EV.fOnPaint(Sender, DC);
+     exit;
+ end;
+ if  Assigned(Sender.EV.fOnBitBtnDraw)
+ and (TMethod(Sender.EV.fOnBitBtnDraw).Code <> @DummyProc123_0) then
+ begin
    fState := 0{PBS_NORMAL};
-   if not Sender.fEnabled then
-    fState := 2{PBS_DISABLED}
-     else
-   if GetFocus = Sender.fHandle then
-    fState := 3{PBS_PRESSED}
-     else
-   if Sender.fHot then
-    fState := 4{PBS_HOT};
-   if Sender.fPressed then
-    fState := 1{PBS_PRESSED};
-   Sender.fOnBitBtnDraw(Sender, fState);
+   {$IFDEF USE_FLAGS}
+   if  F3_Disabled in Sender.fStyle.f3_Style then
+   {$ELSE}
+   if  not Sender.fEnabled then
+   {$ENDIF}
+       fState := 2{PBS_DISABLED}
+   else
+   if  GetFocus = Sender.fHandle then
+       fState := 3{PBS_PRESSED}
+   else
+   if  {$IFDEF USE_FLAGS} G4_Hot in Sender.fFlagsG4
+       {$ELSE} Sender.fHot {$ENDIF} then
+       fState := 4{PBS_HOT};
+   if  {$IFDEF USE_FLAGS} G4_Pressed in Sender.fFlagsG4
+       {$ELSE} Sender.fPressed {$ENDIF} then
+       fState := 1{PBS_PRESSED};
+   Sender.EV.fOnBitBtnDraw(Sender, fState);
    exit;
-  end;
+ end;
 
  // Getting rects
  RClient := Sender.ClientRect;
  RText := RClient;
  // Calc bitmap rect
- Bmp := Sender.fGlyphBitmap;
+ Bmp := Sender.DF.fGlyphBitmap;
  HPos := 0; VPos := 0;
- if Bmp <> 0 then
-  begin
-   SenderWidth := Sender.Width;
-   SenderHeight := Sender.Height;
-   W := Sender.fGlyphWidth;
-   H := Sender.fGlyphHeight;
-   if Sender.fglyphLayout in [ glyphLeft ] then
-    begin
-     RIcon := MakeRect((SenderWidth div 2) - (W + (W div 4)),
-                       (SenderHeight div 2) - (H div 2),
-                        W, SenderHeight);
-     RText.Left := (SenderWidth div 2) + (W div 4);
-     HPos := DT_LEFT;
-     VPos := DT_VCENTER;
-    end;
-   if Sender.fglyphLayout in [ glyphRight ] then
-    begin
-     RIcon := MakeRect((SenderWidth div 2) + (W div 4),
-                       (SenderHeight div 2) - (H div 2),
-                        W, SenderHeight);
-     RText.Right := (SenderWidth div 2) - (W div 4);
-     HPos := DT_RIGHT;
-     VPos := DT_VCENTER;
-    end;
-   if Sender.fglyphLayout in [ glyphOver ] then
-    begin
-     RIcon := MakeRect((SenderWidth div 2) - (W div 2),
-                       (SenderHeight div 2) - (H div 2),
-                        W, SenderHeight);
-     HPos := DT_CENTER;
-     VPos := DT_VCENTER;
-    end;
-   if Sender.fglyphLayout in [ glyphTop ] then
-    begin
-     RIcon := MakeRect((SenderWidth div 2) - (W div 2),
-                       (SenderHeight div 2) - (H + (H div 4)),
-                       W, SenderHeight);
-     RText.Top := (SenderHeight div 2) + (H div 4);
-     HPos := DT_CENTER;
-     VPos := DT_TOP;
-    end;
-   if Sender.fglyphLayout in [ glyphBottom ] then
-    begin
-     RIcon := MakeRect((SenderWidth div 2) - (W div 2),
-                       (SenderHeight div 2) + (H div 4),
-                        W, SenderHeight);
-     RText.Bottom := (SenderHeight div 2) - (H div 4);
-     HPos := DT_CENTER;
-     VPos := DT_BOTTOM;
-    end;
-  end
-   else
-    begin
+ if  Bmp <> 0 then
+ begin
+     SenderWidth := Sender.Width;
+     SenderHeight := Sender.Height;
+     W := Sender.DF.fGlyphWidth;
+     H := Sender.DF.fGlyphHeight;
+     if  Sender.DF.fGlyphLayout in [ glyphLeft ] then
+     begin
+         RIcon := MakeRect((SenderWidth div 2) - (W + (W div 4)),
+                           (SenderHeight div 2) - (H div 2),
+                            W, SenderHeight);
+         RText.Left := (SenderWidth div 2) + (W div 4);
+         HPos := DT_LEFT;
+         VPos := DT_VCENTER;
+     end;
+     if  Sender.DF.fGlyphLayout in [ glyphRight ] then
+     begin
+         RIcon := MakeRect((SenderWidth div 2) + (W div 4),
+                           (SenderHeight div 2) - (H div 2),
+                            W, SenderHeight);
+         RText.Right := (SenderWidth div 2) - (W div 4);
+         HPos := DT_RIGHT;
+         VPos := DT_VCENTER;
+     end;
+     if  Sender.DF.fGlyphLayout in [ glyphOver ] then
+     begin
+         RIcon := MakeRect((SenderWidth div 2) - (W div 2),
+                           (SenderHeight div 2) - (H div 2),
+                            W, SenderHeight);
+         HPos := DT_CENTER;
+         VPos := DT_VCENTER;
+     end;
+     if  Sender.DF.fGlyphLayout in [ glyphTop ] then
+     begin
+         RIcon := MakeRect((SenderWidth div 2) - (W div 2),
+                           (SenderHeight div 2) - (H + (H div 4)),
+                           W, SenderHeight);
+         RText.Top := (SenderHeight div 2) + (H div 4);
+         HPos := DT_CENTER;
+         VPos := DT_TOP;
+     end;
+     if  Sender.DF.fGlyphLayout in [ glyphBottom ] then
+     begin
+         RIcon := MakeRect((SenderWidth div 2) - (W div 2),
+                           (SenderHeight div 2) + (H div 4),
+                            W, SenderHeight);
+         RText.Bottom := (SenderHeight div 2) - (H div 4);
+         HPos := DT_CENTER;
+         VPos := DT_BOTTOM;
+     end;
+ end else
+ begin
      HPos := DT_CENTER;
      VPos := DT_VCENTER;
      RIcon := MakeRect(0, 0, 0, 0);
-    end;
+ end;
 
  // Getting caption
  S := Sender.fCaption;
  // Getting state
  fState := 1{PBS_NORMAL};
- if not Sender.fEnabled then
-  fState := 4{PBS_DISABLED}
-  else
- if Sender.fHot then
-  fState := 2{PBS_HOT};
- if Sender.fPressed then
-  fState := 3{PBS_PRESSED};
+ {$IFDEF USE_FLAGS}
+ if  F3_Disabled in Sender.fStyle.f3_Style then
+ {$ELSE}
+ if  not Sender.fEnabled then
+ {$ENDIF}
+     fState := 4{PBS_DISABLED}
+ else
+ if  {$IFDEF USE_FLAGS} G4_Hot in Sender.fFlagsG4
+     {$ELSE} Sender.fHot {$ENDIF} then
+     fState := 2{PBS_HOT};
+ if  {$IFDEF USE_FLAGS} G4_Pressed in Sender.fFlagsG4
+     {$ELSE} Sender.fPressed {$ENDIF} then
+     fState := 3{PBS_PRESSED};
  // Opening themes
  hThemes := OpenThemeData(Sender.fHandle, 'button');
  if hThemes <> 0 then
@@ -765,14 +820,19 @@ begin
 
    if Bmp <> 0 then
     begin
-     if bboImageList in Sender.fBitBtnOptions then
+     if bboImageList in Sender.DF.fBitBtnOptions then
       begin
        bStyle := ILD_TRANSPARENT;
-       if Sender.fEnabled then i := Sender.BitBtnImgIdx
+       {$IFDEF USE_FLAGS}
+       if  not (F3_Disabled in Sender.fStyle.f3_Style) then
+       {$ELSE}
+       if  Sender.fEnabled then
+       {$ENDIF}
+	    i := Sender.BitBtnImgIdx
         else
          begin
           ic := NewIcon;
-          ic.fSize := Sender.fGlyphWidth;
+          ic.fSize := Sender.DF.fGlyphWidth;
           ic.fHandle := ImageList_GetIcon(Bmp, Sender.BitBtnImgIdx, bStyle);
           b := NewBitmap(ic.fSize, ic.fSize);
           b.fHandle := ic.Convert2Bitmap(clBtnFace);
@@ -786,7 +846,12 @@ begin
        else
         begin
          _DC := CreateCompatibleDC( 0 );
-         if Sender.fEnabled then OldBmp := SelectObject( _DC, Bmp)
+         {$IFDEF USE_FLAGS}
+         if  not (F3_Disabled in Sender.fStyle.f3_Style) then
+         {$ELSE}
+         if  Sender.fEnabled then
+         {$ENDIF}
+		  OldBmp := SelectObject( _DC, Bmp)
           else
            begin
             bStyle := ILD_TRANSPARENT;
@@ -794,7 +859,7 @@ begin
             il.HandleNeeded;
             i := ImageList_Add(il.fHandle, Bmp, 0);
             ic := NewIcon;
-            ic.fSize := Sender.fGlyphWidth;
+            ic.fSize := Sender.DF.fGlyphWidth;
             ic.fHandle := ImageList_GetIcon(il.fHandle, i, bStyle);
             b := NewBitmap(ic.fSize, ic.fSize);
             b.fHandle := ic.Convert2Bitmap(clBtnFace);
@@ -804,8 +869,8 @@ begin
             Free_And_Nil(ic);
             Free_And_Nil(il);
            end;
-         StretchBlt( DC, RIcon.Left, RIcon.Top, Sender.fGlyphWidth, Sender.fGlyphHeight,
-                     _DC, 0, 0, Sender.fGlyphWidth, Sender.fGlyphHeight,
+         StretchBlt( DC, RIcon.Left, RIcon.Top, Sender.DF.fGlyphWidth, Sender.DF.fGlyphHeight,
+                     _DC, 0, 0, Sender.DF.fGlyphWidth, Sender.DF.fGlyphHeight,
                      SRCCOPY);
          SelectObject( _DC, OldBmp );
          DeleteDC( _DC );
@@ -841,25 +906,87 @@ begin
    CloseThemeData(hThemes);
   end;      
 
- if (GetFocus = Sender.fHandle) and (bboFocusRect in Sender.fBitBtnOptions) then
+ if (GetFocus = Sender.fHandle) and (bboFocusRect in Sender.DF.fBitBtnOptions) then
   DrawFocusRect(DC, MakeRect(RClient.Left+4, RClient.Top+4, RClient.Right-4, RClient.Bottom-4));
 end;
 //************************* Control MouseEnter event *************************//
+{$IFDEF ASM_VERSION}
+procedure WndXPMouseEnter( Dummy : Pointer; Sender: PObj );
+asm
+    {$IFDEF  USE_FLAGS}
+    OR       [EDX].TControl.fFlagsG4, 1 shl G4_Hot
+    {$ELSE}
+    MOV      [EDX].TControl.fHot, 1
+    {$ENDIF}
+    {$IFDEF  EVENTS_DYNAMIC}
+    MOV      EAX, [EDX].TControl.EV
+    MOV      ECX, [EAX].TEvents.fOnMouseEnter.TMethod.Code
+    {$ELSE}
+    MOV      ECX, [EDX].TControl.EV.fOnMouseEnter.TMethod.Code
+    {$ENDIF}
+    JECXZ    @@fin
+    CMP      ECX, offset[WndXPMouseEnter]
+    JZ       @@fin
+    {$IFDEF  EVENTS_DYNAMIC}
+    MOV      EAX, [EAX].TEvents.fOnMouseEnter.TMethod.Data
+    {$ELSE}
+    MOV      EAX, [EDX].TControl.EV.fOnMouseEnter.TMethod.Data
+    {$ENDIF}
+    CALL     ECX
+@@fin:
+end;
+{$ELSE}
 procedure WndXPMouseEnter( Dummy : Pointer; Sender: PObj );
 begin
- PControl(Sender).fHot := true;
- if Assigned(PControl(Sender).fOnMouseEnter) and
-   (@PControl(Sender).fOnMouseEnter <> @WndXPMouseEnter) then
-   PControl(Sender).fOnMouseEnter(Sender);
+     with PControl(Sender)^ do
+     begin
+        {$IFDEF USE_FLAGS}
+                fFlagsG4 := fFlagsG4 + [G4_Hot];
+        {$ELSE} fHot := true; {$ENDIF}
+        if  Assigned(EV.fOnMouseEnter) and
+            (@EV.fOnMouseEnter <> @WndXPMouseEnter) then
+            EV.fOnMouseEnter(Sender);
+     end;
 end;
+{$ENDIF}
 //************************* Control MouseLeave event *************************//
+{$IFDEF ASM_VERSION}
+procedure WndXPMouseLeave( Dummy : Pointer; Sender: PObj );
+asm
+    {$IFDEF  USE_FLAGS}
+    AND      [EDX].TControl.fFlagsG4, not(1 shl G4_Hot)
+    {$ELSE}
+    MOV      [EDX].TControl.fHot, 0
+    {$ENDIF}
+    {$IFDEF  EVENTS_DYNAMIC}
+    MOV      EAX, [EDX].TControl.EV
+    MOV      ECX, [EAX].TEvents.fOnMouseLeave.TMethod.Code
+    {$ELSE}
+    MOV      ECX, [EDX].TControl.EV.fOnMouseLeave.TMethod.Code
+    {$ENDIF}
+    JECXZ    @@fin
+    CMP      ECX, offset[WndXPMouseLeave]
+    JZ       @@fin
+    {$IFDEF  EVENTS_DYNAMIC}
+    MOV      EAX, [EAX].TEvents.fOnMouseLeave.TMethod.Data
+    {$ELSE}
+    MOV      EAX, [EDX].TControl.EV.fOnMouseLeave.TMethod.Data
+    {$ENDIF}
+    CALL     ECX
+@@fin:
+end;
+{$ELSE}
 procedure WndXPMouseLeave( Dummy : Pointer; Sender: PObj );
 begin
- PControl(Sender).fHot := false;
- if Assigned(PControl(Sender).fOnMouseLeave) and
-   (@PControl(Sender).fOnMouseLeave <> @WndXPMouseLeave) then
-   PControl(Sender).fOnMouseLeave(Sender);
+    {$IFDEF USE_FLAGS}
+            PControl(Sender).fFlagsG4 :=
+            PControl(Sender).fFlagsG4 - [G4_Hot];
+    {$ELSE} PControl(Sender).fHot := false; {$ENDIF}
+    if  Assigned(PControl(Sender).EV.fOnMouseLeave) and
+        (@PControl(Sender).EV.fOnMouseLeave <> @WndXPMouseLeave) then
+        PControl(Sender).EV.fOnMouseLeave(Sender);
 end;
+{$ENDIF}
 //*************************** Control Message event **************************//
 function WndXPMessage( Sender: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean;
 var
@@ -872,7 +999,7 @@ begin
  case Msg.message of
  WM_LBUTTONDBLCLK:
   begin
-   if Assigned(Sender.fOnMouseDblClk) then
+   if Assigned(Sender.EV.fOnMouseDblClk) then
     begin
      Mouse.Button := mbLeft;
      Mouse.StopHandling := false;
@@ -887,124 +1014,131 @@ begin
        Mouse.X := pt.X;
        Mouse.Y := pt.Y;
       end;
-     Sender.fOnMouseDblClk(Sender, Mouse);
+     Sender.EV.fOnMouseDblClk(Sender, Mouse);
     end;
-    if not Sender.fIsSplitter then
-     SendMessage( Sender.fHandle, WM_LBUTTONDOWN, Msg.wParam, Msg.lParam );
+    if  {$IFDEF USE_FLAGS} not(G5_IsSplitter in Sender.fFlagsG5)
+        {$ELSE} not Sender.fIsSplitter {$ENDIF} then
+        Sender.Perform( WM_LBUTTONDOWN, Msg.wParam, Msg.lParam );
   end;
   
  WM_LBUTTONDOWN:
   begin
-   if Assigned(Sender.fOnMouseDown) then
-    begin
-     Mouse.Button := mbLeft;
-     Mouse.StopHandling := false;
-     Mouse.R1 := 0;
-     Mouse.R2 := 0;
-     Mouse.Shift := 120;
-     Mouse.X := 0;
-     Mouse.Y := 0;
-     GetCursorPos(pt);
-     if ScreenToClient(Sender.fHandle, pt) then
-      begin
-       Mouse.X := pt.X;
-       Mouse.Y := pt.Y;
-      end;
-     Sender.fOnMouseDown(Sender, Mouse);
-    end;
-   Sender.fPressed := true;
+   if  Assigned(Sender.EV.fOnMouseDown) then
+   begin
+       Mouse.Button := mbLeft;
+       Mouse.StopHandling := false;
+       Mouse.R1 := 0;
+       Mouse.R2 := 0;
+       Mouse.Shift := 120;
+       Mouse.X := 0;
+       Mouse.Y := 0;
+       GetCursorPos(pt);
+       if  ScreenToClient(Sender.fHandle, pt) then
+       begin
+           Mouse.X := pt.X;
+           Mouse.Y := pt.Y;
+       end;
+       Sender.EV.fOnMouseDown(Sender, Mouse);
+   end;
+   {$IFDEF USE_FLAGS} Sender.fFlagsG4 := Sender.fFlagsG4 + [G4_Pressed];
+   {$ELSE} Sender.fPressed := true; {$ENDIF}
    dDC := GetWindowDC(Msg.hWnd);
-   Sender.OnPaint(Sender, dDC);
-   ReleaseDC( Msg.hWnd, dDC );
+   Sender.EV.fOnPaint(Sender, dDC);
+   ReleaseDC( Msg.hWnd, dDC );  // vampir_infernal 15.10.2008
   end;
 
  WM_LBUTTONUP:
   begin
-   if Assigned(Sender.fOnMouseUp) then
-    begin
-     Mouse.Button := mbLeft;
-     Mouse.StopHandling := false;
-     Mouse.R1 := 0;
-     Mouse.R2 := 0;
-     Mouse.Shift := 120;
-     Mouse.X := 0;
-     Mouse.Y := 0;
-     GetCursorPos(pt);
-     if ScreenToClient(Sender.fHandle, pt) then
-      begin
-       Mouse.X := pt.X;
-       Mouse.Y := pt.Y;
-      end;
-     Sender.fOnMouseUp(Sender, Mouse);
-    end;
-   Sender.fPressed := false;
+   if  Assigned(Sender.EV.fOnMouseUp) then
+   begin
+       Mouse.Button := mbLeft;
+       Mouse.StopHandling := false;
+       Mouse.R1 := 0;
+       Mouse.R2 := 0;
+       Mouse.Shift := 120;
+       Mouse.X := 0;
+       Mouse.Y := 0;
+       GetCursorPos(pt);
+       if  ScreenToClient(Sender.fHandle, pt) then
+       begin
+           Mouse.X := pt.X;
+           Mouse.Y := pt.Y;
+       end;
+       Sender.EV.fOnMouseUp(Sender, Mouse);
+   end;
+   {$IFDEF USE_FLAGS} Sender.fFlagsG4 := Sender.fFlagsG4 - [G4_Pressed];
+   {$ELSE} Sender.fPressed := false; {$ENDIF}
    dDC := GetWindowDC(Msg.hWnd);
-   Sender.OnPaint(Sender, dDC);
+   Sender.EV.fOnPaint(Sender, dDC);
    ReleaseDC( Msg.hWnd, dDC );
   end;
 
  WM_KEYDOWN:
   begin
-   if Msg.wParam = VK_SPACE then
-    begin
-     if Assigned(Sender.fOnKeyDown) then
-      Sender.fOnKeyDown(Sender, Msg.wParam, GetShiftState);
-     Sender.fPressed := true;
-     dDC := GetWindowDC(Msg.hWnd);
-     Sender.OnPaint(Sender, dDC);
-     ReleaseDC( Msg.hWnd, dDC );
-    end;
+     if  Msg.wParam = VK_SPACE then
+     begin
+         if  Assigned(Sender.EV.fOnKeyDown) then
+             Sender.EV.fOnKeyDown(Sender, Msg.wParam, GetShiftState);
+         {$IFDEF USE_FLAGS} Sender.fFlagsG4 := Sender.fFlagsG4 + [G4_Pressed];
+         {$ELSE} Sender.fPressed := true; {$ENDIF}
+         dDC := GetWindowDC(Msg.hWnd);
+         Sender.EV.fOnPaint(Sender, dDC);
+         ReleaseDC( Msg.hWnd, dDC );
+     end;
   end;
 
  WM_KEYUP:
   begin
-   if Msg.wParam = VK_SPACE then
-    begin
-     if Assigned(Sender.fOnKeyUp) then
-      Sender.fOnKeyUp(Sender, Msg.wParam, GetShiftState);
-     Sender.fPressed := false;
-     dDC := GetWindowDC(Msg.hWnd);
-     Sender.OnPaint(Sender, dDC);
-     ReleaseDC( Msg.hWnd, dDC );
-    end;
+     if Msg.wParam = VK_SPACE then
+     begin
+         if  Assigned(Sender.EV.fOnKeyUp) then
+             Sender.EV.fOnKeyUp(Sender, Msg.wParam, GetShiftState);
+         {$IFDEF USE_FLAGS} Sender.fFlagsG4 := Sender.fFlagsG4 - [G4_Pressed];
+         {$ELSE} Sender.fPressed := false; {$ENDIF}
+         dDC := GetWindowDC(Msg.hWnd);
+         Sender.EV.fOnPaint(Sender, dDC);
+         ReleaseDC( Msg.hWnd, dDC );
+     end;
   end;
 
   WM_KILLFOCUS:
    begin
-    Sender.fHot := false;
-    dDC := GetWindowDC(Msg.hWnd);
-    Sender.OnPaint(Sender, dDC);
-    ReleaseDC( Msg.hWnd, dDC );
+      {$IFDEF USE_FLAGS} Sender.fFlagsG4 := Sender.fFlagsG4 - [G4_Hot];
+      {$ELSE} Sender.fHot := false; {$ENDIF}
+      dDC := GetWindowDC(Msg.hWnd);
+      Sender.EV.fOnPaint(Sender, dDC);
+      ReleaseDC( Msg.hWnd, dDC );
    end;
 
   WM_SETFOCUS:
    begin
-    Sender.fHot := true;
-    dDC := GetWindowDC(Msg.hWnd);
-    Sender.OnPaint(Sender, dDC);
-    ReleaseDC( Msg.hWnd, dDC );
-    Result := true;
+      {$IFDEF USE_FLAGS} Sender.fFlagsG4 := Sender.fFlagsG4 + [G4_Hot];
+      {$ELSE} Sender.fHot := TRUE; {$ENDIF}
+      dDC := GetWindowDC(Msg.hWnd);
+      Sender.EV.fOnPaint(Sender, dDC);
+      ReleaseDC( Msg.hWnd, dDC );
+      Result := true;
    end;
   end;
 end;
 //*************************** Events for CheckBox ****************************//
 procedure XP_Themes_For_CheckBox(Sender : PControl);
 begin
- if AppTheming then
-  Sender.OnPaint := TOnPaint( MakeMethod( nil, @WndCheckBoxXPDraw ) );
+ if  AppTheming then
+     Sender.OnPaint := TOnPaint( MakeMethod( nil, @WndCheckBoxXPDraw ) );
 end;
 //*************************** Events for RadioBox ****************************//
 procedure XP_Themes_For_RadioBox(Sender : PControl);
 begin
- if AppTheming then
-  Sender.OnPaint := TOnPaint( MakeMethod( nil, @WndRadioBoxXPDraw ) );
+ if  AppTheming then
+     Sender.OnPaint := TOnPaint( MakeMethod( nil, @WndRadioBoxXPDraw ) );
 end;
 //**************************** Events for Panel ******************************//
 procedure XP_Themes_For_Panel(Sender : PControl);
 begin
  if AppTheming then
   begin
-   if Sender.fedgeStyle = esTransparent then Sender.SetTransparent(True) else
+   if Sender.EdgeStyle = esTransparent then Sender.SetTransparent(True) else
     begin
      Sender.OnResize := TOnEvent( MakeMethod( nil, @WndPanelXPResize ) );
      Sender.OnPaint := TOnPaint( MakeMethod( nil, @WndPanelXPDraw ) );
@@ -1028,14 +1162,14 @@ end;
 //************************** Events for GroupBox *****************************//
 procedure XP_Themes_For_GroupBox(Sender : PControl);
 begin
- if AppTheming then
-  Sender.OnPaint := TOnPaint( MakeMethod( nil, @WndGroupBoxXPDraw ) );
+ if  AppTheming then
+     Sender.OnPaint := TOnPaint( MakeMethod( nil, @WndGroupBoxXPDraw ) );
 end;
 //************************** Events for TabPanel *****************************//
 procedure XP_Themes_For_TabPanel(Sender : PControl);
 begin
- if AppTheming then
-  Sender.OnPaint := TOnPaint( MakeMethod( nil, @WndTabXPDraw ) );
+ if  AppTheming then
+     Sender.OnPaint := TOnPaint( MakeMethod( nil, @WndTabXPDraw ) );
 end;
 //********************* Events for Button and BitButton **********************//
 procedure XP_Themes_For_BitBtn(Sender : PControl);
@@ -1051,14 +1185,27 @@ end;
 //*********************** Deattach ownerdraw function ************************//
 procedure Deattach(Sender : PControl; PaintProc : Pointer);
 begin
- if Sender.IsProcAttached(WndXPMessage) then
-  Sender.DetachProc(WndXPMessage);
- if Assigned(Sender.fOnMouseEnter) and (@Sender.fOnMouseEnter = @WndXPMouseEnter) and (not Sender.fFlat) then
-  Sender.fOnMouseEnter := nil;
- if Assigned(Sender.fOnMouseLeave) and (@Sender.fOnMouseLeave = @WndXPMouseLeave) and (not Sender.fFlat) then
-  Sender.fOnMouseLeave := nil;
- if Assigned(Sender.fOnPaint) and (@Sender.fOnPaint = PaintProc) then
-  Sender.fOnPaint := nil;
+ if  Sender.IsProcAttached(WndXPMessage) then
+     Sender.DetachProc(WndXPMessage);
+ if  {$IFDEF NIL_EVENTS} Assigned(Sender.EV.fOnMouseEnter) and {$ENDIF}
+     (@Sender.EV.fOnMouseEnter = @WndXPMouseEnter)
+ and ({$IFDEF USE_FLAGS} not(G3_Flat in Sender.fFlagsG3)
+      {$ELSE} not Sender.fFlat {$ENDIF}) then
+     {$IFDEF NIL_EVENTS} Sender.EV.fOnMouseEnter := nil;
+     {$ELSE} TMethod( Sender.EV.fOnMouseEnter ).Code := @DummyObjProc;
+     {$ENDIF}
+ if  {$IFDEF NIL_EVENTS} Assigned(Sender.EV.fOnMouseLeave) and {$ENDIF}
+     (@Sender.EV.fOnMouseLeave = @WndXPMouseLeave)
+ and ({$IFDEF USE_FLAGS} not(G3_Flat in Sender.fFlagsG3)
+      {$ELSE} not Sender.fFlat {$ENDIF}) then
+     {$IFDEF NIL_EVENTS} Sender.EV.fOnMouseLeave := nil;
+     {$ELSE} TMethod( Sender.EV.fOnMouseLeave ).Code := @DummyObjProc;
+     {$ENDIF} 
+ if  {$IFDEF NIL_EVENTS} Assigned(Sender.EV.fOnPaint) and {$ENDIF}
+     (@Sender.EV.fOnPaint = PaintProc) then
+     {$IFDEF NIL_EVENTS} Sender.EV.fOnPaint := nil;
+     {$ELSE}             TMethod( Sender.EV.fOnPaint ).Code := @DummyObjProc;
+     {$ENDIF}
 end;
 //********************* Handling of message WM_THEMECHANGED ******************//
 function WndXP_WM_THEMECHANGED( Sender: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean;
@@ -1066,159 +1213,228 @@ begin
  Result := false;
 
  if Msg.message = $31A {WM_THEMECHANGED} then
-  begin
+ begin
    if AppTheming then DeinitThemes;
    CheckThemes;
    if AppTheming then
-    begin
-     InitThemes;
-     if ((Sender.fStyle and BS_AUTOCHECKBOX) = BS_AUTOCHECKBOX) and
-        (Sender.SubClassName = 'obj_BUTTON') and
-        (Sender.fIsGroupBox = false) and
-        (Sender.fIsSplitter = false) and
-        (Sender.fIsBitBtn = false) then
-      begin
-       XP_Themes_For_CheckBox(Sender);
-       exit;
-      end;
-     if ((Sender.fStyle and BS_AUTO3STATE) = BS_AUTO3STATE) and
-        (Sender.SubClassName = 'obj_BUTTON') and
-        (Sender.fIsGroupBox = false) and
-        (Sender.fIsSplitter = false) and
-        (Sender.fIsBitBtn = false) then
-      begin
-       XP_Themes_For_CheckBox(Sender);
-       exit;
-      end;
-     if ((Sender.fStyle and BS_RADIOBUTTON) = BS_RADIOBUTTON) and
-        (Sender.SubClassName = 'obj_BUTTON') and
-        (Sender.fIsGroupBox = false) and
-        (Sender.fIsSplitter = false) and
-        (Sender.fIsBitBtn = false) then
-      begin
-       XP_Themes_For_RadioBox(Sender);
-       exit;
-      end;
-     if ((Sender.fStyle and BS_GROUPBOX) = BS_GROUPBOX) and
-        (Sender.SubClassName = 'obj_BUTTON') and
-        (Sender.fIsGroupBox = true) and
-        (Sender.fIsSplitter = false) and
-        (Sender.fIsBitBtn = false) then
-      begin
-       XP_Themes_For_GroupBox(Sender);
-       exit;
-      end;
-     if (Sender.SubClassName = 'obj_BUTTON') and
-        (Sender.fIsGroupBox = false) and
-        (Sender.fIsSplitter = false) then
-      begin
-       XP_Themes_For_BitBtn(Sender);
-       exit;
-      end;
-     if (Sender.SubClassName = 'obj_STATIC') then
-      begin
-       if Sender.fIsStaticControl > 0 then XP_Themes_For_Label(Sender)
-        else
-         begin
-          if Sender.fIsSplitter then XP_Themes_For_Splitter(Sender)
-           else
-            begin
-             if Sender.fParent.SubClassName = 'obj_SysTabControl32' then
-              XP_Themes_For_TabPanel(Sender)
-               else
-                XP_Themes_For_Panel(Sender);
-            end;
-         end;
-       exit;
-      end;
-    end
-     else
-      begin
-       if ((Sender.fStyle and BS_AUTOCHECKBOX) = BS_AUTOCHECKBOX) and
+   begin
+       InitThemes;
+       if ((Sender.fStyle.Value and BS_AUTOCHECKBOX) = BS_AUTOCHECKBOX) and
           (Sender.SubClassName = 'obj_BUTTON') and
+          {$IFDEF USE_FLAGS}
+              ([G5_IsGroupbox, G5_IsSplitter, G5_IsBitBtn] * Sender.fFlagsG5 = [])
+          {$ELSE}
           (Sender.fIsGroupBox = false) and
           (Sender.fIsSplitter = false) and
-          (Sender.fIsBitBtn = false) then
-        begin
-         Deattach(Sender, @WndCheckBoxXPDraw);
-         exit;
-        end;
-       if ((Sender.fStyle and BS_AUTO3STATE) = BS_AUTO3STATE) and
+          (Sender.fIsBitBtn = false) {$ENDIF} then
+       begin
+           XP_Themes_For_CheckBox(Sender);
+           exit;
+       end;
+       if ((Sender.fStyle.Value and BS_AUTO3STATE) = BS_AUTO3STATE) and
           (Sender.SubClassName = 'obj_BUTTON') and
+          {$IFDEF USE_FLAGS}
+              ([G5_IsGroupbox, G5_IsSplitter, G5_IsBitBtn] * Sender.fFlagsG5 = [])
+          {$ELSE}
           (Sender.fIsGroupBox = false) and
           (Sender.fIsSplitter = false) and
-          (Sender.fIsBitBtn = false) then
-        begin
-         Deattach(Sender, @WndCheckBoxXPDraw);
-         exit;
-        end;
-       if ((Sender.fStyle and BS_RADIOBUTTON) = BS_RADIOBUTTON) and
+          (Sender.fIsBitBtn = false) {$ENDIF} then
+       begin
+           XP_Themes_For_CheckBox(Sender);
+           exit;
+       end;
+       if ((Sender.fStyle.Value and BS_RADIOBUTTON) = BS_RADIOBUTTON) and
           (Sender.SubClassName = 'obj_BUTTON') and
+          {$IFDEF USE_FLAGS}
+              ([G5_IsGroupbox, G5_IsSplitter, G5_IsBitBtn] * Sender.fFlagsG5 = [])
+          {$ELSE}
           (Sender.fIsGroupBox = false) and
           (Sender.fIsSplitter = false) and
-          (Sender.fIsBitBtn = false) then
-        begin
-         Deattach(Sender, @WndRadioBoxXPDraw);
-         exit;
-        end;
-       if ((Sender.fStyle and BS_GROUPBOX) = BS_GROUPBOX) and
+          (Sender.fIsBitBtn = false) {$ENDIF} then
+       begin
+           XP_Themes_For_RadioBox(Sender);
+           exit;
+       end;
+       if ((Sender.fStyle.Value and BS_GROUPBOX) = BS_GROUPBOX) and
           (Sender.SubClassName = 'obj_BUTTON') and
+          {$IFDEF USE_FLAGS}
+              ([G5_IsGroupbox, G5_IsSplitter, G5_IsBitBtn] * Sender.fFlagsG5 =
+               [G5_IsGroupbox])
+          {$ELSE}
           (Sender.fIsGroupBox = true) and
           (Sender.fIsSplitter = false) and
-          (Sender.fIsBitBtn = false) then
-        begin
-         Deattach(Sender, @WndGroupBoxXPDraw);
-         exit;
-        end;
+          (Sender.fIsBitBtn = false) {$ENDIF} then
+       begin
+           XP_Themes_For_GroupBox(Sender);
+           exit;
+       end;
        if (Sender.SubClassName = 'obj_BUTTON') and
+          {$IFDEF USE_FLAGS}
+              ([G5_IsGroupbox, G5_IsSplitter] * Sender.fFlagsG5 = [])
+          {$ELSE}
           (Sender.fIsGroupBox = false) and
-          (Sender.fIsSplitter = false) then
-        begin
-         Deattach(Sender, @WndButtonXPDraw);
-         exit;
-        end;
+          (Sender.fIsSplitter = false) {$ENDIF} then
+       begin
+           XP_Themes_For_BitBtn(Sender);
+           exit;
+       end;
        if (Sender.SubClassName = 'obj_STATIC') then
-        begin
-         if Sender.fIsStaticControl > 0 then
-          else
+       begin
+         if  {$IFDEF USE_FLAGS} G1_IsStaticControl in Sender.fFlagsG1
+             {$ELSE} Sender.fIsStaticControl > 0 {$ENDIF} then
+             XP_Themes_For_Label(Sender)
+         else
+         begin
+           if  {$IFDEF USE_FLAGS} G5_IsSplitter in Sender.fFlagsG5
+               {$ELSE} Sender.fIsSplitter {$ENDIF} then
+               XP_Themes_For_Splitter(Sender)
+           else
            begin
-            if Sender.fIsSplitter then Deattach(Sender, @WndSplitterXPDraw)
-             else
-              if Sender.fParent.SubClassName = 'obj_SysTabControl32' then
-               Deattach(Sender, @WndTabXPDraw)
-                else
-                 begin
-                  Deattach(Sender, @WndPanelXPDraw);
-                  case Sender.fedgeStyle of
-                   esRaised:
-                    begin
-                     Sender.fStyle := Sender.fStyle and (not SS_SUNKEN);
-                     Sender.fExStyle := Sender.fExStyle and (not WS_EX_STATICEDGE);
-                     Sender.fExStyle := Sender.fExStyle or WS_EX_WINDOWEDGE;
-                     Sender.fStyle := Sender.fStyle or WS_DLGFRAME;
-                    end;
-                   esLowered:
-                    begin
-                     Sender.fStyle := Sender.fStyle and (not WS_DLGFRAME);
-                     Sender.fExStyle := Sender.fExStyle or WS_EX_WINDOWEDGE;
-                     Sender.fExStyle := Sender.fExStyle or WS_EX_STATICEDGE;
-                     Sender.fStyle := Sender.fStyle or SS_SUNKEN;
-                    end;
-                  else
-                   Sender.fStyle := Sender.fStyle and (not SS_SUNKEN) and (not WS_DLGFRAME);
-                   Sender.fExStyle := Sender.fExStyle and (not WS_EX_STATICEDGE) or WS_EX_WINDOWEDGE;
-                  end;
-                 end;
-           end;
-         Sender.SetTransparent(Sender.fClassicTransparent);
+               if  Sender.fParent.SubClassName = 'obj_SysTabControl32' then
+                   XP_Themes_For_TabPanel(Sender)
+               else
+                   XP_Themes_For_Panel(Sender);
+            end;
+         end;
          exit;
-        end;
-      end;
-  end;
+       end;
+   end else
+   begin
+       if ((Sender.fStyle.Value and BS_AUTOCHECKBOX) = BS_AUTOCHECKBOX) and
+          (Sender.SubClassName = 'obj_BUTTON') and
+          {$IFDEF USE_FLAGS}
+              ([G5_IsGroupbox, G5_IsSplitter, G5_IsBitBtn] * Sender.fFlagsG5 = [])
+          {$ELSE}
+          (Sender.fIsGroupBox = false) and
+          (Sender.fIsSplitter = false) and
+          (Sender.fIsBitBtn = false) {$ENDIF} then
+       begin
+           Deattach(Sender, @WndCheckBoxXPDraw);
+           exit;
+       end;
+       if ((Sender.fStyle.Value and BS_AUTO3STATE) = BS_AUTO3STATE) and
+          (Sender.SubClassName = 'obj_BUTTON') and
+          {$IFDEF USE_FLAGS}
+              ([G5_IsGroupbox, G5_IsSplitter, G5_IsBitBtn] * Sender.fFlagsG5 = [])
+          {$ELSE}
+          (Sender.fIsGroupBox = false) and
+          (Sender.fIsSplitter = false) and
+          (Sender.fIsBitBtn = false) {$ENDIF} then
+       begin
+           Deattach(Sender, @WndCheckBoxXPDraw);
+           exit;
+       end;
+       if ((Sender.fStyle.Value and BS_RADIOBUTTON) = BS_RADIOBUTTON) and
+          (Sender.SubClassName = 'obj_BUTTON') and
+          {$IFDEF USE_FLAGS}
+              ([G5_IsGroupbox, G5_IsSplitter, G5_IsBitBtn] * Sender.fFlagsG5 = [])
+          {$ELSE}
+          (Sender.fIsGroupBox = false) and
+          (Sender.fIsSplitter = false) and
+          (Sender.fIsBitBtn = false) {$ENDIF} then
+       begin
+           Deattach(Sender, @WndRadioBoxXPDraw);
+           exit;
+       end;
+       if ((Sender.fStyle.Value and BS_GROUPBOX) = BS_GROUPBOX) and
+          (Sender.SubClassName = 'obj_BUTTON') and
+          {$IFDEF USE_FLAGS}
+              ([G5_IsGroupbox, G5_IsSplitter, G5_IsBitBtn] * Sender.fFlagsG5 =
+               [G5_IsGroupbox])
+          {$ELSE}
+          (Sender.fIsGroupBox = true) and
+          (Sender.fIsSplitter = false) and
+          (Sender.fIsBitBtn = false) {$ENDIF} then
+       begin
+           Deattach(Sender, @WndGroupBoxXPDraw);
+           exit;
+       end;
+       if (Sender.SubClassName = 'obj_BUTTON') and
+          {$IFDEF USE_FLAGS}
+              ([G5_IsGroupbox, G5_IsSplitter] * Sender.fFlagsG5 = [])
+          {$ELSE}
+          (Sender.fIsGroupBox = false) and
+          (Sender.fIsSplitter = false) {$ENDIF} then
+       begin
+           Deattach(Sender, @WndButtonXPDraw);
+           exit;
+       end;
+       if (Sender.SubClassName = 'obj_STATIC') then
+       begin
+           if  {$IFDEF USE_FLAGS} G1_IsStaticControl in Sender.fFlagsG1
+               {$ELSE} Sender.fIsStaticControl > 0 {$ENDIF} then
+           else
+           begin
+              if  {$IFDEF USE_FLAGS} G5_IsSplitter in Sender.fFlagsG5
+                  {$ELSE} Sender.fIsSplitter {$ENDIF} then
+                  Deattach(Sender, @WndSplitterXPDraw)
+              else if Sender.fParent.SubClassName = 'obj_SysTabControl32' then
+                  Deattach(Sender, @WndTabXPDraw)
+              else
+              begin
+                  Deattach(Sender, @WndPanelXPDraw);
+                  case Sender.EdgeStyle of
+                  esRaised:
+                      begin
+                         Sender.fStyle.Value := Sender.fStyle.Value and (not SS_SUNKEN);
+                         Sender.fExStyle := Sender.fExStyle and (not WS_EX_STATICEDGE);
+                         Sender.fExStyle := Sender.fExStyle or WS_EX_WINDOWEDGE;
+                         Sender.fStyle.Value := Sender.fStyle.Value or WS_DLGFRAME;
+                      end;
+                  esLowered:
+                      begin
+                         Sender.fStyle.Value := Sender.fStyle.Value and (not WS_DLGFRAME);
+                         Sender.fExStyle := Sender.fExStyle or WS_EX_WINDOWEDGE;
+                         Sender.fExStyle := Sender.fExStyle or WS_EX_STATICEDGE;
+                         Sender.fStyle.Value := Sender.fStyle.Value or SS_SUNKEN;
+                      end;
+                  else
+                      Sender.fStyle.Value := Sender.fStyle.Value and (not SS_SUNKEN) and (not WS_DLGFRAME);
+                      Sender.fExStyle := Sender.fExStyle and (not WS_EX_STATICEDGE) or WS_EX_WINDOWEDGE;
+                  end;
+              end;
+           end;
+           Sender.SetTransparent(
+               {$IFDEF USE_FLAGS} G2_ClassicTransparent in Sender.fFlagsG2
+               {$ELSE} Sender.fClassicTransparent {$ENDIF} );
+           exit;
+       end;
+   end;
+ end;
 end;
 //********************* Attaching to message WM_THEMECHANGED *****************//
-procedure Attach_WM_THEMECHANGED(Sender : PControl);
-begin
- Sender.AttachProc(WndXP_WM_THEMECHANGED);
+type TSenderProc = procedure(Sender: PControl);
+{$IFDEF ASM_VERSION}
+procedure Attach_WM_THEMECHANGED(Sender : PControl; const XP_Themes_for: TSenderProc);
+asm
+    {$IFDEF USE_FLAGS}
+    MOV  CX, word ptr [EAX].TControl.fFlagsG2
+    AND  CX, not(1 shl G3_ClassicTransparent)shl 8 or (1 shl G2_Transparent)
+    OR   CL, CH
+    MOV  [EAX].TControl.fFlagsG3, CL
+    {$ELSE}
+    MOV  CL, [EAX].TControl.fTransparent
+    MOV  [EAX].TControl.fClassicTransparent, CL
+    {$ENDIF}
+    PUSH EDX
+    PUSH EAX
+    MOV  EDX, offset[WndXP_WM_THEMECHANGED]
+    CALL TControl.AttachProc
+    POP  EAX
+    POP  EDX
+    CALL EDX
 end;
+{$ELSE PASCAL}
+procedure Attach_WM_THEMECHANGED(Sender : PControl; const XP_Themes_for: TSenderProc);
+begin
+    {$IFDEF USE_FLAGS}
+            if  G2_Transparent in Sender.fFlagsG2 then
+                Sender.fFlagsG3 := Sender.fFlagsG3 + [G3_ClassicTransparent]
+            else
+                Sender.fFlagsG3 := Sender.fFlagsG3 - [G3_ClassicTransparent];
+    {$ELSE} Sender.fClassicTransparent := Sender.fTransparent; {$ENDIF}
+    Sender.AttachProc(WndXP_WM_THEMECHANGED);
+    XP_Themes_for(Sender);
+end;
+{$ENDIF ASM_VERSION}
 //********************************* End File *********************************//

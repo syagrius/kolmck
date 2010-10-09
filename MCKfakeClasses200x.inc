@@ -32,6 +32,7 @@ type
   TKOLTreeView = PControl;
   TKOLToolbar = PControl;
   TKOLTabControl = PControl;
+  TKOLTabPage = PControl;
   TTabPage = PControl;
   TKOLScrollBox = PControl;
   TKOLDateTimePicker = PControl;

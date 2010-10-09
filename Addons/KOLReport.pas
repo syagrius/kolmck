@@ -464,7 +464,7 @@ begin
   Result.OnPaint := TOnPaint( MakeMethod( Result, @ PaintFrames ) );
   Result.Width := 400;
   Result.Height := 40;
-  Result.fCommandActions.aAutoSzX := 12;
+  Result.aAutoSzX := 12;
 end;
 
 procedure InitBandLabel( L: PControl; Frames: TFrames );
@@ -478,7 +478,7 @@ begin
   Data.Paddings.LeftPadding := 4;
   Data.Paddings.RightPadding := 4;
   L.OnPaint := TOnPaint( MakeMethod( L, @ PaintFrames ) );
-  L.fCommandActions.aAutoSzX := 12;
+  L.aAutoSzX := 12;
 end;
 
 function NewReportLabel( AParent: PControl; const Caption: String; Frames: TFrames ): PControl;
@@ -503,8 +503,7 @@ begin
   Data.Paddings.TopPadding    := TopPadding;
   Data.Paddings.RightPadding  := RightPadding;
   Data.Paddings.BottomPadding := BottomPadding;
-  BandCtl.fCommandActions.aAutoSzX := BandCtl.fCommandActions.aAutoSzX -
-    WasHPadding + LeftPadding + RightPadding;
+  BandCtl.aAutoSzX := BandCtl.aAutoSzX - WasHPadding + LeftPadding + RightPadding;
   if BandCtl.IsAutoSize then
     BandCtl.AutoSize( TRUE );
 end;

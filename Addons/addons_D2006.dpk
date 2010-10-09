@@ -1,6 +1,6 @@
 package addons_D2006;
 
-{$R addons.res}
+{$R 'addons.res'}
 {$R 'mckCCtrls.dcr'}
 {$R 'mckHTTPDownload.dcr'}
 {$R 'mckQProgBar.dcr'}
@@ -84,6 +84,7 @@ contains
   tinyPNG in 'tinyPNG.pas',
   tinyJPGGIFBMP in 'tinyJPGGIFBMP.pas',
   mckWebBrowser in 'mckWebBrowser.pas',
-  mckDHTML in 'mckDHTML.pas';
+  mckDHTML in 'mckDHTML.pas',
+  KolZLibBzip in 'KolZLibBzip.pas';
 
 end.

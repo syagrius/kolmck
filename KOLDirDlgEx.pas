@@ -5,7 +5,6 @@ interface
 uses Windows, Messages, KOL {$IFDEF USE_GRUSH}, ToGrush, KOLGRushControls {$ENDIF};
 
 {$I KOLDEF.INC}
-{$I DELPHIDEF.INC}
 
 {$IFDEF EXTERNAL_DEFINES}
         {$INCLUDE EXTERNAL_DEFINES.INC}
@@ -56,6 +55,8 @@ uses Windows, Messages, KOL {$IFDEF USE_GRUSH}, ToGrush, KOLGRushControls {$ENDI
   обновлению, которое не реализовано - хот€ и особой необходимости в автоматике
   на практике нет, и кроме дополнительной нагрузки на систему толку от такого
   автомата тоже не видно).
+           ќсобенно быстро диалог открыти€ работает в новых верси€х OS Windows,
+           т.к. использует в этом случае API-функции версии Unicode. 
 
   ƒополнительные вкусности:
   ≈сть возможность помен€ть надписи на кнопках, заголовок диалога.
@@ -69,6 +70,11 @@ type
   TFindFirstFileEx = function(lpFileName: PKOLChar; fInfoLevelId: TFindexInfoLevels;
     lpFindFileData: Pointer; fSearchOp: TFindexSearchOps; lpSearchFilter: Pointer;
     dwAdditionalFlags: DWORD): THandle; stdcall;
+  TFindFirstFileExW = function(lpFileName: PWideChar; fInfoLevelId: TFindexInfoLevels;
+    lpFindFileData: Pointer; fSearchOp: TFindexSearchOps; lpSearchFilter: Pointer;
+    dwAdditionalFlags: DWORD): THandle; stdcall;
+  TFindNextFileW = function( hFindFile: THandle; lpFindFileData: Pointer ):
+    BOOL; stdcall;
 
   POpenDirDialogEx = ^TOpenDirDialogEx;
   TOpenDirDialogEx = object( TObj )
@@ -81,9 +87,12 @@ type
     FPath, FRecycledName: KOLString;
     FRemoteIconSysIdx: Integer;
     FFindFirstFileEx: TFindFirstFileEx;
+    FFindFirstFileExW: TFindFirstFileExW;
+    FFindNextFileW: TFindNextFileW;
     k32: THandle;
     DialogForm, MsgPanel: PControl;
     function GetFindFirstFileEx: TFindFirstFileEx;
+    function GetFindFirstFileExW: TFindFirstFileExW;
     procedure SetPath(const Value: KOLString);
     function GetDialogForm: PControl;
     procedure DoOK( Sender: PObj );
@@ -101,6 +110,7 @@ type
     procedure CheckNodeHasChildren( node: Integer );
     procedure CreateDialogForm;
     property _FindFirstFileEx: TFindFirstFileEx read GetFindFirstFileEx;
+    function _FindFirstFileExW: Boolean;
     procedure DeleteNode( node: Integer );
     procedure DestroyingForm( Sender: PObj );
   public
@@ -281,6 +291,9 @@ var HasSubDirs: Boolean;
     txt: KOLString;
     F: THandle;
     Find32: TWin32FindData;
+    {$IFnDEF DONTTRY_FINDFILEEXW}
+    Find32W: TWin32FindDataW;
+    {$ENDIF}
     ii, n: Integer;
 begin
   HasSubDirs := FALSE;
@@ -294,49 +307,51 @@ begin
     end;
   if not HasSubDirs then
   begin
-    if WinVer >= wvNT then
+    {$IFnDEF DONTTRY_FINDFILEEXW}
+    if  (WinVer >= wvNT) and _FindFirstFileExW then
     begin
-      _FindFirstFileEx;
-      F := FFindFirstFileEx( PKOLChar( DirTree.TVItemPath( node, '\' ) + '\*.*' ),
-        FindExInfoStandard, @ Find32, FindExSearchLimitToDirectories, nil, 0 );
-      if F <> INVALID_HANDLE_VALUE then
-      begin
-        while TRUE do
+        F := FFindFirstFileExW( PWideChar(
+             WideString( DirTree.TVItemPath( node, '\' ) + '\*.*' ) ),
+             FindExInfoStandard, @ Find32W, FindExSearchLimitToDirectories, nil, 0 );
+        if  F <> INVALID_HANDLE_VALUE then
         begin
-          if Find32.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY <> 0 then
-          if (Find32.cFileName <> String( '.' )) and (Find32.cFileName <> '..') then
-          if DoFilterAttrs( Find32.dwFileAttributes, Find32.cAlternateFileName ) then
-          begin
-            HasSubDirs := TRUE;
-            break;
-          end;
-          if not FindNextFile( F, Find32 ) then break;
+            while TRUE do
+            begin
+                if Find32W.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY <> 0 then
+                if (Find32W.cFileName <> WideString( '.' )) and (Find32.cFileName <> '..') then
+                if DoFilterAttrs( Find32W.dwFileAttributes, Find32W.cAlternateFileName ) then
+                begin
+                  HasSubDirs := TRUE;
+                  break;
+                end;
+                if not FindNextFileW( F, Find32W ) then break;
+            end;
+            if not FindClose( F ) then
+            {begin
+              asm
+                nop
+              end;
+            end};
         end;
-        if not FindClose( F ) then
-        {begin
-          asm
-            nop
-          end;
-        end};
-      end;
     end
       else
+    {$ENDIF}
     begin
-      F := FindFirstFile( PKOLChar( DirTree.TVItemPath( node, '\' ) + '\*.*' ), Find32 );
-      if F <> INVALID_HANDLE_VALUE then
-      begin
-        while TRUE do
+        F := FindFirstFile( PKOLChar( DirTree.TVItemPath( node, '\' ) + '\*.*' ), Find32 );
+        if F <> INVALID_HANDLE_VALUE then
         begin
-          if Find32.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY <> 0 then
-          if (Find32.cFileName <> String( '.' )) and (Find32.cFileName <> '..') then
-          begin
-            HasSubDirs := TRUE;
-            break;
-          end;
-          if not FindNextFile( F, Find32 ) then break;
+            while TRUE do
+            begin
+                if  Find32.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY <> 0 then
+                if  (Find32.cFileName <> String( '.' )) and (Find32.cFileName <> '..') then
+                begin
+                    HasSubDirs := TRUE;
+                    break;
+                end;
+                if not FindNextFile( F, Find32 ) then break;
+            end;
+            FindClose( F );
         end;
-        FindClose( F );
-      end;
     end;
   end;
   if not HasSubDirs then
@@ -754,20 +769,21 @@ begin
   ParentForm := PControl_( Applet.ActiveControl );
   if ParentForm <> nil then
   begin
-    if not ParentForm.fIsForm then
-      ParentForm := PControl_( Applet );
+    if  {$IFDEF USE_FLAGS} not(G3_IsForm in ParentForm.fFlagsG3)
+        {$ELSE} not ParentForm.fIsForm {$ENDIF} then
+        ParentForm := PControl_( Applet );
   end;
-  if ParentForm <> nil then
-    DialogForm.StayOnTop := ParentForm.StayOnTop;
+  if  ParentForm <> nil then
+      DialogForm.StayOnTop := ParentForm.StayOnTop;
   DialogForm.ShowModal;
   DialogForm.Hide;
-  if ParentForm <> nil then
-    SetForegroundWindow( ParentForm.Handle );
+  if  ParentForm <> nil then
+      SetForegroundWindow( ParentForm.Handle );
   Result := DialogForm.ModalResult >= 0;
-  if Result then
+  if  Result then
   begin
-    Path := IncludeTrailingPathDelimiter(
-      DirTree.TVItemPath( DirTree.TVSelected, '\' ) );
+      Path := IncludeTrailingPathDelimiter(
+          DirTree.TVItemPath( DirTree.TVSelected, '\' ) );
   end;
 end;
 
@@ -785,6 +801,17 @@ begin
     FFindFirstFileEx := GetProcAddress( k32, 'FindFirstFileExA' );
   end;
   Result := FFindFirstFileEx;
+end;
+
+function TOpenDirDialogEx.GetFindFirstFileExW: TFindFirstFileExW;
+begin
+  if not Assigned( FFindFirstFileExW ) then
+  begin
+    k32 := GetModuleHandle( 'kernel32.dll' );
+    FFindFirstFileExW := GetProcAddress( k32, 'FindFirstFileExW' );
+    FFindNextFileW := GetProcAddress( k32, 'FindNextFileW' );
+  end;
+  Result := FFindFirstFileExW;
 end;
 
 {$IFDEF DIRDLGEX_LINKSPANEL}
@@ -958,8 +985,10 @@ procedure TOpenDirDialogEx.RescanNode(node: Integer);
 var p, s: KOLString;
     DL: PDirList;
     i, j, n, d, m, ii: Integer;
-    Find32: TWin32FindData;
+    {$IFnDEF DONTTRY_FINDFILEEXW}
+    Find32W: TWin32FindDataW;
     F: THandle;
+    {$ENDIF}
     SL: PStrListEx;
     disk: Char;
     //test: String;
@@ -987,31 +1016,33 @@ begin
           end;
           if ii >= 0 then SL.AddObject( disk + ':', ii );
         end;
-      end
-        else
-      if WinVer >= wvNT then // используетс€ более быстрый вариант - дл€ NT/2K/XP
+      end else
+      {$IFnDEF DONTTRY_FINDFILEEXW}
+      if  (WinVer >= wvNT) and _FindFirstFileExW then // используетс€ более быстрый вариант - дл€ NT/2K/XP
       begin
-        _FindFirstFileEx;
-        F := FFindFirstFileEx( PKOLChar( p + '*.*' ), FindExInfoStandard, @ Find32,
-          FindExSearchLimitToDirectories, nil, 0 );
-        if F <> INVALID_HANDLE_VALUE then
-        begin
-          TRY
-            while TRUE do
-            begin
-              if Find32.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY <> 0 then
-              if (Find32.cFileName <> String( '.' )) and (Find32.cFileName <> '..') then
-              if DoFilterAttrs( Find32.dwFileAttributes, Find32.cAlternateFileName ) then
-                SL.Add( Find32.cFileName );
-              if not FindNextFile( F, Find32 ) then break;
-            end;
-            SL.Sort( FALSE );
-          FINALLY
-            FindClose( F );
-          END;
-        end;
-      end
-        else
+          F := FFindFirstFileExW( PWideChar( WideString( p + '*.*' ) ),
+            FindExInfoStandard, @ Find32W,
+            FindExSearchLimitToDirectories, nil, 0 );
+          if  F <> INVALID_HANDLE_VALUE then
+          begin
+              TRY
+                while TRUE do
+                begin
+                    if  Find32W.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY <> 0 then
+                    if  (Find32W.cFileName <> WideString( '.' ))
+                    and (Find32W.cFileName <> '..') then
+                    if  DoFilterAttrs( Find32W.dwFileAttributes,
+                                       Find32W.cAlternateFileName ) then
+                        SL.Add( Find32W.cFileName );
+                    if  not FFindNextFileW( F, @Find32W ) then break;
+                end;
+                SL.Sort( FALSE );
+              FINALLY
+                FindClose( F );
+              END;
+          end;
+      end else
+      {$ENDIF}
       begin
         DL := NewDirListEx( p, '*.*;*', FILE_ATTRIBUTE_DIRECTORY );
         TRY
@@ -1059,12 +1090,12 @@ begin
             DeleteNode( d );
         end;
         if i >= SL.Count then break;
-        if (n <> 0) and
-           (AnsiCompareStrNoCase( SL.Items[ i ], DirTree.TVItemText[ n ] ) = 0) then
+        if  (n <> 0) and
+            (AnsiCompareStrNoCase( SL.Items[ i ], DirTree.TVItemText[ n ] ) = 0) then
         begin
-          DirTree.TVItemData[ n ] := nil; // сброс флажка "дочерние проверены"
-          n := DirTree.TVItemNext[ n ];   // переход к следующему узлу дерева
-          continue;
+            DirTree.TVItemData[ n ] := nil; // сброс флажка "дочерние проверены"
+            n := DirTree.TVItemNext[ n ];   // переход к следующему узлу дерева
+            continue;
         end;
         // остаетс€ случай, когда (новое) им€ директории меньше чем им€ в
         // очередном узле (или узлы исчерпаны): надо добавить его перед этим узлом
@@ -1074,13 +1105,12 @@ begin
         else
         begin
           m := DirTree.TVItemPrevious[ n ];
-          if m = 0 then
-            m := DirTree.TVInsert( node, TVI_FIRST, SL.Items[ i ] )
-          else
-            m := DirTree.TVInsert( node, m, SL.Items[ i ] );
+          if   m = 0 then
+               m := DirTree.TVInsert( node, TVI_FIRST, SL.Items[ i ] )
+          else m := DirTree.TVInsert( node, m, SL.Items[ i ] );
         end;
-        if (SL.Objects[ i ] = 1) and FastScan then
-          SL.Objects[ i ] := 2;
+        if  (SL.Objects[ i ] = 1) and FastScan then
+            SL.Objects[ i ] := 2;
         CASE SL.Objects[ i ] OF
         0{,1}: ii := FileIconSystemIdx( p + SL.Items[ i ] + '\' );
         1: ii := DirIconSysIdxOffline( p + SL.Items[ i ] + '\' );
@@ -1284,5 +1314,10 @@ begin
   end;
 end;
 {$ENDIF DIRDLGEX_LINKSPANEL}
+
+function TOpenDirDialogEx._FindFirstFileExW: Boolean;
+begin
+    Result := Assigned( GetFindFirstFileExW(  ) );
+end;
 
 end.

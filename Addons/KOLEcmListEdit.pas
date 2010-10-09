@@ -195,7 +195,7 @@ type
     fInPlaceEd: PControl;
     bComboEditor: Boolean;
     ComboOptions: TComboOptions;
-    ComboText: string;
+    ComboText: KOLString;
     destructor Destroy; virtual; // Do not call this destructor. Use Free method instead.
     procedure SetCurLVPos(ALine, AIdx: Integer);
     procedure StartEdit;

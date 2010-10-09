@@ -1,3 +1,4 @@
+{$I KOLDEF.inc}
 unit KOLQProgBar;
 {
 
@@ -111,6 +112,7 @@ unit KOLQProgBar;
    |<p> }
 
 interface
+
 // ----------------------------------------------------------
 uses
   Windows, Messages, KOL;
@@ -489,7 +491,7 @@ var
  Data: PQDataObj;
 begin
  Result := PQProgressBar( _NewControl( AParent, 'QProgressBar',
-   WS_VISIBLE + WS_CHILD + SS_NOTIFY, False, @LabelActions ) );
+   WS_VISIBLE + WS_CHILD + SS_NOTIFY, False, {$IFDEF PACK_COMMANDACTIONS}@LabelActions_Packed{$ELSE}@LabelActions{$ENDIF} ) );
 
  New( Data, Create );  // releases authomatically when the object destroys
  Result.CustomObj := Data;

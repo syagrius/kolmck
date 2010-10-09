@@ -367,7 +367,7 @@ function CountSystemColorsUsedInBitmap( Bmp: KOL.PBitmap ): KOLTPixelFormat;
 //function SaveBitmap( Bitmap: TBitmap; const Path: String ): Boolean;
 procedure GenerateBitmapResource( Bitmap: TBitmap; const RsrcName, FileName: String;
           var Updated: Boolean );
-procedure GenerateIconResource( Icon: TIcon; const RsrcName, FileName: String;
+procedure GenerateIconResource( Icon: TIcon; const RsrcName, FileName: KOLString;
           var Updated: Boolean );
 procedure RemoveSelection( FD: IFormDesigner );
 function String2Pascal( S: String; const Concatenator: String ): String;
@@ -395,8 +395,9 @@ var I, Strt : Integer;
   function String2DoubleQuotas( const S : String ) : String;
   var I, J : Integer;
   begin
-    if IndexOfChar( S, '''' ) <= 0 then
-       Result := S
+    //if IndexOfChar( S, '''' ) <= 0 then
+    if  pos( '''', S ) <= 0 then
+        Result := S
     else
     begin
       J := 0;
@@ -440,10 +441,10 @@ begin
       else
          Result := Result + '''''' + Concatenator;
       // Result := Result + '''''';
-      if pos( ',', Concatenator ) > 0 then
-        Result := Result + Int2Str( Integer( S[ I ] ) )
-      else
-        Result := Result + '#' + Int2Str( Integer( S[ I ] ) );
+      //if   IndexOfChar(Concatenator, ',') > 0 then
+      if   pos( ',', Concatenator ) > 0 then
+           Result := Result + IntToStr( Integer( S[ I ] ) )
+      else Result := Result + '#' + IntToStr( Integer( S[ I ] ) );
       Strt := I + 1;
     end;
   end;
@@ -544,7 +545,7 @@ begin
       end;
     if not Found then
     begin
-      Rpt( '***** Color ' + Int2Hex( C, 8 ) + ' not found in system 16 colors',
+      Rpt( '***** Color ' + IntToHex( C, 8 ) + ' not found in system 16 colors',
         WHITE );
       Result := FALSE;
       Exit;
@@ -818,7 +819,8 @@ var
     br, hFR, hFtm, DIBLen, WLen, RLen, tm: DWORD;
     Buf1, Buf2: PByteArray;
     FE: boolean;
-    Res, Bmp: string;
+    Res: String;
+    Bmp: String;
     tmStr: WideString;
 
     KOLBmp: KOL.PBitmap;
@@ -949,10 +951,10 @@ begin
   end;
 end;
 
-procedure GenerateIconResource( Icon: TIcon; const RsrcName, FileName: String;
+procedure GenerateIconResource( Icon: TIcon; const RsrcName, FileName: KOLString;
           var Updated: Boolean );
 var RL: TStringList;
-    Buf1, Buf2: PChar;
+    Buf1, Buf2: PKOLChar;
     S: String;
     I, J: Integer;
     F: THandle;
@@ -968,7 +970,7 @@ begin
   if not SaveIcon( Icon, ProjectSourcePath + FileName + '.ico' ) then
      Exit;
   RL := TStringList.Create;
-  RL.Add( UpperCase( RsrcName ) + ' ICON "' + FileName + '.ico"' );
+  RL.Add( KOLUpperCase( RsrcName ) + ' ICON "' + FileName + '.ico"' );
   RL.SaveToFile( ProjectSourcePath + FileName + '.rc' );
   RL.Free;
   Buf1 := nil;
@@ -2227,7 +2229,7 @@ begin
   C := StringConstant( 'Title', Title );
   {$IFDEF _D2009orHigher}
    C2 := '';
-   for i := 2 to Length(C) - 1 do C2 := C2 + '#'+int2str(ord(C[i]));
+   for i := 2 to Length(C) - 1 do C2 := C2 + '#'+IntToStr(ord(C[i]));
    C := C2;
   {$ENDIF}
   if C = '' then C := '''''';
@@ -2579,7 +2581,7 @@ begin
     C := StringConstant( 'Title', Title );
     {$IFDEF _D2009orHigher}
      C2 := '';
-     for i := 2 to Length(C) - 1 do C2 := C2 + '#'+int2str(ord(C[i]));
+     for i := 2 to Length(C) - 1 do C2 := C2 + '#'+IntToStr(ord(C[i]));
      C := C2;
     {$ENDIF}
     if C = '' then C := '''''';
@@ -2591,7 +2593,7 @@ begin
     C := StringConstant( 'Title', Title );
     {$IFDEF _D2009orHigher}
      C2 := '';
-     for i := 2 to Length(C) - 1 do C2 := C2 + '#'+int2str(ord(C[i]));
+     for i := 2 to Length(C) - 1 do C2 := C2 + '#'+IntToStr(ord(C[i]));
      C := C2;
     {$ENDIF}
     if C = '' then C := '''''';
@@ -2804,7 +2806,7 @@ end;
 
 procedure TKOLTrayIcon.P_SetupFirst(SL: TStringList; const AName, AParent,
   Prefix: String);
-var RsrcName, RsrcFile: String;
+var RsrcName, RsrcFile: KOLString;
 begin
   asm
     jmp @@e_signature
@@ -2993,7 +2995,7 @@ begin
     C := StringConstant( 'Tooltip', Tooltip );
     {$IFDEF _D2009orHigher}
      C2 := '';
-     for i := 2 to Length(C) - 1 do C2 := C2 + '#'+int2str(ord(C[i]));
+     for i := 2 to Length(C) - 1 do C2 := C2 + '#'+IntToStr(ord(C[i]));
      C := C2;
     {$ENDIF}
     if C = '' then C := '''''';

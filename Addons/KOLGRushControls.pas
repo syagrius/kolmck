@@ -1,4 +1,6 @@
 unit KOLGRushControls;
+//!! this version is compatible with KOL 3.00+ !! -- by V.K.
+
 {* 
 |<b>GRushControls</b> - Controls set with high quality of visulation and effects.
 |<code><font color=#0000ff>
@@ -1062,7 +1064,8 @@ end;
 
 procedure ClickGRushRadio( Sender:PObj );
 begin
-  PGRushControl( Sender ).fChecked := TRUE;
+  {$IFDEF USE_FLAGS} include( PGrushControl( Sender ).fFlagsG4, G4_Checked );
+  {$ELSE} PGRushControl( Sender ).fChecked := TRUE; {$ENDIF}
 end;
 
 {$IFDEF FIX_DRAWTRANSPARENT}
@@ -1315,6 +1318,8 @@ var     yDest: integer;
         Delta: DWORD;
         {$ENDIF USE_MMX}
 begin
+  if DstBitmap.DIBBits = nil then Exit;
+  if SrcBitmap.DIBBits = nil then Exit;
     {$IFDEF USE_MMX}
     if UseMMX then begin
         SrcBits := DWORD(SrcBitmap.DIBBits);
@@ -1428,6 +1433,11 @@ var     Factor2: byte;
         _Top: DWORD;
         {$ENDIF USE_MMX}
 begin
+  if DestBitmap.DIBBits = nil then Exit;
+  if FromBitmap.DIBBits = nil then Exit;
+  if ToBitmap.DIBBits = nil then Exit;
+  if ClipRect.Left >= ClipRect.Right then Exit;
+  if ClipRect.Top >= ClipRect.Bottom then Exit;
   {$IFDEF USE_MMX}
   if UseMMX then begin
     _Top := FromBitmap.Width * 4 * ClipRect.Top + ClipRect.Left * 4;
@@ -2372,14 +2382,17 @@ begin
     case Msg.message of
         BM_GETCHECK:
             begin
-                //if Data.fControlType in [ctCheckBox, ctRadioBox] then
-                    Rslt := Integer(Ctl_.fChecked);
+                Rslt := {$IFDEF USE_FLAGS} Integer( G4_Checked in Ctl_.fFlagsG4 )
+                        {$ELSE} Integer(Ctl_.fChecked) {$ENDIF};
                 Result := TRUE;
             end;
         BM_SETCHECK:
             {+/-}//if Data.fControlType in [ctCheckBox, ctRadioBox] then
             begin
-                Ctl_.fChecked := Boolean(Msg.wParam);
+                {$IFDEF USE_FLAGS} if   Boolean(Msg.wParam) then
+                                        include( Ctl_.fFlagsG4, G4_Checked )
+                                   else exclude( Ctl_.fFlagsG4, G4_Checked );
+                {$ELSE} Ctl_.fChecked := Boolean(Msg.wParam); {$ENDIF}
                 if Boolean(Msg.wParam) then
                     Ctl_.DeactivateSublings;
                 Ctl_.Invalidate;
@@ -2508,7 +2521,7 @@ begin
             begin
                 if (Data.fStateInit = siKey) then begin
                     Data.fStateInit := siButton;
-                    PGRushControl(Ctl_).fOnMouseLeave(Ctl_);
+                    PGRushControl(Ctl_).EV.fOnMouseLeave(Ctl_);
                     Data.fStateInit := siNone;
                 end;
                 Data.fActive := false;
@@ -3110,8 +3123,10 @@ begin
         {$ELSE NOT_IMMIDIATLYONLY}
         TimerEvent(PGRushData(CustomObj));
         {$ENDIF NOT_IMMIDIATLYONLY}
-        if assigned(fOnClick) then
-            fOnClick(@Self);
+        {$IFDEF NIL_EVENTS}
+        if  assigned(EV.fOnClick) then
+        {$ENDIF}
+            EV.fOnClick(@Self);
     end;
 end;
 
@@ -3170,13 +3185,12 @@ end;
 function NewGRushButton;
 begin
     Result := PGRushControl(_NewControl( AParent, 'GRUSH_BUTTON', WS_VISIBLE
-        or WS_CHILD or WS_TABSTOP, False, @ButtonActions ));
-    //Result.ClsStyle := Result.ClsStyle or CS_PARENTDC;
+        or WS_CHILD or WS_TABSTOP, False,
+        {$IFDEF PACK_COMMANDACTIONS} ButtonActions_Packed
+        {$ELSE} @ButtonActions {$ENDIF} ));
     Result.Caption := Caption;
-    Result.fCommandActions.aAutoSzX := 12;
-    Result.fCommandActions.aAutoSzY := 11;
-
-
+    Result.aAutoSzX := 12;
+    Result.aAutoSzY := 11;
     Result.InitLast(TRUE, ctButton);
     {$IFDEF ALL_BUTTONS_RESPOND_TO_ENTER}
     Result.AttachProc( WndProcBtnReturnClick );
@@ -3187,7 +3201,9 @@ end;
 function NewGRushPanel;
 begin
     Result := PGRushControl(_NewControl( AParent, 'GRUSH_PANEL'
-        , WS_VISIBLE  or WS_CHILD, False, @LabelActions ));
+        , WS_VISIBLE  or WS_CHILD, False,
+        {$IFDEF PACK_COMMANDACTIONS} LabelActions_Packed
+        {$ELSE} @LabelActions {$ENDIF} ));
 
     Result.InitLast(FALSE, ctPanel);
     Result.All_TextVAlign := vaTop;
@@ -3198,10 +3214,13 @@ begin
     if CheckRgn = 0 then
         CheckRgn := RegionFromArray(_Check);
     Result := PGRushControl(_NewControl( AParent, 'GRUSH_CHECKBOX', WS_VISIBLE
-        or WS_CHILD or WS_TABSTOP, False, @ButtonActions ));
+        or WS_CHILD or WS_TABSTOP, False,
+        {$IFDEF PACK_COMMANDACTIONS} ButtonActions_Packed
+        {$ELSE} @ButtonActions {$ENDIF}));
     Result.Caption := Caption;
-    Result.fIgnoreDefault := TRUE;
-    Result.fCommandActions.aAutoSzX := 24;
+    {$IFDEF USE_FLAGS} include( Result.fFlagsG5, G5_IgnoreDefault );
+    {$ELSE} Result.fIgnoreDefault := TRUE; {$ENDIF}
+    Result.aAutoSzX := 24;
 
     Result.InitLast(TRUE, ctCheckBox);
     Result.All_BorderRoundWidth := 0;
@@ -3210,14 +3229,17 @@ end;
 
 function NewGRushRadioBox;
 begin
-    if RadioRgn = 0 then
+    if  RadioRgn = 0 then
         RadioRgn := RegionFromArray(_Radio);
     Result := PGRushControl(_NewControl( AParent, 'GRUSH_RADIOBOX', WS_VISIBLE
-        or WS_CHILD or WS_TABSTOP, False, @ButtonActions ));
-    Result.fControlClick := ClickGRushRadio;
-    Result.fCommandActions.aAutoSzX := 24;
+        or WS_CHILD or WS_TABSTOP, False,
+        {$IFDEF PACK_COMMANDACTIONS} ButtonActions_Packed
+        {$ELSE} @ButtonActions {$ENDIF}));
+    Result.PP.fControlClick := ClickGRushRadio;
+    Result.aAutoSzX := 24;
     Result.Caption := Caption;
-    Result.fIgnoreDefault := TRUE;
+    {$IFDEF USE_FLAGS} include( Result.fFlagsG5, G5_IgnoreDefault );
+    {$ELSE} Result.fIgnoreDefault := TRUE; {$ENDIF}
 
     Result.InitLast(TRUE, ctRadioBox);
     Result.All_BorderRoundWidth := 50;
@@ -3258,7 +3280,9 @@ function NewGRushProgressBar;
 var     Data: PGRushData;
 begin
     Result := PGRushControl(_NewControl( AParent, 'GRUSH_PROGRESSBAR'
-        , WS_VISIBLE or WS_CHILD, False, @LabelActions ));
+        , WS_VISIBLE or WS_CHILD, False,
+        {$IFDEF PACK_COMMANDACTIONS} LabelActions_Packed
+        {$ELSE} @LabelActions {$ENDIF} ));
 
     Result.InitLast(FALSE, ctProgressBar);
     Data := PGRushData(Result.CustomObj);

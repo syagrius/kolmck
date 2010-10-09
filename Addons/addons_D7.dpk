@@ -1,6 +1,6 @@
 package addons_D7;
 
-{$R addons.res}
+{$R 'addons.res'}
 {$R 'mckCCtrls.dcr'}
 {$R 'mckHTTPDownload.dcr'}
 {$R 'mckQProgBar.dcr'}
@@ -79,16 +79,10 @@ contains
   KOLPrinters in 'KOLPrinters.pas',
   mckXPMenus in 'mckXPMenus.pas',
   XPMenus in 'XPMenus.pas',
-  MCKGRushSplitterEditor in 'MCKGRushSplitterEditor.pas',
-  MCKGRushButtonEditor in 'MCKGRushButtonEditor.pas',
-  MCKGRushCheckBoxEditor in 'MCKGRushCheckBoxEditor.pas',
-  MCKGRushControls in 'MCKGRushControls.pas',
-  MCKGRushImageCollectionEditor in 'MCKGRushImageCollectionEditor.pas',
-  MCKGRushPanelEditor in 'MCKGRushPanelEditor.pas',
-  MCKGRushProgressBarEditor in 'MCKGRushProgressBarEditor.pas',
-  MCKGRushRadioBoxEditor in 'MCKGRushRadioBoxEditor.pas',
   tinyPNG in 'tinyPNG.pas',
   tinyJPGGIFBMP in 'tinyJPGGIFBMP.pas',
-  KOLGRushControls in 'KOLGRushControls.pas';
+  mckWebBrowser in 'mckWebBrowser.pas',
+  mckDHTML in 'mckDHTML.pas',
+  KolZLibBzip in 'KolZLibBzip.pas';
 
 end.

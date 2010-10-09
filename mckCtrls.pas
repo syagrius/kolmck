@@ -1,11 +1,11 @@
 {=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
-        KKKKK    KKKKK    OOOOOOOOO    LLLLL                    
-        KKKKK    KKKKK  OOOOOOOOOOOOO  LLLLL                    
-        KKKKK    KKKKK  OOOOO   OOOOO  LLLLL                    
-        KKKKK  KKKKK    OOOOO   OOOOO  LLLLL                    
-        KKKKKKKKKK      OOOOO   OOOOO  LLLLL
-        KKKKK  KKKKK    OOOOO   OOOOO  LLLLL
+                                                                 tt
+        KKKKK    KKKKK    OOOOOOOOO    LLLLL         ccc         tt       rr  rr
+        KKKKK    KKKKK  OOOOOOOOOOOOO  LLLLL      ccc   ccc  ttttttttttt  rrrr
+        KKKKK    KKKKK  OOOOO   OOOOO  LLLLL      ccc            tt       rr
+        KKKKK  KKKKK    OOOOO   OOOOO  LLLLL      ccc            tt       rr
+        KKKKKKKKKK      OOOOO   OOOOO  LLLLL      ccc   ccc      tt       rr
+        KKKKK  KKKKK    OOOOO   OOOOO  LLLLL         ccc           ttt    rr
         KKKKK    KKKKK  OOOOO   OOOOO  LLLLL
         KKKKK    KKKKK  OOOOOOOOOOOOO  LLLLLLLLLLLLL     kkkkk
         KKKKK    KKKKK    OOOOOOOOO    LLLLLLLLLLLLL    kkkkk
@@ -32,7 +32,7 @@ unit mckCtrls;
   проектирования и ведут себя так же, как обычные визуальные объекты VCL. Но
   после компиляции проекта (и во время исполнения) они трансформируются в
   объекты KOL, так что все "навороты" VCL удаляются и исполнимый файл становится
-  очень маленьким.        f
+  очень маленьким.        
 }
 
 interface
@@ -67,10 +67,11 @@ type
     Fimage: TPicture;
     procedure SetFlat(const Value: Boolean);
     procedure Setimage(const Value: TPicture);
-  protected
+  public
     function TabStopByDefault: Boolean; override;
     procedure FirstCreate; override;
     function GenerateTransparentInits: String; override;
+    procedure GenerateTransparentInits_Compact; override;
     function P_GenerateTransparentInits: String; override;
     function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
@@ -97,7 +98,7 @@ type
     procedure SaveImageIcon( Writer: TWriter );
     procedure LoadImageBitmap( Reader: TReader );
     procedure SaveImageBitmap( Writer: TWriter );
-    procedure Loaded; override; 
+    procedure Loaded; override;
   public
     constructor Create( AOwner: TComponent ); override;
     destructor Destroy; override;
@@ -125,6 +126,9 @@ type
     property Flat: Boolean read FFlat write SetFlat; // only for not windowed ?
     property WordWrap;
     property LikeSpeedButton;
+  public
+    procedure SetupConstruct_Compact; override;
+    function SupportsFormCompact: Boolean; override;
   end;
 
   //============================================================================
@@ -159,10 +163,11 @@ type
     procedure SetBitBtnDrawMnemonic(const Value: Boolean);
     procedure SetTextShiftX(const Value: Integer);
     procedure SetTextShiftY(const Value: Integer);
-  protected
+  public
     function TabStopByDefault: Boolean; override;
     procedure FirstCreate; override;
     function GenerateTransparentInits: String; override;
+    procedure GenerateTransparentInits_Compact; override;
     function P_GenerateTransparentInits: String; override;
     function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
@@ -183,6 +188,8 @@ type
     destructor Destroy; override;
     function Pcode_Generate: Boolean; override;
     function OptionsAsInteger: Integer;
+    procedure SetupConstruct_Compact; override;
+    function SupportsFormCompact: Boolean; override;
   published
     property options: TBitBtnOptions read FOptions write SetOptions;
     property glyphBitmap: TBitmap read FGlyphBitmap write SetGlyphBitmap;
@@ -251,7 +258,7 @@ type
     function Get_VertAlign: TVerticalAlign;
     procedure Set_VertAlign(const Value: TVerticalAlign);
     procedure SetShowAccelChar(const Value: Boolean);
-  protected
+  public
     function AdjustVerticalAlign( Value: TVerticalAlign ): TVerticalAlign; virtual;
     procedure FirstCreate; override;
     function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
@@ -273,6 +280,8 @@ type
   public
     constructor Create( AOwner: TComponent ); override;
     function Pcode_Generate: Boolean; override;
+    procedure SetupConstruct_Compact; override;
+    function SupportsFormCompact: Boolean; override;
   published
     property Transparent;
     property TextAlign;
@@ -295,7 +304,7 @@ type
     FColor2: TColor;
     procedure SetShadowDeep(const Value: Integer);
     procedure SetColor2(const Value: TColor);
-  protected
+  public
     function AdjustVerticalAlign( Value: TVerticalAlign ): TVerticalAlign; override;
     function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
@@ -309,6 +318,8 @@ type
     procedure SetWindowed( const Value: Boolean ); override;
   public
     constructor Create( AOwner: TComponent ); override;
+    procedure SetupConstruct_Compact; override;
+    function SupportsFormCompact: Boolean; override;
   published
     property ShadowDeep: Integer read FShadowDeep write SetShadowDeep;
     property Color2: TColor read FColor2 write SetColor2;
@@ -357,6 +368,7 @@ type
     procedure P_SetupTextAlign( SL: TStrings; const AName: String ); override;
     function ClientMargins: TRect; override;
     function RefName: String; override;
+  public
     procedure Paint; override;
     function WYSIWIGPaintImplemented: Boolean; override;
     function NoDrawFrame: Boolean; override;
@@ -365,6 +377,8 @@ type
     constructor Create( AOwner: TComponent ); override;
     destructor Destroy; override;
     function Pcode_Generate: Boolean; override;
+    function SupportsFormCompact: Boolean; override;
+    procedure SetupConstruct_Compact; override;
   published
     property Transparent;
     property TextAlign;
@@ -421,9 +435,12 @@ type
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
     procedure SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
     procedure P_SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
+  public
     procedure Paint; override;
     function WYSIWIGPaintImplemented: Boolean; override;
     function NoDrawFrame: Boolean; override;
+    function SupportsFormCompact: Boolean; override;
+    procedure SetupConstruct_Compact; override;
   public
     constructor Create( AOwner: TComponent ); override;
     function Pcode_Generate: Boolean; override;
@@ -467,12 +484,15 @@ type
     procedure P_SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
     function TypeName: String; override;
     procedure AssignEvents( SL: TStringList; const AName: String ); override;
+  public
     function BestEventName: String; override;
     procedure CreateKOLControl(Recreating: boolean); override;
     function NoDrawFrame: Boolean; override;
   public
     constructor Create( AOwner: TComponent ); override;
     function Pcode_Generate: Boolean; override;
+    function SupportsFormCompact: Boolean; override;
+    procedure SetupConstruct_Compact; override;
   published
     property Transparent;
     property MinSizePrev: Integer read FMinSizePrev write SetMinSizePrev;
@@ -500,6 +520,7 @@ type
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
     procedure SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
     procedure P_SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
+  public
     function P_GenerateTransparentInits: String; override;
     function ClientMargins: TRect; override;
     function DrawMargins: TRect; override;
@@ -507,6 +528,8 @@ type
     procedure CreateKOLControl(Recreating: boolean); override;
     {$ENDIF}
     procedure SetupTextAlign( SL: TStrings; const AName: String ); override;
+    function SupportsFormCompact: Boolean; override;
+    procedure SetupConstruct_Compact; override;
   public
     constructor Create( AOwner: TComponent ); override;
     function Pcode_Generate: Boolean; override;
@@ -541,12 +564,15 @@ type
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
     procedure SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
     procedure P_SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
+  public
     function P_GenerateTransparentInits: String; override;
     procedure Paint; override;
     function WYSIWIGPaintImplemented: Boolean; override;
     function NoDrawFrame: Boolean; override;
     procedure CreateKOLControl(Recreating: boolean); override;
     function TypeName: String; override;
+    function SupportsFormCompact: Boolean; override;
+    procedure SetupConstruct_Compact; override;
   public
     constructor Create( AOwner: TComponent ); override;
     function Pcode_Generate: Boolean; override;
@@ -587,12 +613,15 @@ type
     procedure FirstCreate; override;
     function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
+  public
     function P_GenerateTransparentInits: String; override;
     procedure SetupLast( SL: TStringList; const AName, AParent, Prefix: String ); override;
     procedure P_SetupLast( SL: TStringList; const AName, AParent, Prefix: String ); override;
     procedure Paint; override;
     function WYSIWIGPaintImplemented: Boolean; override;
     function NoDrawFrame: Boolean; override;
+    function SupportsFormCompact: Boolean; override;
+    procedure SetupConstruct_Compact; override;
   public
     constructor Create( AOwner: TComponent ); override;
     function Pcode_Generate: Boolean; override;
@@ -638,11 +667,13 @@ type
   private
     FOptions: TKOLEditOptions;
     FEdTransparent: Boolean;
+    FUnicode: Boolean;
     procedure SetOptions(const Value: TKOLEditOptions);
     function GetCaption: TDelphiString;
     function GetText: TDelphiString;
     procedure SetText(const Value: TDelphiString);
     procedure SetEdTransparent(const Value: Boolean);
+    procedure SetUnicode(const Value: Boolean);
   protected
     function TabStopByDefault: Boolean; override;
     procedure FirstCreate; override;
@@ -650,6 +681,7 @@ type
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
     procedure SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
     procedure P_SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
+  public
     procedure WantTabs( Want: Boolean ); override;
     function DefaultColor: TColor; override;
     function BestEventName: String; override;
@@ -663,6 +695,8 @@ type
     function WYSIWIGPaintImplemented: Boolean; override;
     function NoDrawFrame: Boolean; override;
     function Pcode_Generate: Boolean; override;
+    function SupportsFormCompact: Boolean; override;
+    procedure SetupConstruct_Compact; override;
   published
     property Transparent: Boolean read FEdTransparent write SetEdTransparent;
     property Text: TDelphiString read GetText write SetText;
@@ -686,6 +720,7 @@ type
     property EditTabChar;
     property Brush;
     property windowed;
+    property Unicode: Boolean read FUnicode write SetUnicode;
   end;
 
 
@@ -723,6 +758,7 @@ type
     procedure SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
     procedure P_SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
     function DefaultColor: TColor; override;
+  public
     function BestEventName: String; override;
     procedure CreateKOLControl(Recreating: boolean); override;
     procedure KOLControlRecreated; override;
@@ -739,6 +775,8 @@ type
     function TypeName: String; override;
     procedure WantTabs( Want: Boolean ); override;
     function Pcode_Generate: Boolean; override;
+    function SupportsFormCompact: Boolean; override;
+    procedure SetupConstruct_Compact; override;
   published
     property Transparent: Boolean read FEdTransparent write SetEdTransparent;
     property Text: TStrings read GetText write SetText;
@@ -822,7 +860,9 @@ type
     procedure SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
     procedure P_SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
     function TypeName: String; override;
+  public
     function GenerateTransparentInits: String; override;
+    procedure GenerateTransparentInits_Compact; override;
     function P_GenerateTransparentInits: String; override;
     procedure BeforeFontChange( SL: TStrings; const AName, Prefix: String ); override;
     procedure P_BeforeFontChange( SL: TStrings; const AName, Prefix: String ); override;
@@ -838,6 +878,8 @@ type
     procedure Loaded; override;
     function NoDrawFrame: Boolean; override;
     function SetupColorFirst: Boolean; override;
+    function SupportsFormCompact: Boolean; override;
+    procedure SetupConstruct_Compact; override;
   public
     constructor Create( AOwner: TComponent ); override;
     destructor Destroy; override;
@@ -924,12 +966,16 @@ type
     procedure SetupLast( SL: TStringList; const AName, AParent, Prefix: String ); override;
     procedure P_SetupLast( SL: TStringList; const AName, AParent, Prefix: String ); override;
     function DefaultColor: TColor; override;
+  public
     procedure CreateKOLControl(Recreating: boolean); override;
     procedure KOLControlRecreated; override;
     function NoDrawFrame: Boolean; override;
     procedure Loaded; override;
     function GenerateTransparentInits: String; override; {+ecm}
+    procedure GenerateTransparentInits_Compact; override; {+ecm}
     function P_GenerateTransparentInits: String; override; {+ecm}
+    function SupportsFormCompact: Boolean; override;
+    procedure SetupConstruct_Compact; override;
   public
     constructor Create( AOwner: TComponent ); override;
     destructor Destroy; override;
@@ -995,17 +1041,21 @@ type
     procedure P_SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
     function DefaultColor: TColor; override;
     function DefaultInitialColor: TColor; override;
+  public
     procedure Paint; override;
     function WYSIWIGPaintImplemented: Boolean; override;
     function NoDrawFrame: Boolean; override;
     function AutoHeight( Canvas: graphics.TCanvas ): Integer; override;
     function AutoSizeRunTime: Boolean; override;
     function GenerateTransparentInits: String; override; {+ecm}
+    procedure GenerateTransparentInits_Compact; override; {+ecm}
     function P_GenerateTransparentInits: String; override; {+ecm}
   public
     constructor Create( AOwner: TComponent ); override;
     destructor Destroy; override;
     function Pcode_Generate: Boolean; override;
+    function SupportsFormCompact: Boolean; override;
+    procedure SetupConstruct_Compact; override;
   published
     property Transparent;
     property TabStop;
@@ -1045,10 +1095,13 @@ type
   protected
     function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
+  public
     function BestEventName: String; override;
   public
     constructor Create( AOwner: TComponent ); override;
     function Pcode_Generate: Boolean; override;
+    function SupportsFormCompact: Boolean; override;
+    procedure SetupConstruct_Compact; override;
   published
     property Transparent;
     property OnPaint;
@@ -1084,6 +1137,7 @@ type
     procedure P_SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
     procedure DoAutoSize;
     procedure SetHasBorder(const Value: Boolean); override;
+  public
     procedure Paint; override;
     function WYSIWIGPaintImplemented: Boolean; override;
     function NoDrawFrame: Boolean; override;
@@ -1132,12 +1186,15 @@ type
     function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
     function TypeName: String; override;
+  public
     procedure CreateKOLControl(Recreating: boolean); override;
     procedure KOLControlRecreated; override;
     function NoDrawFrame: Boolean; override;
   public
     constructor Create( AOwner: TComponent ); override;
     function Pcode_Generate: Boolean; override;
+    function SupportsFormCompact: Boolean; override;
+    procedure SetupConstruct_Compact; override;
   published
     property Transparent;
     property Vertical: Boolean read FVertical write SetVertical;
@@ -1276,12 +1333,14 @@ type
     procedure LoadColCount( Reader: TReader );
     procedure SaveColCount( Writer: TWriter );
     procedure DoGenerateConstants( SL: TStringList ); override;
+  public
     procedure Loaded; override; {YS}
     function NoDrawFrame: Boolean; override;
     procedure CreateKOLControl(Recreating: boolean); override;
     procedure KOLControlRecreated; override;
     function GetDefaultControlFont: HFONT; override;
     function GenerateTransparentInits: String; override;
+    procedure GenerateTransparentInits_Compact; override;
     function P_GenerateTransparentInits: String; override;
   public
     ActiveDesign: TfmLVColumnsEditor;
@@ -1292,6 +1351,8 @@ type
     function HasOrderedColumns: Boolean;
     procedure Invalidate; override; {YS}
     function Pcode_Generate: Boolean; override;
+    function SupportsFormCompact: Boolean; override;
+    procedure SetupConstruct_Compact; override;
   published
     property Transparent;
     property Style: TKOLListViewStyle read FStyle write SetStyle;
@@ -1299,7 +1360,6 @@ type
     property ImageListSmall: TKOLImageList read FImageListSmall write SetImageListSmall;
     property ImageListNormal: TKOLImageList read FImageListNormal write SetImageListNormal;
     property ImageListState: TKOLImageList read FImageListState write SetImageListState;
-    //property CurIndex: Integer read FCurIndex write SetCurIndex;
     property OnChange;
     property OnKeyDown;
     property OnKeyUp;
@@ -1330,7 +1390,6 @@ type
     property Columns: String read GetColumns write SetColumns stored FALSE;
     property generateConstants: Boolean read FGenerateColIdxConst write SetGenerateColIdxConst;
     property Brush;
-    property Unicode;
     {$IFNDEF _D2}
     //property OnLVDataW: TOnLVDataW read FOnLVDataW write SetOnLVDataW;
     {$ENDIF _D2}
@@ -1387,6 +1446,7 @@ type
     procedure SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
     procedure P_SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
     function DefaultColor: TColor; override;
+  public
     procedure CreateKOLControl(Recreating: boolean); override;
     function NoDrawFrame: Boolean; override;
   public
@@ -1394,6 +1454,8 @@ type
     procedure NotifyLinkedComponent( Sender: TObject; Operation: TNotifyOperation ); override;
     destructor Destroy; override;
     function Pcode_Generate: Boolean; override;
+    function SupportsFormCompact: Boolean; override;
+    procedure SetupConstruct_Compact; override;
   published
     property Transparent;
     property Options: TKOLTreeViewOptions read FOptions write SetOptions;
@@ -1423,7 +1485,6 @@ type
     property OnScroll;
     property TabStop;
     property Brush;
-    property Unicode;
     property OverrideScrollbars;
   end;
 
@@ -1557,6 +1618,9 @@ type
     FTBButtonsWidth: Integer;
     FgenerateVariables: Boolean;
     FOnTBCustomDraw: TOnTBCustomDraw;
+    FCompactCode: Boolean;
+    FAutosizeButtons: Boolean;
+    FNoSpaceForImages: Boolean;
     procedure SetOptions(const Value: TToolbarOptions);
     procedure Setbitmap(const Value: TBitmap);
     procedure SetnoTextLabels(const Value: Boolean);
@@ -1584,6 +1648,9 @@ type
     procedure SetTBButtonsWidth(const Value: Integer);
     procedure SetgenerateVariables(const Value: Boolean);
     procedure SetOnTBCustomDraw(const Value: TOnTBCustomDraw);
+    procedure SetCompactCode(const Value: Boolean);
+    procedure SetAutosizeButtons(const Value: Boolean);
+    procedure SetNoSpaceForImages(const Value: Boolean);
   protected
     FResBmpID: Integer;
     fNewVersion: Boolean;
@@ -1601,6 +1668,7 @@ type
     procedure WriteNewVersion( Writer: TWriter );
     procedure LoadButtonCount( R: TReader );
     procedure SaveButtonCount( W: TWriter );
+  public
     procedure Loaded; override;
     function StandardImagesUsed: Integer;
     function PicturedButtonsCount: Integer;
@@ -1615,8 +1683,13 @@ type
     procedure Paint; override;
     function GetDefaultControlFont: HFONT; override;
     function ImageListsUsed: Boolean;
+    function ButtonCaptionsList( var Cnt: Integer ): String;
+    function ButtonImgIndexesList( var Cnt: Integer ): String;
   public
     function Generate_SetSize: String; override;
+    function SupportsFormCompact: Boolean; override;
+    function HasCompactConstructor: Boolean; override;
+    procedure SetupConstruct_Compact; override;
   public
     ActiveDesign: TfmToolbarEditor;
     constructor Create( AOwner: TComponent ); override;
@@ -1678,6 +1751,10 @@ type
         // in other case this property can be set to FALSE to make code smaller
         // and to prevent "heavy" property TRUE from usage.
         // This property has effect only for toolbars with tboFlat style though.
+    property CompactCode: Boolean read FCompactCode write SetCompactCode;
+    property AutosizeButtons: Boolean read FAutosizeButtons write SetAutosizeButtons;
+    property NoSpaceForImages: Boolean read FNoSpaceForImages write SetNoSpaceForImages;
+    property Autosize;
   end;
 
   TKOLToolbarButtonsEditor = class( TStringProperty )
@@ -1716,14 +1793,16 @@ type
     FOnDTPUserString: KOL.TDTParseInputEvent;
     FOptions: TDateTimePickerOptions;
     FFormat: String;
+    FMonthBkColor: TColor;
+    FMonthTxtColor: TColor;
     procedure SetOnDTPUserString(const Value: KOL.TDTParseInputEvent);
     procedure SetOptions(const Value: TDateTimePickerOptions);
     procedure SetFormat(const Value: String);
+    procedure SetMonthBkColor(const Value: TColor);
+    procedure SetMonthTxtColor(const Value: TColor);
   protected
     function SetupParams( const AName, AParent: TDelphiString): TDelphiString; override;
     function P_SetupParams( const AName, AParent: String; var nparams: Integer ): String; override;
-    function GenerateTransparentInits: String; override;
-    function P_GenerateTransparentInits: String; override;
     procedure SetupFirst(SL: TStringList; const AName, AParent, Prefix: String); override;
     procedure P_SetupFirst(SL: TStringList; const AName, AParent, Prefix: String); override;
     procedure AssignEvents( SL: TStringList; const AName: String ); override;
@@ -1732,6 +1811,8 @@ type
   public
     function Pcode_Generate: Boolean; override;
     constructor Create( AOwner: TComponent ); override;
+    function SupportsFormCompact: Boolean; override;
+    procedure SetupConstruct_Compact; override;
   published
     function TabStopByDefault: Boolean; override;
     property OnDTPUserString: KOL.TDTParseInputEvent read FOnDTPUserString write SetOnDTPUserString;
@@ -1741,6 +1822,8 @@ type
     property OnDropDown;
     property OnCloseUp;
     property OnChange;
+    property MonthBkColor: TColor read FMonthBkColor write SetMonthBkColor;
+    property MonthTxtColor: TColor read FMonthTxtColor write SetMonthTxtColor;
   end;
 
 
@@ -1748,20 +1831,23 @@ type
   //===========================================================================
   //---- MIRROR FOR A TAB CONTROL
   //---- ЗЕРКАЛО ДЛЯ ТАБУЛИРОВАННОГО БЛОКНОТА
-  TKOLTabPage = TKOLPanel;
+  TKOLTabPage = class(TKOLPanel)
+      function TypeName: String; override;
+  end;
 
   TKOLTabControl = class( TKOLControl )
   private
     FOptions: TTabControlOptions;
     FImageList: TKOLImageList;
-    FTabs: TList;
+  public FTabs: TList;
+  protected
     FImageList1stIdx: Integer;
     FedgeType: TEdgeStyle;
     FCurPage: TKOLPanel;
     FgenerateConstants: Boolean;
     procedure SetOptions(const Value: TTabControlOptions);
     procedure SetImageList(const Value: TKOLImageList);
-    function GetPages(Idx: Integer): TKOLTabPage;
+    function GetPages(Idx: Integer): TKOLPanel;
     procedure SetCount(const Value: Integer);
     function GetCount: Integer;
     procedure AdjustPages;
@@ -1782,17 +1868,22 @@ type
     procedure SetupLast(SL: TStringList; const AName, AParent, Prefix: String); override;
     procedure P_SetupLast(SL: TStringList; const AName, AParent, Prefix: String); override;
     procedure SchematicPaint;
+  public
     procedure Paint; override;
     function WYSIWIGPaintImplemented: Boolean; override;
     function NoDrawFrame: Boolean; override;
-    function GetCurrentPage: TKOLTabPage;
+    function GetCurrentPage: TKOLPanel;
     procedure DoGenerateConstants( SL: TStringList ); override;
   public
     function Pcode_Generate: Boolean; override;
     constructor Create( AOwner: TComponent ); override;
     destructor Destroy; override;
-    property Pages[ Idx: Integer ]: TKOLTabPage read GetPages;
+    property Pages[ Idx: Integer ]: TKOLPanel read GetPages;
     procedure SetBounds( aLeft, aTop, aWidth, aHeight: Integer ); override;
+    function SupportsFormCompact: Boolean; override;
+    procedure SetupConstruct_Compact; override;
+    function HasCompactConstructor: Boolean; override;
+    function IndexOfPage( const page_name: String ): Integer;
   published
     property Transparent;
     property Options: TTabControlOptions read FOptions write SetOptions;
@@ -1819,6 +1910,18 @@ type
     property generateConstants: Boolean read FgenerateConstants write SetgenerateConstants;
     property OnDrawItem;
     property Brush;
+  protected
+    {fNameSetByReader: String;
+    fNewTabControl: Boolean;
+    procedure WhenReaderSetsName(Reader: TReader; Component: TComponent;
+              var AName: string);
+    procedure WhenFindComponentClass(Reader: TReader; const CClassName: string;
+              var CComponentClass: TComponentClass);
+    procedure ReadNewTabControl(Reader: TReader);
+    procedure WriteNewTabControl(Writer: TWriter);
+    procedure DefineProperties(Filer: TFiler); override;}
+  public
+    procedure Loaded; override;
   end;
 
   TKOLTabControlEditor = class( TComponentEditor )
@@ -1856,6 +1959,8 @@ type
     function TypeName: String; override;
   public
     function Pcode_Generate: Boolean; override;
+    function SupportsFormCompact: Boolean; override;
+    procedure SetupConstruct_Compact; override;
   published
     constructor Create( AOwner: TComponent ); override;
     property ScrollBars: TScrollBars read FScrollBars write SetScrollBars;
@@ -1905,6 +2010,8 @@ type
   public
     function Pcode_Generate: Boolean; override;
     constructor Create( AOwner: TComponent ); override;
+    function SupportsFormCompact: Boolean; override;
+    procedure SetupConstruct_Compact; override;
   published
     property popupMenu;
     property SBMin: Integer read FSBMin write SetSBMin;
@@ -1929,7 +2036,7 @@ begin
     TKOLSplitter, TKOLGradientPanel, TKOLGroupBox, TKOLCheckBox, TKOLRadioBox,
     TKOLEditBox, TKOLMemo, TKOLRichEdit, TKOLListBox, TKOLComboBox, TKOLPaintBox,
     TKOLProgressBar, TKOLListView, TKOLTreeView, TKOLToolbar, TKOLTabControl,
-    TKOLDateTimePicker, TKOLImageShow, TKOLScrollBox, TKOLScrollBar,
+    TKOLTabPage, TKOLDateTimePicker, TKOLImageShow, TKOLScrollBox, TKOLScrollBar,
     TKOLMDIClient ] );
   RegisterPropertyEditor( TypeInfo( string ), TKOLToolbar, 'buttons',
                           TKOLToolbarButtonsEditor );
@@ -2142,6 +2249,54 @@ begin
     Rpt( 'Button has bitmap, generating code SetBittonBitmap', WHITE );
     Result := Result + '.SetButtonBitmap( LoadBitmap( hInstance, ''' +
            ImageResourceName + ''' ) )';
+  end;
+end;
+
+procedure TKOLButton.GenerateTransparentInits_Compact;
+var KF: TKOLForm;
+begin
+  inherited;
+  KF := ParentKOLForm;
+  if  KF = nil then Exit;
+  if  not KF.FormCompact then Exit;
+  if assigned( FimageIcon ) and not FimageIcon.Empty
+    {$IFDEF _D2orD3}
+       {$IFDEF ICON_DIFF_WH}
+       and (FimageIcon.Width > 0) and (FimageIcon.Height > 0)
+       {$ELSE}
+       and (FImageIcon.Size > 0)
+       {$ENDIF}
+    {$ENDIF}
+  then
+  begin
+      if
+      {$IFDEF ICON_DIFF_WH}
+      (FimageIcon.Width = 32) and (FimageIcon.Height = 32)
+      {$ELSE}
+      FImageIcon.Size = 32
+      {$ENDIF}
+      then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetButtonIcon' );
+          KF.FormAddStrParameter( ImageResourceName );
+      end
+          else
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetButtonImage' );
+          {$IFDEF ICON_DIFF_WH}
+          KF.FormAddNumParameter( FImageIcon.Width );
+          {$ELSE}
+          KF.FormAddNumParameter( FImageIcon.Size );
+          {$ENDIF}
+          KF.FormAddNumParameter( FImageIcon.Size );
+          KF.FormAddStrParameter( ImageResourceName );
+      end;
+  end
+    else
+  if Assigned( FimageBitmap ) and not FimageBitmap.Empty then
+  begin
+      KF.FormAddCtlCommand( Name, 'FormSetButtonBitmap' );
+      KF.FormAddStrParameter( ImageResourceName );
   end;
 end;
 
@@ -2492,6 +2647,7 @@ begin
   if ( csLoading in ComponentState ) then Exit;
   if Assigned( FImage.Graphic ) and (FImage.Graphic is TBitmap) then
   begin
+    Free_And_Nil( FimageIcon );
     if FimageBitmap = nil then
       FImageBitmap := TBitmap.Create;
     FimageBitmap.Assign( FImage.Bitmap );
@@ -2499,11 +2655,19 @@ begin
     else
   if Assigned( FImage.Graphic ) and (FImage.Graphic is TIcon) then
   begin
+    FImageBitmap.Free;
+    FImageBitmap := nil;
     if FimageIcon = nil then
       FImageIcon := NewIcon;
     FImageIcon.Handle := DuplicateIcon( hInstance, FImage.Icon.Handle );
     {if FImageIcon.Size = 32 then
       ShowMessage( 'wayay Setmage:32' );}
+  end
+    else
+  begin
+     FImageBitmap.Free;
+     FImageBitmap := nil;
+     Free_And_Nil( FimageIcon );
   end;
   Change;
 end;
@@ -2521,10 +2685,21 @@ begin
   inherited;
 end;
 
+procedure TKOLButton.SetupConstruct_Compact;
+var KF: TKOLForm;
+begin
+    inherited;
+    KF := ParentKOLForm;
+    if  KF = nil then Exit;
+    KF.FormAddAlphabet( 'FormNewButton', TRUE, TRUE );
+    KF.FormAddStrParameter( Caption );
+end;
+
 procedure TKOLButton.SetupFirst(SL: TStringList; const AName, AParent,
   Prefix: String);
 var Updated: Boolean;
     TmpIcon: TIcon;
+    KF: TKOLForm;
 begin
   asm
     jmp @@e_signature
@@ -2533,26 +2708,49 @@ begin
   @@e_signature:
   end;
   inherited;
-  if Flat then
-    if Windowed then
-      SL.Add( Prefix + AName + '.Style := ' + AName + '.Style or BS_FLAT;' )
-    else
-      SL.Add( Prefix + AName + '.Flat := TRUE;' );
-  if WordWrap and Windowed then
-    SL.Add( Prefix + AName + '.Style := ' + AName + '.Style or BS_MULTILINE;' );
+  KF := ParentKOLForm;
+  if  Flat then
+      if  Windowed then
+          if  (KF <> nil) and KF.FormCompact then
+          begin
+              KF.FormAddCtlCommand( Name, 'FormSetStyle' );
+              KF.FormAddNumParameter( BS_FLAT );
+          end else
+          SL.Add( Prefix + AName + '.Style := ' + AName + '.Style or BS_FLAT;' )
+  else if  (KF <> nil) and KF.FormCompact then
+       begin
+           KF.FormAddCtlCommand( Name, 'TControl.SetFlat' );
+           // param = 1
+       end else
+       SL.Add( Prefix + AName + '.Flat := TRUE;' );
 
-  if assigned( FimageIcon ) and not FimageIcon.Empty
-    {$IFDEF _D2orD3}
+  if  WordWrap and Windowed then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetStyle' );
+          KF.FormAddNumParameter( BS_MULTILINE );
+      end else
+      SL.Add( Prefix + AName + '.Style := ' + AName + '.Style or BS_MULTILINE;' );
+
+  if  assigned( FimageIcon ) and not FimageIcon.Empty
+      {$IFDEF _D2orD3}
        {$IFDEF ICON_DIFF_WH}
        and (Fimageicon.Width > 0) and (Fimageicon.Height > 0)
        {$ELSE}
        and (FImageIcon.Size > 0)
        {$ENDIF}
-    {$ENDIF}
+      {$ENDIF}
   then
   begin
       Rpt( 'Button has icon, generate resource', WHITE );
-      SL.Add( '{$R ' + ImageResourceName + '.res}' );
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          (SL as TFormStringList).OnAdd := nil;
+          SL.Add( '{$R ' + ImageResourceName + '.res}' );
+          (SL as TFormStringList).OnAdd := KF.DoFlushFormCompact;
+      end
+        else
+          SL.Add( '{$R ' + ImageResourceName + '.res}' );
       TmpIcon := TIcon.Create;
       TRY
         TmpIcon.Handle := DuplicateIcon( hInstance, FImageIcon.Handle );
@@ -2562,13 +2760,20 @@ begin
         TmpIcon.Free;
       END;
   end
-    else
-  if Assigned( FimageBitmap ) and not FimageBitmap.Empty then
+     else
+  if  Assigned( FimageBitmap ) and not FimageBitmap.Empty then
   begin
-    Rpt( 'Button has bitmap, generate resource', WHITE );
-    SL.Add( '{$R ' + ImageResourceName + '.res}' );
-    GenerateBitmapResource( FimageBitmap, ImageResourceName, ImageResourceName,
-                         Updated );
+      Rpt( 'Button has bitmap, generate resource', WHITE );
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          (SL as TFormStringList).OnAdd := nil;
+          SL.Add( '{$R ' + ImageResourceName + '.res}' );
+          (SL as TFormStringList).OnAdd := KF.DoFlushFormCompact;
+      end
+        else
+          SL.Add( '{$R ' + ImageResourceName + '.res}' );
+      GenerateBitmapResource( FimageBitmap, ImageResourceName, ImageResourceName,
+                          Updated );
   end;
 end;
 
@@ -2624,9 +2829,6 @@ begin
   Result := AParent + ', ' + C;
 end;
 
-const TextAligns: array[ TTextAlign ] of String = ( 'taLeft', 'taRight', 'taCenter' );
-      VertAligns: array[ TVerticalAlign ] of String = ( 'vaTop', 'vaCenter', 'vaBottom' );
-
 procedure TKOLButton.SetupTextAlign(SL: TStrings; const AName: String);
 begin
   asm
@@ -2635,10 +2837,17 @@ begin
     DB 'TKOLButton.SetupTextAlign', 0
   @@e_signature:
   end;
-  if TextAlign <> taCenter then
-    SL.Add( '    ' + AName + '.TextAlign := KOL.' + TextAligns[ TextAlign ] + ';' );
-  if VerticalAlign <> vaCenter then
-    SL.Add( '    ' + AName + '.VerticalAlign := KOL.' + VertAligns[ VerticalAlign ] + ';' );
+
+  if  TextAlign <> taCenter then
+      GenerateTextAlign( SL, AName );
+
+  if  VerticalAlign <> vaCenter then
+      GenerateVerticalAlign( SL, AName );
+end;
+
+function TKOLButton.SupportsFormCompact: Boolean;
+begin
+    Result := TRUE;
 end;
 
 function TKOLButton.TabStopByDefault: Boolean;
@@ -2661,8 +2870,6 @@ begin
   @@e_signature:
   end;
   Result := inherited TypeName;
-  {if wordWrap then
-    Result := 'WordWrap' + Result;}
 end;
 
 function TKOLButton.WYSIWIGPaintImplemented: Boolean;
@@ -2856,8 +3063,19 @@ begin
   Change;
 end;
 
+procedure TKOLLabel.SetupConstruct_Compact;
+var KF: TKOLForm;
+begin
+   inherited;
+    KF := ParentKOLForm;
+    if  KF = nil then Exit;
+    KF.FormAddAlphabet( 'FormNewLabel', TRUE, TRUE );
+    KF.FormAddStrParameter( Caption );
+end;
+
 procedure TKOLLabel.SetupFirst(SL: TStringList; const AName, AParent,
   Prefix: String);
+var KF: TKOLForm;
 begin
   asm
     jmp @@e_signature
@@ -2866,8 +3084,14 @@ begin
   @@e_signature:
   end;
   inherited;
-  if ShowAccelChar then
-    SL.Add( Prefix + AName + '.Style := ' + AName + '.Style and not SS_NOPREFIX;' );
+  KF := ParentKOLForm;
+  if  ShowAccelChar then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormResetStyles' );
+          KF.FormAddNumParameter( SS_NOPREFIX );
+      end else
+      SL.Add( Prefix + AName + '.Style := ' + AName + '.Style and not SS_NOPREFIX;' );
 end;
 
 function TKOLLabel.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
@@ -2905,10 +3129,11 @@ begin
     DB 'TKOLLabel.SetupTextAlign', 0
   @@e_signature:
   end;
-  if TextAlign <> taLeft then
-    SL.Add( '    ' + AName + '.TextAlign := KOL.' + TextAligns[ TextAlign ] + ';' );
-  if VerticalAlign <> vaTop then
-    SL.Add( '    ' + AName + '.VerticalAlign := KOL.' + VertAligns[ VerticalAlign ] + ';' );
+  if  TextAlign <> taLeft then
+      GenerateTextAlign( SL, AName );
+
+  if  VerticalAlign <> vaTop then
+      GenerateVerticalAlign( SL, AName );
 end;
 
 procedure TKOLLabel.Set_VertAlign(const Value: TVerticalAlign);
@@ -2922,6 +3147,11 @@ begin
   inherited VerticalAlign := AdjustVerticalAlign( Value );
 end;
 
+function TKOLLabel.SupportsFormCompact: Boolean;
+begin
+    Result := TRUE;
+end;
+
 function TKOLLabel.TypeName: String;
 begin
   asm
@@ -2931,8 +3161,6 @@ begin
   @@e_signature:
   end;
   Result := inherited TypeName;
-  {if wordWrap then
-    Result := 'WordWrap' + Result;}
 end;
 
 function TKOLLabel.WYSIWIGPaintImplemented: Boolean;
@@ -3235,14 +3463,23 @@ begin
   inherited;
 end;
 
+procedure TKOLPanel.SetupConstruct_Compact;
+var KF: TKOLForm;
+begin
+    inherited;
+    KF := ParentKOLForm;
+    if  KF = nil then Exit;
+    KF.FormAddAlphabet( 'FormNewPanel', TRUE, TRUE );
+    KF.FormAddNumParameter( Integer( EdgeStyle ) );
+end;
+
 procedure TKOLPanel.SetupFirst(SL: TStringList; const AName,
   AParent, Prefix: String);
-var
+var KF: TKOLForm;
+    C: String;
 {$IFDEF _D2009orHigher}
-  C, C2: WideString;
- i : integer;
-{$ELSE}
-  C: string;
+    C2: WideString;
+    i : integer;
 {$ENDIF}
 begin
   asm
@@ -3255,18 +3492,33 @@ begin
   if Parent <> nil then
   if Parent is TKOLTabControl then
     Exit; // this is not a panel, but a tab page on tab control.
-  if Caption <> '' then
-   begin
-    C := StringConstant('Caption', Caption);
-    {$IFDEF _D2009orHigher}
-    C2 := '';
-    for i := 2 to Length(C) - 1 do C2 := C2 + '#'+int2str(ord(C[i]));
-    C := C2;
-    {$ENDIF}
-    SL.Add( Prefix + AName + '.Caption := ' + C + ';' );
-   end;
-  if ShowAccelChar then
-    SL.Add( Prefix + AName + '.Style := ' + AName + '.Style and not SS_NOPREFIX;' );
+  KF := ParentKOLForm;
+  if  Caption <> '' then
+  begin
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetCaption' );
+          KF.FormAddStrParameter( Caption );
+      end
+        else
+      begin
+          C := StringConstant('Caption', Caption);
+          {$IFDEF _D2009orHigher}
+          C2 := '';
+          for i := 2 to Length(C) - 1 do C2 := C2 + '#'+int2str(ord(C[i]));
+          C := C2;
+          {$ENDIF}
+          SL.Add( Prefix + AName + '.Caption := ' + C + ';' );
+      end;
+  end;
+
+  if  ShowAccelChar then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormResetStyles' );
+          KF.FormAddNumParameter( SS_NOPREFIX );
+      end else
+      SL.Add( Prefix + AName + '.Style := ' + AName + '.Style and not SS_NOPREFIX;' );
 end;
 
 function TKOLPanel.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
@@ -3290,10 +3542,11 @@ begin
     DB 'TKOLPanel.SetupTextAlign', 0
   @@e_signature:
   end;
-  if TextAlign <> taLeft then
-    SL.Add( '    ' + AName + '.TextAlign := KOL.' + TextAligns[ TextAlign ] + ';' );
-  if VerticalAlign <> vaTop then
-    SL.Add( '    ' + AName + '.VerticalAlign := KOL.' + VertAligns[ VerticalAlign ] + ';' );
+  if  TextAlign <> taLeft then
+      GenerateTextAlign( SL, AName );
+
+  if  VerticalAlign <> vaTop then
+      GenerateVerticalAlign( SL, AName );
 end;
 
 procedure TKOLPanel.Set_VA(const Value: TVerticalAlign);
@@ -3308,6 +3561,11 @@ begin
     inherited VerticalAlign := vaCenter
   else
     inherited VerticalAlign := Value;
+end;
+
+function TKOLPanel.SupportsFormCompact: Boolean;
+begin
+    Result := TRUE;
 end;
 
 function TKOLPanel.WYSIWIGPaintImplemented: Boolean;
@@ -3485,6 +3743,21 @@ begin
   Result := inherited GenerateTransparentInits;
   if LikeSpeedButton then
     Result := Result + '.LikeSpeedButton';
+end;
+
+procedure TKOLBitBtn.GenerateTransparentInits_Compact;
+var KF: TKOLForm;
+begin
+  if autoAdjustSize then
+  begin
+      DefaultWidth := Width;
+      DefaultHeight := Height;
+  end;
+  inherited;
+  KF := ParentKOLForm;
+  if  (KF = nil) or not KF.FormCompact then Exit;
+  if  LikeSpeedButton then
+      KF.FormAddCtlCommand( Name, 'TControl.LikeSpeedButton' );
 end;
 
 function TKOLBitBtn.NoDrawFrame: Boolean;
@@ -3931,9 +4204,33 @@ begin
   Change;
 end;
 
+procedure TKOLBitBtn.SetupConstruct_Compact;
+var KF: TKOLForm;
+begin
+    inherited;
+    KF := ParentKOLForm;
+    if  KF = nil then Exit;
+    KF.FormAddAlphabet( 'FormNewBitBtn', TRUE, TRUE );
+    KF.FormAddStrParameter( Caption );
+    KF.FormAddNumParameter( OptionsAsInteger );
+    KF.FormAddNumParameter( Integer( GlyphLayout ) );
+    if (GlyphBitmap <> nil) and
+       (GlyphBitmap.Width <> 0) and (GlyphBitmap.Height <> 0) then
+    begin
+        KF.FormAddStrParameter( Name + '_BITMAP' );
+        KF.FormAddNumParameter( GlyphCount );
+    end
+      else
+    begin
+        KF.FormAddStrParameter( '' );
+        KF.FormAddNumParameter( 0 );
+    end;
+end;
+
 procedure TKOLBitBtn.SetupFirst(SL: TStringList; const AName,
   AParent, Prefix: String);
 var RName: String;
+    KF: TKOLForm;
 begin
   asm
     jmp @@e_signature
@@ -3941,6 +4238,9 @@ begin
     DB 'TKOLBitBtn.SetupFirst', 0
   @@e_signature:
   end;
+
+  KF := ParentKOLForm;
+
   if ImageList = nil then
   if Assigned( GlyphBitmap ) and
      (GlyphBitmap.Width <> 0) and (GlyphBitmap.Height <> 0) then
@@ -3949,27 +4249,74 @@ begin
     Rpt( 'Prepare resource ' + RName + ' (' + UpperCase( Name + '_BITMAP' ) +
       ')', WHITE );
     GenerateBitmapResource( GlyphBitmap, UpperCase( Name + '_BITMAP' ), RName, fUpdated );
+    if  (KF <> nil) and KF.FormCompact and SupportsFormCompact then
+    begin
+        (SL as TFormStringList).OnAdd := nil;
+        SL.Add( Prefix + '{$R ' + RName + '.res}' );
+        (SL as TFormStringList).OnAdd := KF.DoFlushFormCompact;
+    end else
     SL.Add( Prefix + '{$R ' + RName + '.res}' );
   end;
+
   inherited;
-  if (Height = DefaultHeight) or autoAdjustSize then
-  if imageList <> nil then
-  if ImageIndex >= 0 then
-    SL.Add( Prefix + AName + '.Height := ' + IntToStr( Height ) + ';' );
-  if (Width = DefaultWidth) or autoAdjustSize then
-  if imageList <> nil then
-  if ImageIndex >= 0 then
-    SL.Add( Prefix + AName + '.Width := ' + IntToStr( Width ) + ';' );
-  if RepeatInterval > 0 then
-    SL.Add( Prefix + AName + '.RepeatInterval := ' + IntToStr( RepeatInterval ) + ';' );
-  if Flat then
-    SL.Add( Prefix + AName + '.Flat := TRUE;' );
-  if BitBtnDrawMnemonic then
-    SL.Add( Prefix + AName + '.BitBtnDrawMnemonic := TRUE;' );
-  if TextShiftX <> 0 then
-    SL.Add( Prefix + AName + '.TextShiftX := ' + IntToStr( TextShiftX ) + ';' );
-  if TextShiftY <> 0 then
-    SL.Add( Prefix + AName + '.TextShiftY := ' + IntToStr( TextShiftY ) + ';' );
+  if  (Height = DefaultHeight) or autoAdjustSize then
+  if  imageList <> nil then
+  if  ImageIndex >= 0 then
+      if  (KF <> nil) and KF.FormCompact and SupportsFormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetHeight' );
+          KF.FormAddNumParameter( Height );
+      end else
+      SL.Add( Prefix + AName + '.Height := ' + IntToStr( Height ) + ';' );
+
+  if  (Width = DefaultWidth) or autoAdjustSize then
+  if  imageList <> nil then
+  if  ImageIndex >= 0 then
+      if  (KF <> nil) and KF.FormCompact and SupportsFormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetWidth' );
+          KF.FormAddNumParameter( Width );
+      end else
+      SL.Add( Prefix + AName + '.Width := ' + IntToStr( Width ) + ';' );
+
+  if  RepeatInterval > 0 then
+      if  (KF <> nil) and KF.FormCompact and SupportsFormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetRepeatInterval' );
+          KF.FormAddNumParameter( RepeatInterval );
+      end else
+      SL.Add( Prefix + AName + '.RepeatInterval := ' + IntToStr( RepeatInterval ) + ';' );
+
+  if  Flat then
+      if  (KF <> nil) and KF.FormCompact and SupportsFormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'TControl.SetFlat' );
+          // param = 1
+      end else
+      SL.Add( Prefix + AName + '.Flat := TRUE;' );
+
+  if  BitBtnDrawMnemonic then
+      if  (KF <> nil) and KF.FormCompact and SupportsFormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'TControl.SetBitBtnDrawMnemonic' );
+      end else
+      SL.Add( Prefix + AName + '.BitBtnDrawMnemonic := TRUE;' );
+
+  if  TextShiftX <> 0 then
+      if  (KF <> nil) and KF.FormCompact and SupportsFormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetTextShiftX' );
+          KF.FormAddNumParameter( TextShiftX );
+      end else
+      SL.Add( Prefix + AName + '.TextShiftX := ' + IntToStr( TextShiftX ) + ';' );
+
+  if  TextShiftY <> 0 then
+      if  (KF <> nil) and KF.FormCompact and SupportsFormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetTextShiftY' );
+          KF.FormAddNumParameter( TextShiftY );
+      end else
+      SL.Add( Prefix + AName + '.TextShiftY := ' + IntToStr( TextShiftY ) + ';' );
 
 end;
 
@@ -4036,10 +4383,17 @@ begin
     DB 'TKOLBitBtn.SetupTextAlign', 0
   @@e_signature:
   end;
-  if TextAlign <> taCenter then
-    SL.Add( '    ' + AName + '.TextAlign := KOL.' + TextAligns[ TextAlign ] + ';' );
-  if VerticalAlign <> vaCenter then
-    SL.Add( '    ' + AName + '.VerticalAlign := KOL.' + VertAligns[ VerticalAlign ] + ';' );
+
+  if  TextAlign <> taCenter then
+      GenerateTextAlign( SL, AName );
+
+  if  VerticalAlign <> vaCenter then
+      GenerateVerticalAlign( SL, AName );
+end;
+
+function TKOLBitBtn.SupportsFormCompact: Boolean;
+begin
+    Result := ImageList = nil;
 end;
 
 function TKOLBitBtn.TabStopByDefault: Boolean;
@@ -4396,8 +4750,25 @@ begin
   Change;
 end;
 
+procedure TKOLGradientPanel.SetupConstruct_Compact;
+var KF: TKOLForm;
+begin
+    inherited;
+    KF := ParentKOLForm;
+    if  KF = nil then Exit;
+    KF.FormAddAlphabet( 'FormNew' + TypeName, TRUE, TRUE );
+    KF.FormAddNumParameter( Integer( (Color1 shl 1) or (Color1 shr 31) ) );
+    KF.FormAddNumParameter( Integer( (Color2 shl 1) or (Color2 shr 31) ) );
+    if  TypeName = 'GradientPanelEx' then
+    begin
+        KF.FormAddNumParameter( Integer( GradientStyle ) );
+        KF.FormAddNumParameter( Integer( GradientLayout ) );
+    end;
+end;
+
 procedure TKOLGradientPanel.SetupFirst(SL: TStringList; const AName,
   AParent, Prefix: String);
+var KF: TKOLForm;
 begin
   asm
     jmp @@e_signature
@@ -4406,12 +4777,31 @@ begin
   @@e_signature:
   end;
   inherited;
-  if TypeName = 'GradientPanel' then
-    if GradientStyle >= gsHorizontal then
-      SL.Add( Prefix + AName + '.GradientStyle := KOL.' +
-        GradientStyles[ GradientStyle ] + ';' );
-  if HasBorder then
-    SL.Add( Prefix + AName + '.HasBorder := TRUE;' );
+  KF := ParentKOLForm;
+  if  TypeName = 'GradientPanel' then
+      if  GradientStyle >= gsHorizontal then
+          if  (KF <> nil) and KF.FormCompact then
+          begin
+              if  Integer( GradientStyle ) = 1 then
+              begin
+                  KF.FormAddCtlCommand( Name, 'TControl.SetGradientStyle' );
+                  // Param = 1 
+              end
+                else
+              begin
+                  KF.FormAddCtlCommand( Name, 'FormSetGradienStyle' );
+                  KF.FormAddNumParameter( Integer( GradientStyle ) );
+              end;
+          end else
+          SL.Add( Prefix + AName + '.GradientStyle := KOL.' +
+                  GradientStyles[ GradientStyle ] + ';' );
+  if  HasBorder then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'TControl.SetHasBorder' );
+          // param = 1
+      end else
+      SL.Add( Prefix + AName + '.HasBorder := TRUE;' );
 end;
 
 function TKOLGradientPanel.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
@@ -4427,6 +4817,11 @@ begin
     //if GradientStyle >= gsHorizontal then
       Result := Result + ', KOL.' + GradientStyles[ gradientStyle ] + ', ' +
              GradientLayouts[ GradientLayout ];
+end;
+
+function TKOLGradientPanel.SupportsFormCompact: Boolean;
+begin
+    Result := TRUE;
 end;
 
 function TKOLGradientPanel.TabStopByDefault: Boolean;
@@ -4490,6 +4885,7 @@ begin
   DefaultMarginRight := 2;  MarginRight := 2;
   DefaultMarginBottom := 2; MarginBottom := 2;
   FHasBorder := FALSE; FDefHasBorder := FALSE;
+  AcceptChildren := TRUE;
 end;
 
 {$IFDEF _KOLCtrlWrapper_} {YS}
@@ -4569,6 +4965,16 @@ begin
                ' C2';
 end;
 
+procedure TKOLGroupBox.SetupConstruct_Compact;
+var KF: TKOLForm;
+begin
+    inherited;
+    KF := ParentKOLForm;
+    if  KF = nil then Exit;
+    KF.FormAddAlphabet( 'FormNewGroupBox', TRUE, TRUE );
+    KF.FormAddStrParameter( Caption );
+end;
+
 procedure TKOLGroupBox.SetupFirst(SL: TStringList; const AName, AParent,
   Prefix: String);
 {const
@@ -4614,8 +5020,13 @@ end;
 
 procedure TKOLGroupBox.SetupTextAlign(SL: TStrings; const AName: String);
 begin
-  if TextAlign <> taLeft then
-    SL.Add( '    ' + AName + '.TextAlign := KOL.' + TextAligns[ TextAlign ] + ';' );
+    if  TextAlign <> taLeft then
+        GenerateTextAlign( SL, AName );
+end;
+
+function TKOLGroupBox.SupportsFormCompact: Boolean;
+begin
+    Result := TRUE;
 end;
 
 function TKOLGroupBox.TabStopByDefault: Boolean;
@@ -4706,8 +5117,6 @@ begin
   if Checked and (action = nil) then
     //SL.Add( Prefix + AName + '.Checked := TRUE;' );
     {P}SL.Add( ' L(1) C1 TControl_.SetChecked<2>');
-  {if WordWrap then
-    SL.Add( Prefix + AName + '.WordWrap := TRUE;' );}
 end;
 
 function TKOLCheckBox.P_SetupParams(const AName, AParent: String;
@@ -4760,8 +5169,19 @@ begin
   Invalidate;
 end;
 
+procedure TKOLCheckBox.SetupConstruct_Compact;
+var KF: TKOLForm;
+begin
+    inherited;
+    KF := ParentKOLForm;
+    if  KF = nil then Exit;
+    KF.FormAddAlphabet( 'FormNewCheckBox', TRUE, TRUE );
+    KF.FormAddStrParameter( Caption );
+end;
+
 procedure TKOLCheckBox.SetupFirst(SL: TStringList; const AName, AParent,
   Prefix: String);
+var KF: TKOLForm;
 begin
   asm
     jmp @@e_signature
@@ -4770,10 +5190,13 @@ begin
   @@e_signature:
   end;
   inherited;
-  if Checked and (action = nil) then
-    SL.Add( Prefix + AName + '.Checked := TRUE;' );
-  {if WordWrap then
-    SL.Add( Prefix + AName + '.WordWrap := TRUE;' );}
+  KF := ParentKOLForm;
+  if  Checked and (action = nil) then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'TControl.SetChecked' );
+      end else
+      SL.Add( Prefix + AName + '.Checked := TRUE;' );
 end;
 
 function TKOLCheckBox.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
@@ -4804,6 +5227,11 @@ begin
   end;
 {$ENDIF}
   Result := AParent + ', ' + C;
+end;
+
+function TKOLCheckBox.SupportsFormCompact: Boolean;
+begin
+    Result := TRUE;
 end;
 
 function TKOLCheckBox.TabStopByDefault: Boolean;
@@ -4954,14 +5382,34 @@ begin
   end;
 end;
 
+procedure TKOLRadioBox.SetupConstruct_Compact;
+var KF: TKOLForm;
+begin
+    inherited;
+    KF := ParentKOLForm;
+    if  KF = nil then Exit;
+    KF.FormAddAlphabet( 'FormNewRadioBox', TRUE, TRUE );
+    KF.FormAddStrParameter( Caption );
+end;
+
 procedure TKOLRadioBox.SetupLast(SL: TStringList; const AName, AParent,
   Prefix: String);
+var KF: TKOLForm;
 begin
   inherited;
-  if Checked and (action = nil) then
+  KF := ParentKOLForm;
+  if  Checked and (action = nil) then
   begin
-    SL.add( Prefix + AName + '.CreateWindow;' );
-    SL.add( Prefix + AName + '.SetRadioChecked;' );
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'TControl.CreateWindow' ); //'FormCreateWindow' );
+          KF.FormAddCtlCommand( Name, 'TControl.SetRadioChecked' );
+      end
+        else
+      begin
+          SL.add( Prefix + AName + '.CreateWindow;' );
+          SL.add( Prefix + AName + '.SetRadioChecked;' );
+      end;
   end;
 end;
 
@@ -4993,6 +5441,11 @@ begin
   end;
 {$ENDIF}
   Result := AParent + ', ' + C;
+end;
+
+function TKOLRadioBox.SupportsFormCompact: Boolean;
+begin
+    Result := TRUE;
 end;
 
 function TKOLRadioBox.TabStopByDefault: Boolean;
@@ -5246,15 +5699,35 @@ begin
   SetCaption( Value );
 end;
 
+procedure TKOLEditBox.SetUnicode(const Value: Boolean);
+begin
+  if  FUnicode = Value then Exit;
+  FUnicode := Value;
+  Change;
+end;
+
 function TKOLEditBox.SetupColorFirst: Boolean;
 begin
   Result := FALSE;
+end;
+
+procedure TKOLEditBox.SetupConstruct_Compact;
+var KF: TKOLForm;
+    b: PByte;
+begin
+    inherited;
+    KF := ParentKOLForm;
+    if  KF = nil then Exit;
+    KF.FormAddAlphabet( 'FormNewEditBox', TRUE, TRUE );
+    b := @ Options;
+    KF.FormAddNumParameter( b^ );
 end;
 
 procedure TKOLEditBox.SetupFirst(SL: TStringList; const AName,
   AParent, Prefix: String);
 //const
 //  Aligns: array[ TTextAlign ] of String = ( 'taLeft', 'taRight', 'taCenter' );
+var KF: TKOLForm;
 begin
   asm
     jmp @@e_signature
@@ -5263,12 +5736,22 @@ begin
   @@e_signature:
   end;
   inherited;
-  if Text <> '' then
-    AddLongTextField( SL, Prefix + AName + '.Text := ', Text, ';', ' + ' );
-  //if TextAlign <> taLeft then
-  //  SL.Add( Prefix + AName + '.TextAlign := ' + Aligns[ TextAlign ] + ';' );
-  if Transparent then
-    SL.Add( Prefix + AName + '.Ed_Transparent := TRUE;' );
+  KF := ParentKOLForm;
+  if  Text <> '' then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetCaption' );
+          KF.FormAddStrParameter( Text );
+      end else
+      AddLongTextField( SL, Prefix + AName + '.Text := ', Text, ';', ' + ' );
+
+  if  Transparent then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'TControl.EdSetTransparent' );
+          // param = 1
+      end else
+      SL.Add( Prefix + AName + '.Ed_Transparent := TRUE;' );
 end;
 
 function TKOLEditBox.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
@@ -5311,13 +5794,17 @@ end;
 procedure TKOLEditBox.SetupTextAlign(SL: TStrings; const AName: String);
 begin
   inherited;
-  if TextAlign <> taLeft then
-    SL.Add('    ' + AName + '.TextAlign := KOL.' + TextAligns[TextAlign] + ';');
-  //if Unicode then
+  if  TextAlign <> taLeft then
+      GenerateTextAlign( SL, AName );
+  if  Unicode then
   begin
-    SL.Add('    {$IFNDEF UNICODE_CTRLS}' + AName +
-                '.SetUnicode( TRUE );{$ENDIF}' );
+      SL.Add('    {$IFNDEF UNICODE_CTRLS}' + AName + '.SetUnicode( TRUE );{$ENDIF}' );
   end;
+end;
+
+function TKOLEditBox.SupportsFormCompact: Boolean;
+begin
+    Result := TRUE;
 end;
 
 function TKOLEditBox.TabStopByDefault: Boolean;
@@ -5593,11 +6080,46 @@ end;
 
 function TKOLMemo.SetupColorFirst: Boolean;
 begin
-  Result := FALSE;
+ Result := FALSE;
+end;
+
+procedure TKOLMemo.SetupConstruct_Compact;
+var KF: TKOLForm;
+    O: TEditOptions;
+    b: PWord;
+begin
+    inherited;
+    KF := ParentKOLForm;
+    if  KF = nil then Exit;
+    KF.FormAddAlphabet( 'FormNewEditBox', TRUE, TRUE );
+    O := [eoMultiline];
+    if  eo_NoHScroll in Options then
+        O := O + [KOL.eoNoHScroll];
+    if  eo_NoVScroll in Options then
+        O := O + [KOL.eoNoVScroll];
+    if  eo_Lowercase in Options then
+        O := O + [KOL.eoLowercase];
+    if  eo_NoHideSel in Options then
+        O := O + [KOL.eoNoHideSel];
+    if  eo_OemConvert in Options then
+        O := O + [KOL.eoOemConvert];
+    if  eo_Password in Options then
+        O := O + [KOL.eoPassword];
+    if  eo_Readonly in Options then
+        O := O + [KOL.eoReadonly];
+    if  eo_UpperCase in Options then
+        O := O + [KOL.eoUpperCase];
+    if  eo_WantReturn in Options then
+        O := O + [KOL.eoWantReturn];
+    if  eo_WantTab in Options then
+        O := O + [KOL.eoWantTab];
+    b := @ O;
+    KF.FormAddNumParameter( b^ );
 end;
 
 procedure TKOLMemo.SetupFirst(SL: TStringList; const AName,
   AParent, Prefix: String);
+var KF: TKOLForm;
 begin
   asm
     jmp @@e_signature
@@ -5606,12 +6128,22 @@ begin
   @@e_signature:
   end;
   inherited;
-  //if TextAlign <> taLeft then
-  //  SL.Add( Prefix + AName + '.TextAlign := ' + TextAligns[ TextAlign ] + ';' );
-  if FLines.Text <> '' then
-    AddLongTextField( SL, Prefix + AName + '.Text := ', FLines.Text, ';', ' + ' );
-  if Transparent then
-    SL.Add( Prefix + AName + '.Ed_Transparent := TRUE;' );
+  KF := ParentKOLForm;
+  if  FLines.Text <> '' then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetCaption' );
+          KF.FormAddStrParameter( FLines.Text );
+      end else
+      AddLongTextField( SL, Prefix + AName + '.Text := ', FLines.Text, ';', ' + ' );
+
+  if  Transparent then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'TControl.EdSetTransparent' );
+          // param = 1
+      end else
+      SL.Add( Prefix + AName + '.Ed_Transparent := TRUE;' );
 end;
 
 function TKOLMemo.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
@@ -5658,10 +6190,15 @@ end;
 procedure TKOLMemo.SetupTextAlign(SL: TStrings; const AName: String);
 begin
   inherited;
-  if TextAlign <> taLeft then
-    SL.Add('    ' + AName + '.TextAlign := KOL.' + TextAligns[TextAlign] + ';');
+  if  TextAlign <> taLeft then
+      GenerateTextAlign( SL, AName );
   SL.Add('    {$IFNDEF UNICODE_CTRLS}' + AName +
               '.SetUnicode( TRUE );{$ENDIF}' );
+end;
+
+function TKOLMemo.SupportsFormCompact: Boolean;
+begin
+    Result := TRUE;
 end;
 
 function TKOLMemo.TabStopByDefault: Boolean;
@@ -5776,6 +6313,19 @@ begin
   Result := Result + inherited GenerateTransparentInits();
 end;
 { /+ecm }
+
+procedure TKOLListBox.GenerateTransparentInits_Compact;
+var KF: TKOLForm;
+begin
+  inherited;
+  KF := ParentKOLForm;
+  if  KF = nil then Exit;
+  if  fLBItemHeight > 0 then
+  begin
+      KF.FormAddCtlCommand( Name, 'FormSetLVItemHeight' );
+      KF.FormAddNumParameter( fLBItemHeight );
+  end;
+end;
 
 function TKOLListBox.GetCaption: String;
 begin
@@ -5948,14 +6498,27 @@ begin
   Change;
 end;
 
+procedure TKOLListBox.SetupConstruct_Compact;
+var KF: TKOLForm;
+    W: PWord;
+begin
+    inherited;
+    KF := ParentKOLForm;
+    if  KF = nil then Exit;
+    KF.FormAddAlphabet( 'FormNewListBox', TRUE, TRUE );
+    W := @ Options;
+    KF.FormAddNumParameter( W^ );
+end;
+
 procedure TKOLListBox.SetupFirst(SL: TStringList; const AName,
   AParent, Prefix: String);
 var
 {$IFDEF _D2009orHigher}
   C, C2: WideString;
- j : integer;
+  j : integer;
 {$ENDIF}
- I: Integer;
+  I: Integer;
+  KF: TKOLForm;
 begin
   asm
     jmp @@e_signature
@@ -5964,28 +6527,50 @@ begin
   @@e_signature:
   end;
   inherited;
+  KF := ParentKOLForm;
   if FItems.Text <> '' then
   begin
-    for I := 0 to FItems.Count - 1 do
-     begin
-      {$IFDEF _D2009orHigher}
-       C := StringConstant( 'Item' + IntToStr( I ), FItems[ I ] );
-       C2 := '';
-       for j := 2 to Length(C)-1 do C2 := C2 + '#'+int2str(ord(C[j]));
-       C := C2;
-       SL.Add( Prefix + AName + '.Items[ ' + IntToStr( I ) + ' ] := ' + C + ';' );
-      {$ELSE}
-       SL.Add( Prefix + AName + '.Items[ ' + IntToStr( I ) + ' ] := ' +
-               StringConstant( 'Item' + IntToStr( I ), FItems[ I ] ) + ';' );
-      {$ENDIF}
-     end;
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetListItems' );
+          KF.FormAddNumParameter( FItems.Count );
+          for I := 0 to FItems.Count-1 do
+              KF.FormAddStrParameter( FItems[I] );
+      end else
+      for I := 0 to FItems.Count - 1 do
+      begin
+          {$IFDEF _D2009orHigher}
+          C := StringConstant( 'Item' + IntToStr( I ), FItems[ I ] );
+          C2 := '';
+          for j := 2 to Length(C)-1 do C2 := C2 + '#'+int2str(ord(C[j]));
+          C := C2;
+          SL.Add( Prefix + AName + '.Items[ ' + IntToStr( I ) + ' ] := ' + C + ';' );
+          {$ELSE}
+          SL.Add( Prefix + AName + '.Items[ ' + IntToStr( I ) + ' ] := ' +
+                  StringConstant( 'Item' + IntToStr( I ), FItems[ I ] ) + ';' );
+          {$ENDIF}
+      end;
   end;
-  if FCurIndex >= 0 then
-    SL.Add( Prefix + AName + '.CurIndex := ' + IntToStr( FCurIndex ) + ';' );
+  if  (FCurIndex >= 0) and (Items.Count > 0) then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          if  FCurIndex = 1 then
+          begin
+              KF.FormAddCtlCommand( Name, 'TControl.SetCurIdx' );
+              // param = 1
+          end
+            else
+          begin
+              KF.FormAddCtlCommand( Name, 'FormSetCurIdx' );
+              KF.FormAddNumParameter( FCurIndex );
+          end;
+      end else
+      SL.Add( Prefix + AName + '.CurIndex := ' + IntToStr( FCurIndex ) + ';' );
 end;
 
 procedure TKOLListBox.SetupLast(SL: TStringList; const AName, AParent,
   Prefix: String);
+var KF: TKOLForm;
 begin
   asm
     jmp @@e_signature
@@ -5994,9 +6579,23 @@ begin
   @@e_signature:
   end;
   inherited;
-  if loNoData in Options then
-  if Count > 0 then
-    SL.Add( Prefix + AName + '.Count := ' + IntToStr( Count ) + ';' );
+  KF := ParentKOLForm;
+  if  loNoData in Options then
+  if  Count > 0 then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          if  Count = 1 then
+          begin
+              KF.FormAddCtlCommand( Name, 'TControl.SetItemsCount' );
+              // param = 1
+          end
+            else
+          begin
+              KF.FormAddCtlCommand( Name, 'FormSetCount' );
+              KF.FormAddNumParameter( Count );
+          end;
+      end else
+      SL.Add( Prefix + AName + '.Count := ' + IntToStr( Count ) + ';' );
 end;
 
 function TKOLListBox.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
@@ -6038,6 +6637,11 @@ begin
   if S[ 1 ] = ',' then
     S := Copy( S, 3, MaxInt );
   Result := AParent + ', [ ' + S + ' ]';
+end;
+
+function TKOLListBox.SupportsFormCompact: Boolean;
+begin
+    Result := TRUE;
 end;
 
 function TKOLListBox.TabStopByDefault: Boolean;
@@ -6153,6 +6757,20 @@ begin
   if fCBItemHeight > 0 then Result := '.SetLVItemHeight('+IntToStr(fCBItemHeight)+')'
   else Result := '';
   Result := Result + inherited GenerateTransparentInits();
+end;
+
+procedure TKOLComboBox.GenerateTransparentInits_Compact;
+var KF: TKOLForm;
+begin
+    inherited;
+    KF := ParentKOLForm;
+    if  KF = nil then Exit;
+    if  not KF.FormCompact then Exit;
+    if  fCBItemHeight > 0 then
+    begin
+        KF.FormAddCtlCommand( Name, 'FormSetLVItemHeight' );
+        KF.FormAddNumParameter( fCBItemHeight );
+    end;
 end;
 
 function TKOLComboBox.NoDrawFrame: Boolean;
@@ -6287,6 +6905,18 @@ begin
   Invalidate;
 end;
 
+procedure TKOLComboBox.SetupConstruct_Compact;
+var KF: TKOLForm;
+    W: PWord;
+begin
+    inherited;
+    KF := ParentKOLForm;
+    if  KF = nil then Exit;
+    KF.FormAddAlphabet( 'FormNewComboBox', TRUE, TRUE );
+    W := @ Options;
+    KF.FormAddNumParameter( W^ );
+end;
+
 procedure TKOLComboBox.SetupFirst(SL: TStringList; const AName, AParent,
   Prefix: String);
 var
@@ -6295,6 +6925,7 @@ var
  j : integer;
 {$ENDIF}
  I: Integer;
+ KF: TKOLForm;
 begin
   asm
     jmp @@e_signature
@@ -6303,26 +6934,54 @@ begin
   @@e_signature:
   end;
   inherited;
+  KF := ParentKOLForm;
   if FItems.Text <> '' then
   begin
-    for I := 0 to FItems.Count - 1 do
-     begin
-      {$IFDEF _D2009orHigher}
-       C := StringConstant( 'Item' + IntToStr( I ), FItems[ I ] );
-       C2 := '';
-       for j := 2 to Length(C)-1 do C2 := C2 + '#'+int2str(ord(C[j]));
-       C := C2;
-       SL.Add( Prefix + AName + '.Items[ ' + IntToStr( I ) + ' ] := ' + C + ';' );
-      {$ELSE}
-       SL.Add( Prefix + AName + '.Items[ ' + IntToStr( I ) + ' ] := ' +
-               StringConstant( 'Item' + IntToStr( I ), FItems[ I ] ) + ';' );
-      {$ENDIF}
-     end;
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetListItems' );
+          KF.FormAddNumParameter( FItems.Count );
+          for I := 0 to FItems.Count-1 do
+              KF.FormAddStrParameter( FItems[I] );
+      end else
+      for I := 0 to FItems.Count - 1 do
+       begin
+           {$IFDEF _D2009orHigher}
+           C := StringConstant( 'Item' + IntToStr( I ), FItems[ I ] );
+           C2 := '';
+           for j := 2 to Length(C)-1 do C2 := C2 + '#'+int2str(ord(C[j]));
+           C := C2;
+           SL.Add( Prefix + AName + '.Items[ ' + IntToStr( I ) + ' ] := ' + C + ';' );
+           {$ELSE}
+           SL.Add( Prefix + AName + '.Items[ ' + IntToStr( I ) + ' ] := ' +
+                   StringConstant( 'Item' + IntToStr( I ), FItems[ I ] ) + ';' );
+           {$ENDIF}
+       end;
   end;
-  if FCurIndex >= 0 then
-    SL.Add( Prefix + AName + '.CurIndex := ' + IntToStr( FCurIndex ) + ';' );
-  if (FDroppedWidth <> Width) and (FDroppedWidth <> 0) then
-    SL.Add( Prefix + AName + '.DroppedWidth := ' + IntToStr( FDroppedWidth ) + ';' );
+
+  if  (FCurIndex >= 0) and (Items.Count > 0) then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          if  FCurIndex = 1 then
+          begin
+              KF.FormAddCtlCommand( Name, 'TControl.SetCurIdx' );
+              // param = 1
+          end
+            else
+          begin
+              KF.FormAddCtlCommand( Name, 'FormSetCurIdx' );
+              KF.FormAddNumParameter( FCurIndex );
+          end;
+      end else
+      SL.Add( Prefix + AName + '.CurIndex := ' + IntToStr( FCurIndex ) + ';' );
+
+  if  (FDroppedWidth <> Width) and (FDroppedWidth <> 0) then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetDroppedWidth' );
+          KF.FormAddNumParameter( FDroppedWidth );
+      end else
+      SL.Add( Prefix + AName + '.DroppedWidth := ' + IntToStr( FDroppedWidth ) + ';' );
 end;
 
 function TKOLComboBox.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
@@ -6360,6 +7019,11 @@ begin
   if S[ 1 ] = ',' then
     S := Copy( S, 3, MaxInt );
   Result := AParent + ', [ ' + S + ' ]';
+end;
+
+function TKOLComboBox.SupportsFormCompact: Boolean;
+begin
+    Result := TRUE;
 end;
 
 function TKOLComboBox.TabStopByDefault: Boolean;
@@ -6542,6 +7206,17 @@ begin
   Change;
 end;
 
+procedure TKOLSplitter.SetupConstruct_Compact;
+var KF: TKOLForm;
+begin
+    inherited;
+    KF := ParentKOLForm;
+    if  KF = nil then Exit;
+    KF.FormAddAlphabet( 'FormNewSplitter', TRUE, TRUE );
+    KF.FormAddNumParameter( Integer( MinSizePrev ) );
+    KF.FormAddNumParameter( Integer( MinSizeNext ) );
+end;
+
 procedure TKOLSplitter.SetupFirst(SL: TStringList; const AName, AParent,
   Prefix: String);
 begin
@@ -6567,6 +7242,11 @@ begin
   Result := AParent + ', ' + IntToStr( MinSizePrev ) + ', ' + IntToStr( MinSizeNext );
   if EdgeStyle <> esLowered then
     Result := Result + ', ' + Styles[ EdgeStyle ];
+end;
+
+function TKOLSplitter.SupportsFormCompact: Boolean;
+begin
+    Result := TRUE;
 end;
 
 function TKOLSplitter.TypeName: String;
@@ -6621,6 +7301,15 @@ begin
   Result := ' DUP';
 end;
 
+procedure TKOLPaintBox.SetupConstruct_Compact;
+var KF: TKOLForm;
+begin
+    inherited;
+    KF := ParentKOLForm;
+    if  KF = nil then Exit;
+    KF.FormAddAlphabet( 'FormNewPaintBox', TRUE, TRUE );
+end;
+
 function TKOLPaintBox.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
 begin
   asm
@@ -6630,6 +7319,11 @@ begin
   @@e_signature:
   end;
   Result := AParent;
+end;
+
+function TKOLPaintBox.SupportsFormCompact: Boolean;
+begin
+    Result := TRUE;
 end;
 
 { TKOLListView }
@@ -6979,8 +7673,8 @@ procedure TKOLListView.SetupFirst(SL: TStringList; const AName, AParent,
   Prefix: String);
 var I: Integer;
     Col: TKOLListViewColumn;
+    KF: TKOLForm;
     W: Integer;
-    WifUnicode: String;
 {$IFDEF _D2009orHigher}
   C, C2: WideString;
  j : integer;
@@ -6993,57 +7687,116 @@ begin
   @@e_signature:
   end;
   inherited;
-  if Unicode then WifUnicode := 'W' else WifUnicode := '';
-  if (Font.Color <> clWindowText) and (Font.Color <> clNone) and (Font.Color <> clDefault) then
-    SL.Add( Prefix + AName + '.LVTextColor := ' + Color2Str( Font.Color ) + ';' );
-  if (LVTextBkColor <> clDefault) and (LVTextBkColor <> clNone) and (LVTextBkColor <> clWindow) then
-    SL.Add( Prefix + AName + '.LVTextBkColor := ' + Color2Str( LVTextBkColor ) + ';' );
-  if (LVBkColor <> clDefault) and (LVBkColor <> clNone) and (LVBkColor <> clWindow) then
-    SL.Add( Prefix + AName + '.LVBkColor := ' + Color2Str( LVBkColor ) + ';' );
-  for I := 0 to Cols.Count-1 do
-  begin
-    Col := Cols[ I ];
-    W := Col.Width;
-    if Col.FLVColRightImg then
-      W := -W;
-      {$IFDEF _D2009orHigher}
-       C := StringConstant( 'Column' + IntToStr( I ) + 'Caption', Col.Caption );
-       if C <> '''''' then
+  KF := ParentKOLForm;
+  if  (Font.Color <> clWindowText) and (Font.Color <> clNone) and (Font.Color <> clDefault) then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetLVTextColor' );
+          KF.FormAddNumParameter( (Font.Color shl 1) or (Font.Color shr 31) );
+      end else
+      SL.Add( Prefix + AName + '.LVTextColor := ' + Color2Str( Font.Color ) + ';' );
+
+  if  (LVTextBkColor <> clDefault) and (LVTextBkColor <> clNone) and (LVTextBkColor <> clWindow) then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetLVTextBkColor' );
+          KF.FormAddNumParameter( (LVTextBkColor shl 1) or (LVTextBkColor shr 31) );
+      end else
+      SL.Add( Prefix + AName + '.LVTextBkColor := ' + Color2Str( LVTextBkColor ) + ';' );
+
+  if  (LVBkColor <> clDefault) and (LVBkColor <> clNone) and (LVBkColor <> clWindow) then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetLVBkColor' );
+          KF.FormAddNumParameter( (LVBkColor shl 1) or (LVBkColor shr 31) );
+      end else
+      SL.Add( Prefix + AName + '.LVBkColor := ' + Color2Str( LVBkColor ) + ';' );
+
+    if  (KF <> nil) and KF.FormCompact and (Cols.Count > 0) then
+    begin
+        KF.FormAddCtlCommand( Name, 'FormLVColumsAdd' );
+        KF.FormAddNumParameter( Cols.Count );
+        for I := 0 to Cols.Count-1 do
         begin
-         C2 := '';
-         for j := 2 to Length(C)-1 do C2 := C2 + '#'+int2str(ord(C[j]));
-         C := C2;
+            Col := Cols[ I ];
+            W := Col.Width;
+            if  Col.FLVColRightImg then
+                W := -W;
+            KF.FormAddNumParameter( W );
+            KF.FormAddStrParameter( Col.Caption );
         end;
-       SL.Add( Prefix + AName + '.LVColAdd' + WifUnicode + '( ' +
-                 C + ', ' +
-               TextAligns[ Col.TextAlign ] + ', ' + IntToStr( W ) + ');' );
-      {$ELSE}
-       SL.Add( Prefix + AName + '.LVColAdd' + WifUnicode + '( ' +
-               StringConstant( 'Column' + IntToStr( I ) + 'Caption',
-               Col.Caption ) + ', ' +
-               TextAligns[ Col.TextAlign ] + ', ' + IntToStr( W ) + ');' );
-      {$ENDIF}
-    if Col.LVColImage >= 0 then
-      SL.Add( Prefix + AName + '.LVColImage[ ' + IntToStr( I ) + ' ] := ' +
-              IntToStr( Col.LVColImage ) + ';' );
-  end;
-  for I := 0 to Cols.Count-1 do
-  begin
-    Col := Cols[ I ];
-    if Col.LVColOrder >= 0 then
-    if Col.LVColOrder <> I then
-      SL.Add( Prefix + AName + '.LVColOrder[ ' + IntToStr( I ) + ' ] := ' +
-              IntToStr( Col.LVColOrder ) + ';' );
-  end;
-  //+++++++++++++++++++++++++++++ 2.93
-  if (lvoEditLabel in Options) and not Assigned( OnEndEditLVItem ) then
-  begin
-      SL.Add( Prefix + AName + '.OnEndEditLVItem := nil;' );
-  end;
+        for I := 0 to Cols.Count-1 do
+        begin
+            Col := Cols[ I ];
+            if  Col.LVColImage >= 0 then
+            begin
+                KF.FormAddCtlCommand( Name, 'FormSetLVColImage' );
+                KF.FormAddNumParameter( I );
+                KF.FormAddNumParameter( Col.LVColImage );
+            end;
+            if  Col.LVColOrder >= 0 then
+            if  Col.LVColOrder <> I then
+            begin
+                KF.FormAddCtlCommand( Name, 'FormSetLVColOrder' );
+                KF.FormAddNumParameter( I );
+                KF.FormAddNumParameter( Col.LVColOrder );
+            end;
+        end;
+    end
+      else
+    begin
+        for I := 0 to Cols.Count-1 do
+        begin
+            Col := Cols[ I ];
+            W := Col.Width;
+            if  Col.FLVColRightImg then
+                W := -W;
+            begin
+                {$IFDEF _D2009orHigher}
+                C := StringConstant( 'Column' + IntToStr( I ) + 'Caption', Col.Caption );
+                if C <> '''''' then
+                begin
+                    C2 := '';
+                    for j := 2 to Length(C)-1 do
+                        C2 := C2 + '#'+int2str(ord(C[j]));
+                    C := C2;
+                end;
+                SL.Add( Prefix + AName + '.LVColAdd( ' +
+                        C + ', ' +
+                        TextAligns[ Col.TextAlign ] + ', ' + IntToStr( W ) + ');' );
+                {$ELSE}
+                SL.Add( Prefix + AName + '.LVColAdd' + '( ' +
+                        StringConstant( 'Column' + IntToStr( I ) + 'Caption',
+                        Col.Caption ) + ', ' +
+                        TextAligns[ Col.TextAlign ] + ', ' + IntToStr( W ) + ');' );
+                {$ENDIF}
+                if  Col.LVColImage >= 0 then
+                    SL.Add( Prefix + AName + '.LVColImage[ ' + IntToStr( I ) + ' ] := ' +
+                            IntToStr( Col.LVColImage ) + ';' );
+            end;
+        end;
+        for I := 0 to Cols.Count-1 do
+        begin
+            Col := Cols[ I ];
+            if  Col.LVColOrder >= 0 then
+            if  Col.LVColOrder <> I then
+                SL.Add( Prefix + AName + '.LVColOrder[ ' + IntToStr( I ) + ' ] := ' +
+                        IntToStr( Col.LVColOrder ) + ';' );
+        end;
+        //+++++++++++++++++++++++++++++ 2.93
+    end;
+    if (lvoEditLabel in Options) and not Assigned( OnEndEditLVItem ) then
+    begin
+        (SL as TFormStringList).OnAdd := nil;
+        SL.Add( Prefix + AName + '.OnEndEditLVItem := nil;' );
+        if  KF <> nil then
+            (SL as TFormStringList).OnAdd := KF.DoFlushFormCompact;
+    end;
 end;
 
 procedure TKOLListView.SetupLast(SL: TStringList; const AName, AParent,
   Prefix: String);
+var KF: TKOLForm;
 begin
   asm
     jmp @@e_signature
@@ -7052,8 +7805,14 @@ begin
   @@e_signature:
   end;
   inherited;
-  if LVCount > 0 then
-    SL.Add( Prefix + AName + '.LVCount := ' + IntToStr( LVCount ) + ';' );
+  KF := ParentKOLForm;
+  if  LVCount > 0 then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetCount' );
+          KF.FormAddNumParameter( LVCount );
+      end else
+      SL.Add( Prefix + AName + '.LVCount := ' + IntToStr( LVCount ) + ';' );
 end;
 
 function TKOLListView.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
@@ -7273,6 +8032,7 @@ procedure TKOLListView.P_SetupFirst(SL: TStringList; const AName, AParent,
   Prefix: String);
 var I: Integer;
     Col: TKOLListViewColumn;
+    KF: TKOLForm;
     W: Integer;
     WifUnicode: String;
 begin
@@ -7283,7 +8043,8 @@ begin
   @@e_signature:
   end;
   inherited;
-  if Unicode then WifUnicode := 'W' else WifUnicode := '';
+  KF := ParentKOLForm;
+  if (KF <> nil) and KF.Unicode then WifUnicode := 'W' else WifUnicode := '';
   if (Font.Color <> clWindowText) and (Font.Color <> clNone) and (Font.Color <> clDefault) then
     //SL.Add( Prefix + AName + '.LVTextColor := ' + Color2Str( Font.Color ) + ';' );
     {P}SL.Add( ' L($' + IntToHex( Font.Color, 6 ) + ')' +
@@ -7481,6 +8242,28 @@ begin
                              [ @ OnDeleteLVItem, @ OnLVCustomDraw
                   (*{$IFNDEF _D2}, @ OnLVDataW {$ENDIF _D2}*) ],
                   [ TRUE, TRUE ], CheckOnly );
+end;
+
+procedure TKOLListView.GenerateTransparentInits_Compact;
+begin
+  inherited;
+
+end;
+
+procedure TKOLListView.SetupConstruct_Compact;
+var KF: TKOLForm;
+begin
+    inherited;
+    KF := ParentKOLForm;
+    if  KF = nil then Exit;
+    KF.FormAddAlphabet( 'FormNewListView', TRUE, TRUE );
+    KF.FormAddNumParameter( Integer( Style ) );
+    KF.FormAddNumParameter( PInteger( @ Options )^ );
+end;
+
+function TKOLListView.SupportsFormCompact: Boolean;
+begin
+    Result := TRUE;
 end;
 
 { TKOLTreeView }
@@ -7733,8 +8516,19 @@ begin
   Change;
 end;
 
+procedure TKOLTreeView.SetupConstruct_Compact;
+var KF: TKOLForm;
+begin
+    inherited;
+    KF := ParentKOLForm;
+    if  KF = nil then Exit;
+    KF.FormAddAlphabet( 'FormNewTreeView', TRUE, TRUE );
+    KF.FormAddNumParameter( PInteger( @ Options )^ );
+end;
+
 procedure TKOLTreeView.SetupFirst(SL: TStringList; const AName, AParent,
   Prefix: String);
+var KF: TKOLForm;
 begin
   asm
     jmp @@e_signature
@@ -7743,10 +8537,22 @@ begin
   @@e_signature:
   end;
   inherited;
-  if TVRightClickSelect then
-    SL.Add( Prefix + AName + '.TVRightClickSelect := TRUE;' );
-  if TVIndent > 0 then
-    SL.Add( Prefix + AName + '.TVIndent := ' + IntToStr( TVIndent ) + ';' );
+  KF := ParentKOLForm;
+  if  TVRightClickSelect then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'TKOLControl.SetTVRightClickSelect' );
+          // param = 1
+      end else
+      SL.Add( Prefix + AName + '.TVRightClickSelect := TRUE;' );
+
+  if  TVIndent > 0 then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetTVIndent' );
+          KF.FormAddNumParameter( TVIndent );
+      end else
+      SL.Add( Prefix + AName + '.TVIndent := ' + IntToStr( TVIndent ) + ';' );
 end;
 
 function TKOLTreeView.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
@@ -7807,6 +8613,11 @@ begin
       ILSt := ImageListState.ParentFORM.Name +'.'+ ImageListState.Name;
   end;
   Result := AParent + ', [ ' + O + ' ], ' + ILNr + ', ' + ILSt;
+end;
+
+function TKOLTreeView.SupportsFormCompact: Boolean;
+begin
+    Result := TRUE;
 end;
 
 function TKOLTreeView.TabStopByDefault: Boolean;
@@ -7894,7 +8705,7 @@ begin
       Include(opts, kol.eoNoVScroll);
     if eo_UpperCase in FOptions then
       Include(opts, kol.eoUpperCase);
-    FKOLCtrl:=NewRichEdit(KOLParentCtrl, opts);
+    FKOLCtrl := NewRichEdit(KOLParentCtrl, opts);
     LogOK;
   FINALLY
     Log( '<-TKOLRichEdit.CreateKOLControl' );
@@ -7958,6 +8769,16 @@ begin
   Result := inherited GenerateTransparentInits;
   if RE_FmtStandard then
     Result := Result + '.RE_FmtStandard';
+end;
+
+procedure TKOLRichEdit.GenerateTransparentInits_Compact;
+var KF: TKOLForm;
+begin
+  inherited;
+  KF := ParentKOLForm;
+  if  KF = nil then Exit;
+  if  RE_FmtStandard then
+      KF.FormAddCtlCommand( Name, 'TControl.RE_FmtStandard' );
 end;
 
 function TKOLRichEdit.GetCaption: String;
@@ -8315,10 +9136,45 @@ begin
   Result := FALSE;
 end;
 
+procedure TKOLRichEdit.SetupConstruct_Compact;
+var KF: TKOLForm;
+    O: TEditOptions;
+    b: PWord;
+begin
+    inherited;
+    KF := ParentKOLForm;
+    if  KF = nil then Exit;
+    KF.FormAddAlphabet( 'FormNewRichEdit', TRUE, TRUE );
+    O := [eoMultiline];
+    if  eo_NoHScroll in Options then
+        O := O + [KOL.eoNoHScroll];
+    if  eo_NoVScroll in Options then
+        O := O + [KOL.eoNoVScroll];
+    if  eo_Lowercase in Options then
+        O := O + [KOL.eoLowercase];
+    if  eo_NoHideSel in Options then
+        O := O + [KOL.eoNoHideSel];
+    if  eo_OemConvert in Options then
+        O := O + [KOL.eoOemConvert];
+    if  eo_Password in Options then
+        O := O + [KOL.eoPassword];
+    if  eo_Readonly in Options then
+        O := O + [KOL.eoReadonly];
+    if  eo_UpperCase in Options then
+        O := O + [KOL.eoUpperCase];
+    if  eo_WantReturn in Options then
+        O := O + [KOL.eoWantReturn];
+    if  eo_WantTab in Options then
+        O := O + [KOL.eoWantTab];
+    b := @ O;
+    KF.FormAddNumParameter( b^ );
+end;
+
 procedure TKOLRichEdit.SetupFirst(SL: TStringList; const AName, AParent,
   Prefix: String);
 const
   BoolVal: array[ Boolean ] of String = ( 'FALSE', 'TRUE' );
+var KF: TKOLForm;
 begin
   asm
     jmp @@e_signature
@@ -8327,36 +9183,107 @@ begin
   @@e_signature:
   end;
   inherited;
-  if RE_AutoURLDetect then
-    SL.Add( Prefix + AName + '.RE_AutoURLDetect := TRUE;' );
-  if not RE_AutoFont then
-    SL.Add( Prefix + AName + '.RE_AutoFont := FALSE;' );
-  if not RE_AutoFontSizeAdjust then
-    SL.Add( Prefix + AName + '.RE_AutoFontSizeAdjust := FALSE;' );
-  if RE_DualFont then
-    SL.Add( Prefix + AName + '.RE_DualFont := TRUE;' );
-  if RE_UIFonts then
-    SL.Add( Prefix + AName + '.RE_UIFonts := TRUE;' );
-  if RE_IMECancelComplete then
-    SL.Add( Prefix + AName + '.RE_IMECancelComplete := TRUE;' );
-  if RE_IMEAlwaysSendNotify then
-    SL.Add( Prefix + AName + '.RE_IMEAlwaysSendNotify := TRUE;' );
-  if MaxTextSize <> 32767 then
-    if MaxTextSize > $7FFFffff then
-      SL.Add( Prefix + AName + '.MaxTextSize := $' + Int2Hex( MaxTextSize, 8 ) + ';' )
-    else
-      SL.Add( Prefix + AName + '.MaxTextSize := ' + IntToStr( MaxTextSize ) + ';' );
-  if FLines.Text <> '' then
-    AddLongTextField( SL, Prefix + AName + '.Text := ', FLines.Text, ';', ' + ' );
-  if RE_AutoKeybdSet then
-    SL.Add( Prefix + AName + '.RE_AutoKeyboard := ' + BoolVal[ RE_AutoKeyboard ] + ';' );
-  if RE_DisableOverwriteChange then
-    SL.Add( Prefix + AName + '.RE_DisableOverwriteChange := TRUE;' );
-  if RE_Transparent then
-    SL.Add( Prefix + AName + '.RE_Transparent := TRUE;' );
-  if (FRE_ZoomNumerator <> 0) and (FRE_ZoomDenominator <> 0) then
-    SL.Add( Prefix + AName + '.RE_Zoom := MakeSmallPoint( ' + IntToStr( FRE_ZoomNumerator ) +
-      ', ' + IntToStr( FRE_ZoomDenominator ) + ' );' );
+  KF := ParentKOLForm;
+  if  RE_AutoURLDetect then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'TControl.RESetAutoURLDetect' );
+          // param = 1
+      end else
+      SL.Add( Prefix + AName + '.RE_AutoURLDetect := TRUE;' );
+
+  if  not RE_AutoFont then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetRE_AutoFontFalse' );
+      end else
+      SL.Add( Prefix + AName + '.RE_AutoFont := FALSE;' );
+
+  if  not RE_AutoFontSizeAdjust then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetRE_AutoFontSizeAdjustFalse' );
+      end else
+      SL.Add( Prefix + AName + '.RE_AutoFontSizeAdjust := FALSE;' );
+
+  if  RE_DualFont then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetRE_DualFontTrue' );
+      end else
+      SL.Add( Prefix + AName + '.RE_DualFont := TRUE;' );
+
+  if  RE_UIFonts then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetRE_UIFontsTrue' );
+      end else
+      SL.Add( Prefix + AName + '.RE_UIFonts := TRUE;' );
+
+  if  RE_IMECancelComplete then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetRE_IMECancelCompleteTrue' );
+      end else
+      SL.Add( Prefix + AName + '.RE_IMECancelComplete := TRUE;' );
+
+  if  RE_IMEAlwaysSendNotify then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetRE_IMEAlwaysSendNotifyTrue' );
+      end else
+      SL.Add( Prefix + AName + '.RE_IMEAlwaysSendNotify := TRUE;' );
+
+  if  MaxTextSize <> 32767 then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetMaxTextSize' );
+          KF.FormAddNumParameter( MaxTextSize );
+      end else
+      if  MaxTextSize > $7FFFffff then
+          SL.Add( Prefix + AName + '.MaxTextSize := $' + Int2Hex( MaxTextSize, 8 ) + ';' )
+      else
+          SL.Add( Prefix + AName + '.MaxTextSize := ' + IntToStr( MaxTextSize ) + ';' );
+
+  if  FLines.Text <> '' then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetCaption' );
+          KF.FormAddStrParameter( FLines.Text );
+      end else
+      AddLongTextField( SL, Prefix + AName + '.Text := ', FLines.Text, ';', ' + ' );
+
+  if  RE_AutoKeybdSet then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetRE_AutoKeyboardTrue' );
+      end else
+      SL.Add( Prefix + AName + '.RE_AutoKeyboard := ' + BoolVal[ RE_AutoKeyboard ] + ';' );
+
+  if  RE_DisableOverwriteChange then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetRE_DisableOverwriteChangeTrue' );
+      end else
+      SL.Add( Prefix + AName + '.RE_DisableOverwriteChange := TRUE;' );
+
+  if  RE_Transparent then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'TControl.ReSetTransparent' );
+          // param = 1
+      end else
+      SL.Add( Prefix + AName + '.RE_Transparent := TRUE;' );
+
+  if  (FRE_ZoomNumerator <> 0) and (FRE_ZoomDenominator <> 0) then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetRe_Zoom' );
+          KF.FormAddNumParameter( FRE_ZoomNumerator );
+          KF.FormAddNumParameter( FRE_ZoomDenominator );
+      end else
+      SL.Add( Prefix + AName + '.RE_Zoom := MakeSmallPoint( ' + IntToStr( FRE_ZoomNumerator ) +
+        ', ' + IntToStr( FRE_ZoomDenominator ) + ' );' );
 end;
 
 function TKOLRichEdit.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
@@ -8405,6 +9332,11 @@ begin
   end;
   Fversion := Value;
   Change;
+end;
+
+function TKOLRichEdit.SupportsFormCompact: Boolean;
+begin
+    Result := TRUE;
 end;
 
 function TKOLRichEdit.TabStopByDefault: Boolean;
@@ -8640,8 +9572,23 @@ begin
   Change;
 end;
 
+procedure TKOLProgressBar.SetupConstruct_Compact;
+var KF: TKOLForm;
+begin
+    inherited;
+    KF := ParentKOLForm;
+    if  KF = nil then Exit;
+    if  Smooth or Vertical then
+    begin
+        KF.FormAddAlphabet( 'FormNewProgressBarEx', TRUE, TRUE );
+        KF.FormAddNumParameter( Integer(Smooth) or Integer(Vertical) shl 1 );
+    end else
+        KF.FormAddAlphabet( 'FormNewProgressBar', TRUE, TRUE );
+end;
+
 procedure TKOLProgressBar.SetupFirst(SL: TStringList; const AName, AParent,
   Prefix: String);
+var KF: TKOLForm;
 begin
   asm
     jmp @@e_signature
@@ -8650,14 +9597,30 @@ begin
   @@e_signature:
   end;
   inherited;
-  if MaxProgress <> 100 then
-    SL.Add( Prefix + AName + '.MaxProgress := ' + IntToStr( MaxProgress ) + ';' );
-  if Progress <> 0 then
-    SL.Add( Prefix + AName + '.Progress := ' + IntToStr( Progress ) + ';' );
-  if ProgressColor <> clHighLight then
-    SL.Add( Prefix + AName + '.ProgressColor := ' + Color2Str( ProgressColor ) + ';' );
-  {if ProgressBkColor <> clBtnFace then
-    SL.Add( Prefix + AName + '.ProgressBkColor := ' + Color2Str( ProgressBkColor ) + ';' );}
+  KF := ParentKOLForm;
+  if  MaxProgress <> 100 then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetMaxProgress' );
+          KF.FormAddNumParameter( MaxProgress );
+      end else
+      SL.Add( Prefix + AName + '.MaxProgress := ' + IntToStr( MaxProgress ) + ';' );
+
+  if  Progress <> 0 then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetProgress' );
+          KF.FormAddNumParameter( Progress );
+      end else
+      SL.Add( Prefix + AName + '.Progress := ' + IntToStr( Progress ) + ';' );
+
+  if  ProgressColor <> clHighLight then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetProgressColor' );
+          KF.FormAddNumParameter( (ProgressColor shl 1) or (ProgressColor shr 31) );
+      end else
+      SL.Add( Prefix + AName + '.ProgressColor := ' + Color2Str( ProgressColor ) + ';' );
 end;
 
 function TKOLProgressBar.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
@@ -8696,6 +9659,11 @@ begin
   if Assigned(FKOLCtrl) then
     RecreateWnd;
   Change;
+end;
+
+function TKOLProgressBar.SupportsFormCompact: Boolean;
+begin
+    Result := TRUE;
 end;
 
 function TKOLProgressBar.TypeName: String;
@@ -8790,6 +9758,25 @@ begin
   FgenerateConstants := TRUE;
 end;
 
+{procedure TKOLTabControl.DefineProperties(Filer: TFiler);
+begin
+    Beep;
+    inherited;
+    ShowMessage( 'TabControl DefineProperties called' );
+    LogFileOutput( 'C:\log_TC.txt', 'TabControl DefineProperties called' );
+    Filer.DefineProperty( 'NewTabControl', ReadNewTabControl, WriteNewTabControl,
+                          fNewTabControl );
+    if  Filer is TReader then
+    begin
+        (Filer as TReader).OnSetName := WhenReaderSetsName;
+        (Filer as TReader).OnFindComponentClass := WhenFindComponentClass;
+        ShowMessage( 'Filter set for TKOLTabControl!' );
+        LogFileOutput( 'C:\log_TC.txt', 'Filter set' );
+    end;
+    ShowMessage( 'DefineProperties inherited called' );
+    LogFileOutput( 'C:\log_TC.txt', 'inherited DefineProperties called' );
+end;}
+
 destructor TKOLTabControl.Destroy;
 var I: Integer;
 begin
@@ -8807,7 +9794,7 @@ begin
 end;
 
 function CompareTabPages( L: TList; e1, e2: DWORD ): Integer;
-var P1, P2: TKOLTabPage;
+var P1, P2: TKOLPanel;
 begin
   asm
     jmp @@e_signature
@@ -8841,7 +9828,7 @@ end;
 procedure TKOLTabControl.DoGenerateConstants(SL: TStringList);
 var I: Integer;
     C: TComponent;
-    K: TKOLTabPage;
+    K: TKOLPanel;
     Pages: TList;
     F: TForm;
 begin
@@ -8854,8 +9841,8 @@ begin
     for I := 0 to F.ComponentCount-1 do
     begin
       C := F.Components[ I ];
-      if not ( C is TKOLTabPage ) then CONTINUE;
-      K := C as TKOLTabPage;
+      if not ( C is TKOLPanel ) then CONTINUE;
+      K := C as TKOLPanel;
       if K.Parent <> Self then CONTINUE;
       Pages.Add( K );
     end;
@@ -8873,7 +9860,7 @@ end;
 function TKOLTabControl.GetCount: Integer;
 var I: Integer;
     C: TComponent;
-    K: TKOLTabPage;
+    K: TKOLPanel;
     F: TForm;
 begin
   asm
@@ -8889,8 +9876,8 @@ begin
   for I := 0 to F.ComponentCount-1 do
   begin
     C := F.Components[ I ];
-    if not ( C is TKOLTabPage ) then CONTINUE;
-    K := C as TKOLTabPage;
+    if not ( C is TKOLPanel ) then CONTINUE;
+    K := C as TKOLPanel;
     if K.Parent <> Self then CONTINUE;
     Inc( Result );
   end;
@@ -8898,7 +9885,7 @@ end;
 
 function TKOLTabControl.GetCurIndex: Integer;
 var I: Integer;
-    CurPage: TKOLTabPage;
+    CurPage: TKOLPanel;
 begin
   asm
     jmp @@e_signature
@@ -8917,7 +9904,7 @@ begin
     end;
 end;
 
-function TKOLTabControl.GetCurrentPage: TKOLTabPage;
+function TKOLTabControl.GetCurrentPage: TKOLPanel;
 var W: HWnd;
     C: TWinControl;
 begin
@@ -8933,24 +9920,18 @@ begin
     W := GetWindow( Handle, GW_CHILD );
     if W = 0 then Exit;
     C := FindControl( W );
-    if C is TKOLTabPage then
+    if C is TKOLPanel then
     begin
-      Result := C as TKOLTabPage;
+      Result := C as TKOLPanel;
       FCurPage:=Result;
     end;
   end;
-  {Result := nil;
-  W := GetWindow( Handle, GW_CHILD );
-  if W = 0 then Exit;
-  C := FindControl( W );
-  if C is TKOLTabPage then
-    Result := C as TKOLTabPage;}
 end;
 
-function TKOLTabControl.GetPages(Idx: Integer): TKOLTabPage;
+function TKOLTabControl.GetPages(Idx: Integer): TKOLPanel;
 var I: Integer;
     C: TComponent;
-    K: TKOLTabPage;
+    K: TKOLPanel;
     F: TForm;
     L: TList;
 begin
@@ -8969,8 +9950,8 @@ begin
     for I := 0 to F.ComponentCount-1 do
     begin
       C := F.Components[ I ];
-      if not ( C is TKOLTabPage ) then CONTINUE;
-      K := C as TKOLTabPage;
+      if {not ( C is TKOLTabPage ) and} not ( C is TKOLPanel ) then CONTINUE;
+      K := C as TKOLPanel;
       if K.Parent <> Self then CONTINUE;
       L.Add( K );
     end;
@@ -8979,6 +9960,169 @@ begin
   finally
     L.Free;
   end;
+end;
+
+function TKOLTabControl.HasCompactConstructor: Boolean;
+begin
+    {$IFDEF _D4orHigher}
+    Result := TRUE;
+    {$ELSE}
+    Result := FALSE;
+    {$ENDIF} 
+end;
+
+function TKOLTabControl.IndexOfPage(const page_name: String): Integer;
+var i: Integer;
+begin
+    for i := 0 to Count-1 do
+    begin
+        if  Pages[i].Name = page_name then
+        begin
+            Result := i;
+            Exit;
+        end;
+    end;
+    Result := -1;
+end;
+
+{procedure TKOLTabControl.Loaded;
+begin
+  inherited;
+  Beep;
+end;}
+
+procedure TKOLTabControl.Loaded;
+var i, j: Integer;
+    P: TKOLPanel;
+    P2: TKOLTabPage;
+    n: String;
+    L0, L, L2: TList;
+    C: TControl;
+begin
+  inherited;
+  L := TList.Create;
+  L0 := TList.Create;
+  //{}ShowMessage( 'KOLTabPage ' + Name + ' loaded!' );
+  TRY
+      for i := 0 to Count-1 do
+      begin
+          if  Pages[i] is TKOLPanel then
+              L0.Add( Pages[i] );
+      end;
+      for i := 0 to L0.Count-1 do
+      begin
+          P := TKOLPanel( L0[i] );
+          if  (P is TKOLPanel) and not(P is TKOLTabPage) then
+          begin
+              //{}ShowMessage( 'Page ' + IntToStr( i ) + ' will be converted to TKOLTabPage' );
+              P2 := TKOLTabPage.Create( P.Owner );
+              P2.Parent := Self;
+              //{}ShowMessage( 'Page ' + IntToStr( i ) + ' is converting to TKOLTabPage (1) - P2 created ' );
+              n := P.Name;
+              P.Name := '';
+              P2.Name := n; ///////////////////////////////////////
+              //{}ShowMessage( 'Page ' + IntToStr( i ) + ' is converting to TKOLTabPage (2) - name assigned' );
+              P2.BoundsRect := P.BoundsRect; //////////////////////
+              P2.TabOrder := P.TabOrder; //////////////////////////
+              //{}ShowMessage( 'Page ' + IntToStr( i ) + ' is converting to TKOLTabPage (3) - TabOrder assigned' );
+              P2.Align := P.Align; ////////////////////////////////
+              P2.Tag := P.Tag; ////////////////////////////////////
+              P2.IgnoreDefault := P.IgnoreDefault;
+              P2.AnchorLeft := P.AnchorLeft;
+              P2.AnchorTop := P.AnchorTop;
+              P2.AnchorRight := P.AnchorTop;
+              P2.AnchorBottom := P.AnchorBottom;
+              P2.AcceptChildren := TRUE;
+              P2.MouseTransparent := P.MouseTransparent;
+              P2.MinWidth := P.MinWidth;
+              P2.MinHeight := P.MinHeight;
+              P2.MaxWidth := P.MaxWidth;
+              P2.MaxHeight := P.MaxHeight;
+              P2.Visible := P.Visible;
+              P2.Enabled := P.Enabled;
+              P2.DoubleBuffered := P.DoubleBuffered;
+              P2.CenterOnParent := P.CenterOnParent;
+              //{}ShowMessage( 'Page ' + IntToStr( i ) + ' is converting to TKOLTabPage (4) - something assigned' );
+              P2.Caption := P.Caption; ////////////////////////////
+              //{}ShowMessage( 'Page ' + IntToStr( i ) + ' is converting to TKOLTabPage (5) - Caption assigned' );
+              P2.Ctl3D := P.Ctl3D; ////////////////////////////////
+              P2.Color := P.Color; ////////////////////////////////
+              P2.parentColor := P.parentColor; ////////////////////
+              P2.Font.Assign( P.Font );
+              P2.parentFont := P.parentFont;
+              P2.EraseBackground := P.EraseBackground;
+              P2.Localizy := P.Localizy;
+              P2.Transparent := P.Transparent;
+              P2.TextAlign := P.TextAlign;
+              P2.edgeStyle := P.edgeStyle;
+              P2.VerticalAlign := P.VerticalAlign;
+              P2.Border := P.Border;
+              P2.MarginTop := P.MarginTop;
+              P2.MarginBottom := P.MarginBottom;
+              P2.MarginLeft := P.MarginLeft;
+              P2.MarginRight := P.MarginRight;
+              P2.Brush.Assign( P.Brush );
+              P2.ShowAccelChar := P.ShowAccelChar;
+              //{}ShowMessage( 'Page ' + IntToStr( i ) + ' is converting to TKOLTabPage (6) - more props assigned' );
+              L2 := TList.Create;
+              TRY
+                  for j := 0 to P.ControlCount-1 do
+                  begin
+                      C := P.Controls[j];
+                      L2.Add( C );
+                  end;
+                  for j := 0 to L2.Count-1 do
+                  begin
+                      C := TControl( L2[j] );
+                      C.Parent := P2;
+                  end;
+              FINALLY
+                  L2.Free;
+              END;
+              //{}ShowMessage( 'Page ' + IntToStr( i ) + ' was converted to TKOLTabPage' );
+              L.Add( P );
+          end;
+      end;
+      if  L.Count > 0 then
+          ShowMessage( 'Please note that TKOLTabControl component ' + Name +
+          ' was created in elder version of MCK so its pages (' + IntToStr( L.Count ) +
+          ') was converted from TKOLPanel to TKOLTabPage.' + #13#10#13#10 +
+          'To finish converting it remove empty duplicated pages manually ' +
+          '(select it clicking by mouse and delete pressing DELETE key, to ' +
+          'switch pages use double click on tabs as usual). Then' +
+          ' save the form (Ctrl+S) and' +
+          ' answer Yes to a request' +
+          ' for correcting tabs declaration (this should be safe). ' +
+          'Such question will be answered for each tab in the Tab control.' +
+          #13#10#13#10 +
+          '----- translation to Russian -----'#13#10#13#10 +
+          'Обратите внимание, что компонент ' + Name + ' класса TKOLTabControl ' +
+          'был создан в ранних версиях MCK и его страницы отконвертированы ' +
+          'из класса TKOLPanel в TKOLTabPage.' + #13#10#13#10 +
+          'Для завершения конвертирования вручную удалите с табулированного контрола ' +
+          'лишние пустые страницы (выделяя их кликом мыши и нажимая DELETE, для ' +
+          'переключения страниц мспользуйте двойной клик по закладке как обычно). ' +
+          'Затем сохраните форму ' +
+          '(Ctrl+S) и ответьте Yes на запрос с заголовком Error и с текстом вида '#13#10 +
+          '"Field Form1.TabControl1_Tab0 should be of type TKOLTabPage but it is ' +
+          'declared as TKOLPanel. Correct the declaration?". Такой вопрос будет задан ' +
+          'для каждой страницы табулированного контрола отдельно.' );
+      (*for j := 0 to L0.Count-1 do
+      begin
+          P := TKOLPanel( L[j] );
+          if  not(P is TKOLTabPage) and (P is TKOLPanel) then
+          begin
+              //{}ShowMessage( 'Old Page ' + IntToStr( j ) + ' will be destroyed' );
+              P.Parent := nil;
+              //ShowMessage( 'Old Page ' + IntToStr( j ) + ' detached from parent' );
+              P.Free;
+              //{}ShowMessage( 'Old Page ' + IntToStr( j ) + ' freed' );
+          end;
+      end;*)
+  FINALLY
+      L.Free;
+      L0.Free;
+  END;
 end;
 
 function TKOLTabControl.NoDrawFrame: Boolean;
@@ -8991,7 +10135,7 @@ var
   R, CurR: TRect;
   I, Tw, Sx, Sy, W, H: Integer;
   S : String;
-  CurPage: TKOLTabPage;
+  CurPage: TKOLPanel;
   M: PRect;
   DirXX_YY,DirXY_YX:SmallInt;
   O_V, O_B, O_BTN, O_F, O_BRD: Boolean;
@@ -9338,11 +10482,23 @@ begin
   nparams := 3;
 end;
 
+{procedure TKOLTabControl.ReadNewTabControl(Reader: TReader);
+begin
+    ShowMessage( 'Reader is reading NewTabControl property' );
+    LogFileOutput( 'C:\log_TC.txt', 'Reader is reading NewTabControl property' );
+    fNewTabControl := Reader.ReadBoolean;
+    //if  not fNewTabControl then
+    begin
+        Reader.OnFindComponentClass := WhenFindComponentClass;
+        Reader.OnSetName := WhenReaderSetsName;
+    end;
+end;}
+
 procedure TKOLTabControl.SchematicPaint;
 var R: TRect;
     I, Tw, Th: Integer;
     S: String;
-    CurPage: TKOLTabPage;
+    CurPage: TKOLPanel;
     M: PRect;
 begin
   asm
@@ -9417,7 +10573,7 @@ begin
 end;
 
 procedure TKOLTabControl.SetCount(const Value: Integer);
-var Pg: TKOLTabPage;
+var Pg: TKOLPanel;
     I: Integer;
     S: String;
 begin
@@ -9443,9 +10599,7 @@ begin
     Pg.Parent := Self;
     Pg.Name := S;
     Pg.Caption := 'Tab' + IntToStr( I );
-    //Pg.BevelOuter := bvNone;
     Pg.edgeStyle := esNone;
-    //Pg.Align := caClient;
     Inc( I );
   end;
   AdjustPages;
@@ -9454,7 +10608,6 @@ begin
 end;
 
 procedure TKOLTabControl.SetCurIndex(const Value: Integer);
-//var Pg: TKOLTabPage;
 begin
   asm
     jmp @@e_signature
@@ -9473,12 +10626,6 @@ begin
     FCurPage.BringToFront;
     Invalidate;
   end;
-  {Pg := Pages[ Value ];
-  if Pg <> nil then
-  begin
-    Pg.BringToFront;
-    Invalidate;
-  end;}
   Change;
 end;
 
@@ -9542,8 +10689,27 @@ begin
   Change;
 end;
 
+procedure TKOLTabControl.SetupConstruct_Compact;
+var KF: TKOLForm;
+    i: Integer;
+begin
+    inherited;
+    {$IFDEF _D4orHigher}
+    KF := ParentKOLForm;
+    if  KF = nil then Exit;
+    KF.FormAddAlphabet( 'FormNewTabControl', TRUE, TRUE );
+    KF.FormAddNumParameter( Count );
+    for i := 0 to Count-1 do
+        KF.FormAddStrParameter( Pages[i].Caption );
+    KF.FormAddNumParameter( PByte( @ Options )^ );
+    KF.FormAddNumParameter( ImageList1stIdx );
+    {$ELSE}
+    {$ENDIF}
+end;
+
 procedure TKOLTabControl.SetupFirst(SL: TStringList; const AName, AParent,
   Prefix: String);
+var KF: TKOLForm;
 begin
   asm
     jmp @@e_signature
@@ -9552,9 +10718,16 @@ begin
   @@e_signature:
   end;
   inherited;
+  KF := ParentKOLForm;
   case edgeType of
   esLowered:;
-  esRaised: SL.Add( Prefix + AName + '.Style := ' + AName +
+  esRaised:
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetStyle' );
+          KF.FormAddNumParameter( WS_THICKFRAME );
+      end else
+      SL.Add( Prefix + AName + '.Style := ' + AName +
                      '.Style or WS_THICKFRAME;' );
   //esNone, esTransparent, esSolid:   ;
   end;
@@ -9562,6 +10735,7 @@ end;
 
 procedure TKOLTabControl.SetupLast(SL: TStringList; const AName, AParent,
   Prefix: String);
+var KF: TKOLForm;
 begin
   asm
     jmp @@e_signature
@@ -9570,14 +10744,19 @@ begin
   @@e_signature:
   end;
   inherited;
-  if CurIndex > 0 then
+  KF := ParentKOLForm;
+  if  CurIndex > 0 then
   begin
-    //SL.Add( Prefix + '  ' + AName + '.GetWindowHandle;' );
-    //SL.Add( Prefix + '  ' + AName + '.CreateWindow;' );
-    SL.Add( Prefix + '  ' + AName + '.CurIndex := ' + IntToStr( CurIndex ) + ';' );
-    //SL.Add( Prefix + '  PostMessage( ' + AName + '.GetWindowHandle, TCM_SETCURSEL, ' + IntToStr( CurIndex ) +
-    //        ', 0 );' );
-    SL.Add( Prefix + '  ' + AName + '.Pages[ ' + IntToStr( CurIndex ) + ' ].BringToFront;' );
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetCurrentTab' );
+          KF.FormAddNumParameter( CurIndex );
+      end
+        else
+      begin
+          SL.Add( Prefix + '  ' + AName + '.CurIndex := ' + IntToStr( CurIndex ) + ';' );
+          SL.Add( Prefix + '  ' + AName + '.Pages[ ' + IntToStr( CurIndex ) + ' ].BringToFront;' );
+      end;
   end;
 end;
 
@@ -9655,6 +10834,11 @@ begin
             + ', ' + IntToStr( ImageList1stIdx );
 end;
 
+function TKOLTabControl.SupportsFormCompact: Boolean;
+begin
+    Result := TRUE;
+end;
+
 function TKOLTabControl.TabStopByDefault: Boolean;
 begin
   asm
@@ -9665,6 +10849,34 @@ begin
   end;
   Result := TRUE;
 end;
+
+{procedure TKOLTabControl.WhenFindComponentClass(Reader: TReader;
+  const CClassName: string; var CComponentClass: TComponentClass);
+begin
+  if  (pos( '_Tab', fNameSetByReader ) > 0)
+  and (CClassName = 'TKOLPanel') then
+  begin
+      CComponentClass := TKOLTabPage;
+      ShowMessage( 'TKOLPanel class replaced with TKOLTabPage for ' + fNameSetByReader );
+  end
+  else
+      inherited;
+end;
+
+procedure TKOLTabControl.WhenReaderSetsName(Reader: TReader;
+  Component: TComponent; var AName: string);
+begin
+  inherited;
+  fNameSetByReader := AName;
+  ShowMessage( 'Reader sets name ' + AName );
+  LogFileOutput( 'C:\log_TC.txt', 'Reader sets name ' + AName );
+end;
+
+procedure TKOLTabControl.WriteNewTabControl(Writer: TWriter);
+begin
+    Writer.WriteBoolean( TRUE );
+end;
+}
 
 function TKOLTabControl.WYSIWIGPaintImplemented: Boolean;
 begin
@@ -10078,8 +11290,8 @@ begin
   Result := FALSE;
   if S = '' then Exit;
   for I := 1 to Length( S ) do
-    if not( S[ I ] in [ '0'..'9' ] ) then
-      Exit;
+      if  (S[ I ] < '0') or (S[ I ] > '9') then
+          Exit;
   Result := TRUE;
 end;
 
@@ -10432,6 +11644,28 @@ var RsrcFile, RsrcName: String;
     Bmp: TBitmap;
     Bt, Bt1: TKOLToolbarButton;
     Btn1st: Integer;
+    KF: TKOLForm;
+    {$IFDEF not_economy_code_size}
+    TipsList: TStringList;
+    {$ENDIF}
+    Buttons_Count: Integer;
+    Images_Count: Integer;
+    Buttons_List: String;
+    ImageIndexes_List: String;
+    ///////////////////////////////////
+    function IndexOfBeginLine: Integer;
+    var i: Integer;
+    begin
+        for i := 0 to SL.Count-1 do
+        begin
+            if  SL[i] = 'begin' then
+            begin
+                Result := i;
+                Exit;
+            end;
+        end;
+        Result := 1;
+    end; //////////////////////////////
 begin
   asm
     jmp @@e_signature
@@ -10439,334 +11673,484 @@ begin
     DB 'TKOLToolbar.SetupFirst', 0
   @@e_signature:
   end;
+  KF := ParentKOLForm;
+
   RsrcName := '';
   H := MaxBtnImgHeight;
   W := MaxBtnImgWidth;
   if W * H > 0 then
   begin
-    RsrcName := UpperCase( ParentKOLForm.FormName ) + '_TBBMP' +  IntToStr( FResBmpID );
-    RsrcFile := ParentKOLForm.FormName + '_' + Name;
-    SL.Add( Prefix + '  {$R ' + RsrcFile + '.res}' );
-    Bmp := TBitmap.Create;
-    TRY
-      N := 0;
-      FBmpTranColor := clNone;
-      for I := 0 to Items.Count-1 do
-      begin
-        Bt := Items[ I ];
-        if Bt.HasPicture then
+      RsrcName := UpperCase( ParentKOLForm.FormName ) + '_TBBMP' +  IntToStr( FResBmpID );
+      RsrcFile := ParentKOLForm.FormName + '_' + Name;
+      (SL as TFormStringList).OnAdd := nil;
+      SL.Add( Prefix + '  {$R ' + RsrcFile + '.res}' );
+      if  KF <> nil then
+          (SL as TFormStringList).OnAdd := KF.DoFlushFormCompact;
+      Bmp := TBitmap.Create;
+      TRY
+        N := 0;
+        FBmpTranColor := clNone;
+        for I := 0 to Items.Count-1 do
         begin
-          if FBmpTranColor = clNone then
+          Bt := Items[ I ];
+          if Bt.HasPicture then
           begin
-            Bmp.Assign( Bt.picture );
-            FBmpTranColor := Bmp.Canvas.Pixels[ 0, Bmp.Height - 1 ];
+            if FBmpTranColor = clNone then
+            begin
+              Bmp.Assign( Bt.picture );
+              FBmpTranColor := Bmp.Canvas.Pixels[ 0, Bmp.Height - 1 ];
+            end;
+            Inc( N );
           end;
-          Inc( N );
         end;
-      end;
-      Bmp.Width := N * W;
-      Bmp.Height := H;
-      {$IFNDEF _D2}
-      Bmp.PixelFormat := pf24bit;
-      {$ENDIF}
-      if FBmpTranColor <> clNone then
-      begin
-        Bmp.Canvas.Brush.Color := FBmpTranColor;
-        Bmp.Canvas.FillRect( Rect( 0, 0, Bmp.Width, Bmp.Height ) );
-      end;
-      N := 0;
-      for I := 0 to Items.Count-1 do
-      begin
-        Bt := Items[ I ];
-        if Bt.HasPicture then
+        Bmp.Width := N * W;
+        Bmp.Height := H;
+        {$IFNDEF _D2}
+        Bmp.PixelFormat := pf24bit;
+        {$ENDIF}
+        if FBmpTranColor <> clNone then
         begin
-          Bmp.Canvas.Draw( N * W, 0, Bt.picture.Graphic );
-          Inc( N );
+          Bmp.Canvas.Brush.Color := FBmpTranColor;
+          Bmp.Canvas.FillRect( Rect( 0, 0, Bmp.Width, Bmp.Height ) );
         end;
-      end;
-      GenerateBitmapResource( Bmp, RsrcName, RsrcFile, fUpdated );
-    FINALLY
-      Bmp.Free;
-    END;
+        N := 0;
+        for I := 0 to Items.Count-1 do
+        begin
+          Bt := Items[ I ];
+          if Bt.HasPicture then
+          begin
+            Bmp.Canvas.Draw( N * W, 0, Bt.picture.Graphic );
+            Inc( N );
+          end;
+        end;
+        GenerateBitmapResource( Bmp, RsrcName, RsrcFile, fUpdated );
+      FINALLY
+        Bmp.Free;
+      END;
   end;
-  if HeightAuto then
+  if  HeightAuto then
   begin
-    DefaultHeight := Height;
-    DefaultWidth := Width;
+      DefaultHeight := Height;
+      DefaultWidth := Width;
   end
     else
   begin
-    if Align in [ caTop, caBottom, caNone ] then
-    begin
-      DefaultHeight := 22;
-      DefaultWidth := Width;
-    end
-      else
-    if Align in [ caLeft, caRight ] then
-    begin
-      DefaultHeight := Height;
-      DefaultWidth := 44;
-    end
-      else
-    begin
-      DefaultHeight := Height;
-      DefaultWidth := Width;
-    end;
-  end;
-  inherited;
-  if Assigned( bitmap ) and (bitmap.Width * bitmap.Height > 0) then
-  begin
-    W := MaxBtnImgWidth;
-    H := MaxBtnImgHeight;
-    if (W <> H) or (StandardImagesUsed > 0) then
-    begin
-      SL.Add( '  ' + Prefix + AName + '.TBBtnImgWidth := ' + IntToStr( W ) + ';' );
-      S := '  ' + Prefix + AName + '.TBAddBitmap( ';
-      if mapBitmapColors then
-        S := S + 'LoadMappedBitmapEx( ' + AName + ', hInstance, ''' + RsrcName + ''', [ ' +
-                  Color2Str( FBmpTranColor ) + ', Color2RGB( clBtnFace ) ] ) );'
-      else
-        S := S + 'LoadBmp( hInstance, ''' + RsrcName + ''', ' +
-                 AName + ' ) );';
-      SL.Add( S );
-    end;
-  end;
-  if TBButtonsWidth > 0 then
-    SL.Add( '  ' + Prefix + AName + '.Perform( TB_SETBUTTONSIZE, ' +
-      IntToStr( TBButtonsWidth ) + ', 0 );' );
-  if ((StandardImagesUsed > 0) and (PicturedButtonsCount > 0)) or
-     not IntIn(StandardImagesUsed, [ 1, 2, 4 ]) then
-  begin
-    if LongBool( StandardImagesUsed and 1 ) then
-    begin
-      if StandardImagesLarge then
-        S := '-2'
-      else
-        S := '-1';
-      SL.Add( '  ' + Prefix + AName + '.TBAddBitmap( THandle( ' + S + ' ) );' );
-    end;
-    if LongBool( StandardImagesUsed and 2 ) then
-    begin
-      if StandardImagesLarge then
-        S := '-6'
-      else
-        S := '-5';
-      SL.Add( '  ' + Prefix + AName + '.TBAddBitmap( THandle( ' + S + ' ) );' );
-    end;
-    if LongBool( StandardImagesUsed and 4 ) then
-    begin
-      if StandardImagesLarge then
-        S := '-10'
-      else
-        S := '-9';
-      SL.Add( '  ' + Prefix + AName + '.TBAddBitmap( THandle( ' + S + ' ) );' );
-    end;
+      if  Align in [ caTop, caBottom, caNone ] then
+      begin
+          DefaultHeight := 22;
+          DefaultWidth := Width;
+      end else
+      if  Align in [ caLeft, caRight ] then
+      begin
+          DefaultHeight := Height;
+          DefaultWidth := 44;
+      end else
+      begin
+          DefaultHeight := Height;
+          DefaultWidth := Width;
+      end;
   end;
 
-  if showTooltips or (tooltips.Count > 0) then
+  inherited;  //////////////////////////////////////////////////////////////////
+
+  if  AutosizeButtons then
+      SL.Add( '  ' + Prefix + AName + '.TBAutoSizeButtons := TRUE;' );
+
+  if  Assigned( bitmap ) and (bitmap.Width * bitmap.Height > 0) then
   begin
-    S := '';
-    J := 0;
-    for I := 0 to Items.Count-1 do
-    begin
-      Bt := Items[ I ];
-      //if Bt.Faction <> nil then continue; // remove by YS 7-Aug-2004
-      //if Bt.separator then continue;
+      W := MaxBtnImgWidth;
+      H := MaxBtnImgHeight;
+      if  (W <> H) or (StandardImagesUsed > 0) then
+      begin
+          if  (KF <> nil) and KF.FormCompact then
+          begin
+              KF.FormAddCtlCommand( Name, 'FormSetTBBtnImgWidth' );
+              KF.FormAddNumParameter( W );
+          end else
+          SL.Add( '  ' + Prefix + AName + '.TBBtnImgWidth := ' + IntToStr( W ) + ';' );
 
-      //---------{ Maxim Pushkar }----------------------------------------------
-      //if (tooltips.Count > 0) and (J > tooltips.Count) then break;
-      //----------------------------------------------------------------------//
-      if (tooltips.Count > 0) and (J >= tooltips.Count) then break;          //
-      //--------------------------------------------------------------------//
+          if  (KF <> nil) and KF.FormCompact then
+          begin
+              KF.FormAddCtlCommand( Name, 'FormTBAddBitmap' );
+              KF.FormAddStrParameter( RsrcName );
+              KF.FormAddNumParameter( Integer(mapBitmapColors) );
+              if  mapBitmapColors then
+                  KF.FormAddNumParameter( (FBmpTranColor shl 1) or (FBmpTranColor shr 31)  );
+          end
+            else
+          begin
+              S := '  ' + Prefix + AName + '.TBAddBitmap( ';
+              if  mapBitmapColors then
+                  S := S + 'LoadMappedBitmapEx( ' + AName + ', hInstance, ''' + RsrcName + ''', [ ' +
+                            Color2Str( FBmpTranColor ) + ', Color2RGB( clBtnFace ) ] ) );'
+              else
+                  S := S + 'LoadBmp( hInstance, ''' + RsrcName + ''', ' +
+                           AName + ' ) );';
+              SL.Add( S );
+          end;
+      end;
+  end
+  else if  NoSpaceForImages then
+  begin
+      SL.Add( '  ' + Prefix + AName + '.Perform( TB_SETBITMAPSIZE, 0, 16 shl 16 );' );
+  end;
 
-      if Bt.Tooltip <> '' then
-        B := Bt.Tooltip
+  if  ((StandardImagesUsed > 0) and (PicturedButtonsCount > 0)) or
+      not IntIn(StandardImagesUsed, [ 1, 2, 4 ]) then
+  begin
+      if  LongBool( StandardImagesUsed and 1 ) then
+      begin
+          if  (KF <> nil) and KF.FormCompact then
+          begin
+              KF.FormAddCtlCommand( Name, 'FormTBAddBitmap' );
+              if  StandardImagesLarge then
+                  KF.FormAddNumParameter( -2 )
+              else
+                  KF.FormAddNumParameter( -1 );
+          end else
+          begin
+              if  StandardImagesLarge then
+                  S := '-2'
+              else
+                  S := '-1';
+              SL.Add( '  ' + Prefix + AName + '.TBAddBitmap( THandle( ' + S + ' ) );' );
+          end;
+      end;
+
+      if  LongBool( StandardImagesUsed and 2 ) then
+      begin
+          if  (KF <> nil) and KF.FormCompact then
+          begin
+              KF.FormAddCtlCommand( Name, 'FormTBAddBitmap' );
+              if  StandardImagesLarge then
+                  KF.FormAddNumParameter( -6 )
+              else
+                  KF.FormAddNumParameter( -5 );
+          end else
+          begin
+              if  StandardImagesLarge then
+                  S := '-6'
+              else
+                  S := '-5';
+              SL.Add( '  ' + Prefix + AName + '.TBAddBitmap( THandle( ' + S + ' ) );' );
+          end;
+      end;
+
+      if  LongBool( StandardImagesUsed and 4 ) then
+      begin
+          if  (KF <> nil) and KF.FormCompact then
+          begin
+              KF.FormAddCtlCommand( Name, 'FormTBAddBitmap' );
+              if  StandardImagesLarge then
+                  KF.FormAddNumParameter( -10 )
+              else
+                  KF.FormAddNumParameter( -9 );
+          end else
+          begin
+              if  StandardImagesLarge then
+                  S := '-10'
+              else
+                  S := '-9';
+              SL.Add( '  ' + Prefix + AName + '.TBAddBitmap( THandle( ' + S + ' ) );' );
+          end;
+      end;
+  end;
+
+  if  (TBButtonsWidth > 0) or AutoSizeButtons then
+  begin
+      S := '0';
+      if  StandardImagesUsed > 0 then
       else
-      if (tooltips.Count > 0) and (tooltips[ J ] <> '') and not Bt.separator then
-        B := tooltips[ J ]
-      else
-      if showTooltips then
-        B := Bt.Caption
-      else
-        B := '';
-      if Bt.Faction = nil then                     // {YS} добавить
-      begin                                        // {YS} добавить
-        if not Bt.separator then                   // {YS} добавить
-        begin
-          if S <> '' then
-            S := S + ', ';
-        {$IFDEF _D2009orHigher}
-          C2 := '';
-          C := StringConstant( Bt.Name + '_tip', B );
-          for Z := 2 to Length(C) - 1 do C2 := C2 + '#'+int2str(ord(C[Z]));
-          S := S + C2;
-        {$ELSE}
-          S := S + PCharStringConstant( Self, Bt.Name + '_tip', B );
-        {$ENDIF}
-        end
-          else
-        //+++++++ v1.94
-        begin
-          if S <> '' then
-            S := S + ', '''''
-          else
-            S := S + '''''';
-        end;
-        //------
-      end                                          // {YS} добавить
-      else                                         // {YS} добавить
-       Inc( J );
-    end;
-    // change by Alexander Pravdin (to fix tooltips for case of first separator):
-    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    Btn1st := 0;
-    {for i := 0 to ButtonCount - 1 do
-      if not TKOLToolbarButton( FItems.Items[i] ).Fseparator then begin
-        Btn1st := i;
-        Break;
-      end;}
-    if S <> '' then
-    begin
-       SL.Add( Prefix + '  {$IFDEF USE_GRUSH}' );
-       SL.Add( Prefix + '  ToolbarSetTooltips( ' + AName + ', ' +
-         AName + '.TBIndex2Item( ' + IntToStr( Btn1st ) + ' ), [ ' + S + ' ] );'  );
-       SL.Add( Prefix + '  {$ELSE}' );
-       SL.Add( Prefix + '  ' + AName + '.TBSetTooltips( ' + AName +
-         '.TBIndex2Item( ' + IntToStr( Btn1st ) + ' ), [ ' + S + ' ] );' );
-       SL.Add( Prefix + '  {$ENDIF}' );
-    end;
-    //--------------------------------------------------------------------------
-    {if S <> '' then
-      SL.Add( Prefix + '  ' + AName + '.TBSetTooltips( ' + AName +
-              '.TBIndex2Item( 0 ), [ ' + S + ' ] );' );}
-    ////////////////////////////////////////////////////////////////////////////
+      if (Bitmap.Width > 0) and (Bitmap.Height > 0) and
+         (FResBmpID >= 0) and (MaxBtnImgWidth = MaxBtnImgHeight) and
+         (StandardImagesUsed=0) then
+      begin
+        if mapBitmapColors then
+          S := 'LoadMappedBitmapEx( Result, hInstance, ''' +
+                    UpperCase( ParentKOLForm.FormName ) + '_TBBMP' + IntToStr( FResBmpID ) + ''', [ ' +
+                    Color2Str( FBmpTranColor ) + ', Color2RGB( clBtnFace ) ] ) '
+        else
+          S := 'LoadBmp( hInstance, PChar( ''' +
+                    UpperCase( ParentKOLForm.FormName ) + '_TBBMP' + IntToStr( FResBmpID ) +
+                    ''' ), Result ) ';
+      end;
+
+
+      Buttons_List := ButtonCaptionsList( Buttons_Count );
+      ImageIndexes_List := ButtonImgIndexesList( Images_Count );
+      SL.Insert( IndexOfBeginLine, 'const ToolbarButtonsArray_' + Name + ': array[' +
+           '0..' + IntToStr(Buttons_Count-1) + '] of PKOLChar = (' +
+           Buttons_List + ');');
+      SL.Insert( IndexOfBeginLine, 'const ToolbarImgIndexesArray_' + Name + ': array[' +
+           '0..' + IntToStr(Images_Count-1) + '] of Integer = (' +
+           ImageIndexes_List + ');' );
+      SL.Add( '  ' + Prefix + 'ToolbarAddButtons( ' + AName + ', ' +
+              //'['#13#10 +
+              //'    ' + ButtonCaptionsList + ' ],'#13#10 +
+              '    ToolbarButtonsArray_' + Name + ',' +
+              //'    ' + ButtonImgIndexesList + ','#13#10 +
+              '    ToolbarImgIndexesArray_' + Name + ',' +
+              '    ' + S + ' );' );
+      if  AutosizeButtons then
+      begin
+          SL.Add( '  ' + Prefix + AName + '.Perform( TB_SETBUTTONSIZE, 0, ' +
+                  IntToStr( TBButtonsWidth ) + ' or $10000' +
+                  //' or $FFFF0000 and (' + AName + '.Perform( TB_GETBUTTONSIZE, 0, 0 ) )' +
+                  ' );' );
+      end;
+  end;
+
+  if  showTooltips or (tooltips.Count > 0) then
+  begin
+      //{$IFDEF _D4orHigher}
+      {$IFDEF not_economy_code_size}
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          TipsList := TStringList.Create;
+          TRY
+              J := 0;
+              for I := 0 to Items.Count-1 do
+              begin
+                  Bt := Items[ I ];
+                  if (tooltips.Count > 0) and (J >= tooltips.Count) then break;
+
+                  if  Bt.Tooltip <> '' then
+                      B := Bt.Tooltip
+                  else
+                  if  (tooltips.Count > 0) and (tooltips[ J ] <> '') and not Bt.separator then
+                      B := tooltips[ J ]
+                  else
+                  if  showTooltips then
+                      B := Bt.Caption
+                  else
+                      B := '';
+                  if  Bt.Faction = nil then                     // {YS} добавить
+                  begin                                        // {YS} добавить
+                      if  not Bt.separator then                   // {YS} добавить
+                          TipsList.Add( B )
+                      else
+                          TipsList.Add( '' );
+                      //------
+                  end else                                         // {YS} добавить
+                      Inc( J );
+              end;
+              if  TipsList.Count > 0 then
+              begin
+                  KF.FormAddCtlCommand( Name, 'FormTBSetTooltips' );
+                  KF.FormAddNumParameter( TipsList.Count );
+                  for I := 0 to TipsList.Count-1 do
+                      KF.FormAddStrParameter( TipsList[I] );
+              end;
+          FINALLY
+              TipsList.Free;
+          END;
+      end
+        else
+      {$ENDIF}
+      begin
+          S := '';
+          J := 0;
+          for I := 0 to Items.Count-1 do
+          begin
+              Bt := Items[ I ];
+              //if Bt.Faction <> nil then continue; // remove by YS 7-Aug-2004
+              //if Bt.separator then continue;
+
+              //---------{ Maxim Pushkar }----------------------------------------------
+              //if (tooltips.Count > 0) and (J > tooltips.Count) then break;
+              //----------------------------------------------------------------------//
+              if (tooltips.Count > 0) and (J >= tooltips.Count) then break;          //
+              //--------------------------------------------------------------------//
+
+              if  Bt.Tooltip <> '' then
+                  B := Bt.Tooltip
+              else
+              if  (tooltips.Count > 0) and (tooltips[ J ] <> '') and not Bt.separator then
+                  B := tooltips[ J ]
+              else
+              if  showTooltips then
+                  B := Bt.Caption
+              else
+                  B := '';
+              if  Bt.Faction = nil then                     // {YS} добавить
+              begin                                        // {YS} добавить
+                  if  not Bt.separator then                   // {YS} добавить
+                  begin
+                      if  S <> '' then
+                          S := S + ', ';
+                      {$IFDEF _D2009orHigher}
+                      C2 := '';
+                      C := StringConstant( Bt.Name + '_tip', B );
+                      for Z := 2 to Length(C) - 1 do
+                          C2 := C2 + '#'+int2str(ord(C[Z]));
+                      S := S + C2;
+                      {$ELSE}
+                      S := S + PCharStringConstant( Self, Bt.Name + '_tip', B );
+                      {$ENDIF}
+                  end else
+                  //+++++++ v1.94
+                  begin
+                      if  S <> '' then
+                          S := S + ', '''''
+                      else
+                          S := S + '''''';
+                  end;
+                  //------
+              end else                                         // {YS} добавить
+                  Inc( J );
+          end;
+          // change by Alexander Pravdin (to fix tooltips for case of first separator):
+          //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+          Btn1st := 0;
+          {for i := 0 to ButtonCount - 1 do
+            if not TKOLToolbarButton( FItems.Items[i] ).Fseparator then begin
+              Btn1st := i;
+              Break;
+            end;}
+          if  S <> '' then
+          begin
+              SL.Add( Prefix + '  {$IFDEF USE_GRUSH}' );
+              SL.Add( Prefix + '  ToolbarSetTooltips( ' + AName + ', ' +
+                 AName + '.TBIndex2Item( ' + IntToStr( Btn1st ) + ' ), [ ' + S + ' ] );'  );
+              SL.Add( Prefix + '  {$ELSE}' );
+              SL.Add( Prefix + '  ' + AName + '.TBSetTooltips( ' + AName +
+                 '.TBIndex2Item( ' + IntToStr( Btn1st ) + ' ), [ ' + S + ' ] );' );
+              SL.Add( Prefix + '  {$ENDIF}' );
+          end;
+          //--------------------------------------------------------------------------
+      end;
   end;
 
   // assign image list if used:
-  if ImageListNormal <> nil then
+  if  ImageListNormal <> nil then
   begin
-    SL.Add( Prefix + ' ' + AName + '.Perform( TB_SETIMAGELIST, 0, Result.' +
-            ImageListNormal.Name + '.Handle );' );
+      SL.Add( Prefix + ' ' + AName + '.Perform( TB_SETIMAGELIST, 0, Result.' +
+              ImageListNormal.Name + '.Handle );' );
   end;
-  if ImageListDisabled <> nil then
+  if  ImageListDisabled <> nil then
   begin
-    SL.Add( Prefix + ' ' + AName + '.Perform( TB_SETDISABLEDIMAGELIST, 0, Result.' +
-            ImageListDisabled.Name + '.Handle );' );
+      SL.Add( Prefix + ' ' + AName + '.Perform( TB_SETDISABLEDIMAGELIST, 0, Result.' +
+              ImageListDisabled.Name + '.Handle );' );
   end;
-  if ImageListHot <> nil then
+  if  ImageListHot <> nil then
   begin
-    SL.Add( Prefix + ' ' + AName + '.Perform( TB_SETHOTIMAGELIST, 0, Result.' +
-            ImageListHot.Name + '.Handle );' );
+      SL.Add( Prefix + ' ' + AName + '.Perform( TB_SETHOTIMAGELIST, 0, Result.' +
+              ImageListHot.Name + '.Handle );' );
   end;
 
   I0 := -1;
   for I := 0 to Items.Count-1 do
   begin
-    Bt := Items[ I ];
-    Inc( I0 );
-    //if Bt.separator then Continue;
-    if Bt.fOnClickMethodName <> '' then
-    begin
-      S := '';
-      for J := I to Items.Count - 1 do
+      Bt := Items[ I ];
+      Inc( I0 );
+      //if Bt.separator then Continue;
+      if  Bt.fOnClickMethodName <> '' then
       begin
-        Bt := Items[ J ];
-        //if Bt.separator then Continue;
-        if Bt.separator or (Bt.fOnClickMethodName = '') then
-        begin
-          N := 0;
-          for K := J to Items.Count-1 do
+          S := '';
+          for J := I to Items.Count - 1 do
           begin
-            Bt1 := Items[ K ];
-            if Bt1.separator then Continue;
-            if Bt1.fOnClickMethodName <> '' then
-            begin
-              Inc( N );
-              break;
-            end;
+              Bt := Items[ J ];
+              //if Bt.separator then Continue;
+              if  Bt.separator or (Bt.fOnClickMethodName = '') then
+              begin
+                  N := 0;
+                  for K := J to Items.Count-1 do
+                  begin
+                      Bt1 := Items[ K ];
+                      if  Bt1.separator then Continue;
+                      if  Bt1.fOnClickMethodName <> '' then
+                      begin
+                          Inc( N );
+                          break;
+                      end;
+                  end;
+                  if N = 0 then break;
+              end;
+              if  S <> '' then S := S + ', ';
+              if  Bt.fOnClickMethodName <> '' then
+                  S := S + 'Result.' + Bt.fOnClickMethodName
+              else
+                  S := S + 'nil';
           end;
-          if N = 0 then break;
-        end;
-        if S <> '' then S := S + ', ';
-        if Bt.fOnClickMethodName <> '' then
-          S := S + 'Result.' + Bt.fOnClickMethodName
-        else
-          S := S + 'nil';
+          SL.Add( '  ' + Prefix + AName + '.TBAssignEvents( ' + IntToStr( I0 ) +
+                  ', [ ' + S + ' ] );' );
+          break;
       end;
-      SL.Add( '  ' + Prefix + AName + '.TBAssignEvents( ' + IntToStr( I0 ) +
-              ', [ ' + S + ' ] );' );
-      break;
-    end;
   end;
-  if TBButtonsMinWidth > 0 then
-    SL.Add( Prefix + AName + '.TBButtonsMinWidth := ' + IntToStr( TBButtonsMinWidth ) + ';' );
-  if TBButtonsMaxWidth > 0 then
-    SL.Add( Prefix + AName + '.TBButtonsMaxWidth := ' + IntToStr( TBButtonsMaxWidth ) + ';' );
+  if  TBButtonsMinWidth > 0 then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetTBButtonsMinWidth' );
+          KF.FormAddNumParameter( TBButtonsMinWidth );
+      end else
+      SL.Add( Prefix + AName + '.TBButtonsMinWidth := ' + IntToStr( TBButtonsMinWidth ) + ';' );
+
+  if  TBButtonsMaxWidth > 0 then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetTBButtonsMaxWidth' );
+          KF.FormAddNumParameter( TBButtonsMaxWidth );
+      end else
+      SL.Add( Prefix + AName + '.TBButtonsMaxWidth := ' + IntToStr( TBButtonsMaxWidth ) + ';' );
+
   for I := Items.Count-1 downto 0 do
   begin
-    Bt := Items[ I ];
-    if not Bt.visible and (Bt.Faction = nil) then
-    begin
-      SL.Add( Prefix + '{$IFDEF USE_GRUSH}' );
-      SL.Add( Prefix + 'ShowHideToolbarButton( ' + AName + ', ' + IntToStr( I ) + ', FALSE );' );
-      SL.Add( Prefix + '{$ELSE}' );
-      SL.Add( Prefix + AName + '.TBButtonVisible[ ' + IntToStr( I ) + ' ] := FALSE;' );
-      SL.Add( Prefix + '{$ENDIF}' );
-    end;
-    {if Bt.Checked and (Bt.Faction = nil) then
-      SL.Add( Prefix + AName + '.TBButtonChecked[ ' + IntToStr( I ) + ' ] := TRUE;' );}
-    if not Bt.enabled and (Bt.Faction = nil) then
-    begin
-      SL.Add( Prefix + '{$IFDEF USE_GRUSH}' );
-      SL.Add( Prefix + 'EnableToolbarButton( ' + AName + ', ' + IntToStr( I ) + ', FALSE );' );
-      SL.Add( Prefix + '{$ELSE}' );
-      SL.Add( Prefix + AName + '.TBButtonEnabled[ ' + IntToStr( I ) + ' ] := FALSE;' );
-      SL.Add( Prefix + '{$ENDIF}' );
-    end;
+      Bt := Items[ I ];
+      if  not Bt.visible and (Bt.Faction = nil) then
+      begin
+          if  (KF <> nil) and KF.FormCompact then
+          begin
+              KF.FormAddCtlCommand( Name, 'FormHideToolbarButton' );
+              KF.FormAddNumParameter( I );
+          end
+            else
+          begin
+              SL.Add( Prefix + '{$IFDEF USE_GRUSH}' );
+              SL.Add( Prefix + 'ShowHideToolbarButton( ' + AName + ', ' + IntToStr( I ) + ', FALSE );' );
+              SL.Add( Prefix + '{$ELSE}' );
+              SL.Add( Prefix + AName + '.TBButtonVisible[ ' + IntToStr( I ) + ' ] := FALSE;' );
+              SL.Add( Prefix + '{$ENDIF}' );
+          end;
+      end;
+
+      if  not Bt.enabled and (Bt.Faction = nil) then
+      begin
+          if  (KF <> nil) and KF.FormCompact then
+          begin
+              KF.FormAddCtlCommand( Name, 'FormDisableToolbarButton' );
+              KF.FormAddNumParameter( I );
+          end
+            else
+          begin
+              SL.Add( Prefix + '{$IFDEF USE_GRUSH}' );
+              SL.Add( Prefix + 'EnableToolbarButton( ' + AName + ', ' + IntToStr( I ) + ', FALSE );' );
+              SL.Add( Prefix + '{$ELSE}' );
+              SL.Add( Prefix + AName + '.TBButtonEnabled[ ' + IntToStr( I ) + ' ] := FALSE;' );
+              SL.Add( Prefix + '{$ENDIF}' );
+          end;
+      end;
   end;
 
-  {if FixFlatXP then
-  if (tboFlat in Options) and (Parent <> nil) and not(Parent is TForm) then
-  begin
-    if Align in [ caLeft, caRight ] then
-    begin
-      SL.Add( Prefix + '  ' + AName + '.Style := ' + AName +
-        '.Style or TBSTYLE_WRAPABLE;' );
-    end
+  if  not Assigned( OnTBCustomDraw ) and
+      (tboCustomErase in Options) OR
+      FixFlatXP and (tboFlat in Options) then
+      if  (KF <> nil) and KF.FormCompact then
+          KF.FormAddCtlCommand( Name, 'FormFixFlatXPToolbar' )
       else
-    begin
-      SL.Add( Prefix + 'if WinVer >= wvXP then' );
-      SL.Add( Prefix + 'begin' );
-      SL.Add( Prefix + '  ' + AName + '.Style := ' + AName +
-        '.Style or TBSTYLE_WRAPABLE;' );
-      SL.Add( Prefix + '  ' + AName + '.Transparent := TRUE;' );
-      SL.Add( Prefix + 'end;' );
-    end;
-  end;}
-
-  if not Assigned( OnTBCustomDraw ) and
-     (tboCustomErase in Options) OR
-     FixFlatXP and (tboFlat in Options) then
-  begin
-    SL.Add( Prefix + AName + '.OnTBCustomDraw := nil;' );
-  end;
+          SL.Add( Prefix + AName + '.OnTBCustomDraw := nil;' );
 end;
 
 function TKOLToolbar.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
 var
    {$IFDEF _D2009orHigher}
-    C, C2: WideString;
-    Z : integer;
+    //C: WideString;
     S, A: WideString;
-    B: WideString;
+    //B: WideString;
    {$ELSE}
     S, A: String;
-    B: String;
    {$ENDIF}
-    I, N: Integer;
-    Bt, Bt1: TKOLToolbarButton;
-    StdImagesStart, ViewImagesStart, HistImagesStart: Integer;
-    TheSameBefore, TheSameAfter: Boolean;
+   Buttons_Count: Integer;
+   Images_Count: Integer;
 begin
   asm
     jmp @@e_signature
@@ -10855,137 +12239,16 @@ begin
 
   // 4. Button captions
   Result := Result + '[ ';
-
-  for I := 0 to Items.Count-1 do
-  begin
-    Bt := Items[ I ];
-    if Bt.separator then
-      Result := Result + '''-'''
-    else
-    begin
-      if noTextLabels then
-        B := ' '
-      else
-       begin
-       {$IFDEF _D2009orHigher}
-        C2 := '';
-        C := Bt.Fcaption;
-        for Z := 1 to Length(C) do C2 := C2 + '#'+int2str(ord(C[Z]));
-        B := C2;
-       {$ELSE}
-        B := Bt.Fcaption;
-       {$ENDIF}
-       end;
-      S := '';
-      if Bt.radioGroup <> 0 then
-      begin
-        TheSameBefore := FALSE;
-        TheSameAfter := FALSE;
-        if I > 0 then
-        begin
-          Bt1 := Items[ I - 1 ];
-          if not Bt1.separator and (Bt1.FradioGroup = Bt.FradioGroup) then
-            TheSameBefore := TRUE;
-        end;
-        if I < Items.Count-1 then
-        begin
-          Bt1 := Items[ I + 1 ];
-          if not Bt1.separator and (Bt1.FradioGroup = Bt.FradioGroup) then
-            TheSameAfter := TRUE;
-        end;
-        if TheSameBefore or TheSameAfter then
-          S := '!' + S;
-      end;
-      if Bt.checked and (Bt.Faction = nil) then
-        S := '+' + S
-      else
-      if Bt.radioGroup <> 0 then
-        S := '-' + S;
-      if Bt.dropdown then
-        S := '^' + S;
-      if noTextLabels then
-        Result := Result + '''' + S + B + ''''
-      else
-      if Bt.Faction <> nil then
-        Result := Result + '''' + S + '  '''
-      else
-      begin
-       {$IFDEF _D2009orHigher}
-        if B = '' then B := '''''';
-       {$ELSE}
-        B := StringConstant( Bt.Name + '_btn', B );
-       {$ENDIF}
-        if (B <> '') and (B[ 1 ] = '''') then
-          Result := Result + '''' + S + Copy( B, 2, MaxInt )
-        else
-        if S <> '' then
-          Result := Result + 'PKOLChar( ''' + S + ''' + ' + B + ')'
-        else
-          Result := Result + 'PKOLChar( ' + B + ' )';
-      end;
-    end;
-    if I < Items.Count-1 then
-      Result := Result  + ', ';
-  end;
+  if  (TBButtonsWidth = 0) and not AutoSizeButtons then
+      Result := Result + ButtonCaptionsList( Buttons_Count );
   Result := Result + ' ], ';
 
   // 5. Button image indexes used
+  if  (TBButtonsWidth = 0) and not AutosizeButtons then
+      Result := Result + '[ ' + ButtonImgIndexesList( Images_Count ) + ' ] '
+  else
+      Result := Result + '[]';
   //Rpt( '$$$$$$$$$$$$$$$ PicturedButtonsCount := ' + IntToStr( PicturedButtonsCount ) );
-  if (StandardImagesUsed = 0) and (PicturedButtonsCount = 0) and not ImageListsUsed then
-    Result := Result + '[ -2 ]' else
-  if (StandardImagesUsed = 0) and AllPicturedButtonsAreLeading and
-     LastBtnHasPicture and not ImageListsUsed then
-    Result := Result + '[ 0 ]' else
-  begin
-    N := PicturedButtonsCount;
-    Result := Result + '[ ';
-    StdImagesStart := N;
-    ViewImagesStart := N;
-    HistImagesStart := N;
-    if (StandardImagesUsed > 1) and LongBool(StandardImagesUsed and 1) then
-    begin
-      ViewImagesStart := N + 15;
-      HistImagesStart := N + 15;
-    end;
-    if LongBool(StandardImagesUsed and 2) then
-      HistImagesStart := HistImagesStart + 12;
-    N := 0;
-    S := '';
-    for I := 0 to Items.Count-1 do
-    begin
-      Bt := Items[ I ];
-      //Rpt( '%%%%%%%%%% Bt ' + Bt.Name + ' HasPicture := ' + IntToStr( Integer( Bt.HasPicture ) ) );
-      if ImageListsUsed then
-      begin
-        if Bt.imgIndex >= 0 then
-          S := IntToStr( Bt.imgIndex )
-        else
-          S := '-2';
-      end
-      else
-      if Bt.HasPicture then
-      begin
-        S := IntToStr( N );
-        Inc( N );
-      end
-        else
-      case Bt.sysimg of
-      stiCustom:
-        S := '-2'; // I_IMAGENONE
-      stdCUT..stdPRINT:
-        S := IntToStr( StdImagesStart + Ord( Bt.sysimg ) - Ord( stdCUT ) );
-      viewLARGEICONS..viewVIEWMENU:
-        S := IntToStr( ViewImagesStart + Ord( Bt.sysimg ) - Ord( viewLARGEICONS ) );
-      else
-        S := IntToStr( HistImagesStart + Ord( Bt.sysimg ) - Ord( histBACK ) );
-      end;
-      Result := Result + S + ', ';
-    end;
-    if Items.Count > 0 then
-      Result := Copy( Result, 1, Length( Result ) - 2 ) + ' ]'
-    else
-      Result := Result + ']';
-  end;
 end;
 
 var LastToolbarWarningtime: Integer;
@@ -11599,24 +12862,28 @@ begin
   inherited;
   if generateVariables then
   begin
-    S := '';
-    for I := 0 to Items.Count-1 do
-    begin
-      Bt := Items[ I ];
-      if Bt.separator and (Copy( Bt.Name, 1, 2 ) = 'TB') and
-         IsNumber( Copy( Bt.Name, 3, MaxInt ) ) then
-         continue;
-      if Bt.Name <> '' then
+      S := '';
+      for I := 0 to Items.Count-1 do
       begin
-        S := S + ',' + Bt.Name;
+          Bt := Items[ I ];
+          if  Bt.separator and (Copy( Bt.Name, 1, 2 ) = 'TB') and
+              IsNumber( Copy( Bt.Name, 3, MaxInt ) ) then
+              continue;
+          if  Bt.Name <> '' then
+          begin
+              S := S + ',' + Bt.Name;
+          end;
       end;
-    end;
-    if ( S <> '' ) then
-    begin
-      Delete( S, 1, 1 );
-      SL.Add( Prefix + AName + '.TBConvertIdxArray2ID( [' + S + '] );' );
-    end;
+      if ( S <> '' ) then
+      begin
+          Delete( S, 1, 1 );
+          SL.Add( '  ' + Prefix + AName + '.TBConvertIdxArray2ID( [' + S + '] );' );
+      end;
   end;
+
+  if  AutoSize then
+      SL.Add( '  ' + Prefix + AName + '.Perform( TB_AUTOSIZE, 0, 0 );' );
+
 end;
 
 procedure TKOLToolbar.P_SetupLast(SL: TStringList; const AName, AParent,
@@ -12365,6 +13632,366 @@ begin
                              [ @ OnTBCustomDraw ] );
 end;
 
+procedure TKOLToolbar.SetupConstruct_Compact;
+var KF: TKOLForm;
+    i, N: Integer;
+    Bt, Bt1: TKOLToolbarButton;
+    s, B: String;
+    TheSameBefore, TheSameAfter: Boolean;
+    StdImagesStart, ViewImagesStart, HistImagesStart: Integer;
+begin
+    inherited;
+    KF := ParentKOLForm;
+    if  KF = nil then Exit;
+    KF.FormAddAlphabet( 'FormNewToolbar', TRUE, TRUE );
+    KF.FormAddNumParameter( Integer( Align ) );
+    KF.FormAddNumParameter( PInteger( @ Options )^ );
+    if (Bitmap.Width > 0) and (Bitmap.Height > 0) and
+       (FResBmpID >= 0) and (MaxBtnImgWidth = MaxBtnImgHeight) and
+       (StandardImagesUsed=0) then
+    begin
+        KF.FormAddNumParameter( Integer( mapBitmapColors )+1 );
+        if  mapBitmapColors then
+            KF.FormAddNumParameter( (FBmpTranColor shl 1) or (FBmpTranColor shr 31) );
+        KF.FormAddStrParameter( UpperCase( ParentKOLForm.FormName ) +
+                                '_TBBMP' + IntToStr( FResBmpID ) );
+    end
+      else
+    begin
+        if (PicturedButtonsCount = 0) and (IntIn( StandardImagesUsed, [ 1, 2, 4 ] )) then
+        begin
+          if  StandardImagesUsed = 1 then
+              if  StandardImagesLarge then
+                  //Result := Result + 'THandle( -2 ), '
+                  KF.FormAddNumParameter( -2 )
+              else
+                  //Result := Result + 'THandle( -1 ), '
+                  KF.FormAddNumParameter( -1 )
+          else
+          if  StandardImagesUsed = 2 then
+              if  StandardImagesLarge then
+                  //Result := Result + 'THandle( -6 ), '
+                  KF.FormAddNumParameter( -6 )
+              else
+                  //Result := Result + 'THandle( -5 ), '
+                  KF.FormAddNumParameter( -5 )
+          else
+              if  StandardImagesLarge then
+                  //Result := Result + 'THandle( -10 ), '
+                  KF.FormAddNumParameter( -10 )
+              else
+                  //Result := Result + 'THandle( -9 ), ';
+                  KF.FormAddNumParameter( -9 );
+        end
+          else
+        begin
+            if  not ((Bitmap.Width > 0) and (Bitmap.Height > 0)
+            and (FResBmpID >= 0)) then
+                FResBmpID := 0;
+            KF.FormAddNumParameter( 0 );
+        end;
+    end;
+    KF.FormAddNumParameter( Items.Count );
+    for i := 0 to Items.Count-1 do
+    begin
+        Bt := Items[ I ];
+        if  Bt.separator then
+            s := '-'
+        else
+        begin
+            if  noTextLabels then
+                B := ' '
+            else
+                B := Bt.Fcaption;
+            s := '';
+            if  Bt.radioGroup <> 0 then
+            begin
+                TheSameBefore := FALSE;
+                TheSameAfter := FALSE;
+                if  i> 0 then
+                begin
+                   Bt1 := Items[ i - 1 ];
+                   if  not Bt1.separator and (Bt1.FradioGroup = Bt.FradioGroup) then
+                       TheSameBefore := TRUE;
+                end;
+                if  i < Items.Count-1 then
+                begin
+                    Bt1 := Items[ I + 1 ];
+                    if  not Bt1.separator and (Bt1.FradioGroup = Bt.FradioGroup) then
+                        TheSameAfter := TRUE;
+                end;
+                if  TheSameBefore or TheSameAfter then
+                    s := '!' + s;
+            end;
+            if  Bt.checked and (Bt.Faction = nil) then
+                s := '+' + s
+            else
+            if  Bt.radioGroup <> 0 then
+                s := '-' + s;
+            if  Bt.dropdown then
+                s := '^' + s;
+            if  noTextLabels then
+                s := s + B
+            else
+            if  Bt.Faction <> nil then
+                //
+            else
+            begin
+                B := Bt.Name;
+                if  (B <> '') and (B[ 1 ] = '''') then
+                    s := s + Copy( B, 2, MaxInt )
+                else
+                    s := s + B;
+            end;
+        end;
+        KF.FormAddStrParameter( s );
+    end;
+
+    if  (StandardImagesUsed = 0) and (PicturedButtonsCount = 0) and not ImageListsUsed then
+    begin
+        KF.FormAddNumParameter( 1 );
+        KF.FormAddNumParameter( -2 );
+    end else
+    if  (StandardImagesUsed = 0) and AllPicturedButtonsAreLeading and
+        LastBtnHasPicture and not ImageListsUsed then
+    begin
+        KF.FormAddNumParameter( 1 );
+        KF.FormAddNumParameter( 0 );
+    end else
+    begin
+        N := PicturedButtonsCount;
+        StdImagesStart := N;
+        ViewImagesStart := N;
+        HistImagesStart := N;
+        if (StandardImagesUsed > 1) and LongBool(StandardImagesUsed and 1) then
+        begin
+            ViewImagesStart := N + 15;
+            HistImagesStart := N + 15;
+        end;
+        if  LongBool(StandardImagesUsed and 2) then
+            HistImagesStart := HistImagesStart + 12;
+        N := 0;
+        S := '';
+        KF.FormAddNumParameter( Items.Count );
+        for I := 0 to Items.Count-1 do
+        begin
+            Bt := Items[ I ];
+            if  ImageListsUsed then
+            begin
+                if  Bt.imgIndex >= 0 then
+                    KF.FormAddNumParameter( Bt.imgIndex )
+                else
+                    KF.FormAddNumParameter( -2 );
+            end
+            else
+            if  Bt.HasPicture then
+            begin
+                KF.FormAddNumParameter( N );
+                Inc( N );
+            end
+            else
+            case Bt.sysimg of
+            stiCustom:
+                KF.FormAddNumParameter( -2 ); // I_IMAGENONE
+            stdCUT..stdPRINT:
+                KF.FormAddNumParameter( StdImagesStart + Ord( Bt.sysimg ) - Ord( stdCUT ) );
+            viewLARGEICONS..viewVIEWMENU:
+                KF.FormAddNumParameter( ViewImagesStart + Ord( Bt.sysimg ) - Ord( viewLARGEICONS ) );
+            else
+                KF.FormAddNumParameter( HistImagesStart + Ord( Bt.sysimg ) - Ord( histBACK ) );
+            end;
+        end;
+    end;
+end;
+
+function TKOLToolbar.SupportsFormCompact: Boolean;
+begin
+    Result := TRUE; //CompactCode;
+end;
+
+procedure TKOLToolbar.SetCompactCode(const Value: Boolean);
+begin
+  if  FCompactCode = Value then Exit;
+  FCompactCode := Value;
+  Change;
+end;
+
+function TKOLToolbar.HasCompactConstructor: Boolean;
+begin
+    Result := CompactCode and (Items.Count < 256);
+end;
+
+function TKOLToolbar.ButtonCaptionsList( var Cnt: Integer ): String;
+VAR S, B: String;
+    I: Integer;
+    Bt, Bt1: TKOLToolbarButton;
+    TheSameBefore, TheSameAfter: Boolean;
+    {$IFDEF _D2009orHigher}
+    C2: String;
+    C : String;
+    Z: Integer;
+    {$ENDIF}
+begin
+  Result := '';
+  Cnt := 0;
+  for I := 0 to Items.Count-1 do
+  begin
+    Bt := Items[ I ];
+    if  Bt.separator then
+    begin
+        Result := Result + '''-''';
+    end
+    else
+    begin
+        if noTextLabels then
+          B := ' '
+        else
+         begin
+         {$IFDEF _D2009orHigher}
+          C2 := '';
+          C := Bt.Fcaption;
+          for Z := 1 to Length(C) do C2 := C2 + '#'+int2str(ord(C[Z]));
+          B := C2;
+         {$ELSE}
+          B := Bt.Fcaption;
+         {$ENDIF}
+         end;
+        S := '';
+        if Bt.radioGroup <> 0 then
+        begin
+          TheSameBefore := FALSE;
+          TheSameAfter := FALSE;
+          if I > 0 then
+          begin
+            Bt1 := Items[ I - 1 ];
+            if not Bt1.separator and (Bt1.FradioGroup = Bt.FradioGroup) then
+              TheSameBefore := TRUE;
+          end;
+          if I < Items.Count-1 then
+          begin
+            Bt1 := Items[ I + 1 ];
+            if not Bt1.separator and (Bt1.FradioGroup = Bt.FradioGroup) then
+              TheSameAfter := TRUE;
+          end;
+          if TheSameBefore or TheSameAfter then
+            S := '!' + S;
+        end;
+        if Bt.checked and (Bt.Faction = nil) then
+          S := '+' + S
+        else
+        if Bt.radioGroup <> 0 then
+          S := '-' + S;
+        if Bt.dropdown then
+          S := '^' + S;
+        if noTextLabels then
+          Result := Result + '''' + S + B + ''''
+        else
+        if  Bt.Faction <> nil then
+            Result := Result + '''' + S + '  '''
+        else
+        begin
+           {$IFDEF _D2009orHigher}
+            if B = '' then B := '''''';
+           {$ELSE}
+            B := StringConstant( Bt.Name + '_btn', B );
+           {$ENDIF}
+            if (B <> '') and (B[ 1 ] = '''') then
+              Result := Result + '''' + S + Copy( B, 2, MaxInt )
+            else
+            if S <> '' then
+              Result := Result + 'PKOLChar( ''' + S + ''' + ' + B + ')'
+            else
+              Result := Result + 'PKOLChar( ' + B + ' )';
+        end;
+      end;
+      if  I < Items.Count-1 then
+          Result := Result  + ', ';
+      inc( Cnt );
+  end;
+end;
+
+function TKOLToolbar.ButtonImgIndexesList( var Cnt: Integer ): String;
+VAR I, N: Integer;
+    StdImagesStart, ViewImagesStart, HistImagesStart: Integer;
+    S: String;
+    Bt: TKOLToolbarButton;
+begin
+  Cnt := 0;
+  if  (StandardImagesUsed = 0) and (PicturedButtonsCount = 0) and not ImageListsUsed then
+  begin
+      Result := Result + '-2';
+      Cnt := 1;
+  end else
+  if  (StandardImagesUsed = 0) and AllPicturedButtonsAreLeading and
+      LastBtnHasPicture and not ImageListsUsed then
+  begin
+      Result := Result + '0';
+      Cnt := 1;
+  end else
+  begin
+    N := PicturedButtonsCount;
+    StdImagesStart := N;
+    ViewImagesStart := N;
+    HistImagesStart := N;
+    if  (StandardImagesUsed > 1) and LongBool(StandardImagesUsed and 1) then
+    begin
+        ViewImagesStart := N + 15;
+        HistImagesStart := N + 15;
+    end;
+    if  LongBool(StandardImagesUsed and 2) then
+        HistImagesStart := HistImagesStart + 12;
+    N := 0;
+    S := '';
+    for I := 0 to Items.Count-1 do
+    begin
+        Bt := Items[ I ];
+        //Rpt( '%%%%%%%%%% Bt ' + Bt.Name + ' HasPicture := ' + IntToStr( Integer( Bt.HasPicture ) ) );
+        if ImageListsUsed then
+        begin
+          if Bt.imgIndex >= 0 then
+            S := IntToStr( Bt.imgIndex )
+          else
+            S := '-2';
+        end
+        else
+        if Bt.HasPicture then
+        begin
+          S := IntToStr( N );
+          Inc( N );
+        end
+          else
+        case Bt.sysimg of
+        stiCustom:
+          S := '-2'; // I_IMAGENONE
+        stdCUT..stdPRINT:
+          S := IntToStr( StdImagesStart + Ord( Bt.sysimg ) - Ord( stdCUT ) );
+        viewLARGEICONS..viewVIEWMENU:
+          S := IntToStr( ViewImagesStart + Ord( Bt.sysimg ) - Ord( viewLARGEICONS ) );
+        else
+          S := IntToStr( HistImagesStart + Ord( Bt.sysimg ) - Ord( histBACK ) );
+        end;
+        Result := Result + S + ', ';
+        inc( Cnt );
+    end;
+    if  Items.Count > 0 then
+        Result := Copy( Result, 1, Length( Result ) - 2 );
+  end;
+end;
+
+procedure TKOLToolbar.SetAutosizeButtons(const Value: Boolean);
+begin
+    if  FAutosizeButtons = Value then Exit;
+    FAutosizeButtons := Value;
+    Change;
+end;
+
+procedure TKOLToolbar.SetNoSpaceForImages(const Value: Boolean);
+begin
+    if  FNoSpaceForImages = Value then Exit;
+    FNoSpaceForImages := Value;
+    Change;
+end;
+
 { TKOLToolbarButtonsEditor }
 
 procedure TKOLToolbarButtonsEditor.Edit;
@@ -13002,8 +14629,22 @@ begin
   Invalidate;
 end;
 
+procedure TKOLLabelEffect.SetupConstruct_Compact;
+var KF: TKOLForm;
+begin
+    ////inherited;
+    KF := ParentKOLForm;
+    if  KF = nil then Exit;
+    KF.FormAddCtlParameter( Name );
+    KF.FormCurrentCtlForTransparentCalls := Name;
+    KF.FormAddAlphabet( 'FormNewLabelEffect', TRUE, TRUE );
+    KF.FormAddStrParameter( Caption );
+    KF.FormAddNumParameter( ShadowDeep );
+end;
+
 procedure TKOLLabelEffect.SetupFirst(SL: TStringList; const AName, AParent,
   Prefix: String);
+var KF: TKOLForm;
 begin
   asm
     jmp @@e_signature
@@ -13012,10 +14653,22 @@ begin
   @@e_signature:
   end;
   inherited;
-  if Color2 <> clNone then
-    SL.Add( Prefix + AName + '.Color2 := ' + Color2Str( Color2 ) + ';' );
-  if Ctl3D then
-    SL.Add( Prefix + AName + '.Ctl3D := TRUE;' );
+  KF := ParentKOLForm;
+  if  Color2 <> clNone then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetColor2' );
+          KF.FormAddNumParameter( (Color2 shl 1) or (Color2 shr 31) );
+      end else
+      SL.Add( Prefix + AName + '.Color2 := TColor(' + Color2Str( Color2 ) + ');' );
+
+  if  Ctl3D then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'TControl.SetCtl3D' );
+          // param = 1
+      end else
+      SL.Add( Prefix + AName + '.Ctl3D := TRUE;' );
 end;
 
 function TKOLLabelEffect.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
@@ -13047,6 +14700,7 @@ end;
 
 procedure TKOLLabelEffect.SetupTextAlign(SL: TStrings;
   const AName: String);
+var KF: TKOLForm;
 begin
   asm
     jmp @@e_signature
@@ -13054,15 +14708,32 @@ begin
     DB 'TKOLLabelEffect.SetupTextAlign', 0
   @@e_signature:
   end;
-  if TextAlign <> taCenter then
-    SL.Add( '    ' + AName + '.TextAlign := KOL.' + TextAligns[ TextAlign ] + ';' );
-  if VerticalAlign <> vaTop then
-    SL.Add( '    ' + AName + '.VerticalAlign := KOL.' + VertAligns[ VerticalAlign ] + ';' );
+  KF := ParentKOLForm;
+  if  TextAlign <> taCenter then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetTextAlign' );
+          KF.FormAddNumParameter( Integer( TextAlign ) );
+      end else
+      SL.Add( '    ' + AName + '.TextAlign := KOL.' + TextAligns[ TextAlign ] + ';' );
+
+  if  VerticalAlign <> vaTop then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetTextVAlign' );
+          KF.FormAddNumParameter( Integer( VerticalAlign ) );
+      end else
+      SL.Add( '    ' + AName + '.VerticalAlign := KOL.' + VertAligns[ VerticalAlign ] + ';' );
 end;
 
 procedure TKOLLabelEffect.SetWindowed(const Value: Boolean);
 begin
    inherited SetWindowed( TRUE );
+end;
+
+function TKOLLabelEffect.SupportsFormCompact: Boolean;
+begin
+    Result := TRUE;
 end;
 
 { TKOLScrollBox }
@@ -13185,6 +14856,27 @@ begin
   Change;
 end;
 
+procedure TKOLScrollBox.SetupConstruct_Compact;
+var KF: TKOLForm;
+    i: Integer;
+begin
+    inherited;
+    KF := ParentKOLForm;
+    if  KF = nil then Exit;
+    KF.FormAddAlphabet( 'FormNew' + TypeName, TRUE, TRUE );
+    KF.FormAddNumParameter( Integer( EdgeStyle ) );
+    if  TypeName = 'ScrollBox' then
+    begin
+        CASE ScrollBars OF
+        ssNone:   i := 0;
+        ssHorz:   i := 1;
+        ssVert:   i := 2;
+        else      i := 3;
+        END;
+        KF.FormAddNumParameter( i );
+    end;
+end;
+
 function TKOLScrollBox.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
 const EdgeStyles: array[ TEdgeStyle ] of String =
   ( 'esRaised', 'esLowered', 'esNone', 'esTransparent', 'esSolid' );
@@ -13209,6 +14901,11 @@ begin
   end;
 end;
 
+function TKOLScrollBox.SupportsFormCompact: Boolean;
+begin
+    Result := TRUE;
+end;
+
 function TKOLScrollBox.TypeName: String;
 begin
   asm
@@ -13218,8 +14915,8 @@ begin
   @@e_signature:
   end;
   Result := inherited TypeName;
-  if IsControlContainer then
-    Result := 'ScrollBoxEx';
+  if  IsControlContainer then
+      Result := 'ScrollBoxEx';
 end;
 
 { TKOLMDIClient }
@@ -14598,11 +16295,8 @@ begin
   Height := 24; DefaultHeight := Height;
   Color := clWindow;
   fTabStop := TRUE;
-end;
-
-function TKOLDateTimePicker.GenerateTransparentInits: String;
-begin
-  Result := inherited GenerateTransparentInits;
+  MonthBkColor := clNone;
+  MonthTxtColor := clNone;
 end;
 
 function TKOLDateTimePicker.Pcode_Generate: Boolean;
@@ -14618,11 +16312,6 @@ begin
   Result := Result or
   P_DoAssignEvents( SL, AName, [ 'OnDTPUserString' ], [ @ OnDTPUserString ],
     [ FALSE ], CheckOnly );
-end;
-
-function TKOLDateTimePicker.P_GenerateTransparentInits: String;
-begin
-  Result := inherited P_GenerateTransparentInits;
 end;
 
 procedure TKOLDateTimePicker.P_SetupFirst(SL: TStringList; const AName,
@@ -14664,6 +16353,20 @@ begin
   Change;
 end;
 
+procedure TKOLDateTimePicker.SetMonthBkColor(const Value: TColor);
+begin
+    if  FMonthBkColor = Value then Exit;
+    FMonthBkColor := Value;
+    Change;
+end;
+
+procedure TKOLDateTimePicker.SetMonthTxtColor(const Value: TColor);
+begin
+    if  FMonthTxtColor = Value then Exit;
+    FMonthTxtColor := Value;
+    Change;
+end;
+
 procedure TKOLDateTimePicker.SetOnDTPUserString(const Value: KOL.TDTParseInputEvent);
 begin
   FOnDTPUserString := Value;
@@ -14680,16 +16383,51 @@ begin
   Change;
 end;
 
+procedure TKOLDateTimePicker.SetupConstruct_Compact;
+var KF: TKOLForm;
+begin
+    inherited;
+    KF := ParentKOLForm;
+    if  KF = nil then Exit;
+    KF.FormAddAlphabet( 'FormNewDateTimePicker', TRUE, TRUE );
+    KF.FormAddNumParameter( PByte( @ Options )^ );
+end;
+
 procedure TKOLDateTimePicker.SetupFirst(SL: TStringList; const AName,
   AParent, Prefix: String);
+var KF: TKOLForm;
 begin
   inherited;
-  if Format <> '' then
-    SL.Add( Prefix + AName + '.DateTimeFormat := ' +
-      StringConstant( 'Format', Format ) + ';' );
-  if not ParentColor then
-    SL.Add( Prefix + AName + '.DateTimePickerColors[ dtpcBackground ] := ' +
-      Color2Str( Color ) + ';' );
+  KF := ParentKOLForm;
+  if  Format <> '' then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetDateTimeFormat' );
+          KF.FormAddStrParameter( Format );
+      end else
+      SL.Add( Prefix + AName + '.DateTimeFormat := ' +
+              StringConstant( 'Format', Format ) + ';' );
+
+  if  MonthBkColor <> clNone then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetDateTimeColor' );
+          KF.FormAddNumParameter( (MonthBkColor shl 1) or (MonthBkColor shr 31) );
+          KF.FormAddNumParameter( Integer( dtpcBackground ) );
+      end else
+      SL.Add( Prefix + AName + '.DateTimePickerColors[ dtpcBackground ] := TColor(' +
+              Color2Str( MonthBkColor ) + ');' );
+
+  if  MonthTxtColor <> clNone then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetDateTimeColor' );
+          KF.FormAddNumParameter( (MonthTxtColor shl 1) or (MonthTxtColor shr 31) );
+          KF.FormAddNumParameter( Integer( dtpcText ) );
+      end else
+      SL.Add( Prefix + AName + '.DateTimePickerColors[ dtpcMonthBk ] := TColor(' +
+              Color2Str( MonthTxtColor ) + ');' );
+
 end;
 
 function TKOLDateTimePicker.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
@@ -14704,6 +16442,11 @@ begin
   if dtpoParseInput in Options then S := S + ',dtpoParseInput';
   Delete( S, 1, 1 );
   Result := AParent + ', [' + S + ']';
+end;
+
+function TKOLDateTimePicker.SupportsFormCompact: Boolean;
+begin
+    Result := TRUE;
 end;
 
 function TKOLDateTimePicker.TabStopByDefault: Boolean;
@@ -14880,8 +16623,19 @@ begin
   Change;
 end;
 
+procedure TKOLScrollBar.SetupConstruct_Compact;
+var KF: TKOLForm;
+begin
+    inherited;
+    KF := ParentKOLForm;
+    if  KF = nil then Exit;
+    KF.FormAddAlphabet( 'FormNewScrollBar', TRUE, TRUE );
+    KF.FormAddNumParameter( Integer( SBBar ) );
+end;
+
 procedure TKOLScrollBar.SetupFirst(SL: TStringList; const AName, AParent,
   Prefix: String);
+var KF: TKOLForm;
 begin
   asm
     jmp @@e_signature
@@ -14890,14 +16644,37 @@ begin
   @@e_signature:
   end;
   inherited;
-  if SBMin <> 0 then
-    SL.Add( Prefix + AName + '.SBMin := ' + IntToStr( SBMin ) + ';' );
-  //if SBMax <> 100 then
-    SL.Add( Prefix + AName + '.SBMax := ' + IntToStr( SBMax ) + ';' );
-  if SBPosition <> SBMin then
-    SL.Add( Prefix + AName + '.SBPosition := ' + IntToStr( SBPosition ) + ';' );
-  if SBPageSize <> 0 then
-    SL.Add( Prefix + AName + '.SBPageSize := ' + IntToStr( SBPageSize ) + ';' );
+  KF := ParentKOLForm;
+  if  SBMin <> 0 then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetSBMin' );
+          KF.FormAddNumParameter( SBMin );
+      end else
+      SL.Add( Prefix + AName + '.SBMin := ' + IntToStr( SBMin ) + ';' );
+
+  if  (KF <> nil) and KF.FormCompact then
+  begin
+      KF.FormAddCtlCommand( Name, 'FormSetSBMax' );
+      KF.FormAddNumParameter( SBMax );
+  end else
+  SL.Add( Prefix + AName + '.SBMax := ' + IntToStr( SBMax ) + ';' );
+
+  if  SBPosition <> SBMin then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetSBPosition' );
+          KF.FormAddNumParameter( SBPosition );
+      end else
+      SL.Add( Prefix + AName + '.SBPosition := ' + IntToStr( SBPosition ) + ';' );
+
+  if  SBPageSize <> 0 then
+      if  (KF <> nil) and KF.FormCompact then
+      begin
+          KF.FormAddCtlCommand( Name, 'FormSetSBPageSize' );
+          KF.FormAddNumParameter( SBPageSize );
+      end else
+      SL.Add( Prefix + AName + '.SBPageSize := ' + IntToStr( SBPageSize ) + ';' );
 end;
 
 function TKOLScrollBar.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
@@ -14911,6 +16688,18 @@ begin
   @@e_signature:
   end;
   Result := AParent + ', ' + ScrollerbarNames[ SBBar ];
+end;
+
+function TKOLScrollBar.SupportsFormCompact: Boolean;
+begin
+    Result := TRUE;
+end;
+
+{ TKOLTabPage }
+
+function TKOLTabPage.TypeName: String;
+begin
+    Result := 'Panel';
 end;
 
 end.

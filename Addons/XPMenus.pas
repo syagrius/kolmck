@@ -142,7 +142,7 @@ begin
   Result.FOnMenuItem := aOnMenuItem;
   if (High(Template)>=0) and (Template[0] <> nil) then
   begin
-    if (AParent <> nil) and (PXPControl( AParent).fMenuObj = nil) and not PXPControl( AParent).fIsControl then
+    if (AParent <> nil) and (PXPControl( AParent).fMenuObj = nil) and not PXPControl( AParent).IsControl then
       Result.FHandle := CreateMenu
     else
       Result.FHandle := CreatePopupMenu;
@@ -161,7 +161,7 @@ begin
     end
        else
     begin
-      if not PXPControl( AParent).fIsControl then
+      if not PXPControl( AParent).IsControl then
       begin
         {$IFDEF INITIALFORMSIZE_FIXMENU}
         R := AParent.ClientRect;

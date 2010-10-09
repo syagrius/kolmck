@@ -1,6 +1,5 @@
 package addons_D2010;
 
-{$R *.res}
 {$R 'addons.res'}
 {$R 'mckCCtrls.dcr'}
 {$R 'mckHTTPDownload.dcr'}
@@ -42,17 +41,26 @@ requires
   designide;
 
 contains
+  KOLCCtrls in 'KOLCCtrls.pas',
+  mckCCtrls in 'mckCCtrls.pas',
   KOLHashs in 'KOLHashs.PAS',
   mckHashs in 'mckHashs.pas',
   KOLFontEditor in 'KOLFontEditor.pas',
   KOLmhxp in 'KOLmhxp.pas',
   MCKMHXP in 'MCKMHXP.pas',
+  mckTCPSocket in 'mckTCPSocket.pas',
+  mckSocket in 'mckSocket.pas',
   mckListEdit in 'mckListEdit.pas',
+  KOLSocket in 'KOLSocket.pas',
   Objects in 'Objects.pas',
+  kolTCPSocket in 'kolTCPSocket.pas',
   mckCProgBar in 'mckCProgBar.pas',
   mckRarInfoBar in 'mckRarInfoBar.pas',
   mckRarProgBar in 'mckRarProgBar.pas',
   mckHTTP in 'mckHTTP.pas',
+  mckRAS in 'mckRAS.pas',
+  KOLRas in 'KOLRas.pas',
+  RAS in 'RAS.pas',
   UStr in 'UStr.pas',
   UWrd in 'UWrd.pas',
   KOLHTTP in 'KOLHTTP.pas',
@@ -77,6 +85,7 @@ contains
   tinyPNG in 'tinyPNG.pas',
   tinyJPGGIFBMP in 'tinyJPGGIFBMP.pas',
   mckWebBrowser in 'mckWebBrowser.pas',
-  mckDHTML in 'mckDHTML.pas';
+  mckDHTML in 'mckDHTML.pas',
+  KolZLibBzip in 'KolZLibBzip.pas';
 
 end.
