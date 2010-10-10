@@ -2448,127 +2448,6 @@ asm     //cmd    //opd
         POP      EBX
 end;
 
-{$IFDEF ASM_UNICODE}
-function Int2Hex( Value : DWord; Digits : Integer ) : AnsiString;
-asm     // EAX = Value
-        // EDX = Digits
-        // ECX = @Result
-
-        PUSH      0
-        ADD       ESP, -0Ch
-
-        PUSH      EDI
-        PUSH      ECX
-
-        LEA       EDI, [ESP+8+0Fh]  // EBX := @Buf[ 15 ]
-        {$IFDEF SMALLEST_CODE}
-        {$ELSE}
-        AND       EDX, $F
-        {$ENDIF}
-
-@@loop: DEC       EDI
-        DEC       EDX
-
-        PUSH      EAX
-        {$IFDEF PARANOIA} DB $24, $0F {$ELSE} AND AL, 0Fh {$ENDIF}
-
-        {$IFDEF oldcode}
-
-                {$IFDEF PARANOIA} DB $3C, 9 {$ELSE} CMP AL, 9 {$ENDIF}
-                JA        @@10
-                {$IFDEF PARANOIA} DB $04, 30h-41h+0Ah {$ELSE} ADD AL,30h-41h+0Ah {$ENDIF}
-        @@10:
-                {$IFDEF PARANOIA} DB $04, 41h-0Ah {$ELSE} ADD AL,41h-0Ah {$ENDIF}
-
-        {$ELSE newcode}
-
-                AAM
-                DB $D5, $11 //AAD
-                ADD      AL, $30
-
-        {$ENDIF newcode}
-
-
-        //MOV       byte ptr [EDI], AL
-        STOSB
-        DEC       EDI
-        POP       EAX
-        SHR       EAX, 4
-
-        JNZ       @@loop
-
-        TEST      EDX, EDX
-        JG        @@loop
-
-        POP       EAX      // EAX = @Result
-        MOV       EDX, EDI // EDX = @resulting string
-        {$IFDEF _D2009orHigher}
-        //PUSH     ECX       // TODO: remove ecx protection
-        XOR      ECX, ECX
-        {$ENDIF}
-        CALL      System.@LStrFromPChar
-        {$IFDEF _D2009orHigher}
-        //POP       ECX      // ECX popup twice to eax?
-        {$ENDIF}
-        POP       EDI
-        ADD       ESP, 10h
-
-{== by KSer - to test it only.
-function Int2Hex( Value : DWord; Digits : Integer ) : shortString;
-asm
-        MOV       [ECX], DL
-        XADD      EDX, ECX
-@@loop1:
-        PUSH      EAX
-        db   $24, $0F    // and  al,$0F
-        AAM
-        DB $D5, $11      // AAD
-        db   $04, $30    // add  al,$30
-        MOV       [EDX], AL
-        POP       EAX
-        SHR       EAX, 4
-        DEC       EDX
-        LOOP      @@loop1
-}
-end;
-
-function Hex2Int( const Value : AnsiString) : Integer;
-asm
-        CALL     EAX2PChar
-        PUSH     ESI
-        XCHG     ESI, EAX
-        XOR      EDX, EDX
-        TEST     ESI, ESI
-        JE       @@exit
-        LODSB
-        {$IFDEF PARANOIA} DB $3C, '$' {$ELSE} CMP AL, '$' {$ENDIF}
-        JNE      @@1
-@@0:    LODSB
-@@1:    TEST     AL, AL
-        JE       @@exit
-        {$IFDEF PARANOIA} DB $2C, '0' {$ELSE} SUB AL, '0' {$ENDIF}
-        {$IFDEF PARANOIA} DB $3C, 9 {$ELSE} CMP AL, '9' - '0' {$ENDIF}
-        JBE      @@3
-
-        {$IFDEF PARANOIA} DB $2C, $11 {$ELSE} SUB AL, 'A' - '0' {$ENDIF}
-        {$IFDEF PARANOIA} DB $3C, 5 {$ELSE} CMP AL, 'F' - 'A' {$ENDIF}
-        JBE      @@2
-
-        {$IFDEF PARANOIA} DB $2C, 32 {$ELSE} SUB AL, 32 {$ENDIF}
-        {$IFDEF PARANOIA} DB $3C, 5 {$ELSE} CMP AL, 'F' - 'A' {$ENDIF}
-        JA       @@exit
-@@2:
-        {$IFDEF PARANOIA} DB $04, 0Ah {$ELSE} ADD AL, 0Ah {$ENDIF}
-@@3:
-        SHL      EDX, 4
-        ADD      DL, AL
-        JMP      @@0
-
-@@exit: XCHG     EAX, EDX
-        POP      ESI
-end;
-{$ENDIF}
-
 function cHex2Int( const Value : AnsiString) : Integer;
 asm
      TEST  EAX, EAX
@@ -2584,50 +2463,6 @@ asm
      JMP   Hex2Int
 @@exit:
 end;
-
-{$IFDEF ASM_UNICODE}
-function Int2Str( Value : Integer ) : AnsiString;
-asm
-        XOR       ECX, ECX
-        PUSH      ECX
-        ADD       ESP, -0Ch
-
-        PUSH      EBX
-        LEA       EBX, [ESP + 15 + 4]
-        PUSH      EDX
-        CMP       EAX, ECX
-        PUSHFD
-        JGE       @@1
-        NEG       EAX
-@@1:
-        MOV       CL, 10
-
-@@2:
-        DEC       EBX
-        XOR       EDX, EDX
-        DIV       ECX
-        ADD       DL, 30h
-        MOV       [EBX], DL
-        TEST      EAX, EAX
-        JNZ       @@2
-
-        POPFD
-        JGE       @@3
-
-        DEC       EBX
-        MOV       byte ptr [EBX], '-'
-@@3:
-        POP       EAX
-        MOV       EDX, EBX
-        {$IFDEF _D2009orHigher}
-        XOR      ECX, ECX // TODO: safe to destory twice?
-        {$ENDIF}
-        CALL      System.@LStrFromPChar
-
-        POP       EBX
-        ADD       ESP, 10h
-end;
-{$ENDIF}
 
 function Int2Ths( I : Integer ) : AnsiString;
 asm
@@ -7193,7 +7028,6 @@ asm
 @@exit:
         POP       EBX
 end;
-//{$ENDIF ASM_UNICODE}
 
 function TControl.CallDefWndProc(var Msg: TMsg): Integer;
 asm
@@ -13420,6 +13254,27 @@ asm
         POP      EBX
 end;
 
+function _GetDIBPixelsTrueColorAlpha( Bmp: PBitmap; X, Y: Integer ): TColor;
+asm
+        PUSH     EBX
+        XCHG     EBX, EAX
+        PUSH     EDX
+        MOV      EAX, [EBX].TBitmap.fScanLineDelta
+        IMUL     ECX
+        XCHG     ECX, EAX
+        POP      EDX
+        MOV      EAX, [EBX].TBitmap.fBytesPerPixel
+        MUL      EDX
+        ADD      EAX, [EBX].TBitmap.fScanLine0
+        MOV      EAX, [EAX+ECX]
+        MOV      EDX, EAX
+        AND      EDX, $FF00FF
+        AND      EAX, $FF00FF00
+        ROL      EDX, 16
+        OR       EAX, EDX
+        POP      EBX
+end;
+
 function TBitmap.GetDIBPixels(X, Y: Integer): TColor;
 asm
         CMP      word ptr [EAX].fGetDIBPixels+2, 0
@@ -13475,7 +13330,7 @@ asm
 @@if32bit:
         LOOP     @@iffin
         INC      EDX
-        MOV      EAX, offset[_GetDIBPixelsTrueColorWithAlpha]
+        MOV      EAX, offset[_GetDIBPixelsTrueColorAlpha]
 @@iffin:
         MOV      byte ptr [EBX].fPixelMask, DH
         MOV      byte ptr [EBX].fPixelsPerByteMask, DL
@@ -13632,6 +13487,28 @@ asm
         OR       [EDX], EAX
 end;
 
+procedure _SetDIBPixelsTrueColorAlpha( Bmp: PBitmap; X, Y: Integer; Value: TColor );
+asm
+        PUSH     [EAX].TBitmap.fScanLineDelta
+        PUSH     [EAX].TBitmap.fScanLine0
+        MOV      EAX, [EAX].TBitmap.fBytesPerPixel
+        MUL      EDX
+        POP      EDX
+        ADD      EDX, EAX
+        POP      EAX
+        PUSH     EDX
+        IMUL     ECX
+        POP      EDX
+        ADD      EDX, EAX
+        MOV      EAX, Value
+        MOV      ECX, EAX
+        AND      ECX, $FF00FF
+        AND      EAX, $FF00FF00
+        ROL      ECX, 16
+        OR       EAX, ECX
+        MOV      [EDX], EAX
+end;
+
 procedure TBitmap.SetDIBPixels(X, Y: Integer; const Value: TColor);
 asm
         CMP      word ptr [EAX].fSetDIBPixels+2, 0
@@ -13679,7 +13556,7 @@ asm
 @@if32bit:
         LOOP     @@ifend
         INC      EDX
-        MOV      EAX, offset[_SetDIBPixelsTrueColorWithAlpha]
+        MOV      EAX, offset[_SetDIBPixelsTrueColorAlpha]
 @@ifend:
         MOV      byte ptr [EBX].fPixelMask, DH
         MOV      byte ptr [EBX].fPixelsPerByteMask, DL

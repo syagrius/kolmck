@@ -14,7 +14,7 @@
   Key Objects Library (C) 2000 by Kladov Vladimir.
 
 ****************************************************************
-* VERSION 3.00.F
+* VERSION 3.00.G
 ****************************************************************
 
   K.O.L. - is a set of objects to create small programs
@@ -19882,11 +19882,94 @@ asm
 end;
 {$ENDIF}
 
-{$IFDEF ASM_UNICODE}{$ELSE ASM_VERSION} //Pascal (mixed)
+{$IFDEF ASM_UNICODE}
+function Int2Hex( Value : DWord; Digits : Integer ) : KOLString;
+asm     // EAX = Value
+        // EDX = Digits
+        // ECX = @Result
+
+        PUSH      0
+        ADD       ESP, -0Ch
+
+        PUSH      EDI
+        PUSH      ECX
+
+        LEA       EDI, [ESP+8+0Fh]  // EBX := @Buf[ 15 ]
+        {$IFDEF SMALLEST_CODE}
+        {$ELSE}
+        AND       EDX, $F
+        {$ENDIF}
+
+@@loop: DEC       EDI
+        DEC       EDX
+
+        PUSH      EAX
+        {$IFDEF PARANOIA} DB $24, $0F {$ELSE} AND AL, 0Fh {$ENDIF}
+
+        {$IFDEF oldcode}
+
+                {$IFDEF PARANOIA} DB $3C, 9 {$ELSE} CMP AL, 9 {$ENDIF}
+                JA        @@10
+                {$IFDEF PARANOIA} DB $04, 30h-41h+0Ah {$ELSE} ADD AL,30h-41h+0Ah {$ENDIF}
+        @@10:
+                {$IFDEF PARANOIA} DB $04, 41h-0Ah {$ELSE} ADD AL,41h-0Ah {$ENDIF}
+
+        {$ELSE newcode}
+
+                AAM
+                DB $D5, $11 //AAD
+                ADD      AL, $30
+
+        {$ENDIF newcode}
+
+
+        //MOV       byte ptr [EDI], AL
+        STOSB
+        DEC       EDI
+        POP       EAX
+        SHR       EAX, 4
+
+        JNZ       @@loop
+
+        TEST      EDX, EDX
+        JG        @@loop
+
+        POP       EAX      // EAX = @Result
+        MOV       EDX, EDI // EDX = @resulting string
+        {$IFDEF _D2009orHigher}
+        //PUSH     ECX       // TODO: remove ecx protection
+        XOR      ECX, ECX
+        {$ENDIF}
+        CALL      System.@LStrFromPChar
+        {$IFDEF _D2009orHigher}
+        //POP       ECX      // ECX popup twice to eax?
+        {$ENDIF}
+        POP       EDI
+        ADD       ESP, 10h
+
+{== by KSer - to test it only.
+function Int2Hex( Value : DWord; Digits : Integer ) : shortString;
+asm
+        MOV       [ECX], DL
+        XADD      EDX, ECX
+@@loop1:
+        PUSH      EAX
+        db   $24, $0F    // and  al,$0F
+        AAM
+        DB $D5, $11      // AAD
+        db   $04, $30    // add  al,$30
+        MOV       [EDX], AL
+        POP       EAX
+        SHR       EAX, 4
+        DEC       EDX
+        LOOP      @@loop1
+}
+end;
+{$ELSE ASM_VERSION}
 function Int2Hex( Value : DWord; Digits : Integer ) : KOLString;
 const
   HexDigitChr: array[ 0..15 ] of KOLChar = ( '0','1','2','3','4','5','6','7',
-                                              '8','9','A','B','C','D','E','F' );
+                                             '8','9','A','B','C','D','E','F' );
 var Buf: array[ 0..8 ] of KOLChar;
     Dest : PKOLChar;
 begin
@@ -19906,7 +19989,43 @@ begin
 end;
 {$ENDIF ASM_VERSION}
 
-{$IFDEF ASM_UNICODE}{$ELSE ASM_VERSION} //Pascal
+{$IFDEF ASM_UNICODE}
+function Hex2Int( const Value : AnsiString) : Integer;
+asm
+        CALL     EAX2PChar
+        PUSH     ESI
+        XCHG     ESI, EAX
+        XOR      EDX, EDX
+        TEST     ESI, ESI
+        JE       @@exit
+        LODSB
+        {$IFDEF PARANOIA} DB $3C, '$' {$ELSE} CMP AL, '$' {$ENDIF}
+        JNE      @@1
+@@0:    LODSB
+@@1:    TEST     AL, AL
+        JE       @@exit
+        {$IFDEF PARANOIA} DB $2C, '0' {$ELSE} SUB AL, '0' {$ENDIF}
+        {$IFDEF PARANOIA} DB $3C, 9 {$ELSE} CMP AL, '9' - '0' {$ENDIF}
+        JBE      @@3
+
+        {$IFDEF PARANOIA} DB $2C, $11 {$ELSE} SUB AL, 'A' - '0' {$ENDIF}
+        {$IFDEF PARANOIA} DB $3C, 5 {$ELSE} CMP AL, 'F' - 'A' {$ENDIF}
+        JBE      @@2
+
+        {$IFDEF PARANOIA} DB $2C, 32 {$ELSE} SUB AL, 32 {$ENDIF}
+        {$IFDEF PARANOIA} DB $3C, 5 {$ELSE} CMP AL, 'F' - 'A' {$ENDIF}
+        JA       @@exit
+@@2:
+        {$IFDEF PARANOIA} DB $04, 0Ah {$ELSE} ADD AL, 0Ah {$ENDIF}
+@@3:
+        SHL      EDX, 4
+        ADD      DL, AL
+        JMP      @@0
+
+@@exit: XCHG     EAX, EDX
+        POP      ESI
+end;
+{$ELSE ASM_VERSION} //Pascal
 function Hex2Int( const Value : KOLString) : Integer;
 var I : Integer;
 begin
@@ -20065,7 +20184,49 @@ begin
 end;
 {$ENDIF ASM_VERSION}
 
-{$IFDEF ASM_UNICODE}{$ELSE ASM_VERSION} //Pascal
+{$IFDEF ASM_UNICODE}
+function Int2Str( Value : Integer ) : KOLString;
+asm
+        XOR       ECX, ECX
+        PUSH      ECX
+        ADD       ESP, -0Ch
+
+        PUSH      EBX
+        LEA       EBX, [ESP + 15 + 4]
+        PUSH      EDX
+        CMP       EAX, ECX
+        PUSHFD
+        JGE       @@1
+        NEG       EAX
+@@1:
+        MOV       CL, 10
+
+@@2:
+        DEC       EBX
+        XOR       EDX, EDX
+        DIV       ECX
+        ADD       DL, 30h
+        MOV       [EBX], DL
+        TEST      EAX, EAX
+        JNZ       @@2
+
+        POPFD
+        JGE       @@3
+
+        DEC       EBX
+        MOV       byte ptr [EBX], '-'
+@@3:
+        POP       EAX
+        MOV       EDX, EBX
+        {$IFDEF _D2009orHigher}
+        XOR      ECX, ECX // TODO: safe to destory twice?
+        {$ENDIF}
+        CALL      System.@LStrFromPChar
+
+        POP       EBX
+        ADD       ESP, 10h
+end;
+{$ELSE ASM_VERSION} //Pascal
 function Int2Str( Value : Integer ) : KOLString;
 var Buf : Array[ 0..15 ] of KOLChar;
     Dst : PKOLChar;
@@ -25885,7 +26046,9 @@ end;
 {$ENDIF ASM_VERSION}
 
 function TThread.Execute: integer;
-//var H: THandle;
+{$IFDEF TERMAUTOFREE_THREAD}
+var H: THandle;
+{$ENDIF}
 begin
   {$IFDEF SAFE_CODE}
   Result := 0;
@@ -25896,10 +26059,14 @@ begin
   FTerminated := TRUE; // fake thread object (to prevent terminating while freeing)
   if F_AutoFree then
   begin
-//     H := FHandle;
-//     FHandle := 0;
+     {$IFDEF TERMAUTOFREE_THREAD}
+     H := FHandle;
+     {$ENDIF}
+     FHandle := 0;
      Free;
-//     TerminateThread( H, 0 );
+     {$IFDEF TERMAUTOFREE_THREAD}
+     TerminateThread( H, 0 );
+     {$ENDIF}
   end;
 end;
 
@@ -53001,17 +53168,22 @@ begin
 end;
 {$ENDIF ASM_VERSION}
 
-function _GetDIBPixelsTrueColorWithAlpha( Bmp: PBitmap; X, Y: Integer ): TColor;
-var
-  Pixel: DWORD;
-  RGB:   TRGBQuad;
+{$IFDEF ASM_VERSION}{$ELSE ASM_VERSION}
+function _GetDIBPixelsTrueColorAlpha( Bmp: PBitmap; X, Y: Integer ): TColor;
+var Pixel: DWORD;
+    RGB:   TRGBQuad;
+    blue, red: Byte;
 begin
   Pixel := PDWORD( Integer(Bmp.fScanLine0) + Y * Bmp.fScanLineDelta +
-                   X * Bmp.fBytesPerPixel )^ and $FFFFFFFF;
+                   X * Bmp.fBytesPerPixel )^;
   RGB := TRGBQuad(Pixel);
-  Swap(RGB.rgbBlue, RGB.rgbRed);
+  blue := RGB.rgbRed;
+  red  := RGB.rgbBlue;
+  RGB.rgbBlue := blue;
+  RGB.rgbRed  := red;
   Result := TColor( RGB );
 end;
+{$ENDIF ASM_VERSION}
 
 {$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
 function TBitmap.GetDIBPixels(X, Y: Integer): TColor;
@@ -53135,17 +53307,22 @@ begin
 end;
 {$ENDIF ASM_VERSION}
 
-procedure _SetDIBPixelsTrueColorWithAlpha(Bmp: PBitmap; X, Y: Integer; Value: TColor);
+{$IFDEF ASM_VERSION}{$ELSE ASM_VERSION}
+procedure _SetDIBPixelsTrueColorAlpha( Bmp: PBitmap; X, Y: Integer; Value: TColor );
 var RGB: TRGBQuad;
     Pos: PDWord;
+    blue, red: Byte;
 begin
   RGB := TRGBQuad(Value);
-  Swap(RGB.rgbBlue, RGB.rgbRed);
-
+  blue := RGB.rgbRed;
+  red  := RGB.rgbBlue;
+  RGB.rgbBlue := blue;
+  RGB.rgbRed  := red;
   Pos := PDWORD( Integer(Bmp.fScanLine0) + Y * Bmp.fScanLineDelta
                  + X * Bmp.fBytesPerPixel );
   Pos^ := Pos^ or DWORD(RGB);
 end;
+{$ENDIF ASM_VERSION}
 
 {$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
 procedure TBitmap.SetDIBPixels(X, Y: Integer; const Value: TColor);
@@ -59361,7 +59538,7 @@ var hDrop: THandle;
 begin
   if  Msg.message = WM_DROPFILES then
   //if  Assigned( Sender.EV.FOnDropFiles ) then
-  if  TMethod(Sender.EV.fOnDropFiles).Data <> nil then
+  if  TMethod(Sender.EV.fOnDropFiles).Code <> nil then
   begin
       hDrop := Msg.wParam;
       DragQueryPoint( hDrop, Pt );

@@ -437,6 +437,7 @@ type
     FHandle, FinEvent: THandle;
     FPath: KOLString;
     FMonitor: PThread;
+    FDestroying: Boolean;
     function Execute( Sender: PThread ): Integer;
     procedure Changed;
   protected
@@ -2301,6 +2302,7 @@ destructor TDirChange.Destroy;
 asm
         PUSH     EBX
         XCHG     EBX, EAX
+        MOV      [EBX].FDestroying, 1
         MOV      ECX, [EBX].FMonitor
         JECXZ    @@no_monitor
         XCHG     EAX, ECX
@@ -2320,6 +2322,7 @@ end;
 {$ELSE ASM_VERSION} //Pascal
 destructor TDirChange.Destroy;
 begin
+  FDestroying := TRUE;
   if FHandle > 0 then // FHandle <> INVALID_HANDLE_VALUE AND FHandle <> 0
   begin
     OnChange := nil;
@@ -2377,15 +2380,14 @@ begin
   Handles[ 0 ] := FHandle;
   Handles[ 1 ] := FinEvent;
   while not AppletTerminated do
-    case WaitForMultipleObjects(2, @ Handles[ 0 ], FALSE, 1000) of
+    case WaitForMultipleObjects(2, @ Handles[ 0 ], FALSE, INFINITE) of
     WAIT_OBJECT_0:
       begin
-        if AppletTerminated then break;
-        Applet.GetWindowHandle;
+        if AppletTerminated or FDestroying then break;
+        //Applet.GetWindowHandle;
         Sender.Synchronize( Changed );
         FindNextChangeNotification(Handles[ 0 ]);
       end;
-    WAIT_TIMEOUT: Sleep( 100 );
     else break;
     end;
   {$IFDEF SAFE_CODE}
