@@ -12,9 +12,8 @@
 
   Key Objects Library (C) 2000 by Kladov Vladimir.
 
-  mailto: bonanzas@xcl.cjb.net
-  Home: http://bonanzas.rinet.ru
-        http://xcl.cjb.net
+  mailto: vk@kolmck.net
+  Home: http://kolmck.net
 
  =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-}
 {
@@ -49,7 +48,7 @@ unit kolmath;
 
 interface
 
-uses err, kol;
+uses {$IFNDEF MATH_NOERR} err, {$ENDIF} kol;
 
 const   { Ranges of the IEEE floating point types, including denormals }
   MinSingle        =     1.5e-45;
@@ -408,10 +407,12 @@ type
 const
   MaxIterations = 15;
 
+{$IFNDEF MATH_NOERR}
 procedure ArgError(const Msg: string);
 begin
   raise Exception.Create(e_Math_InvalidArgument, Msg);
 end;
+{$ENDIF}
 
 function DegToRad(Degrees: Extended): Extended;  { Radians := Degrees * PI / 180 }
 begin
@@ -940,6 +941,15 @@ begin
       Result := Data[I];
 end;
 
+{$IFDEF ASM_VERSION}
+function Min(A,B: Integer): Integer;
+asm
+  CMP EAX, EDX
+  JL  @@1
+  XCHG EAX, EDX
+@@1:
+end;
+{$ELSE}
 function Min(A,B: Integer): Integer;
 begin
   if A < B then
@@ -947,6 +957,7 @@ begin
   else
     Result := B;
 end;
+{$ENDIF}
 
 {$IFDEF _D4orHigher}
 function Min(A,B: I64): I64;
@@ -1010,6 +1021,15 @@ begin
       Result := Data[I];
 end;
 
+{$IFDEF ASM_VERSION}
+function Max(A,B: Integer): Integer;
+asm
+  CMP EAX, EDX
+  JG  @@1
+  XCHG EAX, EDX
+@@1:
+end;
+{$ELSE}
 function Max(A,B: Integer): Integer;
 begin
   if A > B then
@@ -1017,6 +1037,7 @@ begin
   else
     Result := B;
 end;
+{$ENDIF}
 
 {$IFDEF _D4orHigher}
 function Max(A,B: I64): I64;
@@ -1161,24 +1182,31 @@ asm  // IN: EAX = ptr to Data, EDX = High(Data) = Count - 1
       DD @@4
 @@4:
       ADD  EAX, [ECX+12+EDX]
-      JO   RaiseOverflowError
+      JO   @@RaiseOverflowError
 @@3:
       ADD  EAX, [ECX+8+EDX]
-      JO   RaiseOverflowError
+      JO   @@RaiseOverflowError
 @@2:
       ADD  EAX, [ECX+4+EDX]
-      JO   RaiseOverflowError
+      JO   @@RaiseOverflowError
 @@1:
       ADD  EAX, [ECX+EDX]
-      JO   RaiseOverflowError
+      JO   @@RaiseOverflowError
       SUB  EDX,16
       JNS  @@4
       POP  EBX
+      RET
+@@RaiseOverflowError:
+      POP EBX
+      POP ECX
+      JMP RaiseOverflowError
 end;
 
 procedure RaiseOverflowError;
 begin
+  {$IFNDEF MATH_NOERR}
   raise Exception.Create(e_IntOverflow, SIntOverflow);
+  {$ENDIF}
 end;
 
 function SUM(const Data: array of Double): Extended;
@@ -1353,7 +1381,9 @@ end;
 function SLNDepreciation(Cost, Salvage: Extended; Life: Integer): Extended;
 { Spreads depreciation linearly over life. }
 begin
+  {$IFNDEF MATH_NOERR}
   if Life < 1 then ArgError('SLNDepreciation');
+  {$ENDIF}
   Result := (Cost - Salvage) / Life
 end;
 
@@ -1425,17 +1455,23 @@ var
 begin
   InternalRateOfReturn := 0;
   K := ConditionP(CashFlows);
+  {$IFNDEF MATH_NOERR}
   if K < 0 then ArgError('InternalRateOfReturn');
+  {$ENDIF}
   if K = 0 then
   begin
+    {$IFNDEF MATH_NOERR}
     if Guess <= -1.0 then ArgError('InternalRateOfReturn');
+    {$ENDIF}
     T := -LnXP1(Guess)
   end else
     T := 0.0;
   for Count := 1 to MaxIterations do
   begin
     PolyX(CashFlows, Exp(T), Poly);
+    {$IFNDEF MATH_NOERR}
     if Poly.Pos <= Poly.Neg then ArgError('InternalRateOfReturn');
+    {$ENDIF}
     if (Poly.Neg >= 0.0) or (Poly.Pos <= 0.0) then
     begin
       InternalRateOfReturn := -1.0;
@@ -1450,7 +1486,9 @@ begin
       Exit;
     end
   end;
+  {$IFNDEF MATH_NOERR}
   ArgError('InternalRateOfReturn');
+  {$ENDIF}
 end;
 
 function NetPresentValue(Rate: Extended; const CashFlows: array of Double;
@@ -1461,7 +1499,9 @@ var
   rr: Extended;
   I: Integer;
 begin
+  {$IFNDEF MATH_NOERR}
   if Rate <= -1.0 then ArgError('NetPresentValue');
+  {$ENDIF}
   rr := 1/(1+Rate);
   result := 0;
   for I := High(CashFlows) downto Low(CashFlows) do
@@ -1510,7 +1550,9 @@ var
 		Arn:extended; { =AnnuityF(Rate,NPeriods) }
 
 begin
+  {$IFNDEF MATH_NOERR}
   if Rate <= -1.0 then ArgError('PaymentParts');
+  {$ENDIF}
   Crp:=Compound(Rate,Period-1);
   Arn:=Annuity2(Rate,NPeriods,PaymentTime,Crn);
   IntPmt:=(FutureValue*(Crp-1)-PresentValue*(Crn-Crp))/Arn;
@@ -1522,9 +1564,13 @@ function FutureValue(Rate: Extended; NPeriods: Integer; Payment, PresentValue:
 var
   Annuity, CompoundRN: Extended;
 begin
+  {$IFNDEF MATH_NOERR}
   if Rate <= -1.0 then ArgError('FutureValue');
+  {$ENDIF}
   Annuity := Annuity2(Rate, NPeriods, PaymentTime, CompoundRN);
+  {$IFNDEF MATH_NOERR}
   if CompoundRN > 1.0E16 then ArgError('FutureValue');
+  {$ENDIF}
   FutureValue := -Payment * Annuity - PresentValue * CompoundRN
 end;
 
@@ -1535,11 +1581,13 @@ var
   Crn:extended; { compound(rate,nperiods)}
   Arn:extended; { annuityf(rate,nperiods)}
 begin
+  {$IFNDEF MATH_NOERR}
   if (Rate <= -1.0)
     or (Period < 1) or (Period > NPeriods) then ArgError('InterestPayment');
-	Crp:=Compound(Rate,Period-1);
-	Arn:=Annuity2(Rate,Nperiods,PaymentTime,Crn);
-	InterestPayment:=(FutureValue*(Crp-1)-PresentValue*(Crn-Crp))/Arn;
+  {$ENDIF}
+  Crp:=Compound(Rate,Period-1);
+  Arn:=Annuity2(Rate,Nperiods,PaymentTime,Crn);
+  InterestPayment:=(FutureValue*(Crp-1)-PresentValue*(Crn-Crp))/Arn;
 end;
 
 function InterestRate(NPeriods: Integer;
@@ -1577,7 +1625,9 @@ var
 
 begin
   Result := 0;
+  {$IFNDEF MATH_NOERR}
   if NPeriods <= 0 then ArgError('InterestRate');
+  {$ENDIF}
   Pmt := Payment;
   if PaymentTime = ptEndOfPeriod then
   begin
@@ -1605,7 +1655,9 @@ begin
     Pmt := -Pmt;
     Last := -Last
   end;
+  {$IFNDEF MATH_NOERR}
   if (First = 0.0) or (Last < 0.0) then ArgError('InterestRate');
+  {$ENDIF}
   T := 0.0;                     { Guess at solution }
   for Count := 1 to MaxIterations do
   begin
@@ -1639,7 +1691,9 @@ begin
       Exit;
     end
   end;
+  {$IFNDEF MATH_NOERR}
   ArgError('InterestRate');
+  {$ENDIF}
 end;
 
 function NumberOfPeriods(Rate, Payment, PresentValue, FutureValue: Extended;
@@ -1654,8 +1708,9 @@ var
   T:     Extended;
 
 begin
-
+  {$IFNDEF MATH_NOERR}
   if Rate <= -1.0 then ArgError('NumberOfPeriods');
+  {$ENDIF}
 
 {whenever both Payment and PaymentTime are given together, the PaymentTime has the effect
  of modifying the effective Payment by the interest accrued on the Payment}
@@ -1672,7 +1727,9 @@ begin
  be numerically unstable, but not as likely to cause an error.}
 
   PVRPP:=PresentValue*Rate+Payment;
+  {$IFNDEF MATH_NOERR}
   if PVRPP=0 then ArgError('NumberOfPeriods');
+  {$ENDIF}
 
   { 6.1E-5 approx= 2**-14 }
   if ( EAbs(Rate)<6.1E-5 ) then
@@ -1686,7 +1743,9 @@ begin
  reasonableness of the cashflow before computing the NPER.}
 
     T:= -(PresentValue+FutureValue)*Rate/PVRPP;
+    {$IFNDEF MATH_NOERR}
     if  T<=-1.0  then ArgError('NumberOfPeriods');
+    {$ENDIF}
     Result := LnXP1(T) / LnXP1(Rate)
   end;
   NumberOfPeriods:=Result;
@@ -1697,7 +1756,9 @@ function Payment(Rate: Extended; NPeriods: Integer; PresentValue, FutureValue:
 var
   Annuity, CompoundRN: Extended;
 begin
+  {$IFNDEF MATH_NOERR}
   if Rate <= -1.0 then ArgError('Payment');
+  {$ENDIF}
   Annuity := Annuity2(Rate, NPeriods, PaymentTime, CompoundRN);
   if CompoundRN > 1.0E16 then
     Payment := -PresentValue * Rate / (1 + Integer(PaymentTime) * Rate)
@@ -1710,7 +1771,9 @@ function PeriodPayment(Rate: Extended; Period, NPeriods: Integer;
 var
   Junk: Extended;
 begin
+  {$IFNDEF MATH_NOERR}
   if (Rate <= -1.0) or (Period < 1) or (Period > NPeriods) then ArgError('PeriodPayment');
+  {$ENDIF}
   PeriodPayment := PaymentParts(Period, NPeriods, Rate, PresentValue,
        FutureValue, PaymentTime, Junk);
 end;
@@ -1720,7 +1783,9 @@ function PresentValue(Rate: Extended; NPeriods: Integer; Payment, FutureValue:
 var
   Annuity, CompoundRN: Extended;
 begin
+  {$IFNDEF MATH_NOERR}
   if Rate <= -1.0 then ArgError('PresentValue');
+  {$ENDIF}
   Annuity := Annuity2(Rate, NPeriods, PaymentTime, CompoundRN);
   if CompoundRN > 1.0E16 then
     PresentValue := -(Payment / Rate * Integer(PaymentTime) * Payment)

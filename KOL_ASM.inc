@@ -2178,63 +2178,6 @@ asm
         POP      EBX
 end;
 
-function TCanvas.TextExtent(const Text: AnsiString): TSize;
-asm
-        PUSH     EBX
-        PUSH     ESI
-        MOV      EBX, EAX
-
-        PUSH     ECX               // prepare @Result
-
-        MOV      EAX, EDX
-        CALL     System.@LStrLen
-        PUSH     EAX               // prepare Length(Text)
-
-        CALL     EDX2PChar
-        PUSH     EDX               // prepare PChar(Text)
-
-        PUSH     HandleValid or FontValid
-        PUSH     EBX
-        CALL     RequiredState
-
-        XCHG     ESI, EAX
-        TEST     ESI, ESI          // ESI = fHandle before
-        JNZ      @@1
-
-        PUSH     ESI
-        CALL     CreateCompatibleDC
-
-        MOV      EDX, EBX
-        XCHG     EAX, EDX // EAX := @Self; EDX := DC
-        CALL     SetHandle
-
-//****************************************************** // Added By M.Gerasimov
-        CMP      [EBX].TCanvas.fIsPaintDC, 1
-        JZ       @@2
-        XOR      ESI,ESI
-@@2:
-//******************************************************
-
-@@1:
-        PUSH     HandleValid or FontValid
-        PUSH     EBX
-        CALL     RequiredState
-        PUSH     EAX               // prepare DC
-
-        CALL     Windows.GetTextExtentPoint32A  // KOL_ANSI
-
-        TEST     ESI, ESI
-        JNZ      @@exit
-
-        XOR      EDX, EDX
-        XCHG     EAX, EBX
-        CALL     SetHandle
-
-@@exit:
-        POP      ESI
-        POP      EBX
-end;
-
 procedure TCanvas.TextRect(const Rect: TRect; X, Y: Integer; const Text: Ansistring);
 asm
         PUSH     EBX
@@ -2795,8 +2738,8 @@ asm     //cmd    //opd
         CALL     System.@GetMem
         POP      EDX
         PUSH     EAX
-        MOV      CL, 0
-        CALL     System.@FillChar
+        //MOV      CL, 0
+        CALL     ZeroMemory
         POP      EAX
 @@exit:
 end;
@@ -3344,189 +3287,6 @@ asm
         PUSH     EAX
         MOV      [ESP+1], DX
         POP      EAX
-end;
-
-function _NewTControl( AParent: PControl ): PControl;
-begin
-  New( Result, CreateParented( AParent ) );
-end;
-
-function _NewWindowed( AParent: PControl; ControlClassName: PKOLChar;
-         Ctl3D: Boolean; ACommandActions: TCommandActionsParam ): PControl;
-asm
-        PUSH     EBX
-        PUSH     ESI
-        PUSH     EDI
-        MOV      EDI, [ACommandActions]
-        MOV      [ACommandActions], ECX // Ctl3D -> ACommandActions
-
-        PUSH     EDX // ControlClassName
-
-        MOV      ESI, EAX // ESI = AParent
-        CALL     _NewTControl
-        XCHG     EBX, EAX // EBX = Result
-        POP      [EBX].TControl.fControlClassName
-        //INC      [EBX].TControl.fWindowed // set in TControl.Init
-
-        {$IFDEF  COMMANDACTIONS_OBJ}
-        MOV      EAX, EDI
-        CMP      EAX, 120
-        JB       @@IdxActions_Loaded
-        MOVZX    EAX, byte ptr[EDI]
-@@IdxActions_Loaded:
-        PUSH     EAX
-        MOV      ECX, dword ptr [AllActions_Objs + EAX*4]
-        JECXZ    @@create_new_action
-        XCHG     EAX, ECX
-        PUSH     EAX
-            CALL     TObj.RefInc
-        POP      EAX
-        JMP      @@action_assign
-
-@@create_new_action:
-        {$IFDEF  PACK_COMMANDACTIONS}
-                MOV      EAX, EDI
-                CALL     NewCommandActionsObj_Packed
-        {$ELSE   not PACK_COMMANDACTIONS}
-                CALL     NewCommandActionsObj
-
-                TEST     EDI, EDI
-                JZ       @@no_actions
-
-                PUSH     EAX
-                LEA      EDX, [EAX].TCommandActionsObj.aClear
-                XCHG     EAX, EDI
-                XOR      ECX, ECX
-                MOV      CL, Byte(Sizeof(TCommandActions))
-                CALL     Move
-                POP      EAX
-                JMP      @@action_assign
-        @@no_actions:
-        {$ENDIF  not PACK_COMMANDACTIONS}
-                MOV      [EAX].TCommandActionsObj.aClear, offset[ClearText]
-
-@@action_assign:
-        POP      EDX
-        MOV      dword ptr [AllActions_Objs + EDX*4], EAX
-
-        MOV      [EBX].TControl.fCommandActions, EAX
-        XCHG     EDX, EAX
-        MOV      EAX, EBX
-        CALL     TControl.Add2AutoFree
-
-        {$ELSE}
-        TEST     EDI, EDI
-        JZ       @@no_actions2
-        LEA      EDX, [EBX].TControl.fCommandActions
-        XCHG     EAX, EDI
-        XOR      ECX, ECX
-        MOV      CL, Byte(Sizeof(TCommandActions))
-        CALL     Move
-        JMP      @@actions_created
-@@no_actions2:
-        MOV      [EBX].TControl.fCommandActions.TCommandActions.aClear, offset[ClearText]
-        {$ENDIF}
-@@actions_created:
-
-        TEST     ESI, ESI
-        JZ       @@no_parent
-
-        (*
-        PUSH     ESI
-        LEA      ESI, [ESI].TControl.PP.fWndProcResizeFlicks
-        LEA      EDI, [EBX].TControl.PP.fWndProcResizeFlicks
-        MOVSD    // fWndProcResizeFlicks
-        MOVSD    // fGotoControl
-        POP      ESI
-        *)
-        LEA      ESI, [ESI].TControl.fTextColor
-        LEA      EDI, [EBX].TControl.fTextColor
-        MOVSD    // fTextColor
-        MOVSD    // fColor
-
-        {$IFDEF SMALLEST_CODE}
-            {$IFDEF SMALLEST_CODE_PARENTFONT}
-                LODSD
-                XCHG     EDX, EAX
-                XOR      EAX, EAX
-                CALL     TGraphicTool.Assign
-                STOSD    // fFont
-            {$ELSE}
-                LODSD
-                XOR     EAX, EAX
-                STOSD   // fFont = nil
-            {$ENDIF}
-        {$ELSE}
-            LODSD
-            XCHG     EDX, EAX
-            XOR      EAX, EAX
-            PUSH     EDX
-            CALL     TGraphicTool.Assign
-            STOSD    // fFont
-            POP      EDX
-            XCHG     ECX, EAX
-            JECXZ    @@no_font
-            MOV      [ECX].TGraphicTool.fParentGDITool, EDX
-            MOV      [ECX].TGraphicTool.fOnChange.TMethod.Code, offset[TControl.FontChanged]
-            MOV      [ECX].TGraphicTool.fOnChange.TMethod.Data, EBX
-            MOV      EAX, EBX
-            MOV      EDX, ECX
-            CALL     TControl.FontChanged
-            {$IFDEF USE_AUTOFREE4CONTROLS}
-                MOV      EAX, EBX
-                MOV      EDX, [EBX].TControl.fFont
-                CALL     TControl.Add2AutoFree
-            {$ENDIF}
-@@no_font:
-        {$ENDIF}
-
-        {$IFDEF SMALLEST_CODE}
-            LODSD
-            XOR      EAX, EAX
-            STOSD
-        {$ELSE}
-            LODSD
-            XCHG     EDX, EAX
-            XOR      EAX, EAX
-            PUSH     EDX
-            CALL     TGraphicTool.Assign
-            STOSD    // fBrush
-            POP      EDX
-            XCHG     ECX, EAX
-            JECXZ    @@no_brush
-            MOV      [ECX].TGraphicTool.fParentGDITool, EDX
-            MOV      [ECX].TGraphicTool.fOnChange.TMethod.Code, offset[TControl.BrushChanged]
-            MOV      [ECX].TGraphicTool.fOnChange.TMethod.Data, EBX
-            MOV      EAX, EBX
-            MOV      EDX, ECX
-            CALL     TControl.BrushChanged
-            {$IFDEF USE_AUTOFREE4CONTROLS}
-                MOV      EAX, EBX
-                MOV      EDX, [EBX].TControl.fBrush
-                CALL     TControl.Add2AutoFree
-            {$ENDIF}
-@@no_brush:
-        {$ENDIF}
-
-        MOVSB    // fMargin
-        LODSD           // skip fClientXXXXX
-        ADD      EDI, 4
-
-        LODSB    // fCtl3D_child
-        TEST     AL, 2
-        JZ       @@passed3D
-        MOV      EDX, [ACommandActions] // DL <- Ctl3D !!!
-        AND      AL, not 1
-        AND      DL, 1
-        OR       EAX, EDX
-@@passed3D:
-        STOSB    // fCtl3D_child
-
-@@no_parent:
-        XCHG     EAX, EBX
-        POP      EDI
-        POP      ESI
-        POP      EBX
 end;
 
 function NewForm( AParent: PControl; const Caption: KOLString ): PControl;
@@ -9915,6 +9675,30 @@ procedure TStrList.Sort(CaseSensitive: Boolean);
 asm
         MOV      [EAX].fCaseSensitiveSort, DL
         MOV      [EAX].fAnsiSort, 0
+  {$IFDEF SPEED_FASTER}
+          {$DEFINE SORT_STRLIST_ARRAY}
+  {$ENDIF}
+  {$IFDEF TLIST_FAST}
+          {$UNDEF SORT_STRLIST_ARRAY}
+  {$ENDIF}
+        {$IFDEF  SORT_STRLIST_ARRAY}
+        MOV      ECX, offset[StrComp]
+        CMP      DL, 0
+        JNZ      @@01
+        {$IFDEF  SMALLER_CODE}
+        MOV      ECX, offset[StrComp_NoCase]
+        {$ELSE}
+        MOV      ECX, [StrComp_NoCase]
+        {$ENDIF}
+@@01:
+        MOV      EAX, [EAX].fList
+        MOV      EDX, [EAX].TList.fCount
+        CMP      EDX, 1
+        JLE      @@02
+        MOV      EAX, [EAX].TList.fItems
+        CALL     SortArray
+@@02:
+        {$ELSE}
         PUSH     Offset[TStrList.Swap]
         MOV      ECX, Offset[CompareStrListItems_Case]
         CMP      DL, 0
@@ -9922,19 +9706,7 @@ asm
         MOV      ECX, Offset[CompareStrListItems_NoCase]
 @1:     MOV      EDX, [EAX].fCount
         CALL     SortData
-end;
-
-procedure TStrList.AnsiSort(CaseSensitive: Boolean);
-asm
-        MOV      [EAX].fCaseSensitiveSort, DL
-        MOV      [EAX].fAnsiSort, 1
-        PUSH     Offset[TStrList.Swap]
-        MOV      ECX, Offset[CompareAnsiStrListItems]
-        CMP      DL, 0
-        JZ       @1
-        MOV      ECX, Offset[CompareAnsiStrListItems_Case]
-@1:     MOV      EDX, [EAX].fCount
-        CALL     SortData
+        {$ENDIF}
 end;
 
 procedure TStrList.MergeFromFile(const FileName: KOLString);
@@ -10165,6 +9937,326 @@ asm
         RET
 
 end;
+
+procedure SortArray( const Data: Pointer; const uNElem: Dword;
+                    const CompareFun: TCompareArrayEvent );
+asm
+        PUSH     EBP
+        MOV      EBP, ESP
+        CMP      EDX, 2
+        JL       @@exit
+
+        SUB      EAX, 4
+        PUSH     EAX      // [EBP-4] = Data
+        PUSH     ECX      // [EBP-8] = CompareFun
+        PUSH     EBX      // EBX = pivotP
+        XOR      EBX, EBX
+        INC      EBX      // EBX = 1 to pass to qSortHelp as PivotP
+        MOV      EAX, EDX // EAX = nElem
+        CALL     @@qSortHelp
+        POP      EBX
+        POP      ECX
+        POP      ECX
+@@exit:
+        POP      EBP
+        RET      
+
+@@qSortHelp:
+        PUSH     EBX      // EBX (in) = PivotP
+        PUSH     ESI      // ESI      = leftP
+        PUSH     EDI      // EDI      = rightP
+
+@@TailRecursion:
+        CMP      EAX, 2
+        JG       @@2
+        JNE      @@exit_qSortHelp
+        LEA      ECX, [EBX+1]
+        MOV      EDX, EBX
+        //CALL     @@Compare
+        PUSH     EAX
+        PUSH     EDX
+        PUSH     ECX
+        MOV      EAX, [EBP-4]
+        MOV      EAX, [EAX + EDX*4]
+        MOV      EDX, [EBP-4]
+        MOV      EDX, [EDX + ECX*4]
+        CALL     dword ptr [EBP-8]
+        POP      ECX
+        POP      EDX
+        TEST     EAX, EAX
+        POP      EAX
+
+        JLE      @@exit_qSortHelp
+@@swp_exit:
+        //CALL     @@Swap
+        PUSH     EAX
+        PUSH     ESI
+        MOV      ESI, [EBP-4]
+        MOV      EAX, [ESI+EDX*4]
+        XCHG     EAX, [ESI+ECX*4]
+        MOV      [ESI+EDX*4], EAX
+        POP      ESI
+        POP      EAX
+
+@@exit_qSortHelp:
+        POP      EDI
+        POP      ESI
+        POP      EBX
+        RET
+
+        // ESI = leftP
+        // EDI = rightP
+@@2:    LEA      EDI, [EAX+EBX-1]
+        MOV      ESI, EAX
+        SHR      ESI, 1
+        ADD      ESI, EBX
+        MOV      ECX, ESI
+        MOV      EDX, EDI
+        CALL     @@CompareLeSwap
+        MOV      EDX, EBX
+        //CALL     @@Compare
+        PUSH     EAX
+        PUSH     EDX
+        PUSH     ECX
+        MOV      EAX, [EBP-4]
+        MOV      EAX, [EAX + EDX*4]
+        MOV      EDX, [EBP-4]
+        MOV      EDX, [EDX + ECX*4]
+        CALL     dword ptr [EBP-8]
+        POP      ECX
+        POP      EDX
+        TEST     EAX, EAX
+        POP      EAX
+
+        JG       @@4
+        //CALL     @@Swap
+        PUSH     EAX
+        PUSH     ESI
+        MOV      ESI, [EBP-4]
+        MOV      EAX, [ESI+EDX*4]
+        XCHG     EAX, [ESI+ECX*4]
+        MOV      [ESI+EDX*4], EAX
+        POP      ESI
+        POP      EAX
+
+        JMP      @@5
+@@4:    MOV      ECX, EBX
+        MOV      EDX, EDI
+        CALL     @@CompareLeSwap
+@@5:
+        CMP      EAX, 3
+        JNE      @@6
+        MOV      EDX, EBX
+        MOV      ECX, ESI
+        JMP      @@swp_exit
+@@6:    // classic Horae algorithm
+
+        PUSH     EAX     // EAX = pivotEnd
+        LEA      EAX, [EBX+1]
+        MOV      ESI, EAX
+@@repeat:
+        MOV      EDX, ESI
+        MOV      ECX, EBX
+        //CALL     @@Compare
+        PUSH     EAX
+        PUSH     EDX
+        PUSH     ECX
+        MOV      EAX, [EBP-4]
+        MOV      EAX, [EAX + EDX*4]
+        MOV      EDX, [EBP-4]
+        MOV      EDX, [EDX + ECX*4]
+        CALL     dword ptr [EBP-8]
+        POP      ECX
+        POP      EDX
+        TEST     EAX, EAX
+        POP      EAX
+
+        JG       @@while2
+@@while1:
+        JNE      @@7
+        MOV      EDX, ESI
+        MOV      ECX, EAX
+        //CALL     @@Swap
+        PUSH     EAX
+        PUSH     ESI
+        MOV      ESI, [EBP-4]
+        MOV      EAX, [ESI+EDX*4]
+        XCHG     EAX, [ESI+ECX*4]
+        MOV      [ESI+EDX*4], EAX
+        POP      ESI
+        POP      EAX
+
+        INC      EAX
+@@7:
+        CMP      ESI, EDI
+        JGE      @@qBreak
+        INC      ESI
+        JMP      @@repeat
+@@while2:
+        CMP      ESI, EDI
+        JGE      @@until
+        MOV      EDX, EBX
+        MOV      ECX, EDI
+        //CALL     @@Compare
+        PUSH     EAX
+        PUSH     EDX
+        PUSH     ECX
+        MOV      EAX, [EBP-4]
+        MOV      EAX, [EAX + EDX*4]
+        MOV      EDX, [EBP-4]
+        MOV      EDX, [EDX + ECX*4]
+        CALL     dword ptr [EBP-8]
+        POP      ECX
+        POP      EDX
+        TEST     EAX, EAX
+        POP      EAX
+
+        JGE      @@8
+        DEC      EDI
+        JMP      @@while2
+@@8:
+        MOV      EDX, ESI
+        MOV      ECX, EDI
+        //PUSHFD
+        //CALL     @@Swap
+        PUSH     EAX
+        PUSH     ESI
+        MOV      ESI, [EBP-4]
+        MOV      EAX, [ESI+EDX*4]
+        XCHG     EAX, [ESI+ECX*4]
+        MOV      [ESI+EDX*4], EAX
+        POP      ESI
+        POP      EAX
+
+        //POPFD
+        JE       @@until
+        INC      ESI
+        DEC      EDI
+@@until:
+        CMP      ESI, EDI
+        JL       @@repeat
+@@qBreak:
+        MOV      EDX, ESI
+        MOV      ECX, EBX
+        //CALL     @@Compare
+        PUSH     EAX
+        PUSH     EDX
+        PUSH     ECX
+        MOV      EAX, [EBP-4]
+        MOV      EAX, [EAX + EDX*4]
+        MOV      EDX, [EBP-4]
+        MOV      EDX, [EDX + ECX*4]
+        CALL     dword ptr [EBP-8]
+        POP      ECX
+        POP      EDX
+        TEST     EAX, EAX
+        POP      EAX
+
+        JG       @@9
+        INC      ESI
+@@9:
+        PUSH     EBX      // EBX = PivotTemp
+        PUSH     ESI      // ESI = leftTemp
+        DEC      ESI
+@@while3:
+        CMP      EBX, EAX
+        JGE      @@while3_break
+        CMP      ESI, EAX
+        JL       @@while3_break
+        MOV      EDX, EBX
+        MOV      ECX, ESI
+        //CALL     @@Swap
+        PUSH     EAX
+        PUSH     ESI
+        MOV      ESI, [EBP-4]
+        MOV      EAX, [ESI+EDX*4]
+        XCHG     EAX, [ESI+ECX*4]
+        MOV      [ESI+EDX*4], EAX
+        POP      ESI
+        POP      EAX
+
+        INC      EBX
+        DEC      ESI
+        JMP      @@while3
+@@while3_break:
+        POP      ESI
+        POP      EBX
+
+        MOV      EDX, EAX
+        POP      EAX     // EAX = nElem
+        PUSH     EDI     // EDI = lNum
+        MOV      EDI, ESI
+        SUB      EDI, EDX
+        ADD      EAX, EBX
+        SUB      EAX, ESI
+
+        PUSH     EBX
+        PUSH     EAX
+        CMP      EAX, EDI
+        JGE      @@10
+
+        MOV      EBX, ESI
+        CALL     @@qSortHelp
+        POP      EAX
+        MOV      EAX, EDI
+        POP      EBX
+        JMP      @@11
+
+@@10:   MOV      EAX, EDI
+        CALL     @@qSortHelp
+        POP      EAX
+        POP      EBX
+        MOV      EBX, ESI
+@@11:
+        POP      EDI
+        JMP      @@TailRecursion
+
+@@Compare:
+        PUSH     EAX
+        PUSH     EDX
+        PUSH     ECX
+        MOV      EAX, [EBP-4]
+        MOV      EAX, [EAX + EDX*4]
+        MOV      EDX, [EBP-4]
+        MOV      EDX, [EDX + ECX*4]
+        CALL     dword ptr [EBP-8]
+        POP      ECX
+        POP      EDX
+        TEST     EAX, EAX
+        POP      EAX
+        RET
+
+@@CompareLeSwap:
+        //CALL     @@Compare
+        PUSH     EAX
+        PUSH     EDX
+        PUSH     ECX
+        MOV      EAX, [EBP-4]
+        MOV      EAX, [EAX + EDX*4]
+        MOV      EDX, [EBP-4]
+        MOV      EDX, [EDX + ECX*4]
+        CALL     dword ptr [EBP-8]
+        POP      ECX
+        POP      EDX
+        TEST     EAX, EAX
+        POP      EAX
+
+        JG       @@ret
+
+@@Swap: PUSH     EAX
+        PUSH     ESI
+        MOV      ESI, [EBP-4]
+        MOV      EAX, [ESI+EDX*4]
+        XCHG     EAX, [ESI+ECX*4]
+        MOV      [ESI+EDX*4], EAX
+        POP      ESI
+        //TEST     EAX, EAX
+        POP      EAX
+@@ret:
+        RET
+
+end;
+
 
 function CompareIntegers( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
 asm
@@ -13330,7 +13422,11 @@ asm
 @@if32bit:
         LOOP     @@iffin
         INC      EDX
+        {$IFDEF DIBPixels32bitWithAlpha}
         MOV      EAX, offset[_GetDIBPixelsTrueColorAlpha]
+        {$ELSE}
+        MOV      EAX, offset[_GetDIBPixelsTrueColor]
+        {$ENDIF}
 @@iffin:
         MOV      byte ptr [EBX].fPixelMask, DH
         MOV      byte ptr [EBX].fPixelsPerByteMask, DL
@@ -13556,7 +13652,11 @@ asm
 @@if32bit:
         LOOP     @@ifend
         INC      EDX
-        MOV      EAX, offset[_SetDIBPixelsTrueColorAlpha]
+        {$IFDEF DIBPixels32bitWithAlpha}
+        MOV      EAX, offset[_SetDIBPixelsTrueColor]
+        {$ELSE}
+        MOV      EAX, offset[_SetDIBPixelsTrueColor]
+        {$ENDIF}
 @@ifend:
         MOV      byte ptr [EBX].fPixelMask, DH
         MOV      byte ptr [EBX].fPixelsPerByteMask, DL

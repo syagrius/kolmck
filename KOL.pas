@@ -14,7 +14,7 @@
   Key Objects Library (C) 2000 by Kladov Vladimir.
 
 ****************************************************************
-* VERSION 3.00.G
+* VERSION 3.00.i
 ****************************************************************
 
   K.O.L. - is a set of objects to create small programs
@@ -225,6 +225,12 @@ unit KOL;
                           The speed can be lower therefore.
   SMALLEST_CODE_PARENTFONT - Parent font therefore is applied for child controls,
                              but initially only.
+  SPEED_FASTER          - by default (but off when SMALLEST_CODE on) - sorting of
+                          TStrList.AnsiSort and comparing using AnsiCompareStrA,
+                          AnsiCompareStrNoCaseA is much faster (about 5-6 times).
+                          Also, sorting of lists and strlists is redircted to
+                          SortArray which is faster about 5-15% (vs SortData).
+                          To turn off, add a symbol SPEED_NORMAL.
   NOT_USE_KOLMATH       - Only for _X_ (GTK + Linux): to prevent referencing
                           KOLmath in uses. This makes method TCanvas.Arc
                           unavailable, but the application become smaller.
@@ -566,7 +572,16 @@ interface
 {$IFDEF SMALLEST_CODE}
   {$DEFINE NOT_UNLOAD_RICHEDITLIB}
   {$DEFINE SMALLER_CODE}
+{$ELSE}
+  {$IFnDEF SPEED_NORMAL}
+           {$DEFINE SPEED_FASTER}
+  {$ENDIF}
 {$ENDIF}
+{$IFDEF _D2}
+        {$UNDEF SPEED_FASTER}
+{$ENDIF}
+
+
 
 {$IFDEF NOT_USE_RICHEDIT}
   {$DEFINE NOT_UNLOAD_RICHEDITLIB}
@@ -1496,14 +1511,18 @@ RT_VERSION	Version resource
 
 type
   TCompareStrListFun = function( const S1, S2: PAnsiChar ): Integer;
-
   TCompareEvent = function (const Data: Pointer; const e1,e2 : Dword) : Integer;
   {* Event type to define comparison function between two elements of an array.
-     This event handler must return -1 or +1 (correspondently for cases e1<e2
-     and e2>e2). Items are enumerated from 0 to uNElem. }
+     This event handler must return negative or positive value (correspondently
+     for cases e1<e2 and e2>e2), or 0 if items are equal. Items are enumerated
+     from 0 to uNElem. }
   TSwapEvent = procedure (const Data : Pointer; const e1,e2 : Dword);
-  {* Event type to define swap procedure which is swapping two elements of an
-     array. }
+  {* Event type to define swap procedure which is swapping two elements of the
+     sorting data. }
+  TCompareArrayEvent = function(e1,e2 : DWord) : Integer;
+  {* Event type to define comparison function between two elements of an array.
+     Like in TCompareEvent, but e1 and e2 are not indexes in the array but items
+     itselves. }
 
   PStrList = ^TStrList;
 { ---------------------------------------------------------------------
@@ -1610,11 +1629,9 @@ type
     {* Call it to sort string list. }
     procedure AnsiSort( CaseSensitive: Boolean );
     {* Call it to sort ANSI string list. }
-    procedure SortEx(const CompareFun: TCompareEvent);
-    {* Call it to custom sort string list. Dufa }
-
-    // by Alexander Pravdin:
-  protected
+    procedure SortEx(const CompareFun: TCompareEvent); // by Dufa
+    {* Call it to sort via your own compare procedure }
+  protected // by Alexander Pravdin:
     fNameDelim: AnsiChar;
     function GetLineName( Idx: Integer ): AnsiString;
     procedure SetLineName( Idx: Integer; const NV: AnsiString );
@@ -2586,7 +2603,7 @@ type
     procedure DrawText(Text: AnsiString; var Rect:TRect; Flags:DWord);
     {* }
     {$ENDIF GDI}
-    function TextExtent(const Text: Ansistring): TSize;
+    function TextExtent(const Text: KOLString): TSize;
     {* Calculates size of a Text, using current Font settings.
        Does not need in Handle for Canvas object (if it is not
        yet allocated, temporary device context is created and used. }
@@ -2608,9 +2625,9 @@ type
        last is not yet allocated/assigned, temporary device context
        is created and used). }
     {$ENDIF _D3orHigher}
-    function TextWidth(const Text: Ansistring): Integer;
+    function TextWidth(const Text: KOLString): Integer;
     {* Calculates text width (using TextArea). }
-    function TextHeight(const Text: Ansistring): Integer;
+    function TextHeight(const Text: KOLString): Integer;
     {* Calculates text height (using TextArea). }
     {$IFDEF GDI}
     function ClipRect: TRect;
@@ -3484,7 +3501,6 @@ const
   DFLT_BTN: array[ 0..7 ] of KOLChar = ( 'D','F','L','T','_','B','T',#0 );
   CNCL_BTN: array[ 0..7 ] of KOLChar = ( 'C','N','C','L','_','B','T',#0 );
   DRAG_XY: array[ 0..7 ] of KOLChar = ( 'D','R','A','G','_','X','Y',#0 );
-  MDI_CLIENT: array[ 0..10 ] of KOLChar = ( 'M','D','I','_','C','L','I','E','N','T',#0 );
   MDI_CHLDRN: array[ 0..10 ] of KOLChar = ( 'M','D','I','_','C','H','L','D','R','N',#0 );
 
 {$ENDIF WIN_GDI}
@@ -4742,7 +4758,6 @@ type
     procedure Set_Prop_Int(PropName: PKOLChar; const Value: Integer);
     function GetHelpContext: Integer;
     function Get_MDIClient: PControl;
-    procedure Set_MDIClient(const Value: PControl);
     function Get_Ctl3D: Boolean;
     function Get_OnMouseEvent(const Index: Integer): TOnMouse;
   public
@@ -8680,7 +8695,7 @@ type
       {} fNCDestroyed: Boolean;
       {$ENDIF USE_fNCDestroyed}
   public
-    property MDIClient: PControl read Get_MDIClient write Set_MDIClient;
+    property MDIClient: PControl read Get_MDIClient;
     {* For MDI forms only: returns MDI client window control, containng all MDI
        children. Use this window to send specific messages to rule MDI children. }
     {$IFDEF OBSOLETE_FIELDS}
@@ -11365,13 +11380,21 @@ function AnsiCompareStrA(const S1, S2: AnsiString): Integer;
 {* AnsiCompareStr compares S1 to S2, with case-sensitivity. The compare
   operation is controlled by the current Windows locale. The return value
   is the same as for CompareStr. }
-function _AnsiCompareStrA(S1, S2: PAnsiChar): Integer;
+function _AnsiCompareStrA_Slow(S1, S2: PAnsiChar): Integer;
+function _AnsiCompareStrA_Fast(S1, S2: PAnsiChar): Integer;
+var _AnsiCompareStrA: function(S1, S2: PAnsiChar): Integer =
+    {$IFDEF SPEED_FASTER} _AnsiCompareStrA_Fast
+    {$ELSE}               _AnsiCompareStrA_Slow {$ENDIF};
 {* The same, but for PChar ANSI strings }
 function AnsiCompareStrNoCaseA(const S1, S2: AnsiString): Integer;
 {* AnsiCompareStr compares S1 to S2, with case-sensitivity. The compare
   operation is controlled by the current Windows locale. The return value
   is the same as for CompareStr. }
-function _AnsiCompareStrNoCaseA(S1, S2: PAnsiChar): Integer;
+function _AnsiCompareStrNoCaseA_Slow(S1, S2: PAnsiChar): Integer;
+function _AnsiCompareStrNoCaseA_Fast(S1, S2: PAnsiChar): Integer;
+var _AnsiCompareStrNoCaseA: function(S1, S2: PAnsiChar): Integer =
+    {$IFDEF SPEED_FASTER} _AnsiCompareStrNoCaseA_Fast
+    {$ELSE}               _AnsiCompareStrNoCaseA_Slow {$ENDIF};
 {* The same, but for PChar ANSI strings }
 function AnsiCompareTextA( const S1, S2: AnsiString ): Integer;
 {* }
@@ -12213,6 +12236,13 @@ procedure SortData( const Data: Pointer; const uNElem: Dword;
    First procedure parameter is to pass it to callback function
    CompareFun and procedure SwapProc. Items are enumerated from
    0 to uNElem-1. }
+
+{$IFDEF _D3orHigher}
+procedure SortArray( const Data: Pointer; const uNElem: Dword;
+                     const CompareFun: TCompareArrayEvent );
+{* Like SortData, but faster and allows to sort only contigous arrays of
+   dwords (or integers or pointers occupying for 4 bytes for each item. }
+{$ENDIF}
 
 procedure SwapListItems( const L: Pointer; const e1, e2: DWORD );
 {* Use this function as the last parameter for SortData call when a PList
@@ -15661,7 +15691,8 @@ end;
 procedure _TObj.Init;
 begin
 {$IFDEF _D2orD3}
-  FillChar( Pointer( Integer(@Self) + 4 )^, Sizeof( Self ) - 4, 0 );
+  //FillChar( Pointer( Integer(@Self) + 4 )^, Sizeof( Self ) - 4, 0 );
+  ZeroMemory( Pointer( Integer(@Self) + 4 ), Sizeof( Self ) - 4 );
 {$ENDIF}
 end;
 
@@ -17747,6 +17778,7 @@ procedure TGraphicTool.SetFontName(const Value: KOLString);
 begin
   if fData.Font.Name = Value then Exit;
   FillChar( fData.Font.Name[ 0 ], LF_FACESIZE, #0 );
+  //ZeroMemory( @fData.Font.Name[ 0 ], LF_FACESIZE );
   {$IFDEF UNICODE_CTRLS} WStrLCopy {$ELSE} StrLCopy {$ENDIF}
   ( PKOLChar(@fData.Font.Name[0]), PKOLChar( Value ), Length(Value) * SizeOf(KOLChar) {LF_FACESIZE} ); 
   Changed;
@@ -18807,8 +18839,65 @@ end;
 {$ENDIF _D3orHigher}
 
 {$IFDEF GDI}
-{$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
-function TCanvas.TextExtent(const Text: AnsiString): TSize;
+{$IFDEF ASM_UNICODE}
+function TCanvas.TextExtent(const Text: KOLString): TSize;
+asm
+        PUSH     EBX
+        PUSH     ESI
+        MOV      EBX, EAX
+
+        PUSH     ECX               // prepare @Result
+
+        MOV      EAX, EDX
+        CALL     System.@LStrLen
+        PUSH     EAX               // prepare Length(Text)
+
+        CALL     EDX2PChar
+        PUSH     EDX               // prepare PChar(Text)
+
+        PUSH     HandleValid or FontValid
+        PUSH     EBX
+        CALL     RequiredState
+
+        XCHG     ESI, EAX
+        TEST     ESI, ESI          // ESI = fHandle before
+        JNZ      @@1
+
+        PUSH     ESI
+        CALL     CreateCompatibleDC
+
+        MOV      EDX, EBX
+        XCHG     EAX, EDX // EAX := @Self; EDX := DC
+        CALL     SetHandle
+
+//****************************************************** // Added By M.Gerasimov
+        CMP      [EBX].TCanvas.fIsPaintDC, 1
+        JZ       @@2
+        XOR      ESI,ESI
+@@2:
+//******************************************************
+
+@@1:
+        PUSH     HandleValid or FontValid
+        PUSH     EBX
+        CALL     RequiredState
+        PUSH     EAX               // prepare DC
+
+        CALL     Windows.GetTextExtentPoint32A  // KOL_ANSI
+
+        TEST     ESI, ESI
+        JNZ      @@exit
+
+        XOR      EDX, EDX
+        XCHG     EAX, EBX
+        CALL     SetHandle
+
+@@exit:
+        POP      ESI
+        POP      EBX
+end;
+{$ELSE ASM_VERSION} //Pascal
+function TCanvas.TextExtent(const Text: KOLString): TSize;
 var DC : HDC;
     ClearHandle : Boolean;
 begin
@@ -18824,7 +18913,7 @@ begin
        ClearHandle := True; //************ // Added By Gerasimov
   end;
   RequiredState( HandleValid or FontValid );
-  Windows.GetTextExtentPoint32A( fHandle, PAnsiChar(Text), Length(Text), Result); // KOL_ANSI
+  GetTextExtentPoint32( fHandle, PKOLChar(Text), Length(Text), Result); 
   if ClearHandle then
     SetHandle( 0 );
     { DC must be freed here automatically (never leaks):
@@ -18835,7 +18924,7 @@ end;
 {$ENDIF GDI}
 {$IFDEF _X_}
 {$IFDEF GTK}
-FUNCTION TCanvas.TextExtent(const Text: Ansistring): TSize;
+FUNCTION TCanvas.TextExtent(const Text: KOLString): TSize;
 VAR layout: PPangoLayout;
     context: PPangoContext;
 BEGIN
@@ -18860,7 +18949,7 @@ END;
 {$ENDIF GTK}
 {$ENDIF _X_}
 
-function TCanvas.TextHeight(const Text: Ansistring): Integer;
+function TCanvas.TextHeight(const Text: KOLString): Integer;
 begin
   Result := TextExtent(Text).cY;
 end;
@@ -19023,7 +19112,7 @@ begin
 end;
 {$ENDIF WIN_GDI}
 
-function TCanvas.TextWidth(const Text: Ansistring): Integer;
+function TCanvas.TextWidth(const Text: KOLString): Integer;
 begin
   Result := TextExtent(Text).cX;
 end;
@@ -21295,7 +21384,8 @@ begin
    if Size > 0 then
    begin
      GetMem( Result, Size );
-     FillChar( Result^, Size, 0 );
+     //FillChar( Result^, Size, 0 );
+     ZeroMemory( Result, Size );
    end;
 end;
 {$ENDIF ASM_VERSION}
@@ -21460,13 +21550,75 @@ begin
 end;
 {$ENDIF WIN}
 
+type
+    TSortAnsiRec = record
+        A: array[ AnsiChar ] of PAnsiChar;
+        //X: array[ AnsiChar ] of Integer;
+    end;
+    PSortAnsiRec = ^TSortAnsiRec;
+var SortAnsiOrderNoCase: array[ AnsiChar ] of SmallInt;
+    SortAnsiOrder: array[ AnsiChar ] of SmallInt;
+
 {$IFDEF WIN}
-function _AnsiCompareStrA(S1, S2: PAnsiChar): Integer;
+function _AnsiCompareStrA_Slow(S1, S2: PAnsiChar): Integer;
 begin
   Result := CompareStringA( LOCALE_USER_DEFAULT, 0, S1, -1,
                            S2, -1) - 2;
 end;
 {$ENDIF WIN}
+
+function CompareAnsiRec( R: PSortAnsiRec; const e1, e2: Integer ): Integer;
+begin
+    Result := _AnsiCompareStrA_Slow(
+        R.A[AnsiChar(e1)],
+        R.A[AnsiChar(e2)]
+    );
+end;
+
+procedure SwapAnsiRec( R: PSortAnsiRec; const e1, e2: Integer );
+begin
+    Swap( Integer( R.A[AnsiChar(e1)] ),
+          Integer( R.A[AnsiChar(e2)] ) );
+end;
+
+function _AnsiCompareStrA_Fast2(S1, S2: PAnsiChar): Integer;
+begin
+    if  S1 = nil then
+        S1 := '';
+    if  S2 = nil then
+        S2 := '';
+    Result := 0;
+    while TRUE do
+    begin
+        Result := SortAnsiOrder[ S1^ ] - SortAnsiOrder[ S2^ ];
+        if  Result <> 0 then break;
+        if  (S1^ = #0) or (S2^ = #0) then break;
+        inc( S1 );
+        inc( S2 );
+    end;
+end;
+
+function _AnsiCompareStrA_Fast(S1, S2: PAnsiChar): Integer;
+var c: AnsiChar;
+    R: TSortAnsiRec;
+    Buf: array[ 0..511 ] of AnsiChar;
+    P: PAnsiChar;
+begin
+    P := @Buf[0];
+    for c := Low(c) to High(c) do
+    begin
+        P^ := c;
+        R.A[c] := P;
+        inc( P );
+        P^ := #0;
+        inc( P );
+    end;
+    SortData( @R, 256, @CompareAnsiRec, @SwapAnsiRec );
+    for c := Low(c) to High(c) do
+        SortAnsiOrder[AnsiChar(R.A[c][0])] := Ord(c);
+    _AnsiCompareStrA := _AnsiCompareStrA_Fast2;
+    Result := _AnsiCompareStrA_Fast2( S1, S2 );
+end;
 
 {$IFDEF WIN}
 function AnsiCompareStrNoCase(const S1, S2: KOLString): Integer;
@@ -21493,12 +21645,96 @@ end;
 {$ENDIF WIN}
 
 {$IFDEF WIN}
-function _AnsiCompareStrNoCaseA(S1, S2: PAnsiChar): Integer;
+function _AnsiCompareStrNoCaseA_Slow(S1, S2: PAnsiChar): Integer;
 begin
   Result := CompareStringA( LOCALE_USER_DEFAULT, NORM_IGNORECASE, S1, -1,
                            S2, -1) - 2;
 end;
 {$ENDIF WIN}
+
+function CompareAnsiRecNoCase( R: PSortAnsiRec; const e1, e2: Integer ): Integer;
+begin
+    Result := _AnsiCompareStrNoCaseA_Slow(
+        R.A[AnsiChar(e1)],
+        R.A[AnsiChar(e2)]
+    );
+end;
+
+//{$DEFINE DEBUG_SORTFAST}
+{$IFDEF DEBUG_SORTFAST}
+var DBSF: Integer;
+{$ENDIF}
+function _AnsiCompareStrNoCaseA_Fast2(S1, S2: PAnsiChar): Integer;
+{$IFDEF DEBUG_SORTFAST}
+var S01, S02: PChar;
+{$ENDIF}
+begin
+    if  S1 = nil then
+        S1 := '';
+    if  S2 = nil then
+        S2 := '';
+    {$IFDEF DEBUG_SORTFAST}
+    S01 := S1;
+    S02 := S2;
+    {$ENDIF}
+    Result := 0;
+    while TRUE do
+    begin
+        Result := SortAnsiOrderNoCase[ S1^ ] - SortAnsiOrderNoCase[ S2^ ];
+        if  Result <> 0 then break;
+        if  (S1^ = #0) or (S2^ = #0) then break;
+        inc( S1 );
+        inc( S2 );
+    end;
+    {$IFDEF DEBUG_SORTFAST}
+    inc( DBSF );
+    if  Result < 0 then
+        LogFileOutput( GetStartDir + 'LT.txt', Int2Str( DBSF ) + ': ' +
+            '"' + S01 + '" < "' + S02 + '"' )
+    else
+    if  Result > 0 then
+        LogFileOutput( GetStartDir + 'GT.txt', Int2Str( DBSF ) + ': ' +
+            '"' + S01 + '" > "' + S02 + '"' )
+    else
+        LogFileOutput( GetStartDir + 'EQ.txt', Int2Str( DBSF ) + ': ' +
+            '"' + S01 + '" = "' + S02 + '"' )
+    {$ENDIF}
+end;
+
+function _AnsiCompareStrNoCaseA_Fast(S1, S2: PAnsiChar): Integer;
+var c: AnsiChar;
+    R: TSortAnsiRec;
+    Buf: array[ 0..511 ] of AnsiChar;
+    P: PAnsiChar;
+begin
+    P := @Buf[0];
+    for c := Low(c) to High(c) do
+    begin
+        P^ := c;
+        R.A[c] := P;
+        inc( P );
+        P^ := #0;
+        inc( P );
+        //R.X[c] := Ord(c);
+    end;
+    SortData( @R, 256, @CompareAnsiRecNoCase, @SwapAnsiRec );
+    for c := Succ(Low(c)) to High(c) do
+    begin
+        //R.X[c] := Byte(c);
+        if _AnsiCompareStrNoCaseA_Slow( R.A[Pred(c)], R.A[c] ) = 0 then
+        begin
+            if  _AnsiCompareStrA( R.A[Pred(c)], R.A[c] ) < 0 then
+            begin
+                Swap( Integer( R.A[Pred(c)] ), Integer( R.A[c] ) );
+            end;
+        end;
+        //   R.X[c] := R.X[Pred(c)];
+    end;
+    for c := Low(c) to High(c) do
+        SortAnsiOrderNoCase[AnsiChar(R.A[c][0])] := Ord(c); // R.X[c];
+    _AnsiCompareStrNoCaseA := _AnsiCompareStrNoCaseA_Fast2;
+    Result := _AnsiCompareStrNoCaseA_Fast2( S1, S2 );
+end;
 
 function AnsiCompareText( const S1, S2: KOLString ): Integer;
 begin
@@ -24074,7 +24310,8 @@ begin
   Move( FromList[ 1 ], Buf^, L );
   for L := L downto 0 do
     if Buf[ L ] = FileOpSeparator then Buf[ L ] := #0;
-  FillChar( FOS, Sizeof( FOS ), #0 );
+  //FillChar( FOS, Sizeof( FOS ), #0 );
+  ZeroMemory( @FOS, Sizeof( FOS ) );
   if Applet <> nil then
     FOS.Wnd := Applet.Handle;
   FOS.wFunc := FileOp;
@@ -25184,7 +25421,7 @@ nil, nil) = ERROR_SUCCESS then
         begin
           Size := MaxSubKeyLen+1;
           SetLength(KeyName, Size);
-          FillChar(KeyName[1],Size*Sizeof(KOLChar),#0);
+          //FillChar(KeyName[1],Size*Sizeof(KOLChar),#0);
           RegEnumKeyEx(Key, I, @KeyName[1], Size, nil, nil, nil, nil);
           KeyName := Trim(KeyName); // fixed by Jon
           List.Add(KeyName);
@@ -25241,7 +25478,7 @@ begin
         for I := 0 to NumValueNames - 1 do begin
           Size := MaxValueNameLen + 1;
           SetLength(ValueName, Size);
-          FillChar(ValueName[1],Size,#0);
+          //FillChar(ValueName[1],Size,#0);
           RegEnumValue(Key, I, @ValueName[1], Size, nil, nil, nil, nil);
           ValueName := Trim(ValueName);
           List.Add(ValueName);
@@ -25350,7 +25587,8 @@ end;
 function EncodeDate( Year, Month, Day: WORD; var DateTime: TDateTime ): Boolean;
 var ST: TSystemTime;
 begin
-  FillChar( ST, Sizeof( ST ), #0 );
+  //FillChar( ST, Sizeof( ST ), #0 );
+  ZeroMemory( @ST, Sizeof(ST) );
   ST.wYear := Year;
   ST.wMonth := Month;
   ST.wDay := Day;
@@ -25756,7 +25994,8 @@ var ST: TSystemTime;
 begin
   FmtStr := PKOLChar( sFmtStr);
   S := PKOLChar( sS );
-  FillChar( ST, Sizeof( ST ), #0 );
+  //FillChar( ST, Sizeof( ST ), #0 );
+  ZeroMemory( @ST, Sizeof( ST ) );
   h12 := FALSE;
   hAM := FALSE;
   while (FmtStr^ <> #0) and (S^ <> #0) do
@@ -28921,7 +29160,8 @@ begin
   if FId = 0 then Exit;
   if FMenuBreak = Value then Exit;
   FMenuBreak := Value;
-  FillChar( MII, Sizeof( MII ), #0 );
+  //FillChar( MII, Sizeof( MII ), #0 );
+  ZeroMemory( @MII, Sizeof( MII ) );
   MII.fMask := MIIM_TYPE;
   MII.dwTypeData := nil;
   if GetInfo( MII ) then
@@ -28971,7 +29211,8 @@ begin
       end;
     end;
 
-    FillChar( MII, Sizeof( MII ), #0 );
+    //FillChar( MII, Sizeof( MII ), #0 );
+    ZeroMemory( @MII, Sizeof( MII ) );
     MII.cbSize := MenuStructSize;
     MII.fMask := MIIM_CHECKMARKS or MIIM_ID or MIIM_STATE or
                  MIIM_TYPE;
@@ -29093,7 +29334,8 @@ begin
     Item.FMenuItems := NewList;
     FMenuItems.Add( Item );
 
-    FillChar( MII, Sizeof( MII ), #0 );
+    //FillChar( MII, Sizeof( MII ), #0 );
+    ZeroMemory( @MII, Sizeof( MII ) );
     MII.cbSize := MenuStructSize;
     MII.fMask := MIIM_DATA or MIIM_ID or MIIM_STATE or MIIM_SUBMENU or MIIM_TYPE;
     {$IFDEF UNICODE_CTRLS}
@@ -29440,7 +29682,8 @@ const Masks: array[ Boolean ] of DWORD = ( 0, $FFFFFFFF );
 var MII: TMenuItemInfo;
 begin
   FOwnerDraw := Value;
-  FillChar( MII, Sizeof( MII ), #0 );
+  //FillChar( MII, Sizeof( MII ), #0 );
+  ZeroMemory( @MII, Sizeof( MII ) );
   MII.fMask := MIIM_TYPE;
   MII.dwTypeData := nil;
   if GetInfo( MII ) then
@@ -29489,7 +29732,8 @@ begin
   end;
   Result.FOnMenuItem := Event;
 
-  FillChar( MII, Sizeof( MII ), #0 );
+  //FillChar( MII, Sizeof( MII ), #0 );
+  ZeroMemory( @MII, Sizeof( MII ) );
   MII.cbSize := MenuStructSize;
   MII.fMask := MIIM_DATA or MIIM_ID or MIIM_STATE or MIIM_SUBMENU or MIIM_TYPE;
 
@@ -29785,7 +30029,220 @@ end;
 {$ENDIF ASM_VERSION}
 {$ENDIF COMMANDACTIONS_OBJ}
 
-{$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
+function DumpWindowed( c: PControl ): PControl;
+var P: PByte;
+    i, j: Integer;
+    s, ss: String;
+begin
+    P := Pointer( c );
+    ss := '';
+    i := 0;
+    while i < Sizeof( TControl ) do
+    begin
+        s := Int2Hex( i, 3 ) + ':';
+        for j := 0 to 15 do
+        begin
+            s := s + ' ' + Int2Hex( P^, 2 );
+            inc( P );
+            inc( i );
+            if  i >= Sizeof( TControl ) then break;
+        end;
+        ss := ss + s + #13#10;
+    end;
+    LogFileOutput( GetStartDir + 'DumpWindowed.txt', Int2Hex( Integer( c ), 8 ) +
+    #13#10 + ss );
+    Result := c;
+end;
+
+{$IFDEF ASM_VERSION}
+function _NewTControl( AParent: PControl ): PControl;
+begin
+  New( Result, CreateParented( AParent ) );
+end;
+
+function _NewWindowed( AParent: PControl; ControlClassName: PKOLChar;
+         Ctl3D: Boolean; ACommandActions: TCommandActionsParam ): PControl;
+const   Sz_TCommandActions = Sizeof(TCommandActions);
+asm
+        PUSH     EBX
+        PUSH     ESI
+        PUSH     EDI
+        MOV      EDI, ACommandActions
+        MOV      [ACommandActions], ECX // Ctl3D -> ACommandActions
+
+        PUSH     EDX // ControlClassName
+
+        MOV      ESI, EAX // ESI = AParent
+        CALL     _NewTControl
+        XCHG     EBX, EAX // EBX = Result
+        POP      [EBX].TControl.fControlClassName
+        //INC      [EBX].TControl.fWindowed // set in TControl.Init
+
+        {$IFDEF  COMMANDACTIONS_OBJ}
+        MOV      EAX, EDI
+        CMP      EAX, 120
+        JB       @@IdxActions_Loaded
+        MOVZX    EAX, byte ptr[EDI]
+@@IdxActions_Loaded:
+        PUSH     EAX
+        MOV      ECX, dword ptr [AllActions_Objs + EAX*4]
+        JECXZ    @@create_new_action
+        XCHG     EAX, ECX
+        PUSH     EAX
+            CALL     TObj.RefInc
+        POP      EAX
+        JMP      @@action_assign
+
+@@create_new_action:
+        {$IFDEF  PACK_COMMANDACTIONS}
+                MOV      EAX, EDI
+                CALL     NewCommandActionsObj_Packed
+        {$ELSE   not PACK_COMMANDACTIONS}
+                CALL     NewCommandActionsObj
+
+                TEST     EDI, EDI
+                JZ       @@no_actions
+
+                PUSH     EAX
+                LEA      EDX, [EAX].TCommandActionsObj.aClear
+                XCHG     EAX, EDI
+                XOR      ECX, ECX
+                MOV      CL, Sz_TCommandActions
+                CALL     Move
+                POP      EAX
+                JMP      @@action_assign
+        @@no_actions:
+        {$ENDIF  not PACK_COMMANDACTIONS}
+                MOV      [EAX].TCommandActionsObj.aClear, offset[ClearText]
+
+@@action_assign:
+        POP      EDX
+        MOV      dword ptr [AllActions_Objs + EDX*4], EAX
+
+        MOV      [EBX].TControl.fCommandActions, EAX
+        XCHG     EDX, EAX
+        MOV      EAX, EBX
+        CALL     TControl.Add2AutoFree
+
+        {$ELSE}
+        TEST     EDI, EDI
+        JZ       @@no_actions2
+        PUSH     ESI
+        MOV      ESI, EDI
+        LEA      EDI, [EBX].TControl.fCommandActions
+        XOR      ECX, ECX
+        MOV      CL, Sz_TCommandActions
+        REP      MOVSB
+        POP      ESI
+        {
+        LEA      EDX, [EBX].TControl.fCommandActions
+        XCHG     EAX, EDI
+        XOR      ECX, ECX
+        MOV      CL, Sz_TCommandActions
+        CALL     Move
+        }
+        JMP      @@actions_created
+@@no_actions2:
+        MOV      [EBX].TControl.fCommandActions.TCommandActions.aClear, offset[ClearText]
+        {$ENDIF}
+@@actions_created:
+
+        TEST     ESI, ESI
+        JZ       @@no_parent
+
+        LEA      ESI, [ESI].TControl.fTextColor
+        LEA      EDI, [EBX].TControl.fTextColor
+        MOVSD    // fTextColor
+        MOVSD    // fColor
+
+        {$IFDEF SMALLEST_CODE}
+            {$IFDEF SMALLEST_CODE_PARENTFONT}
+                LODSD
+                XCHG     EDX, EAX
+                XOR      EAX, EAX
+                CALL     TGraphicTool.Assign
+                STOSD    // fFont
+            {$ELSE}
+                LODSD
+                XOR     EAX, EAX
+                STOSD   // fFont = nil
+            {$ENDIF}
+        {$ELSE}
+            LODSD
+            XCHG     EDX, EAX
+            XOR      EAX, EAX
+            PUSH     EDX
+            CALL     TGraphicTool.Assign
+            STOSD    // fFont
+            POP      EDX
+            XCHG     ECX, EAX
+            JECXZ    @@no_font
+            MOV      [ECX].TGraphicTool.fParentGDITool, EDX
+            MOV      [ECX].TGraphicTool.fOnChange.TMethod.Code, offset[TControl.FontChanged]
+            MOV      [ECX].TGraphicTool.fOnChange.TMethod.Data, EBX
+            MOV      EAX, EBX
+            MOV      EDX, ECX
+            CALL     TControl.FontChanged
+            {$IFDEF USE_AUTOFREE4CONTROLS}
+                MOV      EAX, EBX
+                MOV      EDX, [EBX].TControl.fFont
+                CALL     TControl.Add2AutoFree
+            {$ENDIF}
+@@no_font:
+        {$ENDIF}
+
+        {$IFDEF SMALLEST_CODE}
+            LODSD
+            XOR      EAX, EAX
+            STOSD
+        {$ELSE}
+            LODSD
+            XCHG     EDX, EAX
+            XOR      EAX, EAX
+            PUSH     EDX
+            CALL     TGraphicTool.Assign
+            STOSD    // fBrush
+            POP      EDX
+            XCHG     ECX, EAX
+            JECXZ    @@no_brush
+            MOV      [ECX].TGraphicTool.fParentGDITool, EDX
+            MOV      [ECX].TGraphicTool.fOnChange.TMethod.Code, offset[TControl.BrushChanged]
+            MOV      [ECX].TGraphicTool.fOnChange.TMethod.Data, EBX
+            MOV      EAX, EBX
+            MOV      EDX, ECX
+            CALL     TControl.BrushChanged
+            {$IFDEF USE_AUTOFREE4CONTROLS}
+                MOV      EAX, EBX
+                MOV      EDX, [EBX].TControl.fBrush
+                CALL     TControl.Add2AutoFree
+            {$ENDIF}
+@@no_brush:
+        {$ENDIF}
+
+        MOVSB    // fMargin
+        LODSD           // skip fClientXXXXX
+        ADD      EDI, 4
+
+        LODSB    // fCtl3D_child
+        TEST     AL, 2
+        JZ       @@passed3D
+        MOV      EDX, [ACommandActions] // DL <- Ctl3D !!!
+        AND      AL, not 1
+        AND      DL, 1
+        OR       EAX, EDX
+@@passed3D:
+        STOSB    // fCtl3D_child
+
+@@no_parent:
+        XCHG     EAX, EBX
+        POP      EDI
+        POP      ESI
+        POP      EBX
+        {$IFDEF  DUMP_WINDOWED}
+        CALL     DumpWindowed
+        {$ENDIF}
+end;
+{$ELSE ASM_VERSION} //Pascal
 function _NewWindowed( AParent: PControl; ControlClassName: PKOLChar;
          Ctl3D: Boolean; ACommandActions: TCommandActionsParam ): PControl;
 {$IFDEF COMMANDACTIONS_OBJ}
@@ -29876,6 +30333,9 @@ begin
      end;
      {$ENDIF WIN_GDI}
   end;
+  {$IFDEF DUMP_WINDOWED}
+  DumpWindowed( Result );
+  {$ENDIF}
 end;
 {$ENDIF ASM_VERSION}
 {$ENDIF GDI}
@@ -32290,7 +32750,8 @@ begin
       Bar := Pointer( GetWindowLong( Msg.lParam, GWL_USERDATA ) );
       {$ENDIF}
       if (Bar <> nil) then begin
-        FillChar(SI, SizeOf(SI), #0);
+        //FillChar(SI, SizeOf(SI), #0);
+        ZeroMemory(@SI, SizeOf(SI));
         SI.cbSize := SizeOf(SI);
         SI.fMask := SIF_RANGE or SIF_POS or SIF_TRACKPOS or SIF_PAGE;
         Bar.SBGetScrollInfo(SI);
@@ -33165,9 +33626,19 @@ var MDIClient: PControl;
     Ch: PControl;
     MDIChildren: PList;
 begin
-  MDIClient := Form.MDIClient;
-  MDIClient.fAnchors := MDIClient.fAnchors or MDI_DESTROYING;
+  //MDIClient := Form.MDIClient;
+  MDIClient := nil;
+  for I := 0 to Form.ChildCount-1 do
+  begin
+      Ch := Form.Children[I];
+      if  Ch.PropInt[ MDI_CHLDRN ] <> 0 then
+      begin
+          MDIClient := Ch;
+          break;
+      end;
+  end;
   if  MDIClient = nil then Exit;
+  MDIClient.fAnchors := MDIClient.fAnchors or MDI_DESTROYING;
   MDIChildren := Pointer( MDIClient.PropInt[ MDI_CHLDRN ] );
   if  MDIChildren <> nil then
   for I := MDIChildren.Count - 1 downto 0 do
@@ -33186,7 +33657,6 @@ begin
     Form.fMenuObj.Free;
     Form.fMenuObj := nil;
   end;
-  Form.MDIClient := nil;
   MDIClient.Free;
 end;
 
@@ -33334,7 +33804,6 @@ var F: PControl;
     CCS: TClientCreateStruct;
     PrntWin: HWnd;
 begin
-  F := nil;
   PrntWin := 0;
   if AParent <> nil then
   begin
@@ -33356,7 +33825,6 @@ begin
   {$IFDEF DEBUG_OBJKIND}
   Result.fObjKind := 'TControl:MDIClient';
   {$ENDIF}
-  Result.PropInt[ MDI_CHLDRN ] := Integer( NewList );
   Result.fExStyle := WS_EX_CLIENTEDGE;
 
   CCS.hWindowMenu := WindowMenu;
@@ -33367,13 +33835,12 @@ begin
                  0, 0, 0, 0, PrntWin, 0, hInstance, @ CCS );
   Result.fDefWndProc := Pointer( GetWindowLong( Result.fHandle, GWL_WNDPROC ) );
   SetWindowLong( Result.fHandle, GWL_WNDPROC, Integer( @WndFuncMDIClient ) );
+  Result.PropInt[ MDI_CHLDRN ] := Integer( NewList );
   {$IFDEF USE_PROP}
   SetProp( Result.fHandle, ID_SELF, Integer( Result ) );
   {$ELSE}
   SetWindowLong( Result.fHandle, GWL_USERDATA, Integer( Result ) );
   {$ENDIF}
-  if  F <> nil then
-      F.MDIClient := Result;
   Result.AttachProc( WndProcMDIClient );
   Result.GetWindowHandle;
 
@@ -35344,7 +35811,8 @@ begin
             Idx := -1;
             if Self_.DF.fTBttCmd <> nil then
               Idx := Self_.DF.fTBttCmd.IndexOf( Pointer( idBtn ) );
-            FillChar( lpttt.szText[ 0 ], 160, #0 );
+            //FillChar( lpttt.szText[ 0 ], 160, #0 );
+            ZeroMemory( @lpttt.szText[ 0 ], 160 );
             if Idx >= 0 then
             begin
               WStr := WideString(Self_.DF.fTBttTxt.Items[ Idx ]);
@@ -35525,6 +35993,9 @@ asm     //cmd    //opd
             ADD      EDX, 22
             MOV      [EBX].TControl.fBoundsrect.Bottom, EDX
     @@bounds_correct:
+            {$IFnDEF TBBUTTONS_DFLT_NOAUTOSIZE}
+            MOV      byte ptr [EBX].TControl.DF.fDefaultTBBtnStyle, TBSTYLE_AUTOSIZE
+            {$ENDIF}
             MOV      EDX, [Bitmap]
             TEST     EDX, EDX
             JZ       @@bitmap_added
@@ -35619,6 +36090,9 @@ begin
     else if not (Align in [caNone]) then
       Bottom := Top + 22;
   end;
+  {$IFnDEF TBBUTTONS_DFLT_NOAUTOSIZE}
+  Result.DF.fDefaultTBBtnStyle := TBSTYLE_AUTOSIZE;
+  {$ENDIF}
   if Bitmap <> 0 then
     Result.TBAddBitmap( Bitmap );
   Result.TBAddButtons( Buttons, BtnImgIdxArray );
@@ -35720,8 +36194,9 @@ end;
 
 function TControl.Get_SystemTime: TSystemTime;
 begin
-  if Perform( DTM_GETSYSTEMTIME, 0, Integer( @ Result ) ) <> GDT_VALID then
-    FillChar( Result, Sizeof( Result ), #0 );
+    //FillChar( Result, Sizeof( Result ), #0 );
+    ZeroMemory( @Result, Sizeof( Result ) );
+    Perform( DTM_GETSYSTEMTIME, 0, Integer( @ Result ) ); // <> GDT_VALID then
 end;
 
 procedure TControl.Set_SystemTime(const Value: TSystemTime);
@@ -37209,7 +37684,8 @@ begin
    Log( '/// Filling Params' );
    {$ENDIF INPACKAGE}
 
-   FillChar( Params, Sizeof( Params ), 0 );
+   //FillChar( Params, Sizeof( Params ), 0 );
+   ZeroMemory( @Params, Sizeof( Params ) );
    Params.WindowClass.hCursor := LoadCursor( 0, IDC_ARROW );
    Params.WindowClass.hInstance := hInstance;
    Params.WindowClass.lpfnWndProc := fDefWndProc;
@@ -44622,6 +45098,7 @@ function CompareAnsiCase( const S1, S2: PAnsiChar ): Integer;
 begin
     Result := _AnsiCompareStrA( S1, S2 );
 end;
+
 function CompareAnsiNoCase( const S1, S2: PAnsiChar ): Integer;
 begin
     Result := _AnsiCompareStrNoCaseA( S1, S2 );
@@ -45029,40 +45506,102 @@ begin
 end;
 {$ENDIF ASM_VERSION}
 
-{$IFNDEF ASM_VERSION}
-procedure SwapStrListItems( const Sender: Pointer; const e1, e2: DWORD );
-begin
-  PStrList( Sender ).Swap( e1, e2 );
-end;
-{$ENDIF}
-
 {$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
 procedure TStrList.Sort(CaseSensitive: Boolean);
 begin
   fCaseSensitiveSort := CaseSensitive;
   fAnsiSort := FALSE;
+  {$IFDEF SPEED_FASTER}
+          {$DEFINE SORT_STRLIST_ARRAY}
+  {$ENDIF}
+  {$IFDEF TLIST_FAST}
+          {$UNDEF SORT_STRLIST_ARRAY}
+  {$ENDIF}
+  {$IFDEF _D2}
+          {$UNDEF SORT_STRLIST_ARRAY}
+  {$ENDIF}
+  {$IFDEF SORT_STRLIST_ARRAY}
+  if  Count > 1 then
   if  CaseSensitive then
-      SortData( @Self, fCount, @CompareStrListItems_Case, @SwapStrListItems )
+      SortArray( fList.fItems, fCount, @StrComp )
   else
-      SortData( @Self, fCount, @CompareStrListItems_NoCase, @SwapStrListItems )
+      SortArray( fList.fItems, fCount, @StrComp_NoCase );
+  {$ELSE}
+  if  CaseSensitive then
+      SortData( @Self, fCount, @CompareStrListItems_Case, @TStrList.Swap )
+  else
+      SortData( @Self, fCount, @CompareStrListItems_NoCase, @TStrList.Swap )
+  {$ENDIF}
 end;
 {$ENDIF ASM_VERSION}
 
-{$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
+{$IFDEF noASM_VERSION}
+procedure TStrList.AnsiSort(CaseSensitive: Boolean);
+asm
+        MOV      [EAX].fCaseSensitiveSort, DL
+        MOV      [EAX].fAnsiSort, 1
+        {$IFDEF  SORT_STRLIST_ARRAY}
+        MOV      ECX, Offset[_AnsiCompareStrA]
+        CMP      DL, 0
+        JNZ      @@01
+        MOV      ECX, [_AnsiCompareStrNoCaseA]
+@@01:
+        MOV      EAX, [EAX].fList
+        MOV      EDX, [EAX].TList.fCount
+        CMP      EDX, 1
+        JLE      @@02
+        MOV      EAX, [EAX].TList.fItems
+        CALL     SortArray
+@@02:
+        {$ELSE}
+        PUSH     Offset[TStrList.Swap]
+        MOV      ECX, Offset[CompareAnsiStrListItems]
+        CMP      DL, 0
+        JNZ      @1
+        MOV      ECX, Offset[CompareAnsiStrListItems_Case]
+@1:     MOV      EDX, [EAX].fCount
+        CALL     SortData
+        {$ENDIF}
+end;
+{$ELSE ASM_VERSION} //Pascal
 procedure TStrList.AnsiSort(CaseSensitive: Boolean);
 begin
   fCaseSensitiveSort := CaseSensitive;
   fAnsiSort := TRUE;
-  if  CaseSensitive then
-      SortData( @Self, fCount, @CompareAnsiStrListItems_Case, @SwapStrListItems )
-  else
-      SortData( @Self, fCount, @CompareAnsiStrListItems, @SwapStrListItems );
+  {$IFDEF SPEED_FASTER}
+          {$DEFINE SORT_STRLIST_ARRAY}
+  {$ENDIF}
+  {$IFDEF TLIST_FAST}
+          {$UNDEF SORT_STRLIST_ARRAY}
+  {$ENDIF}
+  {$IFDEF _D2}
+          {$UNDEF SORT_STRLIST_ARRAY}
+  {$ENDIF}
+  if  Count > 1 then
+  begin
+      {$IFDEF SPEED_FASTER}
+      if   CaseSensitive then // to prepare !!!
+           _AnsiCompareStrA( ItemPtrs[0], ItemPtrs[1] )
+      else _AnsiCompareStrNoCaseA( ItemPtrs[0], ItemPtrs[1] );
+      {$ENDIF}
+      {$IFDEF SORT_STRLIST_ARRAY}
+      if  CaseSensitive then
+          SortArray( fList.fItems, fCount, @_AnsiCompareStrA )
+      else
+          SortArray( fList.fItems, fCount, @_AnsiCompareStrNoCaseA );
+      {$ELSE}
+      if  CaseSensitive then
+          SortData( @Self, fCount, @CompareAnsiStrListItems_Case, @TStrList.Swap )
+      else
+          SortData( @Self, fCount, @CompareAnsiStrListItems, @TStrList.Swap );
+      {$ENDIF}
+  end;
 end;
 {$ENDIF ASM_VERSION}
 
 procedure TStrList.SortEx(const CompareFun: TCompareEvent);
 begin
-  SortData(@Self, fCount, CompareFun, {@SwapStrListItems}@TStrList.Swap);
+    SortData( @Self, Count, CompareFun, @TStrList.Swap );
 end;
 
 procedure TStrList.Swap(Idx1, Idx2: Integer);
@@ -45130,7 +45669,7 @@ var s: AnsiString;
     Q: PAnsiChar;
 begin
   s := ItemPtrs[ Idx ];
-  Q := StrScan( PAnsiChar(s), '=' );
+  Q := StrScan( PAnsiChar(s), fNameDelim );
   Q^ := #0;
   Result := PAnsiChar(s);
 end;
@@ -45144,7 +45683,7 @@ function TStrList.GetLineValue(Idx: Integer): AnsiString;
 var Q: PAnsiChar;
 begin
   Q := ItemPtrs[ Idx ];
-  Q := StrScan( Q, '=' );
+  Q := StrScan( Q, fNameDelim );
   if  Q <> nil then
       inc( Q );
   Result := Q;
@@ -45594,8 +46133,8 @@ begin
       FObjects.Add( nil );
     {$ELSE}
     FObjects.Capacity := NewCap;
-    FillChar( FObjects.{$IFDEF TLIST_FAST} Items {$ELSE} FItems {$ENDIF}[ FObjects.FCount ],
-              (FObjects.Capacity - FObjects.Count) * sizeof( Pointer ), #0 );
+    ZeroMemory( @FObjects.{$IFDEF TLIST_FAST} Items {$ELSE} FItems {$ENDIF}[ FObjects.FCount ],
+              (FObjects.Capacity - FObjects.Count) * sizeof( Pointer ) );
     FObjects.FCount := NewCap;
     {$ENDIF}
   end;
@@ -46252,8 +46791,8 @@ begin
   fObjects.Capacity := NewCap;
   {$IFDEF TLIST_FAST}
   {$ELSE}
-  FillChar( FObjects.FItems[ FObjects.Count ],
-            (FObjects.Capacity - FObjects.Count) * Sizeof( Pointer ), #0 );
+  ZeroMemory( @FObjects.FItems[ FObjects.Count ],
+              (FObjects.Capacity - FObjects.Count) * Sizeof( Pointer ) );
   FObjects.FCount := NewCap;
   {$ENDIF}
 end;
@@ -46416,6 +46955,134 @@ begin
 end;
 {$ENDIF ASM_VERSION}
 
+{$IFDEF _D3orHigher}
+{$IFDEF ASM_VERSION}{$ELSE ASM_VERSION}
+procedure SortArray( const Data: Pointer; const uNElem: Dword;
+                     const CompareFun: TCompareArrayEvent );
+{ uNElem - number of elements to sort }
+type TDWORDArray = array[0..0] of Integer;
+     PDWORDArray = ^TDWORDArray;
+var DataArray: PDWORDArray;
+
+  procedure SwapIdx( const e1, e2 : DWord );
+  begin
+    Swap( DataArray[e1], DataArray[e2] );
+  end;
+
+  procedure qSortArrayHelp(pivotP: Dword; nElem: Dword);
+  label
+    TailRecursion,
+    qBreak;
+  var
+    leftP, rightP, pivotEnd, pivotTemp, leftTemp: Dword;
+    lNum: Dword;
+    retval: integer;
+  begin
+    TailRecursion:
+      if (nElem <= 2) then
+      begin
+        if (nElem = 2) then
+          begin
+            rightP := pivotP +1;
+            retval := CompareFun(DataArray[pivotP],DataArray[rightP]);
+            if (retval > 0) then SwapIdx(pivotP,rightP);
+          end;
+        exit;
+      end;
+      rightP := (nElem -1) + pivotP;
+      leftP :=  (nElem shr 1) + pivotP;
+      { sort pivot, left, and right elements for "median of 3" }
+      retval := CompareFun(DataArray[leftP],DataArray[rightP]);
+      if (retval > 0) then SwapIdx(leftP, rightP);
+      retval := CompareFun(DataArray[leftP],DataArray[pivotP]);
+
+      if (retval > 0) then
+        SwapIdx(leftP, pivotP)
+      else
+      begin
+        retval := CompareFun(DataArray[pivotP],DataArray[rightP]);
+        if retval > 0 then SwapIdx(pivotP, rightP);
+      end;
+      if (nElem = 3) then
+      begin
+        SwapIdx(pivotP, leftP);
+        exit;
+      end;
+      { now for the classic Horae algorithm }
+      pivotEnd := pivotP + 1;
+      leftP := pivotEnd;
+      repeat
+
+        retval := CompareFun(DataArray[leftP], DataArray[pivotP]);
+        while (retval <= 0) do
+          begin
+
+            if (retval = 0) then
+              begin
+                SwapIdx(leftP, pivotEnd);
+                Inc(pivotEnd);
+              end;
+            if (leftP < rightP) then
+              Inc(leftP)
+            else
+              goto qBreak;
+            retval := CompareFun(DataArray[leftP], DataArray[pivotP]);
+          end; {while}
+        while (leftP < rightP) do
+          begin
+            retval := CompareFun(DataArray[pivotP], DataArray[rightP]);
+            if (retval < 0) then
+              Dec(rightP)
+
+            else
+              begin
+                SwapIdx(leftP, rightP);
+                if (retval <> 0) then
+                  begin
+                    Inc(leftP);
+                    Dec(rightP);
+                  end;
+                break;
+              end;
+          end; {while}
+
+      until (leftP >= rightP);
+    qBreak:
+      retval := CompareFun( DataArray[leftP], DataArray[pivotP] );
+      if (retval <= 0) then Inc(leftP);
+
+      leftTemp := leftP -1;
+      pivotTemp := pivotP;
+      while ((pivotTemp < pivotEnd) and (leftTemp >= pivotEnd)) do
+      begin
+        SwapIdx(pivotTemp, leftTemp);
+        Inc(pivotTemp);
+        Dec(leftTemp);
+      end; {while}
+      lNum := (leftP - pivotEnd);
+      nElem := ((nElem + pivotP) -leftP);
+
+      if (nElem < lNum) then
+      begin
+        qSortArrayHelp(leftP, nElem);
+        nElem := lNum;
+      end
+        else
+      begin
+        qSortArrayHelp(pivotP, lNum);
+        pivotP := leftP;
+      end;
+      goto TailRecursion;
+    end; {qSortHelp }
+
+begin
+  DataArray := Pointer( Integer( Data ) - Sizeof( DWORD ) );
+  if (uNElem < 2) then  exit; { nothing to sort }
+  qSortArrayHelp(1, uNElem);
+end;
+{$ENDIF ASM_VERSION}
+{$ENDIF _D3orHigher}
+
 {$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
 function CompareIntegers( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
 var I1, I2 : Integer;
@@ -46429,6 +47096,11 @@ begin
 end;
 {$ENDIF ASM_VERSION}
 
+function Compare2Integers( e1, e2: Integer ) : Integer;
+begin
+    Result := e1-e2;
+end;
+
 {$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
 function CompareDwords( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
 var I1, I2 : DWord;
@@ -46439,6 +47111,32 @@ begin
   if I1 < I2 then Result := -1
   else
   if I1 > I2 then Result := 1;
+end;
+{$ENDIF ASM_VERSION}
+
+{$IFDEF ASM_VERSION}
+function Compare2Dwords( e1, e2 : DWORD ) : Integer;
+asm
+    SUB  EAX, EDX
+    JZ   @@exit
+    MOV  EAX, 0
+    JB   @@neg
+    INC  EAX
+    INC  EAX
+@@neg:
+    DEC  EAX
+@@exit:
+end;
+{$ELSE ASM_VERSION}
+function Compare2Dwords( e1, e2 : DWORD ) : Integer;
+begin
+    if  e1 < e2 then
+        Result := -1
+    else
+    if  e1 > e2 then
+        Result := 1
+    else
+        Result := 0;
 end;
 {$ENDIF ASM_VERSION}
 
@@ -46455,7 +47153,11 @@ end;
 
 procedure SortIntegerArray( var A : array of Integer );
 begin
-  SortData( @A[ 0 ], High( A ) - Low( A ) + 1, @CompareIntegers, @SwapIntegers );
+  {$IFDEF SPEED_FASTER}
+  SortArray( @A[ 0 ], High(A)-Low(A)+1, @Compare2Integers );
+  {$ELSE}
+  SortData( @A[ 0 ], High(A)-Low(A)+1, @CompareIntegers, @SwapIntegers );
+  {$ENDIF}
 end;
 
 procedure SwapListItems( const L: Pointer; const e1, e2: DWORD );
@@ -46465,7 +47167,11 @@ end;
 
 procedure SortDwordArray( var A : array of DWORD );
 begin
-  SortData( @A[ 0 ], High( A ) - Low( A ) + 1, @CompareDwords, @SwapIntegers );
+  {$IFDEF SPEED_FASTER}
+  SortArray( @A[ 0 ], High(A)-Low(A)+1, @Compare2DWORDS );
+  {$ELSE}
+  SortData( @A[ 0 ], High(A)-Low(A)+1, @CompareDwords, @SwapIntegers );
+  {$ENDIF}
 end;
 {$IFDEF WIN_GDI}
 
@@ -47505,7 +48211,7 @@ end;
 procedure TControl.SetLVColText(Idx: Integer; const Value: KOLString);
 var LC: TLVColumn;
 begin
-  FillChar( LC, Sizeof( LC ), #0 ); {Alexey (Lecha2002)}
+  ZeroMemory( @LC, Sizeof( LC ) ); {Alexey (Lecha2002)}
   LC.mask := LVCF_TEXT;
   LC.pszText := '';
   if Value <> '' then
@@ -47517,7 +48223,7 @@ function TControl.GetLVColalign(Idx: Integer): TTextAlign;
 const Formats: array[ 0..2 ] of TTextAlign = ( taLeft, taRight, taCenter );
 var LC: TLVColumn;
 begin
-  FillChar( LC, Sizeof( LC ), #0 ); {Alexey (Lecha2002)}
+  ZeroMemory( @LC, Sizeof( LC ) ); {Alexey (Lecha2002)}
   LC.mask := LVCF_FMT;
   Perform( LVM_GETCOLUMN, Idx, Integer( @ LC ) );
   Result := Formats[ LC.fmt and LVCFMT_JUSTIFYMASK ];
@@ -47528,7 +48234,7 @@ const FormatFlags: array[ TTextAlign ] of BYTE = ( LVCFMT_LEFT, LVCFMT_RIGHT,
       LVCFMT_CENTER );
 var LC: TLVColumn;
 begin
-  FillChar( LC, Sizeof( LC ), #0 ); {Alexey (Lecha2002)}
+  ZeroMemory( @LC, Sizeof( LC ) ); {Alexey (Lecha2002)}
   LC.mask := LVCF_FMT;
   Perform( LVM_GETCOLUMN, Idx, Integer( @ LC ) );
   LC.fmt := LC.fmt and not LVCFMT_JUSTIFYMASK or FormatFlags[ Value ];
@@ -47538,7 +48244,7 @@ end;
 function TControl.GetLVColEx(Idx: Integer; const Index: Integer): Integer;
 var LC: TLVColumn;
 begin
-  FillChar( LC, Sizeof( LC ), #0 ); {Alexey (Lecha2002)}
+  ZeroMemory( @LC, Sizeof( LC ) ); {Alexey (Lecha2002)}
   LC.mask := LoWord( Index );
   Perform( LVM_GETCOLUMN, Idx, Integer( @ LC ) );
   Result := PDWORD( Integer( @ LC ) + HiWord( Index ) )^;
@@ -47549,7 +48255,7 @@ procedure TControl.SetLVColEx(Idx: Integer; const Index: Integer;
   const Value: Integer);
 var LC: TLVColumn;
 begin
-  FillChar(LC,SizeOf(LC),#0);                                    // Added Line
+  ZeroMemory(@LC,SizeOf(LC));                                    // Added Line
   LC.mask := LoWord( Index );
   if HiWord( Index ) = 24 then                                  // Added Line
    begin                                                        // Added Line
@@ -47935,7 +48641,7 @@ function TControl.GetSBPageSize: Integer;
 var
   SI: TScrollInfo;
 begin
-  FillChar(SI, SizeOf(SI), #0);
+  ZeroMemory(@SI, SizeOf(SI));
   SI.cbSize := SizeOf(SI);
   SI.fMask := SIF_PAGE;
   SBGetScrollInfo(SI);
@@ -47978,20 +48684,21 @@ var
   SI: TScrollInfo;
 begin
   DF.fSBPageSize := Value;
-  if (Handle <> 0) then begin
-    FillChar(SI, SizeOf(SI), #0);
-    SI.cbSize := SizeOf(SI);
-    SI.fMask := SIF_PAGE or SIF_RANGE;
-    SBGetScrollInfo(SI);
-    {$IFDEF SCROLL_OLD} // by QAZ
-        {$IFDEF SCROLL_OLD_MAX1}
-        if (SI.nMax = 0) and (SI.nMin = 0) then
-          SI.nMax := 1;
-        {$ENDIF}
-        SI.nMax := SI.nMax - Integer(SI.nPage) + Value;
-    {$ENDIF}
-    SI.nPage := Value;
-    SBSetScrollInfo(SI);
+  if  fHandle <> 0 then
+  begin
+      ZeroMemory(@SI, SizeOf(SI));
+      SI.cbSize := SizeOf(SI);
+      SI.fMask := SIF_PAGE or SIF_RANGE;
+      SBGetScrollInfo(SI);
+      {$IFDEF SCROLL_OLD} // by QAZ
+          {$IFDEF SCROLL_OLD_MAX1}
+          if (SI.nMax = 0) and (SI.nMin = 0) then
+            SI.nMax := 1;
+          {$ENDIF}
+          SI.nMax := SI.nMax - Integer(SI.nPage) + Value;
+      {$ENDIF}
+      SI.nPage := Value;
+      SBSetScrollInfo(SI);
   end;
 end;
 
@@ -48277,7 +48984,7 @@ var
 
 var m: Integer;
 begin
-  Fillchar( ofn, sizeof( ofn ), 0 );
+  ZeroMemory( @ofn, sizeof( ofn ) );
 
   {$IFDEF OpenSaveDialog_Extended}
   if (WinVer <= wvNT) and (WinVer <> wvME) then
@@ -48309,7 +49016,7 @@ begin
     ofn.nMaxFile := MAX_PATH+2;
 
   SetLength( TempFileName, ofn.nMaxFile );
-  FillChar( TempFileName[ 1 ], ofn.nMaxFile * sizeof( KOLChar ), 0 );
+  ZeroMemory( @TempFileName[ 1 ], ofn.nMaxFile * sizeof( KOLChar ) );
   m := Min( ofn.nMaxFile, Length(fFileName) );
   {$IFDEF UNICODE_CTRLS}
   ofn.lpstrFile := PKOLchar( TempFileName );
@@ -48743,10 +49450,10 @@ begin
   end;
   DW := GetDesktopWindow;
   DC := GetDC(DW);
-  FillChar( bm, SizeOf(bm), #0 );
+  ZeroMemory( @bm, SizeOf(bm) );
   GetObject( Result, SizeOf( bm ), @bm );
 
-  FillChar( bi, SizeOf( bi ), #0 );
+  ZeroMemory( @bi, SizeOf( bi ) );
   bi.bmiHeader.biSize := SizeOf( bi.bmiHeader );
   bi.bmiHeader.biWidth := bm.bmWidth;
   bi.bmiHeader.biHeight := -bm.bmHeight;
@@ -51919,8 +52626,7 @@ var Pos : DWORD;
         begin
           //Exit;
           {$IFDEF FILL_BROKEN_BITMAP}
-          FillChar( Pointer( Integer( fDIBBits ) + i )^,
-            Size - i, #0 );
+          ZeroMemory( Pointer( Integer( fDIBBits ) + i )^, Size - i );
           {$ENDIF FILL_BROKEN_BITMAP}
         end;
       end
@@ -52091,7 +52797,7 @@ var BFH : TBitmapFileHeader;
       Result := False;
       if Empty then Exit;
       HandleType := bmDIB; // convert to DIB if DDB
-      FillChar( BFH, Sizeof( BFH ), 0 );
+      ZeroMemory( @BFH, Sizeof( BFH ) );
       ColorsSize := 0;
       with fDIBHeader.bmiHeader do
            if biBitCount <= 8 then
@@ -53233,7 +53939,8 @@ begin
         begin
           fPixelsPerByteMask := 1;
           fBytesPerPixel := 4;
-          fGetDIBPixels := _GetDIBPixelsTrueColorWithAlpha;
+          fGetDIBPixels := {$IFDEF DIBPixels32bitWithAlpha} _GetDIBPixelsTrueColorAlpha
+                           {$ELSE} _GetDIBPixelsTrueColor {$ENDIF};
         end;
       else;
       end;
@@ -53372,7 +54079,8 @@ begin
         begin
           fPixelsPerByteMask := 1;
           fBytesPerPixel := 4;
-          fSetDIBPixels := _SetDIBPixelsTrueColorWithAlpha;
+          fSetDIBPixels := {$IFDEF DIBPixels32bitWithAlpha} _SetDIBPixelsTrueColorAlpha
+                           {$ELSE} _SetDIBPixelsTrueColor {$ENDIF};
         end;
       else;
       end;
@@ -54092,7 +54800,7 @@ begin
         Assert( (B.bmWidth = W) and (B.bmHeight = H),
                 'Mask bitmap size must much color bitmap size in SaveIcons2StreamEx' );
       end;
-      FillChar( IDI, Sizeof( IDI ), #0 );
+      ZeroMemory( @IDI, Sizeof( IDI ) );
 
       IDI.bWidth := W;
       IDI.bHeight := H;
@@ -54102,7 +54810,7 @@ begin
       begin
         ImgBmp.Handle := CopyImage( BColor, IMAGE_BITMAP, W, H,
                          LR_CREATEDIBSECTION );
-        FillChar( BIH, Sizeof( BIH ), #0 );
+        ZeroMemory( @BIH, Sizeof( BIH ) );
         BIH.biSize := Sizeof( BIH );
         GetObject( ImgBmp.Handle, Sizeof( B ), @B );
         if (B.bmPlanes = 1) and (B.bmBitsPixel >= 15) then
@@ -54146,7 +54854,7 @@ begin
       W := B.bmWidth;
       H := B.bmHeight;
 
-      FillChar( BIH, Sizeof( BIH ), #0 );
+      ZeroMemory( @BIH, Sizeof( BIH ) );
       BIH.biSize := Sizeof( BIH );
       BIH.biWidth := W;
       BIH.biHeight := H;
@@ -54735,7 +55443,7 @@ var
   FS: TFontStyle;
 begin
   CF := @DF.fRECharFormatRec;
-  FillChar( CF^, Sizeof( CF^ ), #0 );
+  ZeroMemory( CF, Sizeof( CF^ ) );
   {$IFDEF UNICODE_CTRLS}
   CF.cbSize := Sizeof( CF^ );
   {$ELSE}
@@ -54784,7 +55492,7 @@ var CF: PCharFormat;
     FS: TFontStyle;
 begin
   CF := @DF.fRECharFormatRec;
-  FillChar( CF^, {82} sizeof( CF^ ), #0 );
+  ZeroMemory( CF, {82} sizeof( CF^ ) );
   {$IFDEF UNICODE_CTRLS}
   CF.cbSize := Sizeof( CF^ );
   {$ELSE}
@@ -55048,7 +55756,7 @@ end;
 
 function TControl.REGetParaFmt: TParaFormat;
 begin
-  FillChar( Result, sizeof( TParaFormat2 ), #0 );
+  ZeroMemory( @Result, sizeof( TParaFormat2 ) );
   Result.cbSize := sizeof( RichEdit.TParaFormat ) + DF.fParaFmtDeltaSz;
   Perform( EM_GETPARAFORMAT, 0, Integer( @Result ) );
 end;
@@ -58266,7 +58974,7 @@ begin
   Flags := CREATE_NEW_CONSOLE;
   if Show = SW_HIDE then
     Flags := Flags or {$IFDEF F_P}$08000000{$ELSE}CREATE_NO_WINDOW{$ENDIF};
-  FillChar( Startup, SizeOf( Startup ), #0 );
+  ZeroMemory( @Startup, SizeOf( Startup ) );
   Startup.cb := Sizeof( Startup );
   Startup.wShowWindow := Show;
   Startup.dwFlags := STARTF_USESHOWWINDOW;
@@ -58381,7 +59089,7 @@ begin
   Flags := 0;
   if Show = SW_HIDE then
     Flags := Flags or {$IFDEF F_P}$08000000{$ELSE}CREATE_NO_WINDOW{$ENDIF};
-  FillChar( Startup, SizeOf( Startup ), #0 );
+  ZeroMemory( @Startup, SizeOf( Startup ) );
   Startup.cb := Sizeof( Startup );
   if ProcID <> nil then
     ProcID^ := 0;
@@ -63954,13 +64662,15 @@ begin
 end;
 
 function TControl.Get_MDIClient: PControl;
+var i: Integer;
 begin
-    Result := Pointer( PropInt[ MDI_CLIENT ] );
-end;
-
-procedure TControl.Set_MDIClient(const Value: PControl);
-begin
-    PropInt[ MDI_CLIENT ] := Integer( Value );
+    Result := nil;
+    for i := 0 to ChildCount-1 do
+    begin
+        Result := Children[i];
+        if  Result.fControlClassName = 'MDICLIENT' then break;
+        Result := nil;
+    end;
 end;
 
 function TControl.Get_Ctl3D: Boolean;

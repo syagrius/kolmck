@@ -218,9 +218,9 @@ That is all to have full compatibility.
 // directive there. (Search the word: USE_CUSTOMEXTENSIONS).
 // Please note, that this option is not fully supported now.
 
-{$IFNDEF NOT_UNLOAD_RICHEDITLIB}
-  {$DEFINE UNLOAD_RICHEDITLIB}
-{$ENDIF}
+//{$IFNDEF NOT_UNLOAD_RICHEDITLIB}
+//  {$DEFINE UNLOAD_RICHEDITLIB}
+//{$ENDIF}
 // You can freely comment this directive. 1st, if the application does not
 // use richedit control. 2nd, even if it does, freeing the library handle
 // actually is not needed.
@@ -248,5 +248,4 @@ That is all to have full compatibility.
          {$ENDIF}
 {$ENDIF}
 
-
-
+{$DEFINE DIBPixels32bitWithAlpha}
