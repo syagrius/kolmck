@@ -1,3 +1,5 @@
+{This version is compatible with KOL 3.00+ -- VK}
+
 unit ActiveKOL;
 
 interface
@@ -9,9 +11,11 @@ uses
 {$IFDEF _D6orHigher}
   //{$WARN SYMBOL_DEPRECATED OFF}
   {$WARN SYMBOL_PLATFORM OFF}
+  {$IFDEF _D7orHigher}
   {$WARN UNSAFE_TYPE OFF}
   {$WARN UNSAFE_CAST OFF}
   {$WARN UNSAFE_CODE OFF}
+  {$ENDIF}
 {$ENDIF}
 
 {$IFNDEF _D5orHigher}
@@ -215,13 +219,15 @@ type
     procedure DestroyStorage;
     procedure DestroyControl;
     procedure StandardEvent(DispID: TDispID; var Params: TDispParams);
-    procedure SetMouseDblClk(const Value: TOnMouse);
+    //procedure SetMouseDblClk(const Value: TOnMouse);
     procedure SetOnChar(const Value: TOnChar);
   protected
-    {$IFDEF DELPHI_CODECOMPLETION_BUG}
+    //{$IFDEF DELPHI_CODECOMPLETION_BUG}
     fNotAvailable: Boolean;
-    {$ENDIF}
+    //{$ENDIF}
+    {$IFNDEF USE_NAMES}
     fName: String;
+    {$ENDIF}
     FControlData: PControlData;
     FOleObject: IOleObject;
     FMiscStatus: Longint;
@@ -337,8 +343,12 @@ type
     procedure MouseUp(Button: TMouseButton; AShift: DWORD;
       X, Y: Integer);
 
-    property OnKeyPress: TOnChar read fOnChar write SetOnChar;
-    property OnDblClick: TOnMouse read fOnMouseDblClk write SetMouseDblClk;
+    property OnKeyPress: TOnChar
+             read {$IFDEF EVENTS_DYNAMIC} Get_OnChar {$ELSE} EV.fOnChar {$ENDIF}
+             write SetOnChar;
+    property OnDblClick: TOnMouse index idx_fOnMouseDblClk
+             read {$IFDEF EVENTS_DYNAMIC} Get_OnMouseEvent {$ELSE} EV.fOnMouseDblClk {$ENDIF}
+             write SetOnMouseEvent; // SetMouseDblClk;
 
     destructor Destroy; virtual;
 
@@ -509,7 +519,7 @@ constructor TEnumPropDesc.Create(DispID, ValueCount: Integer;
 var
   I: Integer;
   VarDesc: PVarDesc;
-  Name: WideString;
+  XName: WideString;
 begin
   FDispID := DispID;
   FValueCount := ValueCount;
@@ -518,12 +528,12 @@ begin
   begin
     OleCheck(TypeInfo.GetVarDesc(I, VarDesc));
     try
-      OleCheck(TypeInfo.GetDocumentation(VarDesc^.memid, @Name,
+      OleCheck(TypeInfo.GetDocumentation(VarDesc^.memid, @XName,
         nil, nil, nil));
       with FValues^[I] do
       begin
         Value := TVarData(VarDesc^.lpVarValue^).VInteger;
-        Ident := Name;
+        Ident := XName;
         while (Length(Ident) > 1) and (Ident[1] = '_') do
           Delete(Ident, 1, 1);
       end;
@@ -825,8 +835,10 @@ begin
       if FOleInPlaceObject = nil then
         raise EOleError.CreateResFmt(e_Ole, Integer( @SCannotActivate ), [nil]);
       HookControlWndProc;
-      if not fVisible and IsWindowVisible(fHandle) then
-        ShowWindow(fHandle, SW_HIDE);
+      if  {$IFDEF USE_FLAGS} not(F3_Visible in fStyle.f3_Style)
+          {$ELSE} not fVisible {$ENDIF}
+      and IsWindowVisible(fHandle) then
+          ShowWindow(fHandle, SW_HIDE);
       Result := TRUE;
     end
       else
@@ -939,7 +951,9 @@ procedure TOleCtl.DblClk;
 var MouseData: TMouseEventData;
     P: TPoint;
 begin
-  if Assigned(OnMouseDblClk) then
+  {$IFDEF NIL_EVENTS}
+  if Assigned(EV.fOnMouseDblClk) then
+  {$ENDIF}
   begin
     MouseData.Button := mbLeft;
     MouseData.Shift := 0;
@@ -947,7 +961,7 @@ begin
     P := Screen2Client( P );
     MouseData.X := P.x;
     MouseData.Y := P.y;
-    OnMouseDblClk(@Self, MouseData);
+    EV.fOnMouseDblClk(@Self, MouseData);
   end;
 end;
 
@@ -1322,9 +1336,10 @@ begin
   // overriding this method, we allow for constructor to initialize
   // the object.
   fControlClassName := 'OleCtl'; // ClassName
-  fIsControl := TRUE;
-  fStyle := WS_VISIBLE or WS_CLIPCHILDREN or WS_CLIPSIBLINGS or
-            WS_CHILD; // or WS_BORDER or WS_THICKFRAME;
+  {$IFDEF USE_FLAGS} include( fFlagsG3, G3_IsControl );
+  {$ELSE} fIsControl := TRUE; {$ENDIF}
+  fStyle.Value := WS_VISIBLE or WS_CLIPCHILDREN or WS_CLIPSIBLINGS or
+      WS_CHILD; // or WS_BORDER or WS_THICKFRAME;
 
   //AttachProc( WndProcCtrl ); for test only
 
@@ -1365,8 +1380,9 @@ begin
       ((FControlData^.Reserved and cdForceSetClientSite) <> 0) then
       OleCheck(FOleObject.SetClientSite(fOleCtlIntf));
   OleCheck(FOleObject.QueryInterface(IPersistStreamInit, FPersistStream));
-  if FMiscStatus and OLEMISC_INVISIBLEATRUNTIME <> 0 then
-    fVisible := False;
+  if  FMiscStatus and OLEMISC_INVISIBLEATRUNTIME <> 0 then
+      {$IFDEF USE_FLAGS} exclude( fStyle.f3_Style, F3_Visible );
+      {$ELSE} fVisible := False; {$ENDIF}
   {if FMiscStatus and OLEMISC_SIMPLEFRAME <> 0 then
     ControlStyle := [csAcceptsControls, csDoubleClicks, csNoStdEvents] else
     ControlStyle := [csDoubleClicks, csNoStdEvents];}
@@ -1451,17 +1467,17 @@ end;
 
 procedure TOleCtl.KeyDown(var Key: Longint; AShift: DWORD);
 begin
-  if Assigned(FOnKeyDown) then FOnKeyDown(@Self, Key, AShift);
+  if Assigned(EV.fOnKeyDown) then EV.fOnKeyDown(@Self, Key, AShift);
 end;
 
 procedure TOleCtl.KeyPress(var Key: KOLChar);
 begin
-  if Assigned(FOnChar) then FOnChar(@Self, Key, 0);
+  if Assigned(EV.fOnChar) then EV.fOnChar(@Self, Key, 0);
 end;
 
 procedure TOleCtl.KeyUp(var Key: Longint; AShift: DWORD);
 begin
-  if Assigned(FOnKeyUp) then FOnKeyUp(@Self, Key, AShift);
+  if Assigned(EV.fOnKeyUp) then EV.fOnKeyUp(@Self, Key, AShift);
 end;
 
 procedure TOleCtl.MouseDown(Button: TMouseButton; AShift: DWORD; X,
@@ -1545,10 +1561,11 @@ begin
   SetProperty(Index, Temp);
 end;
 
-procedure TOleCtl.SetMouseDblClk(const Value: TOnMouse);
+(*procedure TOleCtl.SetMouseDblClk(const Value: TOnMouse);
 begin
-  fOnMouseDblClk := Value;
-end;
+  {$IFDEF EVENTS_DYNAMIC} ProvideUniqueEvents {$ELSE} EV {$ENDIF}
+  .fOnMouseDblClk := Value;
+end;*)
 
 procedure TOleCtl.SetName(const Value: String);
 var
@@ -1603,7 +1620,8 @@ end;
 
 procedure TOleCtl.SetOnChar(const Value: TOnChar);
 begin
-  fOnChar := Value;
+  {$IFDEF EVENTS_DYNAMIC} ProvideUniqueEvents {$ELSE} EV {$ENDIF}
+  .fOnChar := Value;
 end;
 
 procedure TOleCtl.SetOnLeave(const Value: TOnEvent);
@@ -1733,20 +1751,20 @@ var
                  // - to access its protected fields
 begin
   Form := POleCtl( ParentForm );
-  if Form <> nil then
-    if Active then
-    begin
-      {if (Form.ActiveOleControl <> nil) and
-        (Form.ActiveOleControl <> Self) then
-        Form.ActiveOleControl.Perform(CM_UIDEACTIVATE, 0, 0);
-      Form.ActiveOleControl := Self;}
-      if (Form.fCurrentControl <> nil) and
-        (Form.fCurrentControl <> @Self) then
-        Form.fCurrentControl.Perform(CM_UIDEACTIVATE, 0, 0);
-      Form.fCurrentControl := @Self;
-    end else
-      if Form.fCurrentControl = @Self then
-        Form.fCurrentControl := nil;
+  if  Form <> nil then
+      if  Active then
+      begin
+          {if (Form.ActiveOleControl <> nil) and
+            (Form.ActiveOleControl <> Self) then
+            Form.ActiveOleControl.Perform(CM_UIDEACTIVATE, 0, 0);
+          Form.ActiveOleControl := Self;}
+          if  (Form.DF.fCurrentControl <> nil) and
+              (Form.DF.fCurrentControl <> @Self) then
+              Form.DF.fCurrentControl.Perform(CM_UIDEACTIVATE, 0, 0);
+          Form.DF.fCurrentControl := @Self;
+      end else
+          if  Form.DF.fCurrentControl = @Self then
+              Form.DF.fCurrentControl := nil;
 end;
 
 procedure TOleCtl.SetVariantProp(Index: Integer; const Value: Variant);
@@ -1854,13 +1872,21 @@ begin
             Word(Args^[1].VPointer^) := Key;
         end;
       DISPID_KEYPRESS:
+       if Params.cArgs > 0 then
+       begin
+         Ch := KOLChar(Integer(Variant(Args^[0])));
+         KeyPress(Ch);
+         if ((Args^[0].vType and varByRef) <> 0) then
+           KOLChar(Args^[0].VPointer^) := Ch;
+       end;
+      {DISPID_KEYPRESS:
         if Params.cArgs > 0 then
         begin
-          Ch := Char(Integer(Variant(Args^[0])));
+          Ch := KOLChar(Integer(Variant(Args^[0])));
           KeyPress(Ch);
           if ((Args^[0].vType and varByRef) <> 0) then
-            Char(Args^[0].VPointer^) := Ch;
-        end;
+            KOLChar(Args^[0].VPointer^) := Ch;
+        end;}
       DISPID_MOUSEDOWN, DISPID_MOUSEMOVE, DISPID_MOUSEUP:
         if Params.cArgs >= 4 then
         begin

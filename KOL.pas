@@ -14,7 +14,7 @@
   Key Objects Library (C) 2000 by Kladov Vladimir.
 
 ****************************************************************
-* VERSION 3.00.i
+* VERSION 3.00.j
 ****************************************************************
 
   K.O.L. - is a set of objects to create small programs
@@ -581,7 +581,15 @@ interface
         {$UNDEF SPEED_FASTER}
 {$ENDIF}
 
-
+{$IFDEF SAFE_CODE}
+        {$UNDEF NO_SAFE_CODE}
+{$ENDIF}
+{$IFDEF NO_SAFE_CODE}
+        {$UNDEF SAFE_CODE}
+{$ENDIF}
+{$IFnDEF NO_SAFE_CODE}
+        {$DEFINE SAFE_CODE}
+{$ENDIF}
 
 {$IFDEF NOT_USE_RICHEDIT}
   {$DEFINE NOT_UNLOAD_RICHEDITLIB}
@@ -11153,10 +11161,7 @@ function MulDiv( A, B, C: Integer ): Integer;
    {* }
    function MakeDateTimeRange( D1, D2: TDateTime ): TDateTimeRange;
    {* Returns TDateTimeRange from two TDateTime bounds. }
-//[Integer FUNCTIONS DECLARATIONS]
-   procedure Swap( var X, Y: Integer ); overload;
-   procedure Swap(var X, Y: Byte); overload;
-   procedure Swap(var X, Y: String); overload;
+   procedure Swap( var X, Y: Integer );
    {* exchanging values }
    function Min( X, Y: Integer ): Integer;
    {* minimum of two integers }
@@ -11190,12 +11195,12 @@ function UInt2Str( Value: DWORD ): AnsiString;
 function Int2StrEx( Value, MinWidth: Integer ): AnsiString;
 {* Like Int2Str, but resulting string filled with leading spaces to provide
    at least MinWidth characters. }
-function Int2Rome( Value: Integer ): AnsiString;
+function Int2Rome( Value: Integer ): KOLString;
 {* Represents number 1..8999 to Rome numer. }
-function Int2Ths( I : Integer ) : AnsiString;
+function Int2Ths( I: Integer ): KOLString;
 {* Converts integer into string, separating every three digits from each
    other by character ThsSeparator. (Convert to thousands). You  }
-function Int2Digs( Value, Digits : Integer ) : AnsiString;
+function Int2Digs( Value, Digits: Integer ): KOLString;
 {* Converts integer to string, inserting necessary number of leading zeroes
    to provide desired length of string, given by Digits parameter. If
    resulting string is greater then Digits, string is not truncated anyway. }
@@ -15044,7 +15049,7 @@ end;
 function MsgBox( const S: KOLString; Flags: DWORD ): DWORD;
 var Title: PKOLChar;
 begin
-  {$IFDEF SAFE_CODE} // MsgBox should be called when Applet already created
+  {$IFnDEF NO_SAFE_CODE} // MsgBox should be called when Applet already created
   Title := nil;      // (and yet not destroyed)
   if assigned( Applet ) then
   {$ENDIF}
@@ -15062,7 +15067,7 @@ begin
   {$ENDIF}
   Result := MessageBox( 0, PKOLChar( S ), Title, Flags );
   {$IFDEF SNAPMOUSE2DFLTBTN}
-      {$IFDEF SAFE_CODE}
+      {$IFnDEF NO_SAFE_CODE}
       if Assigned( Applet ) then
       {$ENDIF}
         Applet.DetachProc( WndProcSnapMouse2DfltBtn );
@@ -15331,7 +15336,7 @@ begin
   Result.ToDate   := D2;
 end;
 
-procedure Swap( var X, Y: Integer ); overload;
+procedure Swap( var X, Y: Integer );
 {$IFDEF F_P}
 var Tmp: Integer;
 begin
@@ -15346,24 +15351,6 @@ asm
   MOV  [EDX], ECX
 end;
 {$ENDIF F_P/DELPHI}
-
-procedure Swap(var X, Y: Byte); overload;
-var
-  T: Byte;
-begin
-  T := X;
-  X := Y;
-  Y := T;
-end;
-
-procedure Swap(var X, Y: String); overload;
-var
-  T: String;
-begin
-  T := X;
-  X := Y;
-  Y := T;
-end;
 
 function Min( X, Y: Integer ): Integer;
 asm
@@ -20396,16 +20383,16 @@ begin
     Result := ' ' + Result;
 end;
 
-function Int2Rome( Value: Integer ): AnsiString;
-const RomeDigs = AnsiString('IVXLCDMT');
-  function RomeNum( N, FromIdx: Integer ): AnsiString;
+function Int2Rome( Value: Integer ): KOLString;
+const RomeDigs = KOLString('IVXLCDMT');
+  function RomeNum( N, FromIdx: Integer ): KOLString;
   begin
     CASE N OF
     1, 2, 3:    Result := StrRepeat( RomeDigs[ FromIdx ], N );
-    4:          Result := RomeDigs[ FromIdx ] + RomeDigs[ FromIdx + 1 ];
+    4:          Result := '' + RomeDigs[ FromIdx ] + RomeDigs[ FromIdx + 1 ];
     5, 6, 7, 8: Result := RomeDigs[ FromIdx + 1 ] + StrRepeat( RomeDigs[ FromIdx ],
                        N - 5 );
-    9:          Result := RomeDigs[ FromIdx ] + RomeDigs[ FromIdx + 2 ]
+    9:          Result := '' + RomeDigs[ FromIdx ] + RomeDigs[ FromIdx + 2 ]
     else Result := '';
     END;
   end;
@@ -20425,8 +20412,67 @@ begin
   end;
 end;
 
-{$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
+{$IFDEF ASM_UNICODE}
 function Int2Ths( I : Integer ) : AnsiString;
+asm
+        PUSH     EBP
+        MOV      EBP, ESP
+        PUSH     EAX
+        PUSH     EDX
+        CALL     Int2Str
+        POP      EDX
+        POP      EAX
+        TEST     EAX, EAX
+        JGE      @@0
+        NEG      EAX
+@@0:
+        CMP      EAX, 1000
+        JL       @@Exit
+        PUSH     EDX
+        MOV      EAX, [EDX]
+        PUSH     EAX
+        CALL     System.@LStrLen         // EAX = Length(Result)
+        POP      EDX
+        PUSH     EDX                     // EDX = @Result[ 1 ]
+        XOR      ECX, ECX
+
+@@1:
+        ROL      ECX, 8
+        DEC      EAX
+        MOV      CL, [EDX+EAX]
+        JZ       @@fin
+        CMP      ECX, 300000h
+        JL       @@1
+
+        PUSH     ECX
+        XOR      ECX, ECX
+        MOV      CL, [ThsSeparator]
+        JMP      @@1
+
+@@fin:  CMP      CL, '-'
+        JNE      @@fin1
+        CMP      CH, [ThsSeparator]
+        JNE      @@fin1
+        MOV      CH, 0                   // this corrects -,ddd,...
+@@fin1: CMP      ECX, 01000000h
+        JGE      @@fin2
+        INC      EAX
+        ROL      ECX, 8
+        JMP      @@fin1
+@@fin2: PUSH     ECX
+
+        LEA      EDX, [ESP+EAX]
+        MOV      EAX, [EBP-4]
+        {$IFDEF _D2009orHigher}
+        XOR      ECX, ECX // TODO: safe to change ecx?
+        {$ENDIF}
+        CALL     System.@LStrFromPChar
+@@Exit:
+        MOV      ESP, EBP
+        POP      EBP
+end;
+{$ELSE ASM_VERSION}
+function Int2Ths( I : Integer ): KOLString;
 var S : AnsiString;
 begin
   S := Int2Str( I );
@@ -20443,9 +20489,59 @@ begin
 end;
 {$ENDIF ASM_VERSION}
 
-{$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
-function Int2Digs( Value, Digits : Integer ) : AnsiString;
-var M : AnsiString;
+{$IFDEF ASM_UNICODE}
+function Int2Digs( Value, Digits : Integer ) : KOLString;
+asm
+        PUSH     EBP
+        MOV      EBP, ESP
+        PUSH     EDX             // [EBP-4] = Digits
+        PUSH     ECX
+        MOV      EDX, ECX
+        CALL     Int2Str
+        POP      ECX
+        PUSH     ECX             // [EBP-8] = @Result
+        MOV      EAX, [ECX]
+        PUSH     EAX
+        CALL     System.@LStrLen
+        POP      EDX             // EDX = @Result[1]
+        MOV      ECX, EAX        // ECX = Length( Result )
+        ADD      EAX, EAX
+        SUB      ESP, EAX
+        MOV      EAX, ESP
+        PUSHAD
+        CALL     StrCopy
+        POPAD
+        MOV      EDX, EAX
+        ADD      ESP, -100
+        CMP      byte ptr [EDX], '-'
+        PUSHFD
+        JNE      @@1
+        INC      EDX
+@@1:
+        MOV      EAX, [EBP-4]    // EAX = Digits
+        CMP      ECX, EAX
+        JGE      @@2
+        DEC      EDX
+        MOV      byte ptr [EDX], '0'
+        INC      ECX
+        JMP      @@1
+@@2:
+        POPFD
+        JNE      @@3
+        DEC      EDX
+        MOV      byte ptr [EDX], '-'
+@@3:
+        MOV      EAX, [EBP-8]
+        {$IFDEF _D2009orHigher}
+        XOR      ECX, ECX // TODO: eax or ecx affect result?
+        {$ENDIF}
+        CALL     System.@LStrFromPChar
+        MOV      ESP, EBP
+        POP      EBP
+end;
+{$ELSE ASM_VERSION} //Pascal
+function Int2Digs( Value, Digits : Integer ) : KOLString;
+var M : KOLString;
 begin
   Result := Int2Str( Value );
   M := '';
