@@ -14,7 +14,7 @@
   Key Objects Library (C) 2000 by Kladov Vladimir.
 
 ****************************************************************
-* VERSION 3.00.j
+* VERSION 3.00.K
 ****************************************************************
 
   K.O.L. - is a set of objects to create small programs
@@ -1841,6 +1841,16 @@ type
     {* }
     procedure Put(Idx: integer; const Value: WideString);
     {* +azsd for TBButton }
+  protected // by Alexander Pravdin:
+    fNameDelim: WideChar;
+    function GetLineName( Idx: Integer ): WideString;
+    procedure SetLineName( Idx: Integer; const NV: WideString );
+    function GetLineValue(Idx: Integer): WideString;
+    procedure SetLineValue(Idx: Integer; const Value: WideString);
+  public
+    property LineName[ Idx: Integer ]: WideString read GetLineName write SetLineName;
+    property LineValue[ Idx: Integer ]: WideString read GetLineValue write SetLineValue;
+    property NameDelimiter: WideChar read fNameDelim write fNameDelim;
   end;
 
   PWStrListEx = ^TWStrListEx;
@@ -12280,7 +12290,8 @@ type
   {* Allows easy directory scanning. This is not visual object, but
      storage to simplify working with directory content. }
   protected
-    FList : PList;
+    FListPositions : PList; //^^^^^^^^^^ Attention: order of FListPositions &
+    fStoreFiles: PStream;   //__________ fStoreFiles is IMPORTANT!
     FPath: KOLString;
     fFilters: {$IFDEF UNICODE_CTRLS} PWStrList {$ELSE} PStrList {$ENDIF};
     fOnItem: TOnDirItem;
@@ -21583,6 +21594,26 @@ begin
   Result := Length( S1 ) - Length( S2 );
 end;
 
+{$IFDEF ASM_VERSION}
+function _WStrComp(S1, S2: PWideChar): Integer;
+asm
+    PUSH  ESI
+    XCHG  ESI, EAX
+    XOR   EAX, EAX
+@@1:
+    LODSW
+    MOV   ECX, EAX
+    SUB   AX, word ptr [EDX]
+    JNZ   @@exit
+    JECXZ @@exit
+    INC   EDX
+    INC   EDX
+    JMP   @@1
+@@exit:
+    MOVSX EAX, AX
+    POP   ESI
+end;
+{$ELSE}
 function _WStrComp(S1, S2: PWideChar): Integer;
 var
   L, R : PWideChar;
@@ -21604,6 +21635,7 @@ begin
     end;
   until (False);
 end;
+{$ENDIF}
 
 function WStrScan(Str: PWideChar; Chr: WideChar): PWideChar;
 begin
@@ -21677,6 +21709,28 @@ begin
           Integer( R.A[AnsiChar(e2)] ) );
 end;
 
+{$IFDEF ASM_VERSION}
+function _AnsiCompareStrA_Fast2(S1, S2: PAnsiChar): Integer;
+asm
+        CALL     EAX2PChar
+        CALL     EDX2PChar
+        PUSH     ESI
+        XCHG     ESI, EAX
+        XOR      EAX, EAX
+@@1:
+        LODSB
+        MOV      CX, [EAX*2 + SortAnsiOrder]
+        MOV      AL, [EDX]
+        SUB      CX, [EAX*2 + SortAnsiOrder]
+        JNZ      @@retCL
+        INC      EDX
+        TEST     AL, AL
+        JNZ      @@1
+@@retCL:
+        MOVSX    EAX, CX
+        POP      ESI
+end;
+{$ELSE ASM_VERSION}
 function _AnsiCompareStrA_Fast2(S1, S2: PAnsiChar): Integer;
 begin
     if  S1 = nil then
@@ -21693,6 +21747,7 @@ begin
         inc( S2 );
     end;
 end;
+{$ENDIF ASM_VERSION}
 
 function _AnsiCompareStrA_Fast(S1, S2: PAnsiChar): Integer;
 var c: AnsiChar;
@@ -21756,6 +21811,29 @@ begin
     );
 end;
 
+{$IFDEF ASM_VERSION}
+function _AnsiCompareStrNoCaseA_Fast2(S1, S2: PAnsiChar): Integer;
+asm
+        CALL     EAX2PChar
+        CALL     EDX2PChar
+        PUSH     ESI
+        XCHG     ESI, EAX
+        XOR      EAX, EAX
+@@1:
+        LODSB
+        MOV      CX, [EAX*2 + SortAnsiOrderNoCase]
+        MOV      AL, [EDX]
+        SUB      CX, [EAX*2 + SortAnsiOrderNoCase]
+        JNZ      @@retCL
+        INC      EDX
+        TEST     AL, AL
+        JNZ      @@1
+@@retCL:
+        MOVSX    EAX, CX
+        POP      ESI
+end;
+{$ELSE ASM_VERSION}
+
 //{$DEFINE DEBUG_SORTFAST}
 {$IFDEF DEBUG_SORTFAST}
 var DBSF: Integer;
@@ -21796,6 +21874,7 @@ begin
             '"' + S01 + '" = "' + S02 + '"' )
     {$ENDIF}
 end;
+{$ENDIF ASM_VERSION}
 
 function _AnsiCompareStrNoCaseA_Fast(S1, S2: PAnsiChar): Integer;
 var c: AnsiChar;
@@ -23442,9 +23521,14 @@ end;
 {$IFDEF WIN}
 function Find_First( const FilePathName: KOLString; var F: TFindFileData ): Boolean;
 begin
+  {$IFDEF UNICODE_CTRLS}
+  F.FindHandle := THandle( FindFirstFileExW( PKOLChar( FilePathName ),
+               FindExInfoStandard, PWin32FindDataW( @ F ),
+               FindExSearchNameMatch, nil, 0 ) );
+  {$ELSE}
   F.FindHandle := FindFirstFile( PKOLChar( FilePathName ),
-    {$IFDEF UNICODE_CTRLS} PWin32FindDataW {$ELSE} PWin32FindData {$ENDIF}
-    ( @ F )^ );
+               PWin32FindData( @ F )^ );
+  {$ENDIF}
   Result := F.FindHandle <> INVALID_HANDLE_VALUE;
 end;
 function Find_Next( var F: TFindFileData ): Boolean;
@@ -23547,11 +23631,8 @@ end;
 {$ENDIF ASM_VERSION}
 
 function FileTimeCompare( const FT1, FT2 : TFileTime ) : Integer;
-var ST1, ST2 : TSystemTime;
 begin
-  FileTimeToSystemTime( FT1, ST1 );
-  FileTimeToSystemTime( FT2, ST2 );
-  Result := CompareSystemTime( ST1, ST2 );
+  Result := CompareFileTime( FT1, FT2 );
 end;
 {$ENDIF WIN}
 
@@ -24394,7 +24475,6 @@ begin
   end;
 end;
 
-
 function DoFileOp( const FromList, ToList: KOLString; FileOp: UINT; Flags: Word;
   Title: PKOLChar): Boolean;
 var FOS : {$IFDEF UNICODE_CTRLS}TSHFileOpStructW{$ELSE}TSHFileOpStruct{$ENDIF};
@@ -24458,9 +24538,8 @@ end;
 {$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
 procedure TDirList.Clear;
 begin
-  if FList <> nil then
-    FList.Release;
-  FList := nil;
+  Free_And_Nil( FListPositions );
+  Free_And_Nil( fStoreFiles );
 end;
 {$ENDIF ASM_VERSION}
 
@@ -24501,19 +24580,20 @@ end;
 //+
 function TDirList.Get(Idx: Integer): PFindFileData;
 begin
-  Result := FList.Items[ Idx ];
+  Result := Pointer( Integer( fStoreFiles.fMemory )
+      + Integer( FListPositions.Items[ Idx ] ) );
 end;
 
 {$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
 function TDirList.GetCount: Integer;
 begin
   Result := 0;
-  if FList = nil then Exit;
-  Result := FList.Count;
+  if FListPositions = nil then Exit;
+  Result := FListPositions.Count;
 end;
 {$ENDIF ASM_VERSION}
 
-{$IFDEF ASM_UNICODE}
+{$IFDEF noASM_UNICODE}
 function TDirList.GetNames(Idx: Integer): Ansistring;
 asm
         MOV      EAX, [EAX].fList
@@ -24532,15 +24612,18 @@ asm
         ADD      EDX, offset TWin32FindData.cFileName //
         MOV      EAX, ECX
           {$IFDEF _D2009orHigher}
-          XOR      ECX, ECX 
+          XOR      ECX, ECX
           {$ENDIF}
         CALL     System.@LStrFromPChar
         {$ENDIF}
 end;
 {$ELSE ASM_VERSION} //Pascal
 function TDirList.GetNames(Idx: Integer): KOLString;
+var FData: PFindFileData;
 begin
-  Result := PKOLChar(@PFindFileData(fList.Items[ Idx ]).cFileName[0]);
+  //Result := PKOLChar(@PFindFileData(fList.Items[ Idx ]).cFileName[0]);
+  FData := Get( Idx );
+  Result := FData.cFileName;
 end;
 {$ENDIF ASM_VERSION}
 
@@ -24877,10 +24960,17 @@ end;
 procedure TDirList.ScanDirectory(const DirPath, Filter: KOLString;
   Attr: DWord);
 var FindData : TFindFileData;
-    E : PFindFileData;
+    //E : PFindFileData;
     Action: TDirItemAction;
     {$IFDEF FORCE_ALTERNATEFILENAME}
-    IsUnicode: AnsiString;
+    IsUnicode: KOLString;
+    {$ENDIF}
+    {$IFDEF UNICODE_CTRLS}
+            {$IFDEF SPEED_FASTER}
+            {$IFDEF DIRLIST_OPTIMIZE_ASCII}
+                    P: PKOLChar;
+            {$ENDIF}
+            {$ENDIF}
     {$ENDIF}
 begin
   Clear;
@@ -24895,19 +24985,19 @@ begin
     else
       fFilters.Add( Filter );
   end;
-  if Find_First( PKOLChar( FPath + FindFilter( Filter ) ), FindData ) then 
+  if Find_First( PKOLChar( FPath + FindFilter( Filter ) ), FindData ) then
   begin // D[u]fa. fix mem leaks (FList, fFilters)
-    FList := NewList;
+    FListPositions := NewList;
   while True do
   begin
-      {$IFDEF FORCE_ALTERNATEFILENAME} //+MtsVN
-    IsUnicode := FindData.cFileName;
-    if (IsUnicode <> '.') and (IsUnicode <> '..') then
-    begin
-     if pos('?', IsUnicode) > 0 then
-         CopyMemory( @FindData.cFileName, @FindData.cAlternateFileName,
-                     SizeOf(FindData.cAlternateFileName));
-    end;
+    {$IFDEF FORCE_ALTERNATEFILENAME} //+MtsVN
+            IsUnicode := FindData.cFileName;
+            if (IsUnicode <> '.') and (IsUnicode <> '..') then
+            begin
+             if pos('?', IsUnicode) > 0 then
+                 CopyMemory( @FindData.cFileName, @FindData.cAlternateFileName,
+                             SizeOf(FindData.cAlternateFileName));
+            end;
     {$ENDIF}
     if SatisfyFilter( PKOLChar(@FindData.cFileName[0]),
                       FindData.dwFileAttributes, Attr ) then
@@ -24919,9 +25009,30 @@ begin
       diSkip: ;
       diAccept:
         begin
-          GetMem( E, Sizeof( FindData ) );
-          E^ := FindData;
-          FList.Add( E );
+          if  fStoreFiles = nil then
+          begin
+              fStoreFiles := NewMemoryStream( );
+              fStoreFiles.Capacity := 128 * Sizeof( FindData );
+          end;
+          FListPositions.Add( Pointer( fStoreFiles.Position ) );
+          {$IFDEF UNICODE_CTRLS}
+                  {$IFDEF SPEED_FASTER}
+                          {$IFDEF DIRLIST_OPTIMIZE_ASCII}
+                          FindData.dwReserved0 := 0;
+                          P := @ FindData.cFileName[0];
+                          while P^ <> #0 do
+                          begin
+                              if  PWord( P )^ > 255 then
+                              begin
+                                  inc( FindData.dwReserved0 );
+                                  break;
+                              end;
+                              inc( P );
+                          end;
+                          {$ENDIF}
+                  {$ENDIF}
+          {$ENDIF}
+          fStoreFiles.Write( FindData, Sizeof( FindData ) );
         end;
       diCancel: break;
       END;
@@ -24930,7 +25041,14 @@ begin
   end;
   Find_Close( FindData );
   end;
-  Free_And_Nil(fFilters);                                                       //D[u]fa
+  Free_And_Nil(fFilters); //D[u]fa
+  {$IFnDEF SPEED_FASTER}
+  if  fStoreFiles <> nil then
+  begin
+      fStoreFiles.fData.fCapacity := 0;
+      fStoreFiles.Size := fStoreFiles.Position;
+  end;
+  {$ENDIF}
 end;
 {$ENDIF ASM_VERSION}
 
@@ -25010,175 +25128,36 @@ end;
 type
   PSortDirData = ^TSortDirData;
   TSortDirData = packed Record
+    CountRules: Integer;
     FoldersFirst, CaseSensitive : Boolean;
-    Rules : array[ 0..11 ] of TSortDirRules;
+    Rules : array[ 0..9 ] of TSortDirRules;
     Dir : PDirList;
   end;
 
-{$DEFINE CompareDirItems_ASM}
-{$IFNDEF ASM_VERSION} {$UNDEF CompareDirItems_ASM} {$ENDIF}
-{$IFDEF TLIST_FAST}   {$UNDEF CompareDirItems_ASM} {$ENDIF}
-{$IFDEF CompareDirItems_ASM} {$DEFINE SwapDirItems_ASM} {$ENDIF}
-
-{$IFDEF SwapDirItems_ASM}
-{$ELSE ASM_VERSION} //Pascal
-procedure SwapDirItems( const Data : PSortDirData; const e1, e2 : DWORD );
-var Tmp : Pointer;
-begin
-  Tmp := Data.Dir.FList.{$IFDEF TLIST_FAST} Items {$ELSE} fItems {$ENDIF} [ e1 ];
-  Data.Dir.FList.{$IFDEF TLIST_FAST} Items {$ELSE} fItems {$ENDIF}[ e1 ] :=
-    Data.Dir.FList. {$IFDEF TLIST_FAST} Items {$ELSE} fItems {$ENDIF}[ e2 ];
-  Data.Dir.FList.{$IFDEF TLIST_FAST} Items {$ELSE} fItems {$ENDIF}[ e2 ] := Tmp;
-end;
-{$ENDIF ASM_VERSION}
-
-{always!} {$UNDEF CompareDirItems_ASM}
-
-{$IFDEF CompareDirItems_ASM}
-function CompareDirItems( const Data : PSortDirData; const e1, e2 : DWORD ) : Integer;
-asm
-        PUSH     EBX
-        PUSH     ESI
-        PUSH     EDI
-        XCHG     EBX, EAX
-        MOV      EAX, [EBX].TSortDirData.Dir
-        MOV      EAX, [EAX].TDirList.fList
-        MOV      EAX, [EAX].TList.fItems
-        MOV      ESI, [EAX+EDX*4]
-        MOV      EDI, [EAX+ECX*4]
-        MOV      DL, byte ptr[ESI].TWin32FindData.dwFileAttributes
-        MOV      DH, byte ptr[EDI].TWin32FindData.dwFileAttributes
-        AND      DX, 2020h
-        XOR      EAX, EAX
-        CMP      DL, DH
-        JE       @@1
-        CMP      [EBX].TSortDirData.FoldersFirst, AL
-        JE       @@1
-        OR       AL, DL
-        JNE      @@exit_near
-        DEC      EAX
-@@exit_near:
-        POP      EDI
-        POP      ESI
-        POP      EBX
-        RET
-
-@@sdrByDateChanged:
-        LEA      EAX, [ESI].TWin32FindData.ftLastWriteTime
-        LEA      EDX, [EDI].TWin32FindData.ftLastWriteTime
-        JMP      @@sdrByDate1
-
-@@sdrByDateAccessed:
-        LEA      EAX, [ESI].TWin32FindData.ftLastAccessTime
-        LEA      EDX, [EDI].TWin32FindData.ftLastAccessTime
-        JMP      @@sdrByDate1
-
-@@jmp_table:
-        DD       offset[@@exit1], offset[@@2], offset[@@2]
-        DD       offset[@@sdrByName], offset[@@sdrByExt]
-        DD       offset[@@sdrBySize], offset[@@sdrBySize]
-        DD       offset[@@sdrByDateCreate], offset[@@sdrByDateChanged]
-        DD       offset[@@sdrByDateAccessed]
-
-@@1:
-        LEA      EDX, [EBX].TSortDirData.Rules
-        PUSH     EDX
-@@2:
-        POP      EDX
-        XOR      EAX, EAX
-        MOV      AL, [EDX]
-        INC      EDX
-        PUSH     EDX
-
-        JMP      dword ptr [@@jmp_table+EAX*4]
-
-@@sdrByDateCreate:
-        LEA      EAX, [ESI].TWin32FindData.ftCreationTime
-        LEA      EDX, [EDI].TWin32FindData.ftCreationTime
-@@sdrByDate1:
-        PUSH     EDX
-        PUSH     EAX
-        CALL     CompareFileTime
-        TEST     EAX, EAX
-        JE       @@2
-        JMP      @@exit1
-
-@@sdrBySize:
-        MOV      EAX, [ESI].TWin32FindData.nFileSizeHigh
-        SUB      EAX, [EDI].TWin32FindData.nFileSizeHigh
-        JNE      @@sdrBySize1
-        MOV      EAX, [ESI].TWin32FindData.nFileSizeLow
-        SUB      EAX, [EDI].TWin32FindData.nFileSizeLow
-@@to_2:
-        JE       @@2
-@@sdrBySize1:
-        POP      EDX
-        DEC      EDX
-        CMP      byte ptr[EDX], sdrBySizeDescending
-        JNE      @@sdrBySize2
-        NEG      EAX
-@@sdrBySize2:
-        JNE      @@exit
-
-        {$IFDEF _D2009orHigher}
-        DW       0, 1 
-        {$ENDIF}
-        DD       -1, 1
-@@point:DB       '.',0
-
-@@sdrByExt:
-        LEA      EAX, [EDI].TWin32FindData.cFileName
-        MOV      EDX, offset[@@point]
-        PUSH     EDX
-        CALL     __DelimiterLast
-        POP      EDX
-        PUSH     EAX
-        LEA      EAX, [ESI].TWin32FindData.cFileName
-        CALL     __DelimiterLast
-        POP      EDX
-        JMP      @@sdrByName0
-
-@@sdrByName:
-        LEA      EAX, [ESI].TWin32FindData.cFileName
-        LEA      EDX, [EDI].TWin32FindData.cFileName
-@@sdrByName0:
-        CMP      [EBX].TSortDirData.CaseSensitive, 0
-        JNE      @@sdrByName1
-        CALL     _AnsiCompareStrNoCase
-        JMP      @@sdrByName2
-@@sdrByName1:
-        CALL     _AnsiCompareStr
-@@sdrByName2:
-        TEST     EAX, EAX
-        JE       @@to_2
-        //JMP    @@exit1
-
-@@exit1:
-        POP      EDX
-@@exit:
-        POP      EDI
-        POP      ESI
-        POP      EBX
-end;
-{$ELSE ASM_VERSION} //Pascal
 function CompareDirItems( const Data : PSortDirData; const e1, e2 : DWORD ) : Integer;
 var I : Integer;
     Item1, Item2 : PFindFileData;
     S1, S2 : PKOLChar;
+    {$IFDEF UNICODE_CTRLS}
+    W1, W2: WideString;
+    {$ENDIF}
     IsDir1, IsDir2 : Boolean;
     Date1, Date2 : PFileTime;
 begin
-  Item1 := Data.Dir.fList.Items[ e1 ];
-  Item2 := Data.Dir.fList.Items[ e2 ];
+  Item1 := Data.Dir.Get( e1 ); // fList.Items[ e1 ];
+  Item2 := Data.Dir.Get( e2 ); // fList.Items[ e2 ];
   Result := 0;
-  IsDir1 := (Item1.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY) <> 0;
-  IsDir2 := (Item2.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY) <> 0;
-  if (IsDir1 <> IsDir2) and Data.FoldersFirst then
+  if Data.FoldersFirst then
   begin
-    if IsDir1 then Result := -1 else Result := 1;
-    exit;
+      IsDir1 := (Item1.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY) <> 0;
+      IsDir2 := (Item2.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY) <> 0;
+      if  IsDir1 <> IsDir2 then
+      begin
+          if IsDir1 then Result := -1 else Result := 1;
+          exit;
+      end;
   end;
-  for I := 0 to High(Data.Rules) do
+  for I := 0 to High(Data.Rules){Data.CountRules} do
   begin
     case Data.Rules[ I ] of
     sdrByName:
@@ -25186,14 +25165,42 @@ begin
         S1 := Item1.cFileName;
         S2 := Item2.cFileName;
         if not Data.CaseSensitive then
-          Result := {$IFDEF UNICODE_CTRLS}
-                      WStrComp( WAnsiUpperCase( S1 ), WAnsiUpperCase( S2 ) )
-                    {$ELSE} _AnsiCompareStrNoCase( S1, S2 ) {$ENDIF}
+        begin
+          {$IFDEF UNICODE_CTRLS}
+          {$IFDEF SPEED_FASTER}
+          {$IFDEF DIRLIST_OPTIMIZE_ASCII}
+          if  Item1.dwReserved0 or Item2.dwReserved1 = 0 then
+          begin
+              //// ATTANTION: _AnsiCompareStrNoCaseA( '', '' ); must be called before sort!
+              while TRUE do
+              begin
+                  Result := SortAnsiOrderNoCase[ Char( S1^ ) ]
+                          - SortAnsiOrderNoCase[ Char( S2^ ) ];
+                  if  Result <> 0 then break;
+                  if  S1^ = #0 then break;
+                  inc( S1 );
+                  inc( S2 );
+              end;
+          end
+            else
+          {$ENDIF}
+          {$ENDIF}
+          begin
+              W1 := S1;
+              W2 := S2;
+              CharUpperBuffW(Pointer(@W1[1]), Length(W1));
+              CharUpperBuffW(Pointer(@W2[1]), Length(W2));
+              Result := _WStrComp( @W1[1], @W2[1] );
+          end;
+          {$ELSE not UNICODE_CTRLS}
+          Result := _AnsiCompareStrNoCaseA( S1, S2 );
+          {$ENDIF}
+        end
         else
           Result := {$IFDEF UNICODE_CTRLS}
                       _WStrComp( S1, S2 )
                     {$ELSE}
-                      _AnsiCompareStr( S1, S2 )
+                      _AnsiCompareStrA( S1, S2 )
                     {$ENDIF};
       end;
     sdrByExt:
@@ -25232,27 +25239,134 @@ begin
       begin
         Date1 := @Item1.ftCreationTime;
         Date2 := @Item2.ftCreationTime;
-        Result := FileTimeCompare( Date1^, Date2^ );
+        Result := CompareFileTime( Date1^, Date2^ );
       end;
     sdrByDateChanged:
       begin
         Date1 := @Item1.ftLastWriteTime;
         Date2 := @Item2.ftLastWriteTime;
-        Result := FileTimeCompare( Date1^, Date2^ );
+        Result := CompareFileTime( Date1^, Date2^ );
       end;
     sdrByDateAccessed:
       begin
         Date1 := @Item1.ftLastAccessTime;
         Date2 := @Item2.ftLastAccessTime;
-        Result := FileTimeCompare( Date1^, Date2^ );
+        Result := CompareFileTime( Date1^, Date2^ );
       end;
+    sdrNone: break;
     end; {case}
     if Result <> 0 then break;
   end;
 end;
+
+{$IFDEF ASM_VERSION}
+procedure SwapDirItems( Data : PSortDirData; const e1, e2 : DWORD );
+asm
+        MOV      EAX, [EAX].TSortDirData.Dir
+        MOV      EAX, [EAX].TDirList.FListPositions
+        {$IFDEF  xxSPEED_FASTER} //|||||||||||||||||||||||||||||||||||||||||||||
+        MOV      EAX, [EAX].TList.fItems
+        LEA      EDX, [EAX+EDX*4]
+        LEA      ECX, [EAX+ECX*4]
+        MOV      EAX, [EDX]
+        XCHG     EAX, [ECX]
+        MOV      [EDX], EAX
+        {$ELSE}
+        CALL     TList.Swap
+        {$ENDIF}
+end;
+{$ELSE ASM_VERSION}
+procedure SwapDirItems( Data : PSortDirData; const e1, e2 : DWORD );
+begin
+    Data.Dir.FListPositions.Swap( e1, e2 );
+end;
 {$ENDIF ASM_VERSION}
 
-{$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
+{$IFDEF noASM_VERSION}
+procedure TDirList.Sort(Rules: array of TSortDirRules);
+const   high_DefSortDirRules = High( DefSortDirRules );
+asm
+        PUSH     EBX
+        PUSH     ESI
+        XOR      EBX,EBX
+        CMP      [EAX].FListPositions, EBX
+        JE       @@exit
+
+        PUSH     EAX           // prepare Dir = @Self
+        XOR      EAX, EAX
+        PUSH     EAX
+        PUSH     EAX
+        PUSH     EAX
+        PUSH     EAX
+        MOV      ESI, ESP
+        INC      ECX           // ECX = High(Rules)
+        JZ       @@2
+@@1:    MOV      AH, [EDX]     // AH = Rules[ I ]
+        INC      EDX
+        CALL     @@add_rule
+        LOOP     @@1
+@@2:    LEA      EDX, [DefSortDirRules]
+        MOV      CL, high_DefSortDirRules + 1
+@@21:   MOV      AH, [EDX]
+        INC      EDX
+        CALL     @@add_rule
+        LOOP     @@21
+
+        {$IFDEF  UNICODE_CTRLS}
+        {$IFDEF  SPEED_FASTER}
+        MOV      EAX, offset[@@emptyStr]
+        MOV      EDX, EAX
+        CALL     dword ptr [_AnsiCompareStrNoCaseA]
+        {$ENDIF}
+        {$ENDIF}
+
+        PUSH     BX           // prepare FoldersFirst(BL), CaseSensitive(BH)
+        MOV      EBX, [ESP].TSortDirData.Dir
+        MOV      EAX, ESP
+        PUSH     BX
+        PUSH     offset[SwapDirItems]
+        MOV      ECX, offset[CompareDirItems]
+        MOV      EDX, [EBX].FListPositions
+        MOV      EDX, [EDX].TList.fCount
+        CALL     SortData
+
+        ADD      ESP, 20
+        JMP      @@exit
+
+        {$IFDEF  UNICODE_CTRLS}
+        {$IFDEF  SPEED_FASTER}
+@@emptyStr:
+        DW       0
+        {$ENDIF}
+        {$ENDIF}
+
+@@add_rule:
+        PUSH     ESI
+        PUSH     ECX
+        MOV      CL, 11
+@@a1:   LODSB
+        TEST     AL, AL
+        JZ       @@a2
+        CMP      AL, AH
+        JE       @@a3
+        LOOP     @@a1
+@@a2:   DEC      ESI
+        MOV      [ESI], AH
+        CMP      AH, sdrFoldersFirst
+        JNE      @@a4
+        INC      BL
+@@a4:   CMP      AH, sdrCaseSensitive
+        JNE      @@a3
+        INC      BH
+@@a3:   POP      ECX
+        POP      ESI
+        RET
+
+@@exit:
+        POP      ESI
+        POP      EBX
+end;
+{$ELSE ASM_VERSION} //Pascal
 procedure TDirList.Sort(Rules: array of TSortDirRules);
 var SortDirData : TSortDirData;
     I, J : Integer;
@@ -25268,18 +25382,30 @@ var SortDirData : TSortDirData;
 
     procedure AddRule( Rule : TSortDirRules );
     begin
+      if  Rule in [sdrFoldersFirst, sdrCaseSensitive] then
+      begin
+          if  Rule = sdrFoldersFirst then
+              SortDirData.FoldersFirst := TRUE;
+          if  Rule = sdrCaseSensitive then
+              SortDirData.CaseSensitive := TRUE;
+          Exit;
+      end;
+      {$IFDEF SAFE_CODE}
       if J > High( SortDirData.Rules ) then exit;
+      {$ENDIF}
       if RulePresent( Rule ) then exit;
       SortDirData.Rules[ J ] := Rule;
       Inc( J );
     end;
 begin
-  if fList = nil then Exit;
+  if FListPositions = nil then Exit;
   J := 0;
   for I := 0 to High(Rules) do
     AddRule( Rules[ I ] );
   for I := 0 to High(DefSortDirRules) do
     AddRule( DefSortDirRules[ I ] );
+  SortDirData.CountRules := J;
+  inc( J );
   while J < High( SortDirData.Rules ) do
   begin
     SortDirData.Rules[ J ] := sdrNone;
@@ -25287,9 +25413,12 @@ begin
   end;
 
   SortDirData.Dir := @Self;
-  SortDirData.FoldersFirst := RulePresent( sdrFoldersFirst );
-  SortDirData.CaseSensitive := RulePresent( sdrCaseSensitive );
-  SortData( Pointer( @SortDirData ), fList.fCount, @CompareDirItems, @SwapDirItems );
+  {$IFDEF UNICODE_CTRLS}
+          {$IFDEF SPEED_FASTER}
+                  _AnsiCompareStrNoCaseA( '', '' );
+          {$ENDIF}
+  {$ENDIF}
+  SortData( Pointer( @SortDirData ), FListPositions.fCount, @CompareDirItems, @SwapDirItems );
 end;
 {$ENDIF ASM_VERSION}
 
@@ -34607,6 +34736,11 @@ end;
 function NewCombobox( AParent: PControl; Options: TComboOptions ): PControl;
 var Flags: Integer;
 begin
+  {$IFDEF GRAPHCTL_XPSTYLES}
+  {$IFDEF UNICODE_CTRLS}
+  InitCommonControls;
+  {$ENDIF}
+  {$ENDIF}
   Flags := MakeFlags( @Options, ComboFlags );
   if not LongBool( Flags and CBS_SIMPLE ) then
     Flags := Flags or CBS_DROPDOWN;
@@ -46475,6 +46609,7 @@ end;
 procedure TWStrList.Init;
 begin
   fList := NewList;
+  fNameDelim := WideChar( DefaultNameDelimiter );
 end;
 
 procedure TWStrList.Insert(Idx: Integer; const W: WideString);
@@ -46789,6 +46924,36 @@ begin
   {$IFDEF DEBUG_OBJKIND}
   Result.fObjKind := 'TWStrListEx';
   {$ENDIF}
+end;
+
+function TWStrList.GetLineName(Idx: Integer): WideString;
+var s: WideString;
+    Q: PWideChar;
+begin
+  s := ItemPtrs[ Idx ];
+  Q := WStrScan( PWideChar(s), fNameDelim );
+  Q^ := #0;
+  Result := PWideChar(s);
+end;
+
+function TWStrList.GetLineValue(Idx: Integer): WideString;
+var Q: PWideChar;
+begin
+  Q := ItemPtrs[ Idx ];
+  Q := WStrScan( Q, fNameDelim );
+  if  Q <> nil then
+      inc( Q );
+  Result := Q;
+end;
+
+procedure TWStrList.SetLineName(Idx: Integer; const NV: WideString);
+begin
+  Items[ Idx ] := NV + fNameDelim + LineValue[ Idx ];
+end;
+
+procedure TWStrList.SetLineValue(Idx: Integer; const Value: WideString);
+begin
+  Items[ Idx ] := LineName[ Idx ] + fNameDelim + Value;
 end;
 
 { TWStrListEx }

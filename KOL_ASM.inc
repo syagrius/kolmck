@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 // KOL_ASM.inc ()to be inlude in KOL.pas)
-// v 3.00
+// v 3.00.K
 
 function MsgBox( const S: KOLString; Flags: DWORD ): DWORD;
 asm
@@ -2961,11 +2961,15 @@ end;
 
 procedure TDirList.Clear;
 asm
-        XOR      ECX, ECX
-        XCHG     ECX, [EAX].fList
-        JECXZ    @@exit
-        XCHG     EAX, ECX
-        CALL     TList.Release
+        LEA      EDX, [EAX].FListPositions
+        CALL     @@clear
+        ADD      EDX, 4 // fStoreFiles -- order of fields is important!!!
+@@clear:
+        PUSHAD
+        XOR      EAX, EAX
+        XCHG     EAX, dword ptr [EDX]
+        CALL     TObj.RefDec
+        POPAD
 @@exit:
 end;
 
@@ -2987,95 +2991,11 @@ end;
 
 function TDirList.GetCount: Integer;
 asm
-        MOV      EAX, [EAX].fList
-        TEST     EAX, EAX
-        {$IFDEF USE_CMOV}
-        CMOVNZ   EAX, [EAX].TList.fCount
-        {$ELSE}
-        JZ       @@exit
-        MOV      EAX, [EAX].TList.fCount
-@@exit: {$ENDIF}
-end;
-
-{$IFDEF SwapDirItems_ASM}
-procedure SwapDirItems( const Data : PSortDirData; const e1, e2 : DWORD );
-asm
-        MOV      EAX, [EAX].TSortDirData.Dir
-        MOV      EAX, [EAX].TDirList.fList
-        MOV      EAX, [EAX].TList.fItems
-        LEA      EDX, [EAX+EDX*4]
-        LEA      ECX, [EAX+ECX*4]
-        MOV      EAX, [EDX]
-        XCHG     EAX, [ECX]
-        MOV      [EDX], EAX
-end;
-{$ENDIF SwapDirItems_ASM}
-
-procedure TDirList.Sort(Rules: array of TSortDirRules);
-const   high_DefSortDirRules = High( DefSortDirRules );
-asm
-        PUSH     EBX
-        PUSH     ESI
-        XOR      EBX,EBX
-        CMP      [EAX].fList, EBX
-        JE       @@exit
-
-        PUSH     EAX           // prepare Dir = @Self
-        XOR      EAX, EAX
-        PUSH     EAX
-        PUSH     EAX
-        PUSH     EAX
-        MOV      ESI, ESP
-        INC      ECX           // ECX = High(Rules)
-        JZ       @@2
-@@1:    MOV      AH, [EDX]     // AH = Rules[ I ]
-        INC      EDX
-        CALL     @@add_rule
-        LOOP     @@1
-@@2:    LEA      EDX, [DefSortDirRules]
-        MOV      CL, high_DefSortDirRules + 1
-@@21:   MOV      AH, [EDX]
-        INC      EDX
-        CALL     @@add_rule
-        LOOP     @@21
-
-        PUSH     BX           // prepare FoldersFirst(BL), CaseSensitive(BH)
-        MOV      EBX, [ESP].TSortDirData.Dir
-        MOV      EAX, ESP
-        PUSH     offset[SwapDirItems]
-        MOV      ECX, offset[CompareDirItems]
-        MOV      EDX, [EBX].fList
-        MOV      EDX, [EDX].TList.fCount
-        CALL     SortData
-
-        ADD      ESP, 18
-        JMP      @@exit
-
-@@add_rule:
-        PUSH     ESI
-        PUSH     ECX
-        MOV      CL, 11
-@@a1:   LODSB
-        TEST     AL, AL
-        JZ       @@a2
-        CMP      AL, AH
-        JE       @@a3
-        LOOP     @@a1
-@@a2:   DEC      ESI
-        MOV      [ESI], AH
-        CMP      AH, sdrFoldersFirst
-        JNE      @@a4
-        INC      BL
-@@a4:   CMP      AH, sdrCaseSensitive
-        JNE      @@a3
-        INC      BH
-@@a3:   POP      ECX
-        POP      ESI
-        RET
-
-@@exit:
-        POP      ESI
-        POP      EBX
+        MOV      ECX, [EAX].FListPositions
+        JECXZ    @@retECX
+        MOV      ECX, [ECX].TList.fCount
+@@retECX:
+        XCHG     EAX, ECX
 end;
 
 destructor TThread.Destroy;
@@ -4216,6 +4136,13 @@ end;
 const ComboboxClass: array[0..8] of KOLChar = ('C','O','M','B','O','B','O','X',#0 );
 function NewCombobox( AParent: PControl; Options: TComboOptions ): PControl;
 asm
+  {$IFDEF GRAPHCTL_XPSTYLES}
+  {$IFDEF UNICODE_CTRLS}
+  PUSHAD
+  CALL  InitCommonControls;
+  POPAD
+  {$ENDIF}
+  {$ENDIF}
         PUSH     EDX
         PUSH     EAX
         PUSH     EDX
@@ -10102,7 +10029,7 @@ asm
         POP      EDI
         JMP      @@TailRecursion
 
-@@Compare:
+{@@Compare:
         PUSH     EAX
         PUSH     EDX
         PUSH     ECX
@@ -10115,7 +10042,7 @@ asm
         POP      EDX
         TEST     EAX, EAX
         POP      EAX
-        RET
+        RET}
 
 @@CompareLeSwap:
         //CALL     @@Compare
