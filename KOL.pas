@@ -14,7 +14,7 @@
   Key Objects Library (C) 2000 by Kladov Vladimir.
 
 ****************************************************************
-* VERSION 3.00.K
+* VERSION 3.00.L
 ****************************************************************
 
   K.O.L. - is a set of objects to create small programs
@@ -1168,7 +1168,12 @@ type
     3: (
          fBaseStream: PStream;
          fFromPos: TStrmSize;
-       )
+       );
+    4: (
+         fBlkSize: Integer;
+         fBlocks: PList;
+         fJustWrittenBlkAddress: Pointer;
+       );
   end;
 
 { ---------------------------------------------------------------------
@@ -1338,6 +1343,12 @@ function WriteMemStreamWithEvent( Strm: PStream; var Buffer; {$IFNDEF STREAM_COM
 procedure CloseMemStream( Strm: PStream );
 procedure SetSizeFileStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} NewSize: TStrmSize );
 
+function ReadMemBlkStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+function SeekMemBlkStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
+function WriteMemBlkStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+procedure ResizeMemBlkStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} NewSize: TStrmSize );
+procedure FreeMemBlkStream( Strm: PStream );
+
 function SeekConcatStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
 function GetSizeConcatStream( Strm: PStream ): TStrmSize;
 procedure SetSizeConcatStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} NewSize: TStrmSize );
@@ -1416,6 +1427,15 @@ function NewExMemoryStream( ExistingMem: Pointer; Size: DWORD ): PStream;
 {* Creates memory stream on base of existing memory. It is not possible
    to write out of top bound given by Size (i.e. memory can not be resized,
    or reallocated. When stream object is destroyed this memory is not freed. }
+
+function NewMemBlkStream( BlkSize: Integer ): PStream;
+{* Creates memory stream which consists from blocks of given size. Contrary to
+   a memory stream, contents of the blocks stream should not be accessed
+   directly via fMemory but therefore it is possible to access its parts by
+   portions written to blocks still those were written contigously. To do so,
+   get an address of just written portion for further usage via procedure
+   GetAddressOfWrittenBlock. It is guarantee that blocks of memory allocated
+   during write process never are relocated until destruction the stream. }
 
 function NewConcatStream( Stream1, Stream2: PStream ): PStream;
 {* Creates a stream which is a concatenation of two source stream. After
@@ -24517,6 +24537,10 @@ end;
 
 { TDirList }
 
+{$IFDEF SPEED_FASTER}
+        {$DEFINE DIRLIST_FASTER}
+{$ENDIF}
+
 function NewDirList( const DirPath, Filter: KOLString; Attr: DWORD ): PDirList;
 begin
   New( Result, Create );
@@ -24580,8 +24604,12 @@ end;
 //+
 function TDirList.Get(Idx: Integer): PFindFileData;
 begin
+  {$IFDEF DIRLIST_FASTER}
+  Result := FListPositions.Items[ Idx ];
+  {$ELSE}
   Result := Pointer( Integer( fStoreFiles.fMemory )
       + Integer( FListPositions.Items[ Idx ] ) );
+  {$ENDIF}
 end;
 
 {$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
@@ -24985,61 +25013,70 @@ begin
     else
       fFilters.Add( Filter );
   end;
-  if Find_First( PKOLChar( FPath + FindFilter( Filter ) ), FindData ) then
+  if  Find_First( PKOLChar( FPath + FindFilter( Filter ) ), FindData ) then
   begin // D[u]fa. fix mem leaks (FList, fFilters)
-    FListPositions := NewList;
-  while True do
-  begin
-    {$IFDEF FORCE_ALTERNATEFILENAME} //+MtsVN
-            IsUnicode := FindData.cFileName;
-            if (IsUnicode <> '.') and (IsUnicode <> '..') then
-            begin
-             if pos('?', IsUnicode) > 0 then
-                 CopyMemory( @FindData.cFileName, @FindData.cAlternateFileName,
-                             SizeOf(FindData.cAlternateFileName));
-            end;
-    {$ENDIF}
-    if SatisfyFilter( PKOLChar(@FindData.cFileName[0]),
-                      FindData.dwFileAttributes, Attr ) then
-    begin
-      Action := diAccept;
-      if  Assigned( OnItem ) then
-          OnItem( @Self, FindData, Action );
-      CASE Action OF
-      diSkip: ;
-      diAccept:
+      FListPositions := NewList;
+      while True do
+      begin
+        {$IFDEF FORCE_ALTERNATEFILENAME} //+MtsVN
+                IsUnicode := FindData.cFileName;
+                if (IsUnicode <> '.') and (IsUnicode <> '..') then
+                begin
+                 if pos('?', IsUnicode) > 0 then
+                     CopyMemory( @FindData.cFileName, @FindData.cAlternateFileName,
+                                 SizeOf(FindData.cAlternateFileName));
+                end;
+        {$ENDIF}
+        if SatisfyFilter( PKOLChar(@FindData.cFileName[0]),
+                          FindData.dwFileAttributes, Attr ) then
         begin
-          if  fStoreFiles = nil then
-          begin
-              fStoreFiles := NewMemoryStream( );
-              fStoreFiles.Capacity := 128 * Sizeof( FindData );
-          end;
-          FListPositions.Add( Pointer( fStoreFiles.Position ) );
-          {$IFDEF UNICODE_CTRLS}
-                  {$IFDEF SPEED_FASTER}
-                          {$IFDEF DIRLIST_OPTIMIZE_ASCII}
-                          FindData.dwReserved0 := 0;
-                          P := @ FindData.cFileName[0];
-                          while P^ <> #0 do
-                          begin
-                              if  PWord( P )^ > 255 then
-                              begin
-                                  inc( FindData.dwReserved0 );
-                                  break;
-                              end;
-                              inc( P );
-                          end;
-                          {$ENDIF}
+          Action := diAccept;
+          if  Assigned( OnItem ) then
+              OnItem( @Self, FindData, Action );
+          CASE Action OF
+          diSkip: ;
+          diAccept:
+            begin
+              if  fStoreFiles = nil then
+              begin
+                  {$IFDEF DIRLIST_FASTER}
+                  fStoreFiles := NewMemBlkStream( 32 * Sizeof( FindData ) );
+                  {$ELSE}
+                  fStoreFiles := NewMemoryStream( );
+                  fStoreFiles.Capacity := 64 * Sizeof( FindData );
                   {$ENDIF}
-          {$ENDIF}
-          fStoreFiles.Write( FindData, Sizeof( FindData ) );
+              end;
+              {$IFDEF DIRLIST_FASTER}{$ELSE}
+              FListPositions.Add( Pointer( fStoreFiles.Position ) );
+              {$ENDIF}
+              {$IFDEF UNICODE_CTRLS}
+                      {$IFDEF SPEED_FASTER}
+                              {$IFDEF DIRLIST_OPTIMIZE_ASCII}
+                              FindData.dwReserved0 := 0;
+                              P := @ FindData.cFileName[0];
+                              while P^ <> #0 do
+                              begin
+                                  if  PWord( P )^ > 255 then
+                                  begin
+                                      inc( FindData.dwReserved0 );
+                                      break;
+                                  end;
+                                  inc( P );
+                              end;
+                              {$ENDIF}
+                      {$ENDIF}
+              {$ENDIF}
+              fStoreFiles.Write( FindData, Sizeof( FindData ) );
+              {$IFDEF DIRLIST_FASTER}
+              FListPositions.Add( fStoreFiles.fData.fJustWrittenBlkAddress );
+              {$ENDIF}
+            end;
+          diCancel: break;
+          END;
         end;
-      diCancel: break;
-      END;
-    end;
-    if not Find_Next( FindData ) then break;
-  end;
-  Find_Close( FindData );
+        if not Find_Next( FindData ) then break;
+      end;
+      Find_Close( FindData );
   end;
   Free_And_Nil(fFilters); //D[u]fa
   {$IFnDEF SPEED_FASTER}
@@ -27627,14 +27664,141 @@ end;
 
 // by Roman Vorobets:
 procedure SetSizeFileStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} NewSize: TStrmSize );
-var
-  P: DWORD;
+var P: DWORD;
 begin
   P:=Strm.Position;
   Strm.Position:=NewSize;
   SetEndOfFile(Strm.Handle);
   if P < NewSize then
     Strm.Position:=P;
+end;
+
+function ReadMemBlkStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+var P, bStart, bLen, C: DWORD;
+    bAddr: PByte;
+    i: Integer;
+begin
+    P := Strm.Position;
+    i := 0;
+    bStart := 0;
+    bLen := 0;
+    bAddr := nil;
+    while i < Strm.fData.fBlocks.Count do
+    begin
+        bAddr := Strm.fData.fBlocks.fItems[i];
+        bLen := Integer( Strm.fData.fBlocks.fItems[i+1] );
+        if  bStart + bLen > P then
+            break;
+        inc( i, 2 );
+        inc( bStart, bLen );
+    end;
+    if  bStart + bLen < P then
+    begin
+        Result := 0;
+        Exit;
+    end;
+    inc( bAddr, P - bStart );
+    C := Count;
+    if  C > bLen - (P - bStart) then
+        C := bLen - (P - bStart);
+    if  C > 0 then
+        Move( bAddr^, Buffer, C );
+    Result := C;
+    inc( Strm.fData.fPosition, C );
+end;
+
+function SeekMemBlkStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
+var P: Integer;
+begin
+    P := MoveTo;
+    CASE MoveFrom OF
+    spCurrent: P := P + Integer( Strm.fData.fPosition );
+    spEnd:     P := P + Integer( Strm.fData.fSize );
+    END;
+    if  P < 0 then P := 0;
+    if  P > Integer( Strm.fData.fSize ) then
+        P := Strm.fData.fSize;
+    Strm.fData.fPosition := P;
+    Result := P;
+end;
+
+function WriteMemBlkStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+var LastBlkAddr: PByte;
+    LastBlkUsed, C: Integer;
+    NewBlkSz: Integer;
+begin
+    C := Strm.fData.fBlocks.Count;
+    LastBlkUsed := Strm.fData.fBlkSize;
+    LastBlkAddr := nil;
+    if  C > 1 then
+    begin
+        LastBlkAddr := Strm.fData.fBlocks.Items[C-2];
+        LastBlkUsed := Integer( Strm.fData.fBlocks.Items[C-1] );
+    end;
+    if  Strm.fData.fBlkSize - LastBlkUsed < Integer( Count ) then
+    begin
+        NewBlkSz := Strm.fData.fBlkSize;
+        if  NewBlkSz < Integer( Count ) then
+            NewBlkSz := Count;
+        GetMem( LastBlkAddr, NewBlkSz );
+        LastBlkUsed := 0;
+        Strm.fData.fBlocks.Add( LastBlkAddr );
+        Strm.fData.fBlocks.Add( nil );
+        inc( C, 2 );
+    end;
+    inc( LastBlkAddr, LastBlkUsed );
+    Strm.fData.fJustWrittenBlkAddress := LastBlkAddr;
+    Move( Buffer, LastBlkAddr^, Count );
+    inc( LastBlkUsed, Count );
+    Strm.fData.fBlocks.fItems[ C-1 ] := Pointer( LastBlkUsed );
+    inc( Strm.fData.fSize, Count );
+    Strm.fData.fPosition := Strm.fData.fSize;
+    Result := Count;
+end;
+
+procedure ResizeMemBlkStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} NewSize: TStrmSize );
+var i, del: Integer;
+    LastBlkAddr: PByte;
+    LastBlkUsed: Integer;
+begin
+    while Strm.fData.fSize > NewSize do
+    begin
+        i := Strm.fData.fBlocks.Count-2;
+        LastBlkAddr := Strm.fData.fBlocks.fItems[i];
+        LastBlkUsed := Integer( Strm.fData.fBlocks.fItems[i+1] );
+        del := Strm.fData.fSize - NewSize;
+        if  del >= LastBlkUsed then
+        begin
+            FreeMem( LastBlkAddr );
+            Strm.fData.fBlocks.DeleteRange( i, 2 );
+            dec( Strm.fData.fSize, LastBlkUsed );
+        end
+          else
+        begin
+            Strm.fData.fBlocks.fItems[ i+1 ] := Pointer( LastBlkUsed - del );
+            dec( Strm.fData.fSize, del );
+        end;
+    end;
+    if  Strm.fData.fSize > Strm.fData.fPosition then
+        Strm.fData.fPosition := Strm.fData.fSize;
+end;
+
+procedure FreeMemBlkStream( Strm: PStream );
+var i: Integer;
+begin
+    i := 0;
+    while i < Strm.fData.fBlocks.Count do
+    begin
+        FreeMem( Strm.fData.fBlocks.fItems[i] );
+        inc( i, 2 );
+    end;
+    {$IFDEF SAFE_CODE}
+    Free_And_Nil( Strm.fData.fBlocks );
+    Strm.fData.fPosition := 0;
+    Strm.fData.fSize := 0;
+    {$ELSE}
+    Strm.fData.fBlocks.Free;
+    {$ENDIF}
 end;
 
 function SeekConcatStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
@@ -27995,6 +28159,20 @@ begin
   Result.fMethods.fWrite := WriteExMemoryStream;
   Result.fMethods.fSetSiz := DummySetSize;
   Result.fMethods.fClose := DummyClose_ExMemStream;
+end;
+
+function NewMemBlkStream( BlkSize: Integer ): PStream;
+begin
+  Result := NewMemoryStream;
+  Result.fData.fBlkSize := BlkSize;
+  Result.fData.fBlocks := NewList;
+  Result.fMethods.fWrite := WriteMemBlkStream;
+  Result.fMethods.fSetSiz := DummySetSize;
+  Result.fMethods.fClose := DummyClose_ExMemStream;
+  Result.fMethods.fRead := ReadMemBlkStream;
+  Result.fMethods.fSeek := SeekMemBlkStream;
+  Result.fMethods.fSetSiz := ResizeMemBlkStream;
+  Result.Add2AutoFreeEx( TObjectMethod( MakeMethod( Result, @FreeMemBlkStream ) ) );
 end;
 
 function NewConcatStream( Stream1, Stream2: PStream ): PStream;
@@ -34378,6 +34556,10 @@ asm
         {$ENDIF}
         MOV      EDX, offset[ListBoxClass]
         CALL     _NewControl
+        {$IFDEF  PACK_COMMANDACTIONS}
+        MOV      EDX, [EAX].TControl.fCommandActions
+        MOV      [EDX].TCommandActionsObj.aClear, offset[ClearListbox]
+        {$ENDIF}
         ADD      [EAX].TControl.fBoundsRect.Right, 100
         ADD      [EAX].TControl.fBoundsRect.Bottom, 200-64
         MOV      [EAX].TControl.fColor, clWindow
@@ -34393,6 +34575,9 @@ begin
                          or LBS_NOTIFY or Flags, True,
                          {$IFDEF PACK_COMMANDACTIONS} ListActions_Packed
                          {$ELSE}                      @ListActions {$ENDIF} );
+  {$IFDEF PACK_COMMANDACTIONS}
+          Result.fCommandActions.aClear := ClearListbox;
+  {$ENDIF}
   {$IFDEF DEBUG_OBJKIND}
   Result.fObjKind := 'TControl:Listbox';
   {$ENDIF}
