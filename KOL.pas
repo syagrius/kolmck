@@ -14,7 +14,7 @@
   Key Objects Library (C) 2000 by Kladov Vladimir.
 
 ****************************************************************
-* VERSION 3.00.L
+* VERSION 3.00.o
 ****************************************************************
 
   K.O.L. - is a set of objects to create small programs
@@ -24,13 +24,13 @@
   KOL is less power then the VCL - perhaps just the opposite...
 
   KOL is provided free with the source code.
-  Copyright (C) Vladimir Kladov, 2000-2003.
+  Copyright (C) Vladimir Kladov, 2000-2010.
 
   For code provided by other  developers (even if later
   changed by me) authors are noted in the source.
 
-  mailto: bonanzas@online.sinor.ru
-  Web-Page: http://bonanzas.rinet.ru
+  mailto: vk@kolmck.net
+  Web-Page: http://kolmck.net
 
   See also Mirror Classes Kit (M.C.K.) which allows
   to create KOL programs visually.
@@ -3850,7 +3850,7 @@ type
 
   T2Flag = ( G2_Transparent, G2_DoubleBuffered, G2_ClassicTransparent,
              G2_Destroying, G2_BeginDestroying,
-             G2_ChangedPos, G2_ChangedSize, G2_Focused ); //
+             G2_ChangedPos, G2_ChangedW, G2_ChangedH ); //
   T2Flags = Set of T2Flag;
 
   T3Flag = ( G3_ClassicTransparent, G3_IsForm, G3_SizeGrip, G3_IsControl,
@@ -3866,7 +3866,7 @@ type
              G5_IsCommonCtl, G5_3ButtonPress, G5_EraseBkgnd, G5_IgnoreDefault );
   T5Flags = Set of T5Flag;
 
-  T6Flag = ( G6_KeyPreview, G6_AllBtnReturnClick, G6_DefaultBtn, G6_CancelBtn,
+  T6Flag = ( G6_KeyPreview, G6_DefaultBtn, G6_CancelBtn, G6_Focused,
              G6_GraphicCtl, G6_CtlClassNameChg, G6_RightClick, G6_Dragging );
   T6Flags = Set of T6Flag;
 
@@ -4629,7 +4629,7 @@ type
     fShowAction: Byte;
     fKeyPreviewCount: Byte;
     fModal: Byte;
-    fReserved_Form: Byte;
+    fAllBtnReturnClick: Boolean;
     //-- внимание! порядок следующих 3х полей не должен меняться!!!
     FormCurrentParent: PControl;
     {* контрол, использующийся в качестве родительского, в функциях создания }
@@ -5405,7 +5405,6 @@ type
     {} fKeyPreview: Boolean;
     {} fKeyPreviewing: Boolean;
     {} fIgnoreDefault: Boolean;
-    {} fAllBtnReturnClick: Boolean;
     {} fDefaultBtn: Boolean;
     {} fCancelBtn: Boolean;
     {} fWindowed: Boolean;                                                                            //
@@ -9518,9 +9517,7 @@ procedure FormSetMinWidth( Form: PControl );
 procedure FormSetMaxWidth( Form: PControl );
 procedure FormSetMinHeight( Form: PControl );
 procedure FormSetMaxHeight( Form: PControl );
-{$IFDEF KEY_PREVIEW}
 procedure FormSetKeyPreviewTrue( Form: PControl );
-{$ENDIF}
 // BitBtn only:
 procedure FormSetRepeatInterval( Form: PControl );
 procedure FormSetTextShiftX( Form: PControl );
@@ -14095,6 +14092,24 @@ function CrackStack_MapInFile( const MapFileName: KOLString; Max_length: Integer
    errors not shown even by Delphi debugger since stack frames in some cases give
    no enough data). }
 
+//......... these declarations are here to stop hints from Delphi5 while compiling MCK:
+function CallTControlCreateWindow( Ctl: PControl ): Boolean;
+function DumpWindowed( c: PControl ): PControl;
+function WndProcAppAsm( Self_: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean; forward;
+//22{$IFDEF ASM_VERSION}
+const ButtonClass: array[ 0..6 ] of KOLChar = ( 'B','U','T','T','O','N',#0 );
+//22{$ENDIF ASM_VERSION}
+{$IFDEF _D3orHigher}
+function WndProcUnicodeChars( Sender: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean;
+{$ENDIF}
+procedure SetMouseEvent( Self_: PControl );
+function CompareIntegers( const Sender : Pointer; const e1, e2 : DWORD ) : Integer; 
+function CompareDwords( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
+procedure SwapIntegers( const Sender : Pointer; const e1, e2 : DWORD );
+function _GetDIBPixelsTrueColorAlpha( Bmp: PBitmap; X, Y: Integer ): TColor;
+procedure _SetDIBPixelsTrueColorAlpha( Bmp: PBitmap; X, Y: Integer; Value: TColor );
+//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 {$IFDEF _D2006orHigher}
 	{$I MCKfakeClasses200x.inc} // Dufa
 {$ENDIF}
@@ -14702,9 +14717,6 @@ function CompareAnsiStrListItems( const Sender : Pointer; const e1, e2 : DWORD )
 function CompareAnsiStrListItems_Case( const Sender : Pointer; const e1, e2 : DWORD ) : Integer; forward;
 function CompareStrListItems_NoCase( const Sender : Pointer; const e1, e2 : DWORD ) : Integer; forward;
 function CompareStrListItems_Case( const Sender : Pointer; const e1, e2 : DWORD ) : Integer; forward;
-function CompareIntegers( const Sender : Pointer; const e1, e2 : DWORD ) : Integer; forward;
-procedure SwapIntegers( const Sender : Pointer; const e1, e2 : DWORD ); forward;
-function CompareDwords( const Sender : Pointer; const e1, e2 : DWORD ) : Integer; forward;
 procedure ApplyImageLists2Control( Sender: PControl ); forward;
 procedure ApplyImageLists2ListView( Sender: PControl ); forward;
 function OpenDirCallBack( Wnd: HWnd; Msg: DWORD; lParam, lpData: LParam ): Integer;
@@ -17344,7 +17356,7 @@ end;
 {$ENDIF GDI}
 
 //22{$IFDEF ASM_VERSION}
-function WndProcAppAsm( Self_: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean; forward;
+//function WndProcAppAsm( Self_: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean; forward;
 //22{$ENDIF}
 function WndProcAppPas( Self_: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean; forward;
 function WndProcForm( Self_: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean; forward;
@@ -21739,9 +21751,9 @@ asm
         XOR      EAX, EAX
 @@1:
         LODSB
-        MOV      CX, [EAX*2 + SortAnsiOrder]
+        MOV      CX, word ptr [EAX*2 + SortAnsiOrder]
         MOV      AL, [EDX]
-        SUB      CX, [EAX*2 + SortAnsiOrder]
+        SUB      CX, word ptr [EAX*2 + SortAnsiOrder]
         JNZ      @@retCL
         INC      EDX
         TEST     AL, AL
@@ -21841,9 +21853,9 @@ asm
         XOR      EAX, EAX
 @@1:
         LODSB
-        MOV      CX, [EAX*2 + SortAnsiOrderNoCase]
+        MOV      CX, word ptr [EAX*2 + SortAnsiOrderNoCase]
         MOV      AL, [EDX]
-        SUB      CX, [EAX*2 + SortAnsiOrderNoCase]
+        SUB      CX, word ptr [EAX*2 + SortAnsiOrderNoCase]
         JNZ      @@retCL
         INC      EDX
         TEST     AL, AL
@@ -31541,9 +31553,6 @@ begin
 end;
 {$ELSE USE_CONSTRUCTORS}
 
-//22{$IFDEF ASM_VERSION}
-const ButtonClass: array[ 0..6 ] of KOLChar = ( 'B','U','T','T','O','N',#0 );
-//22{$ENDIF ASM_VERSION}
 
 {$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
 function NewButton( AParent: PControl; const Caption: KOLString ): PControl;
@@ -37903,7 +37912,7 @@ asm
         {$ENDIF}
         JNZ      @@3
         {$IFDEF  USE_FLAGS}
-        TEST     [EBX].fFlagsG2, (1 shl G2_ChangedPos) or (1 shl G2_ChangedSize)
+        TEST     [EBX].fFlagsG2, (1 shl G2_ChangedPos)
         {$ELSE}
         TEST     byte ptr [EBX].fChangedPosSz, 3
         {$ENDIF  USE_FLAGS}
@@ -42361,11 +42370,11 @@ begin
   if fParent <> nil then
   begin
     NewCH := BoundsRect.Bottom + fParent.fMargin;
-    if  {$IFDEF USE_FLAGS} G2_ChangedSize in fParent.fFlagsG2
+    if  {$IFDEF USE_FLAGS} G2_ChangedH in fParent.fFlagsG2
         {$ELSE} (fParent.fChangedPosSz and $20) <> 0 {$ENDIF} then
         if NewCH <> fParent.ClientHeight then Exit;
     fParent.ClientHeight := NewCH;
-    {$IFDEF USE_FLAGS} include( fParent.fFlagsG2, G2_ChangedSize );
+    {$IFDEF USE_FLAGS} include( fParent.fFlagsG2, G2_ChangedH );
     {$ELSE} fParent.fChangedPosSz := fParent.fChangedPosSz or $20; {$ENDIF}
   end;
 end;
@@ -42379,11 +42388,11 @@ begin
   if fParent <> nil then
   begin
     NewCW := fBoundsRect.Right + fParent.fMargin;
-    if  {$IFDEF USE_FLAGS} G2_ChangedSize in fParent.fFlagsG2
+    if  {$IFDEF USE_FLAGS} G2_ChangedW in fParent.fFlagsG2
         {$ELSE} (fParent.fChangedPosSz and $10) <> 0 {$ENDIF} then
         if NewCW < fParent.ClientWidth then Exit;
     fParent.ClientWidth := NewCW;
-    {$IFDEF USE_FLAGS} include( fParent.fFlagsG2, G2_ChangedSize );
+    {$IFDEF USE_FLAGS} include( fParent.fFlagsG2, G2_ChangedW );
     {$ELSE} fParent.fChangedPosSz := fParent.fChangedPosSz or $10; {$ENDIF}
   end;
 end;
@@ -47132,13 +47141,17 @@ begin
 end;
 
 procedure TWStrList.SetLineName(Idx: Integer; const NV: WideString);
+var del: WideString;
 begin
-  Items[ Idx ] := NV + fNameDelim + LineValue[ Idx ];
+  del := fNameDelim;
+  Items[ Idx ] := NV + del + LineValue[ Idx ];
 end;
 
 procedure TWStrList.SetLineValue(Idx: Integer; const Value: WideString);
+var del: WideString;
 begin
-  Items[ Idx ] := LineName[ Idx ] + fNameDelim + Value;
+  del := fNameDelim;
+  Items[ Idx ] := LineName[ Idx ] + del + Value;
 end;
 
 { TWStrListEx }
@@ -55632,7 +55645,8 @@ procedure AlignChildrenProc(Sender: PObj);
               {$IFDEF USE_FLAGS} (F3_Visible in S.fStyle.f3_Style)
               {$ELSE} S.fVisible {$ENDIF}
               or
-              {$IFDEF USE_FLAGS} (G3_IsForm in S.fFlagsG3) // так надо!
+              {$IFDEF USE_FLAGS} ((G3_IsForm in S.fFlagsG3) // так надо!
+              or (G4_CreateHidden in S.fFlagsG4))
               {$ELSE} S.fCreateHidden {$ENDIF}
               )
       and     (  {$IFDEF USE_FLAGS} (G3_IsForm in S.fFlagsG3)
@@ -60372,9 +60386,7 @@ begin
          Btn := cnclBtn
       else
       if  (Msg.wParam = VK_RETURN) and
-          {$IFDEF USE_FLAGS} ( (G6_AllBtnReturnClick in F.fFlagsG6)
-                             or(G6_AllBtnReturnClick in fFlagsG6))
-          {$ELSE} (F.fAllBtnReturnClick or fAllBtnReturnClick) {$ENDIF}
+          (F.DF.fAllBtnReturnClick or DF.fAllBtnReturnClick)
       and (F.ActiveControl <> nil) and
           (F.ActiveControl.ToBeVisible) and
           {$IFDEF USE_FLAGS} (G5_IsButton in F.ActiveControl.fFlagsG5)
@@ -60487,11 +60499,16 @@ end;
 {$ELSE}
 var F: PControl;
 begin
-  SetDefaultBtn( 0, TRUE );
-  F := ParentForm;
-  if  F <> nil then
-      {$IFDEF USE_FLAGS} include( F.fFlagsG6, G6_AllBtnReturnClick );
-      {$ELSE} F.fAllBtnReturnClick := TRUE; {$ENDIF}
+  {$IFDEF SAFE_CODE}
+  if  {$IFDEF USE_FLAGS} [G3_IsForm, G3_IsApplet] * fFlagsG3 <> []
+      {$ELSE} fIsForm or fIsApplet {$ENDIF} then
+  {$ENDIF}
+  begin
+      SetDefaultBtn( 0, TRUE );
+      F := ParentForm;
+      if  F <> nil then
+          F.DF.fAllBtnReturnClick := TRUE;
+  end;
   Result := @ Self;
 end;
 {$ENDIF}
@@ -62031,7 +62048,7 @@ begin
                       exclude( Applet.DF.fHotCtl.fFlagsG4, G4_Hot );
               {$ELSE} Applet.DF.fHotCtl.fHot := FALSE; {$ENDIF}
               if  {$IFDEF USE_FLAGS} (G6_GraphicCtl in Applet.DF.fHotCtl.fFlagsG6)
-                  {$ELSE} not Applet.fHotCtl.fWindowed {$ENDIF} then
+                  {$ELSE} not Applet.DF.fHotCtl.fWindowed {$ENDIF} then
               begin
                   Applet.DF.fHotCtl.Invalidate;
                   {$IFDEF NIL_EVENTS}
@@ -62148,14 +62165,14 @@ begin
     if (PF.DF.fCurrentControl <> nil) and (PF.DF.fCurrentControl <> C) then
     begin
         {$IFDEF USE_FLAGS}
-                exclude( PF.DF.fCurrentControl.fFlagsG2, G2_Focused );
+                exclude( PF.DF.fCurrentControl.fFlagsG6, G6_Focused );
         {$ELSE} PF.DF.fCurrentControl.fFocused := FALSE; {$ENDIF}
         PF.DF.fCurrentControl.Invalidate;
     end;
     PF.DF.fCurrentControl := C;
     C.Parent.DF.fCurrentControl := C;
     //C.Parent.fFocusHandle := C.Parent.fHandle;
-    {$IFDEF USE_FLAGS} include( C.fFlagsG2, G2_Focused );
+    {$IFDEF USE_FLAGS} include( C.fFlagsG6, G6_Focused );
     {$ELSE} C.fFocused := TRUE; {$ENDIF}
     if  Assigned( C.EV.fOnEnter ) then
         C.EV.fOnEnter( C );
@@ -62179,7 +62196,7 @@ begin
   begin
     if  (Self_.DF.fCurrentControl <> nil)
     and {$IFDEF USE_FLAGS} (G6_GraphicCtl in Self_.DF.fCurrentControl.fFlagsG6)
-        {$ELSE} not Self_.fCurrentControl.fWindowed {$ENDIF} then
+        {$ELSE} not Self_.DF.fCurrentControl.fWindowed {$ENDIF} then
     begin
       if (Msg.message = WM_KEYDOWN) and ((Msg.wParam = 32) or (Msg.wParam = 13)) then
       begin
@@ -62471,7 +62488,7 @@ begin
   end;
   if  Ctl.fParent.fHandle <> 0 then
   begin
-      {$IFDEF USE_FLAGS} include( Ctl.fFlagsG2, G2_Focused );
+      {$IFDEF USE_FLAGS} include( Ctl.fFlagsG6, G6_Focused );
       {$ELSE} Ctl.fFocused := TRUE; {$ENDIF}
       Ctl.fParent.Postmsg( CM_FOCUSGRAPHCTL, Integer( Ctl ), 0 );
       Ctl.RefInc;
@@ -62904,7 +62921,7 @@ end;
 
 procedure TControl.LeaveGraphButton( Sender: PObj );
 begin
-    {$IFDEF USE_FLAGS} exclude( fFlagsG2, G2_Focused );
+    {$IFDEF USE_FLAGS} exclude( fFlagsG6, G6_Focused );
     {$ELSE} fFocused := FALSE; {$ENDIF}
     if  Parent.DF.fCurrentControl = @ Self then
         Parent.DF.fCurrentControl := nil;
@@ -62975,7 +62992,7 @@ begin
     if  eoReadonly in DF.fEditOptions then
         Flag := 6 {ETS_READONLY}
     else
-    if  {$IFDEF USE_FLAGS} G2_Focused in fFlagsG2
+    if  {$IFDEF USE_FLAGS} G6_Focused in fFlagsG6
         {$ELSE} fFocused {$ENDIF} then
         Flag := 5 {ETS_FOCUSED}
     else
@@ -63074,7 +63091,7 @@ end;
 procedure TControl.GraphCtlDrawFocusRect(DC: HDC; const R: TRect);
 var rgn: HRgn;
 begin
-  if  {$IFDEF USE_FLAGS} (G2_Focused in fFlagsG2)
+  if  {$IFDEF USE_FLAGS} (G6_Focused in fFlagsG6)
       {$ELSE} fFocused {$ENDIF}
   and (GetActiveWindow = ParentForm.Handle) then
   begin

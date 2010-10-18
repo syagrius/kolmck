@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 // KOL_ASM.inc ()to be inlude in KOL.pas)
-// v 3.00.K
+// v 3.00.o
 
 function MsgBox( const S: KOLString; Flags: DWORD ): DWORD;
 asm
@@ -7886,7 +7886,7 @@ asm
         ADD       EDX, ECX
 
         {$IFDEF   USE_FLAGS}
-        TEST      [EBX].fFlagsG2, (1 shl G2_ChangedSize)
+        TEST      [EBX].fFlagsG2, (1 shl G2_ChangedH)
         JZ        @@1
         {$ELSE}
         TEST      [EBX].fChangedPosSz, 20h
@@ -7904,7 +7904,7 @@ asm
         MOV       EAX, EBX
         CALL      TControl.SetClientHeight
         {$IFDEF   USE_FLAGS}
-        OR        [EBX].fFlagsG2, (1 shl G2_ChangedSize)
+        OR        [EBX].fFlagsG2, (1 shl G2_ChangedH)
         {$ELSE}
         OR        [EBX].fChangedPosSz, 20h
         {$ENDIF}
@@ -7926,7 +7926,7 @@ asm
         ADD       EDX, ECX
 
         {$IFDEF   USE_FLAGS}
-        TEST      [EBX].fFlagsG2, (1 shl G2_ChangedSize)
+        TEST      [EBX].fFlagsG2, (1 shl G2_ChangedW)
         {$ELSE}
         TEST      [EBX].fChangedPosSz, 10h
         {$ENDIF}
@@ -7943,7 +7943,7 @@ asm
         MOV       EAX, EBX
         CALL      TControl.SetClientWidth
         {$IFDEF   USE_FLAGS}
-        OR        [EBX].fFlagsG2, (1 shl G2_ChangedSize)
+        OR        [EBX].fFlagsG2, (1 shl G2_ChangedW)
         {$ELSE}
         OR        [EBX].fChangedPosSz, 10h
         {$ENDIF}
@@ -13883,6 +13883,9 @@ asm     //cmd    //opd
         {$ENDIF}
         {$IFDEF  USE_FLAGS}
         TEST     [EAX].TControl.fFlagsG3, 1 shl G3_IsForm
+        SETNZ    DH
+        OR       DL, DH
+        TEST     [EAX].TControl.fFlagsG4, (1 shl G4_CreateHidden)
         SETNZ    DH
         OR       DL, DH
         {$ELSE}
