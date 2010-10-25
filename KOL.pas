@@ -14,7 +14,7 @@
   Key Objects Library (C) 2000 by Kladov Vladimir.
 
 ****************************************************************
-* VERSION 3.00.o
+* VERSION 3.00.U
 ****************************************************************
 
   K.O.L. - is a set of objects to create small programs
@@ -470,6 +470,9 @@ unit KOL;
                           cases when a destroyed object is accessed after the
                           destruction).
   DEBUG_MCK             - specially designed to debug Mirror Classes Kit.
+  DEBUG_OBJKIND         - for each TControl object kind a reference to PChar
+                          with object kind name is stored in the structure of
+                          the object (field fObjKind).
   DEBUG                 - other debugging.
   EXTERNAL_DEFINES      - if count of options necessary to set is very large
                           Delphi ignores past of those. To avoid this problem,
@@ -617,6 +620,14 @@ var
   PenCount: Integer;
 {$ENDIF}
 
+{$IFDEF _D2009orHigher}
+type KOLWideString = UnicodeString;
+{$ELSE}
+{$IFDEF _D3orHigher}
+type KOLWideString = WideString;
+{$ENDIF}
+{$ENDIF}
+
 {$IFDEF UNICODE_CTRLS}
   {$IFDEF _D2}
     {$ERROR 'Delphi 2 cannot compile with UNICODE_CTRLS defined!'}
@@ -625,8 +636,8 @@ const
 	SizeOfKOLChar = SizeOf(WideChar);
 
  type
-	 KOLString = WideString;
-         KOL_String = type WideString;
+	 KOLString = KOLWideString;
+         KOL_String = type KOLWideString;
 	 KOLChar = type WideChar;
 	 PKOLChar = PWideChar;
          PKOL_Char = type PWideChar;
@@ -1222,14 +1233,14 @@ type
     function WriteStrZ( S: AnsiString ): DWORD;
     {* Writes string, adding #0. Number of bytes written is returned. }
     {$IFDEF _D3orHigher}
-    function WriteWStrZ( S: WideString ): DWORD;
+    function WriteWStrZ( S: KOLWideString ): DWORD;
     {* Writes string, adding #0. Number of bytes written is returned. }
     {$ENDIF}
     function ReadStrZ: AnsiString;
     {* Reads string, finished by #0. After reading, current position in
        the stream is set to the byte, follows #0. }
     {$IFDEF _D3orHigher}
-    function ReadWStrZ: WideString;
+    function ReadWStrZ: KOLWideString;
     {* Reads string, finished by #0. After reading, current position in
        the stream is set to the byte, follows #0. }
     {$ENDIF}
@@ -1398,14 +1409,14 @@ function NewReadWriteFileStream( const FileName: KOLString ): PStream;
    necessary, change Size property. }
 
 {$IFDEF _D3orHigher}
-function NewReadFileStreamW( const FileName: WideString ): PStream;
+function NewReadFileStreamW( const FileName: KOLWideString ): PStream;
 {* Creates file stream for read only. }
 
-function NewWriteFileStreamW( const FileName: WideString ): PStream;
+function NewWriteFileStreamW( const FileName: KOLWideString ): PStream;
 {* Creates file stream for write only. Truncating of file (if needed)
    is provided automatically. }
 
-function NewReadWriteFileStreamW( const FileName: WideString ): PStream;
+function NewReadWriteFileStreamW( const FileName: KOLWideString ): PStream;
 {* Creates stream for read and write file. To truncate file, if it is
    necessary, change Size property. }
 {$ENDIF}
@@ -1690,22 +1701,17 @@ type
   end;
 
 var DefaultNameDelimiter: AnsiChar = '=';
-    ThsSeparator: AnsiChar = ',';
+    ThsSeparator: KOLChar = ',';
 
 function NewStrList: PStrList;
 {* Creates string list object. }
-
-{$IFDEF WIN}
-function  GetFileList(const dir: Ansistring): PStrList;
-{* By Alexander Shakhaylo. Returns list of file names of the given directory. }
-{$ENDIF WIN}
 
 {$IFNDEF _FPC}
 function WStrLen( W: PWideChar ): Integer;
 {* Returns Length of null-terminated Unicode string. }
 
 {$IFDEF _D3orHigher}
-function UTF8_2WideString( const s: AnsiString ): WideString;
+function UTF8_2KOLWideString( const s: AnsiString ): KOLWideString;
 {$ENDIF}
 {$ENDIF _FPC}
 
@@ -1798,36 +1804,36 @@ type
   {* String list to store Unicode (null-terminated) strings. }
   protected
     function GetCount: Integer;
-    function GetItems(Idx: Integer): WideString;
-    procedure SetItems(Idx: Integer; const Value: WideString);
+    function GetItems(Idx: Integer): KOLWideString;
+    procedure SetItems(Idx: Integer; const Value: KOLWideString);
     function GetPtrs(Idx: Integer): PWideChar;
-    function GetText: WideString;
+    function GetText: KOLWideString;
   protected
     fList: PList;
     fText: PWideChar;
     fTextBufSz: Integer;
-    fTmp1, fTmp2: WideString;
+    fTmp1, fTmp2: KOLWideString;
     procedure Init; virtual;
   public
-    procedure SetText(const Value: WideString);
+    procedure SetText(const Value: KOLWideString);
     {* See also TStrList.SetText }
     destructor Destroy; virtual;
     {* }
     procedure Clear;
     {* See also TStrList.Clear }
-    property Items[ Idx: Integer ]: WideString read GetItems write SetItems;
+    property Items[ Idx: Integer ]: KOLWideString read GetItems write SetItems;
     {* See also TStrList.Items }
     property ItemPtrs[ Idx: Integer ]: PWideChar read GetPtrs;
     {* See also TStrList.ItemPtrs }
     property Count: Integer read GetCount;
     {* See also TStrList.Count }
-    function Add( const W: WideString ): Integer;
+    function Add( const W: KOLWideString ): Integer;
     {* See also TStrList.Add }
-    procedure Insert( Idx: Integer; const W: WideString );
+    procedure Insert( Idx: Integer; const W: KOLWideString );
     {* See also TStrList.Insert }
     procedure Delete( Idx: Integer );
     {* See also TStrList.Delete }
-    property Text: WideString read GetText write SetText;
+    property Text: KOLWideString read GetText write SetText;
     {* See also TStrList.Text }
     procedure AddWStrings( WL: PWStrList );
     {* See also TStrList.AddStrings }
@@ -1835,7 +1841,7 @@ type
     {* See also TStrList.Assign }
     function LoadFromFile( const Filename: KOLString ): Boolean;
     {* See also TStrList.LoadFromFile }
-    procedure LoadFromStream( Strm: PStream );
+    procedure LoadFromStream( Strm: PStream; AppendToList: Boolean );
     {* See also TStrList.LoadFromStream }
     function MergeFromFile( const Filename: KOLString ): Boolean;
     {* See also TStrList.MergeFromFile }
@@ -1853,23 +1859,23 @@ type
     {* See also TStrList.Sort }
     procedure Move( IdxOld, IdxNew: Integer );
     {* See also TStrList.Move }
-    function IndexOf( const s: WideString ): Integer;
+    function IndexOf( const s: KOLWideString ): Integer;
     {* }
-    function IndexOf_NoCase( const s: WideString ): Integer;
+    function IndexOf_NoCase( const s: KOLWideString ): Integer;
     {* }
-    function Last: WideString;
+    function Last: KOLWideString;
     {* }
-    procedure Put(Idx: integer; const Value: WideString);
+    procedure Put(Idx: integer; const Value: KOLWideString);
     {* +azsd for TBButton }
   protected // by Alexander Pravdin:
     fNameDelim: WideChar;
-    function GetLineName( Idx: Integer ): WideString;
-    procedure SetLineName( Idx: Integer; const NV: WideString );
-    function GetLineValue(Idx: Integer): WideString;
-    procedure SetLineValue(Idx: Integer; const Value: WideString);
+    function GetLineName( Idx: Integer ): KOLWideString;
+    procedure SetLineName( Idx: Integer; const NV: KOLWideString );
+    function GetLineValue(Idx: Integer): KOLWideString;
+    procedure SetLineValue(Idx: Integer; const Value: KOLWideString);
   public
-    property LineName[ Idx: Integer ]: WideString read GetLineName write SetLineName;
-    property LineValue[ Idx: Integer ]: WideString read GetLineValue write SetLineValue;
+    property LineName[ Idx: Integer ]: KOLWideString read GetLineName write SetLineName;
+    property LineValue[ Idx: Integer ]: KOLWideString read GetLineValue write SetLineValue;
     property NameDelimiter: WideChar read fNameDelim write fNameDelim;
   end;
 
@@ -1899,10 +1905,10 @@ type
     {* }
     procedure Move( IdxOld, IdxNew: Integer );
     {* }
-    function AddObject( const S: WideString; Obj: DWORD ): Integer;
+    function AddObject( const S: KOLWideString; Obj: DWORD ): Integer;
     {* Adds a string and associates given number with it. Index of the item added
        is returned. }
-    procedure InsertObject( Before: Integer; const S: WideString; Obj: DWORD );
+    procedure InsertObject( Before: Integer; const S: KOLWideString; Obj: DWORD );
     {* Inserts a string together with object associated. }
     function IndexOfObj( Obj: Pointer ): Integer;
     {* Returns an index of a string associated with the object passed as a
@@ -1939,6 +1945,11 @@ type TKOLStrList = TStrList;
 
 function NewKOLStrList: PKOLStrList;
 function NewKOLStrListEx: PKOLStrListEx;
+
+{$IFDEF WIN}
+function  GetFileList(const dir: KOLString): PKOLStrList;
+{* By Alexander Shakhaylo. Returns list of file names of the given directory. }
+{$ENDIF WIN}
 
 ////////////////////////////////////////////////////////////////////////////////
 //                            GRAPHIC OBJECTS                                 //
@@ -2654,7 +2665,7 @@ type
        last is not yet allocated/assigned, temporary device context
        is created and used). }
     {$IFDEF _D3orHigher}
-    procedure WTextArea( const Text : WideString; var Sz : TSize; var P0 : TPoint );
+    procedure WTextArea( const Text : KOLWideString; var Sz : TSize; var P0 : TPoint );
     {* Calculates size and starting point to output Text,
        taking into considaration all Font attributes, including
        Orientation (only if GlobalGraphics_UseFontOrient flag
@@ -2672,22 +2683,22 @@ type
     {* returns ClipBox. by Dmitry Zharov. }
 
     {$IFNDEF _FPC}
-    {$IFNDEF _D2} //------- WideString not supported in D2
-    procedure WTextOut(X, Y: Integer; const WText: WideString); stdcall;
+    {$IFNDEF _D2} //------- KOLWideString not supported in D2
+    procedure WTextOut(X, Y: Integer; const WText: KOLWideString); stdcall;
     {* Draws a Unicode text. }
     procedure WExtTextOut( X, Y: Integer; Options: DWORD; const Rect: TRect;
-              const WText: WideString; const Spacing: array of Integer );
+              const WText: KOLWideString; const Spacing: array of Integer );
     {* }
-    procedure WDrawText(WText: WideString; var Rect:TRect; Flags:DWord);
+    procedure WDrawText(WText: KOLWideString; var Rect:TRect; Flags:DWord);
     {* }
     procedure WTextRect(const Rect: TRect; X, Y: Integer;
-              const WText: WideString);
+              const WText: KOLWideString);
     {* Draws a Unicode text, clipping output into given rectangle. }
-    function WTextExtent( const WText: WideString ): TSize;
+    function WTextExtent( const WText: KOLWideString ): TSize;
     {* Calculates Unicode text width and height. }
-    function WTextWidth( const WText: WideString ): Integer;
+    function WTextWidth( const WText: KOLWideString ): Integer;
     {* Calculates Unicode text width. }
-    function WTextHeight( const WText: WideString ): Integer;
+    function WTextHeight( const WText: KOLWideString ): Integer;
     {* Calculates Unicode text height. }
     {$ENDIF _D2}
     {$ENDIF _FPC}
@@ -4361,7 +4372,7 @@ type
   {* }
   TDateTimePickerOptions = set of TDateTimePickerOption;
   {* }
-  TDTParseInputEvent = procedure(Sender: PControl; const UserString: Ansistring;
+  TDTParseInputEvent = procedure(Sender: PControl; const UserString: KOLString;
     var DateAndTime: TDateTime; var AllowChange: Boolean) of object;
   {* }
   TDateTimeRange = packed record
@@ -4723,6 +4734,7 @@ type
     fSplitStartSize: Integer;
     fSplitMinSize1, fSplitMinSize2: Integer;
     fSecondControl: PControl;
+    fSplitLastPos: TPoint;
   {$IFDEF UNION_FIELDS}
     );
   9:( // Gradient panel
@@ -4795,7 +4807,7 @@ type
     function Get_Prop_Int(PropName: PKOLChar): Integer;
     procedure Set_Prop_Int(PropName: PKOLChar; const Value: Integer);
     function GetHelpContext: Integer;
-    function Get_MDIClient: PControl;
+    //function Get_MDIClient: PControl;
     function Get_Ctl3D: Boolean;
     function Get_OnMouseEvent(const Index: Integer): TOnMouse;
   public
@@ -8723,8 +8735,15 @@ type
       FParentWnd: HWnd;   // <<-- ++ for InitOrthaned !!
       fParentCoordX: SmallInt;
       fParentCoordY: SmallInt;
-      //fMDIClient: PControl;
-      //{* MDI client window control }
+      {$IFDEF USE_MDI}
+      fMDIClient: PControl;
+      fCreateWindowProc: function(
+          lpClassName, lpWindowName: PKOLChar;
+          dwStyle: DWORD; X, Y, nWidth, nHeight: Integer;
+          hwndParent: HWnd; hInstance: HInst; lParam: Integer ): HWnd;
+          stdcall;
+      {* MDI client window control }
+      {$ENDIF}
       //fMDIChildren: PList;
       //{* List of MDI children. It is filled for MDI client window. }
 
@@ -8732,9 +8751,11 @@ type
       {} fNCDestroyed: Boolean;
       {$ENDIF USE_fNCDestroyed}
   public
-    property MDIClient: PControl read Get_MDIClient;
+    {$IFDEF USE_MDI}
+    property MDIClient: PControl read fMDIClient; //Get_MDIClient;
     {* For MDI forms only: returns MDI client window control, containng all MDI
        children. Use this window to send specific messages to rule MDI children. }
+    {$ENDIF}
     {$IFDEF OBSOLETE_FIELDS}
     {} fPaintLater: Boolean;
     {$ENDIF OBSOLETE_FIELDS}
@@ -9269,8 +9290,8 @@ type
        SearchFrom > SearchTo (or even SearchFrom = -1 and SearchTo = 0). }
     {$IFNDEF DISABLE_DEPRECATED}
     {$IFNDEF _FPC}
-    {$IFNDEF _D2} //------- WideString not supported in D2
-    function RE_WSearchText( const Value: WideString; MatchCase, WholeWord, ScanForward: Boolean;
+    {$IFNDEF _D2} //------- KOLWideString not supported in D2
+    function RE_WSearchText( const Value: KOLWideString; MatchCase, WholeWord, ScanForward: Boolean;
                             SearchFrom, SearchTo: Integer ): Integer;
     {* |<#richedit>
        Searches given string starting from SearchFrom position up to SearchTo
@@ -10477,6 +10498,7 @@ function NewPanel( AParent: PControl; EdgeStyle: TEdgeStyle ): PControl;
    control can be used as a parent for other ones, but panel is specially
    designed for such purpose). }
 
+{$IFDEF USE_MDI}
 function NewMDIClient( AParent: PControl; WindowMenu: THandle ): PControl;
 {* |<#control>
    Creates MDI client window, which is a special type of child window,
@@ -10492,6 +10514,7 @@ function NewMDIChild( AParent: PControl; const ACaption: KOLString ): PControl;
 {* |<#control>
    Creates MDI client window. AParent should be a MDI client window,
    created with NewMDIClient function. }
+{$ENDIF USE_MDI}
 
 function NewSplitter( AParent: PControl; MinSizePrev, MinSizeNext: Integer ): PControl;
 {* |<#control>
@@ -11089,7 +11112,7 @@ function Cmp64( const X, Y: I64 ): Integer;
    if X > Y then 1 }
 function Int64_2Str( X: I64 ): AnsiString;
 {* }
-function Int64_2Hex( X: I64; MinDigits: Integer ): AnsiString;
+function Int64_2Hex( X: I64; MinDigits: Integer ): KOLString;
 {* }
 function Str2Int64( const S: AnsiString ): I64;
 {* }
@@ -11124,7 +11147,7 @@ function Extended2Str( E: Extended ): KOLString;
 function Extended2StrDigits( D: Double; n: Integer ): KOLString;
 {* Converts floating point number to string, leaving exactly n digits
    following floating point. }
-function Double2StrEx( D: Double ): AnsiString;
+function Double2StrEx( D: Double ): KOLString;
 {* experimental, do not use }
 function TruncD( D: Double ): Double;
 {* Result := trunc( D ) as Double;
@@ -11219,7 +11242,7 @@ procedure Int2PChar( s: PAnsiChar; Value: Integer );
    not checked anyway! }
 function UInt2Str( Value: DWORD ): AnsiString;
 {* The same as Int2Str, but for unsigned integer value. }
-function Int2StrEx( Value, MinWidth: Integer ): AnsiString;
+function Int2StrEx( Value, MinWidth: Integer ): KOLString;
 {* Like Int2Str, but resulting string filled with leading spaces to provide
    at least MinWidth characters. }
 function Int2Rome( Value: Integer ): KOLString;
@@ -11237,11 +11260,11 @@ function Num2Bytes( Value : Double ) : AnsiString;
    following letter K), or in megabytes (M), gigabytes (G) or terabytes (T).
    Resulting string number is truncated to two decimals (.XX) or to one (.X),
    if the second is 0. }
-function S2Int( S: PAnsiChar ): Integer;
+function S2Int( S: PKOLChar ): Integer;
 {* Converts null-terminated string to Integer. Scanning stopped when any
    non-digit character found. Even empty string or string not containing
    valid integer number silently converted to 0. }
-function Str2Int(const Value : AnsiString) : Integer;
+function Str2Int(const Value : KOLString) : Integer;
 {* Converts string to integer. First character, which can not be
    recognized as a part of number, regards as a separator. Even
    empty string or string without number silently converted to 0. }
@@ -11361,18 +11384,18 @@ function KOLUpperCase(const S: KOLString): KOLString;
 function KOLLowerCase(const S: KOLString): KOLString;
 {* Obvious. }
 {$IFDEF _D3orHigher}
-function WUpperCase(const S: WideString): WideString;
+function WUpperCase(const S: KOLWideString): KOLWideString;
 {* Obvious. }
-function WLowerCase(const S: WideString): WideString;
+function WLowerCase(const S: KOLWideString): KOLWideString;
 {* Obvious. }
 {$ENDIF}
 {$IFNDEF _D2}
 {$IFNDEF _FPC}
-function WAnsiUpperCase(const S: WideString): WideString;
+function WAnsiUpperCase(const S: KOLWideString): KOLWideString;
 {* Obvious. }
-function WAnsiLowerCase(const S: WideString): WideString;
+function WAnsiLowerCase(const S: KOLWideString): KOLWideString;
 {* Obvious. }
-function WStrComp(const S1, S2: WideString): Integer;
+function WStrComp(const S1, S2: KOLWideString): Integer;
 {* }
 function _WStrComp(S1, S2: PWideChar): Integer;
 {* }
@@ -11385,7 +11408,7 @@ function WStrRScan(const Str: PWideChar; Chr: WideChar): PWideChar;
   considered to be part of the string. }
 {$ENDIF _FPC}
 {$ENDIF _D2}
-//--- set of functions to work either with AnsiString or with WideString
+//--- set of functions to work either with AnsiString or with KOLWideString
 //    depending on UNICODE_CTRLS symbol ----------------------------------------
 function AnsiCompareStr(const S1, S2: KOLString): Integer;
 {* AnsiCompareStr compares S1 to S2, with case-sensitivity. The compare
@@ -11458,12 +11481,12 @@ function IndexOfCharsMin( const S, Chars : KOLString ) : Integer;
    in Chars string and located nearest to start of S. If no such
    characters in string S found, -1 is returned. }
 {$IFDEF _D3orHigher}
-function WIndexOfChar( const S : WideString; Chr : WideChar ) : Integer;
-function WIndexOfCharsMin( const S, Chars : WideString ) : Integer;
+function WIndexOfChar( const S : KOLWideString; Chr : WideChar ) : Integer;
+function WIndexOfCharsMin( const S, Chars : KOLWideString ) : Integer;
 {$ENDIF}
 {$IFNDEF _D2}
 {$IFNDEF _FPC}
-function IndexOfWideCharsMin( const S, Chars : WideString ) : Integer;
+function IndexOfWideCharsMin( const S, Chars : KOLWideString ) : Integer;
 {* Returns index (in wide string S) of those wide character, what
    is taking place in Chars wide string and located nearest to start of S.
    If no such characters in string S found, -1 is returned. }
@@ -11480,12 +11503,12 @@ function Parse( var S : KOLString; const Separators : KOLString ) : KOLString;
    no separator characters found, source string S is returned, and
    source string itself becomes empty. }
 {$IFDEF _D3orHigher}
-function ParseW( var S : WideString; const Separators : WideString ) : WideString;
+function ParseW( var S : KOLWideString; const Separators : KOLWideString ) : KOLWideString;
 {$ENDIF}
 
 {$IFNDEF _FPC}
 {$IFNDEF _D2}
-function WParse( var S : WideString; const Separators : WideString ) : WideString;
+function WParse( var S : KOLWideString; const Separators : KOLWideString ) : KOLWideString;
 {* Returns first wide characters of wide string S, separated from others
    by one of wide characters, taking place in Separators wide string,
    assigning a tail of wide string (following found separator) to the
@@ -11493,7 +11516,7 @@ function WParse( var S : WideString; const Separators : WideString ) : WideStrin
    string S is returned, and source wide string itself becomes empty. }
 {$ENDIF _D2}
 {$ENDIF _FPC}
-function ParsePascalString( var S : AnsiString; const Separators : AnsiString ) : AnsiString;
+function ParsePascalString( var S : KOLString; const Separators : KOLString ) : KOLString;
 {* Returns first characters of string S, separated from others by
    one of characters, taking place in Separators string, assigning
    a tail of string (after the found separator) to source string. If
@@ -11502,7 +11525,7 @@ function ParsePascalString( var S : AnsiString; const Separators : AnsiString ) 
    a blank space) is the quote "'" or '#', pascal string is assumung first
    and is converted to usual string (without quotas) before analizing
    of other separators. }
-function String2PascalStrExpr( const S : AnsiString ) : AnsiString;
+function String2PascalStrExpr( const S : KOLString ) : KOLString;
 {* Converts string to Pascal-like string expression (concatenation of
    strings with quotas and characters with leading '#'). }
 function StrEq( const S1, S2 : AnsiString ) : Boolean;
@@ -11511,7 +11534,7 @@ function StrEq( const S1, S2 : AnsiString ) : Boolean;
    (ASCII only). }
 {$IFNDEF _D2}
 {$IFNDEF _FPC}
-function WAnsiEq( const S1, S2 : WideString ) : Boolean;
+function WAnsiEq( const S1, S2 : KOLWideString ) : Boolean;
 {* Returns True, if AnsiLowerCase(S1) = AnsiLowerCase(S2). I.e., if ANSI
    stringsare equal to each other without caring of characters case
    sensitivity. }
@@ -11525,7 +11548,7 @@ function StrIn( const S : AnsiString; const A : array of String ) : Boolean;
 {$IFNDEF _FPC}
 type TSetOfChar = Set of AnsiChar;
 {$IFNDEF _D2}
-function WStrIn( const S : WideString; const A : array of WideString ) : Boolean;
+function WStrIn( const S : KOLWideString; const A : array of KOLWideString ) : Boolean;
 {* Returns True, if S is "equal" to one of strings, taking place
    in A array. To check equality, WAnsiEq function is used, i.e.
    comaprison is taking place without case sensitivity. }
@@ -11551,7 +11574,7 @@ function StrSatisfy( const S, Mask : KOLString ) : Boolean;
    set of characters' and 'single any character'. If there are no
    such wildcard symbols in a Mask, result is True only if S is maching
    to Mask string.) }
-function StrReplace( var S: AnsiString; const From, ReplTo: AnsiString ): Boolean;
+function StrReplace( var S: KOLString; const From, ReplTo: KOLString ): Boolean;
 {* Replaces first occurance of From to ReplTo in S, returns True,
    if pattern From was found and replaced. }
 function KOLStrReplace( var S: KOLString; const From, ReplTo: KOLString ): Boolean;
@@ -11559,19 +11582,19 @@ function KOLStrReplace( var S: KOLString; const From, ReplTo: KOLString ): Boole
    if pattern From was found and replaced. }
 {$IFNDEF _FPC}
 {$IFNDEF _D2}
-function WStrReplace( var S: WideString; const From, ReplTo: WideString ): Boolean;
+function WStrReplace( var S: KOLWideString; const From, ReplTo: KOLWideString ): Boolean;
 {* Replaces first occurance of From to ReplTo in S, returns True,
    if pattern From was found and replaced. See also function StrReplace.
    This function is not available in Delphi2 (this version of Delphi
-   does not support WideString type). }
+   does not support KOLWideString type). }
 {$ENDIF _D2}
 {$ENDIF _FPC}
 
-function StrRepeat( const S: AnsiString; Count: Integer ): AnsiString;
+function StrRepeat( const S: KOLString; Count: Integer ): KOLString;
 {* Repeats given string Count times. E.g., StrRepeat( 'A', 5 ) gives 'AAAAA'. }
 {$IFNDEF _FPC}
 {$IFNDEF _D2}
-function WStrRepeat( const S: WideString; Count: Integer ): WideString;
+function WStrRepeat( const S: KOLWideString; Count: Integer ): KOLWideString;
 {* Repeats given wide string Count times. E.g., StrRepeat( 'A', 5 ) gives 'AAAAA'. }
 {$ENDIF _D2}
 {$ENDIF _FPC}
@@ -11628,7 +11651,7 @@ function Clipboard2Text: AnsiString;
 {* If clipboard contains text, this function returns it for You. }
 {$IFNDEF _FPC}
 {$IFNDEF _D2}
-function Clipboard2WText: WideString;
+function Clipboard2WText: KOLWideString;
 {* If clipboard contains text, this function returns it for You (as Unicode string). }
 {$ENDIF _D2}
 {$ENDIF _FPC}
@@ -11636,7 +11659,7 @@ function Text2Clipboard( const S: AnsiString ): Boolean;
 {* Puts given string to a clipboard. }
 {$IFNDEF _FPC}
 {$IFNDEF _D2}
-function WText2Clipboard( const WS: WideString ): Boolean;
+function WText2Clipboard( const WS: KOLWideString ): Boolean;
 {* Puts given Unicode string to a clipboard.
 |<hr>
 }
@@ -11862,7 +11885,7 @@ const
   {* Use this flag to create offline file. }
 
 {$IFDEF _D3orHigher}
-function WFileCreate(const FileName: WideString; OpenFlags: DWord): THandle;
+function WFileCreate(const FileName: KOLWideString; OpenFlags: DWord): THandle;
 {* }
 {$ENDIF}
 function FileCreate(const FileName: KOLString; OpenFlags: DWord): THandle;
@@ -11890,7 +11913,7 @@ function FileExists( const FileName: KOLString ) : Boolean;
    under NT-based Windows systems, FALSE is always returned for files
    opened for excluseve use like pagefile.sys. }
 {$IFDEF _D3orHigher}
-function WFileExists( const FileName: WideString ) : Boolean;
+function WFileExists( const FileName: KOLWideString ) : Boolean;
 {* Returns True, if given file exists.
    |<br>Note (by Dod):
    It is not documented in a help for GetFileAttributes, but it seems that
@@ -11908,7 +11931,7 @@ function GetFileSize( Handle: THandle; HiSize: PDWORD ): DWORD;
 function File2Str(Handle: THandle): AnsiString;
 {* Reads file from current position to the end and returns result as ansi string. }
 {$IFNDEF _D2}
-function File2WStr(Handle: THandle): WideString;
+function File2WStr(Handle: THandle): KOLWideString;
 {* Reads UNICODE file from current position to the end and returns result as
    unicode string. }
 {$ENDIF}
@@ -11952,10 +11975,10 @@ function StrLoadFromFile( const Filename: KOLString ): AnsiString;
    |<br>by Sergey Shishmintzev: it is possible to pass Filename = 'CON' to
    read input from redirected console output. }
 {$IFNDEF _D2}
-function WStrSaveToFile( const Filename: KOLString; const Str: WideString ): Boolean;
+function WStrSaveToFile( const Filename: KOLString; const Str: KOLWideString ): Boolean;
 {* Saves a string to a file without any changes. If file does not exists, it is
    created. If it exists, it is overriden. If operation failed, FALSE is returned. }
-function WStrLoadFromFile( const Filename: KOLString ): WideString;
+function WStrLoadFromFile( const Filename: KOLString ): KOLWideString;
 {* Reads entire file and returns its content as a string. If operation failed,
    an empty strinng is returned.
    |<br>by Sergey Shishmintzev: it is possible to pass Filename = 'CON' to
@@ -12016,10 +12039,11 @@ function DirectoryExists(const Name: KOLString): Boolean;
 function DiskPresent( const DrivePath: KOLString ): Boolean;
 {* Returns TRUE if the disk is present }
 {$IFDEF _D3orHigher}
-function WDirectoryExists(const Name: WideString): Boolean;
+function WDirectoryExists(const Name: KOLWideString): Boolean;
 {* }
 {$ENDIF}
-function CheckDirectoryContent( const Name: KOLString; SubDirsOnly: Boolean; const Mask: AnsiString ): Boolean;
+function CheckDirectoryContent( const Name: KOLString; SubDirsOnly: Boolean;
+         const Mask: KOLString ): Boolean;
 {* Returns TRUE if directory does not contain files (or directories only)
    satisfying given mask. }
 function DirectoryEmpty(const Name: KOLString): Boolean;
@@ -12058,7 +12082,7 @@ function ExtractFileDrive( const Path: KOLString ) : KOLString;
 function ExtractFilePath( const Path: KOLString ) : KOLString;
 {* Returns only path part from exact path to file. }
 {$IFDEF _D3orHigher}
-function WExtractFilePath( const Path: WideString ) : WideString;
+function WExtractFilePath( const Path: KOLWideString ) : KOLWideString;
 {* Returns only path part from exact path to file. }
 {$ENDIF}
 function IsNetworkPath( const Path: KOLString ): Boolean;
@@ -14761,18 +14785,18 @@ function Tabulate2Control( Self_: PControl; Key: DWORD; checkOnly: Boolean ): Bo
 function GetPrevCtrlBoundsRect( P: PControl; var R: TRect ): Boolean; forward;
 
 ////////////////////////////////////////////////////////////////////////////////
-var MapFile: PStrList;
+var MapFile: PKOLStrList;
     LineNumbersFrom: Integer;
     MaxCrackStackLen: Integer;
     HandleSuspicious: Boolean;
     BelowBasePtr: PDWORD;
-    CrackedStack: AnsiString;
+    CrackedStack: KOLString;
 
 function DoCrackSingleFrame( RetAddr: DWORD; BasePtr: DWORD ): Boolean;
 var i, j, R: Integer;
     A, Prev_A, N, Prev_N: DWORD;
-    s, CurUnit: AnsiString;
-    Add_string: AnsiString;
+    s, CurUnit: KOLString;
+    Add_string: KOLString;
     Line_found: Boolean;
 begin
     Result := FALSE;
@@ -14814,7 +14838,9 @@ begin
         R := 0;
         j := 1;
         while (j <= Length( s )) and (s[j] <= ' ') do inc( j );
-        while (j <= Length( s )) and (s[j] in ['0'..'9','A'..'F']) do
+        while (j <= Length( s )) and
+              ( (s[j] >= '0') and (s[j] <= '9') or
+                (s[j] >= 'A') and (s[j] <= 'F') ) do
         begin
             if s[j] <= '9' then R := R * 16 + Ord( s[j] ) - Ord( '0' )
             else R := R * 16 + Ord( s[j] ) - Ord( 'A' ) + 10;
@@ -14823,7 +14849,9 @@ begin
         if (j > Length( s )) or (s[ j ] <> ':') then Exit;
         inc( j );
         A := 0;
-        while (j <= Length( s )) and (s[j] in ['0'..'9','A'..'F']) do
+        while (j <= Length( s )) and
+              ( (s[j] >= '0') and (s[j] <= '9') or
+                (s[j] >= 'A') and (s[j] <= 'F') ) do
         begin
             if s[j] <= '9' then A := A * 16 + Ord( s[j] ) - Ord( '0' )
             else A := A * 16 + Ord( s[j] ) - Ord( 'A' ) + 10;
@@ -14884,14 +14912,17 @@ begin
             begin
                 while (j <= Length( s )) and (s[j] <= ' ') do inc( j );
                 N := 0;
-                while (j <= Length( s )) and (s[j] in [ '0'..'9' ]) do
+                while (j <= Length( s )) and
+                      (s[j] >= '0') and (s[j] <= '9') do
                 begin
                     N := N * 10 + Ord( s[j] ) - Ord( '0' );
                     inc( j );
                 end;
                 while (j <= Length( s )) and (s[j] <= ' ') do inc( j );
                 R := 0;
-                while (j < Length( s )) and (s[j] in [ '0'..'9', 'A'..'F' ]) do
+                while (j < Length( s )) and
+                      ( (s[j] >= '0') and (s[j] <= '9') or
+                        (s[j] >= 'A') and (s[j] <= 'F') ) do
                 begin
                     if s[j] <= '9' then
                         R := R * 16 + Ord( s[j] ) - Ord( '0' )
@@ -14902,7 +14933,9 @@ begin
                 if (j <= Length(s)) and (s[ j ] = ':') then inc( j );
                 while (j <= Length( s )) and (s[j] <= ' ') do inc( j );
                 A := 0;
-                while (j <= Length( s )) and (s[j] in [ '0'..'9', 'A'..'F' ]) do
+                while (j <= Length( s )) and
+                      ( (s[j] >= '0') and (s[j] <= '9') or
+                        (s[j] >= 'A') and (s[j] <= 'F') ) do
                 begin
                     if s[j] <= '9' then
                         A := A * 16 + Ord( s[j] ) - Ord( '0' )
@@ -14951,7 +14984,7 @@ asm
     jnz  @@loop
 end;
 
-function CrackStack( Max_length: Integer; HandleSuspiciousAddresses: Boolean ): AnsiString;
+function CrackStack( Max_length: Integer; HandleSuspiciousAddresses: Boolean ): KOLString;
 begin
     TRY
         MaxCrackStackLen := Max_length;
@@ -14965,7 +14998,7 @@ end;
 
 procedure PrepareMapFile;
 var i, j: Integer;
-    s: AnsiString;
+    s: KOLString;
 begin
     for i := 0 to MapFile.Count-1 do
     begin
@@ -15007,7 +15040,7 @@ begin
         TRY
             Resource2Stream( MapStrm, hInstance, PKOLChar( MapName ), PKOLChar(RT_RCDATA) );
             if MapStrm.Size = 0 then Exit;
-            MapFile := NewStrList;
+            MapFile := NewKOLStrList;
             MapStrm.Position := 0;
             MapFile.LoadFromStream( MapStrm, FALSE );
             PrepareMapFile;
@@ -15025,7 +15058,7 @@ begin
     Result := '';
     if MapFile = nil then
     begin
-        MapFile := NewStrList;
+        MapFile := NewKOLStrList;
         MapFile.LoadFromFile( MapFileName );
         if MapFile.Count = 0 then
             Free_And_Nil( MapFile )
@@ -17067,20 +17100,31 @@ begin
     {$IFDEF INPACKAGE}
     Log( '//// self_ <> nil, calling self_.WndProc' );
     {$ENDIF INPACKAGE}
-     inc( self_.fNestedMsgHandling );
-     {$IFDEF DEBUG_KEYDOWN}
-     if  M.message = WM_KEYDOWN then
-     asm
-       nop
-     end;
-     {$ENDIF}
-     Result := self_.WndProc( M );
-     dec( self_.fNestedMsgHandling );
-     if  (self_.fRefCount = 0) and (self_.fNestedMsgHandling <= 0)
-     and {$IFDEF USE_FLAGS} (G2_BeginDestroying in self_.fFlagsG2)
-         {$ELSE} self_.fBeginDestroying {$ENDIF}
-     and (self_ <> Applet) then
-       self_.Free;
+     ////{$IFDEF SAFE_CODE}
+     //////inc( self_.fNestedMsgHandling );
+     ////self_.RefInc;
+     ////TRY
+     ////{$ENDIF}
+         {$IFDEF DEBUG_KEYDOWN}
+         if  M.message = WM_KEYDOWN then
+         asm
+           nop
+         end;
+         {$ENDIF}
+         Result := self_.WndProc( M );
+     ////{$IFDEF SAFE_CODE}
+     ////FINALLY
+     ////   self_.RefDec;
+     ////{$ENDIF}
+         //dec( self_.fNestedMsgHandling );
+         (*if  (self_.fRefCount = 0) and (self_.fNestedMsgHandling <= 0)
+         and {$IFDEF USE_FLAGS} (G2_BeginDestroying in self_.fFlagsG2)
+             {$ELSE} self_.fBeginDestroying {$ENDIF}
+         and (self_ <> Applet) then
+           self_.Free;*)
+     ////{$IFDEF SAFE_CODE}
+     ////END;
+     ////{$ENDIF}
    end
    else
    if ( Applet <> nil ) then
@@ -17230,7 +17274,7 @@ begin
     end;
     AppletWnd := nil;
     App.Free;
-    App.RefDec;
+    //App.RefDec;
   end;
 end;
 {$ENDIF ASM_VERSION}
@@ -18859,7 +18903,7 @@ end;
 {$ENDIF ASM_VERSION}
 
 {$IFDEF _D3orHigher}
-procedure TCanvas.WTextArea(const Text: WideString; var Sz: TSize;
+procedure TCanvas.WTextArea(const Text: KOLWideString; var Sz: TSize;
   var P0: TPoint);
 begin
   Sz := WTextExtent( Text );
@@ -19262,7 +19306,7 @@ end;
 
 {$IFNDEF _FPC}
 {$IFNDEF _D2}
-procedure TCanvas.WDrawText(WText: WideString; var Rect: TRect;
+procedure TCanvas.WDrawText(WText: KOLWideString; var Rect: TRect;
   Flags: DWord);
 begin
   RequiredState( HandleValid or FontValid or BrushValid or ChangingCanvas );
@@ -19270,14 +19314,14 @@ begin
 end;
 
 procedure TCanvas.WExtTextOut(X, Y: Integer; Options: DWORD;
-  const Rect: TRect; const WText: WideString;
+  const Rect: TRect; const WText: KOLWideString;
   const Spacing: array of Integer);
 begin
   RequiredState( HandleValid or FontValid or BrushValid or ChangingCanvas );
   Windows.ExtTextOutW(FHandle, X, Y, Options, @Rect, PWideChar(WText), Length(WText), @Spacing[ 0 ]);
 end;
 
-procedure TCanvas.WTextOut(X, Y: Integer; const WText: WideString);
+procedure TCanvas.WTextOut(X, Y: Integer; const WText: KOLWideString);
 begin
   RequiredState( HandleValid or FontValid or BrushValid or ChangingCanvas );
   Windows.TextOutW(FHandle, X, Y, PWideChar(WText), Length(WText));
@@ -19285,7 +19329,7 @@ begin
 end;
 
 procedure TCanvas.WTextRect(const Rect: TRect; X, Y: Integer;
-  const WText: WideString);
+  const WText: KOLWideString);
 var
   Options: Integer;
 begin
@@ -19299,7 +19343,7 @@ begin
                       Length(WText), nil);
 end;
 
-function TCanvas.WTextExtent(const WText: WideString): TSize;
+function TCanvas.WTextExtent(const WText: KOLWideString): TSize;
 var DC : HDC;
     ClearHandle : Boolean;
 begin
@@ -19318,12 +19362,12 @@ begin
     SetHandle( 0 );
 end;
 
-function TCanvas.WTextHeight(const WText: WideString): Integer;
+function TCanvas.WTextHeight(const WText: KOLWideString): Integer;
 begin
   Result := WTextExtent( WText ).cy;
 end;
 
-function TCanvas.WTextWidth(const WText: WideString): Integer;
+function TCanvas.WTextWidth(const WText: KOLWideString): Integer;
 begin
   Result := WTextExtent( WText ).cx;
 end;
@@ -19523,7 +19567,7 @@ begin
   Result := PAnsiChar( @Buf[ I ] );
 end;
 
-function Int64_2Hex( X: I64; MinDigits: Integer ): AnsiString;
+function Int64_2Hex( X: I64; MinDigits: Integer ): KOLString;
 begin
   if (MinDigits <= 8) and (X.Hi <> 0) then
     Result := Int2Hex( X.Hi, 1 ) + Int2Hex( X.Lo, 8 )
@@ -19920,9 +19964,9 @@ begin
   Result := Extended2Str( D );
 end;
 
-function Double2StrEx( D: Double ): AnsiString;
+function Double2StrEx( D: Double ): KOLString;
 var E, E1, E2: Double;
-    S: AnsiString;
+    S: KOLString;
 begin
   Result := Double2Str( D );
   E := Str2Double( Result );
@@ -20419,7 +20463,7 @@ begin
   Result := Dst;
 end;
 
-function Int2StrEx( Value, MinWidth: Integer ): AnsiString;
+function Int2StrEx( Value, MinWidth: Integer ): KOLString;
 begin
   Result := Int2Str( Value );
   while Length( Result ) < MinWidth do
@@ -20432,11 +20476,11 @@ const RomeDigs = KOLString('IVXLCDMT');
   begin
     CASE N OF
     1, 2, 3:    Result := StrRepeat( RomeDigs[ FromIdx ], N );
-    4:          Result := '' + RomeDigs[ FromIdx ] + RomeDigs[ FromIdx + 1 ];
+    4:          Result := KOLString('') + RomeDigs[ FromIdx ] + RomeDigs[ FromIdx + 1 ];
     5, 6, 7, 8: Result := RomeDigs[ FromIdx + 1 ] + StrRepeat( RomeDigs[ FromIdx ],
                        N - 5 );
-    9:          Result := '' + RomeDigs[ FromIdx ] + RomeDigs[ FromIdx + 2 ]
-    else Result := '';
+    9:          Result := KOLString('') + RomeDigs[ FromIdx ] + RomeDigs[ FromIdx + 2 ]
+    else        Result := '';
     END;
   end;
 var I, J: Integer;
@@ -20516,7 +20560,7 @@ asm
 end;
 {$ELSE ASM_VERSION}
 function Int2Ths( I : Integer ): KOLString;
-var S : AnsiString;
+var S : KOLString;
 begin
   S := Int2Str( I );
   Result := '';
@@ -20527,7 +20571,7 @@ begin
     Result := CopyTail( S, 3 ) + Result;
     S := Copy( S, 1, Length( S ) - 3 );
   end;
-  if Copy( Result, 1, 2 ) = '-' + ThsSeparator then
+  if Copy( Result, 1, 2 ) = KOLString('-') + ThsSeparator then
      Result := '-' + CopyEnd( Result, 3 );
 end;
 {$ENDIF ASM_VERSION}
@@ -20628,8 +20672,37 @@ begin
 end;
 {$ENDIF ASM_VERSION}
 
-{$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
-function S2Int( S: PAnsiChar ): Integer;
+{$IFDEF ASM_UNICODE}
+function S2Int( S: PKOLChar ): Integer;
+asm
+        XCHG     EDX, EAX
+        XOR      EAX, EAX
+        TEST     EDX, EDX
+        JZ       @@exit
+
+        XOR      ECX, ECX
+        MOV      CL, [EDX]
+        INC      EDX
+        CMP      CL, '-'
+        PUSHFD
+        JE       @@0
+@@1:    CMP      CL, '+'
+        JNE      @@2
+@@0:    MOV      CL, [EDX]
+        INC      EDX
+@@2:    SUB      CL, '0'
+        CMP      CL, '9'-'0'
+        JA       @@fin
+        LEA      EAX, [EAX+EAX*4] //
+        LEA      EAX, [ECX+EAX*2] //
+        JMP      @@0
+@@fin:  POPFD
+        JNE      @@exit
+        NEG      EAX
+@@exit:
+end;
+{$ELSE ASM_VERSION} //Pascal
+function S2Int( S: PKOLChar ): Integer;
 var M : Integer;
 begin
    Result := 0;
@@ -20643,7 +20716,7 @@ begin
      else
    if S^ = '+' then
      Inc( S );
-   while S^ in [ '0'..'9' ] do
+   while (S^>='0') and (S^<='9') do
    begin
       Result := Result * 10 + Integer( S^ ) - Integer( '0' );
       Inc( S );
@@ -20653,10 +20726,16 @@ begin
 end;
 {$ENDIF ASM_VERSION}
 
-{$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
-function Str2Int(const Value : AnsiString) : Integer;
+{$IFDEF ASM_UNICODE}
+function Str2Int(const Value : KOLString) : Integer;
+asm
+        CALL     EAX2PChar
+        CALL     S2Int
+end;
+{$ELSE ASM_VERSION} //Pascal
+function Str2Int(const Value : KOLString) : Integer;
 begin
-  Result := S2Int( PAnsiChar( Value ) );
+  Result := S2Int( PKOLChar( Value ) );
 end;
 {$ENDIF ASM_VERSION}
 
@@ -21072,7 +21151,7 @@ end;
 {$ENDIF}
 
 {$IFDEF _D3orHigher}
-function WIndexOfChar( const S : WideString; Chr : WideChar ) : Integer;
+function WIndexOfChar( const S : KOLWideString; Chr : WideChar ) : Integer;
 var i, l : integer;
 begin
  Result := -1;
@@ -21144,7 +21223,7 @@ end;
 {$ENDIF ASM_VERSION}
 
 {$IFDEF _D3orHigher}
-function WIndexOfCharsMin( const S, Chars : WideString ) : Integer;
+function WIndexOfCharsMin( const S, Chars : KOLWideString ) : Integer;
 var I, J : Integer;
 begin
   Result := -1;
@@ -21162,7 +21241,7 @@ end;
 
 {$IFNDEF _FPC}
 {$IFNDEF _D2}
-function IndexOfWideCharsMin( const S, Chars : WideString ) : Integer;
+function IndexOfWideCharsMin( const S, Chars : KOLWideString ) : Integer;
 var I, J : Integer;
 begin
   Result := -1;
@@ -21312,7 +21391,7 @@ end;
 {$ENDIF ASM_VERSION}
 
 {$IFDEF _D3orHigher}
-function ParseW( var S : WideString; const Separators : WideString ) : WideString;
+function ParseW( var S : KOLWideString; const Separators : KOLWideString ) : KOLWideString;
 var Pos : Integer;
 begin
   Pos := WIndexOfCharsMin( S, Separators );
@@ -21325,7 +21404,7 @@ end;
 
 {$IFNDEF _FPC}
 {$IFNDEF _D2}
-function WParse( var S : WideString; const Separators : WideString ) : WideString;
+function WParse( var S : KOLWideString; const Separators : KOLWideString ) : KOLWideString;
 var Pos : Integer;
 begin
   Pos := IndexOfWideCharsMin( S, Separators );
@@ -21338,7 +21417,7 @@ end;
 {$ENDIF _D2}
 {$ENDIF _FPC}
 
-function ParsePascalString( var S : AnsiString; const Separators : AnsiString ) : AnsiString;
+function ParsePascalString( var S : KOLString; const Separators : KOLString ) : KOLString;
 var Pos, Idx : Integer;
     Hex, Spc : Boolean;
     procedure SkipSpaces;
@@ -21347,7 +21426,7 @@ var Pos, Idx : Integer;
         while (Length( S ) >= Pos) and (S[ Pos ] = ' ') do
           Inc( Pos );
     end;
-var Buf : AnsiString;
+var Buf : KOLString;
     Ou, Val : Integer;
 begin
   Pos := 1;
@@ -21359,9 +21438,9 @@ begin
     S := '';
     exit;
   end;
-  Buf := PAnsiChar( S );
+  Buf := PKOLChar( S );
   Ou := 1;
-  if S[ Pos ] in [ '''', '#' ] then
+  if (S[ Pos ] = '''') or (S[ Pos ] = '#') then
   begin
     // skip here string constant expression
     while Pos <= Length( S ) do
@@ -21395,8 +21474,9 @@ begin
         while Pos < Length( S ) do
         begin
           Inc( Pos );
-          if (S[ Pos ] in [ '0'..'9' ]) or
-             Hex and (S[ Pos ] in [ 'a'..'f', 'A'..'F' ]) then
+          if (S[ Pos ] >= '0') and (S[ Pos ] <= '9') or
+             Hex and ( (S[ Pos ] >= 'a') and (S[ Pos ] <= 'f') or
+                       (S[ Pos ] >= 'A') and (S[ Pos ] <= 'F') ) then
           begin
             if Hex then
                Val := Val * 16
@@ -21413,7 +21493,7 @@ begin
           end;
           Inc( Pos ); break;
         end;
-        Buf[ Ou ] := AnsiChar( Val );
+        Buf[ Ou ] := KOLChar( Val );
         Inc( Ou );
       end
          else break;
@@ -21435,9 +21515,9 @@ begin
   end;
 end;
 
-function String2PascalStrExpr( const S : AnsiString ) : AnsiString;
+function String2PascalStrExpr( const S : KOLString ) : KOLString;
 var I, Strt : Integer;
-  function String2DoubleQuotas( const S : AnsiString ) : AnsiString;
+  function String2DoubleQuotas( const S : KOLString ) : KOLString;
   var I, J : Integer;
   begin
     if IndexOfChar( S, '''' ) <= 0 then
@@ -21572,7 +21652,7 @@ begin
 end;
 
 {$IFDEF _D3orHigher}
-function WUpperCase(const S: WideString): WideString;
+function WUpperCase(const S: KOLWideString): KOLWideString;
 var Len: Integer;
 begin
   Len := Length(S);
@@ -21580,7 +21660,7 @@ begin
   if Len > 0 then CharUpperBuffW(PWideChar(Result), Len);
 end;
 
-function WLowerCase(const S: WideString): WideString;
+function WLowerCase(const S: KOLWideString): KOLWideString;
 var
   Len: Integer;
 begin
@@ -21595,7 +21675,7 @@ end;
 {$IFNDEF _FPC}
 
 {$IFDEF WIN}
-function WAnsiUpperCase(const S: WideString): WideString;
+function WAnsiUpperCase(const S: KOLWideString): KOLWideString;
 var Len: Integer;
 begin
   Result := S;
@@ -21605,7 +21685,7 @@ end;
 {$ENDIF WIN}
 
 {$IFDEF WIN}
-function WAnsiLowerCase(const S: WideString): WideString;
+function WAnsiLowerCase(const S: KOLWideString): KOLWideString;
 var Len: Integer;
 begin
   Result := S;
@@ -21615,7 +21695,7 @@ end;
 {$ENDIF WIN}
 
 {$IFDEF WIN}
-function WStrComp(const S1, S2: WideString): Integer;
+function WStrComp(const S1, S2: KOLWideString): Integer;
 var i: Integer;
 begin
   for i := 1 to min( Length( S1 ), Length( S2 ) ) do
@@ -22013,7 +22093,7 @@ end;
 
 {$IFNDEF _D2}
 {$IFNDEF _FPC}
-function WAnsiEq( const S1, S2 : WideString ) : Boolean;
+function WAnsiEq( const S1, S2 : KOLWideString ) : Boolean;
 begin
   Result := WAnsiLowerCase( S1 )=WAnsiLowerCase( S2 );
 end;
@@ -22036,7 +22116,7 @@ end;
 
 {$IFNDEF _D2}
 {$IFNDEF _FPC}
-function WStrIn( const S : WideString; const A : array of WideString ) : Boolean;
+function WStrIn( const S : KOLWideString; const A : array of KOLWideString ) : Boolean;
 var I : Integer;
 begin
   for I := Low( A ) to High( A ) do
@@ -22282,7 +22362,7 @@ begin
 end;
 {$ENDIF ASM_VERSION}
 
-function StrReplace( var S: AnsiString; const From, ReplTo: AnsiString ): Boolean;
+function StrReplace( var S: KOLString; const From, ReplTo: KOLString ): Boolean;
 var I: Integer;
 begin
   I := pos( From, S );
@@ -22307,7 +22387,7 @@ begin
 end;
 
 {$IFDEF _FPC}
-procedure SetLengthW( var W: WideString; NewLength: Integer );
+procedure SetLengthW( var W: KOLWideString; NewLength: Integer );
 begin
   while Length( W ) < NewLength do
     W := W + ' ' + W;
@@ -22315,7 +22395,7 @@ begin
     Delete( W, NewLength + 1, Length( W ) - NewLength );
 end;
 
-function CopyW( const W: WideString; From, Count: Integer ): WideString;
+function CopyW( const W: KOLWideString; From, Count: Integer ): KOLWideString;
 begin
   Result := '';
   if Count <= 0 then Exit;
@@ -22341,7 +22421,7 @@ end;
 
 {$IFNDEF _FPC}
 {$IFNDEF _D2}
-function WStrReplace( var S: WideString; const From, ReplTo: WideString ): Boolean;
+function WStrReplace( var S: KOLWideString; const From, ReplTo: KOLWideString ): Boolean;
 var I: Integer;
 begin
   I := pos( From, S );
@@ -22353,7 +22433,7 @@ begin
   else Result := FALSE;
 end;
 
-function WStrRepeat( const S: WideString; Count: Integer ): WideString;
+function WStrRepeat( const S: KOLWideString; Count: Integer ): KOLWideString;
 var I, L: Integer;
 begin
   L := Length( S );
@@ -22364,7 +22444,7 @@ end;
 {$ENDIF _D2}
 {$ENDIF _FPC}
 
-function StrRepeat( const S: AnsiString; Count: Integer ): AnsiString;
+function StrRepeat( const S: KOLString; Count: Integer ): KOLString;
 var I, L: Integer;
 begin
   L := Length( S );
@@ -22788,7 +22868,7 @@ end;
 
 function ParamCount: Integer;
 var
-  S: Ansistring;
+  S: KOLString;
 begin
   Result := 0;
   while True do
@@ -23117,7 +23197,7 @@ end;
 {$ENDIF WIN}
 
 {$IFDEF _D3orHigher}
-function WFileCreate(const FileName: WideString; OpenFlags: DWord): THandle;
+function WFileCreate(const FileName: KOLWideString; OpenFlags: DWord): THandle;
 var Attr: DWORD;
 begin
   Attr := (OpenFlags shr 16) and $1FFF;
@@ -23187,7 +23267,7 @@ end;
 {$ENDIF WIN}
 
 {$IFDEF _D3orHigher}
-function WFileExists( const FileName: WideString ) : Boolean;
+function WFileExists( const FileName: KOLWideString ) : Boolean;
 {$IFDEF notimplemented_FILE_EXISTS_EX}
 var FD: TFindFileData;
     //F: DWORD;
@@ -23268,7 +23348,7 @@ end;
 {$ENDIF ASM_VERSION}
 
 {$IFNDEF _D2}
-function File2WStr(Handle: THandle): WideString;
+function File2WStr(Handle: THandle): KOLWideString;
 var Pos, Size: DWORD;
 begin
   Result := '';
@@ -23469,8 +23549,9 @@ function StrLoadFromFile( const Filename: KOLString ): AnsiString;
 var F: THandle;
 begin
   {$IFDEF WIN}
-  if StrEq( Filename, 'CON' ) then
-    Result := File2Str(GetStdHandle(STD_INPUT_HANDLE))
+  //if  StrEq( Filename, KOLString('CON') ) then
+  if  KOLLowerCase(Filename) = 'con' then
+      Result := File2Str(GetStdHandle(STD_INPUT_HANDLE))
   else
   {$ENDIF WIN}
   begin
@@ -23503,24 +23584,25 @@ begin
 end;
 
 {$IFNDEF _D2}
-function WStrLoadFromFile( const Filename: KOLString ): WideString;
+function WStrLoadFromFile( const Filename: KOLString ): KOLWideString;
 var F: THandle;
 begin
   {$IFDEF WIN}
-  if StrEq( Filename, 'CON' ) then
-    Result := File2WStr(GetStdHandle(STD_INPUT_HANDLE))
+  //if StrEq( Filename, 'CON' ) then
+  if  KOLLowerCase(Filename) = 'con' then
+      Result := File2WStr(GetStdHandle(STD_INPUT_HANDLE))
   else
   {$ENDIF WIN}
   begin
-    Result := '';
-    F := FileCreate( Filename, ofOpenRead or ofOpenExisting or ofShareDenyWrite );
-    if F = INVALID_HANDLE_VALUE then Exit;
-    Result := File2WStr( F );
-    FileClose( F ); {Dark Knight}
+      Result := '';
+      F := FileCreate( Filename, ofOpenRead or ofOpenExisting or ofShareDenyWrite );
+      if F = INVALID_HANDLE_VALUE then Exit;
+      Result := File2WStr( F );
+      FileClose( F ); {Dark Knight}
   end;
 end;
 
-function WStrSaveToFile( const Filename: KOLString; const Str: WideString ): Boolean;
+function WStrSaveToFile( const Filename: KOLString; const Str: KOLWideString ): Boolean;
 var BytesToSave: Integer;
 begin
   BytesToSave := Length( Str ) * Sizeof(WideChar);
@@ -23703,7 +23785,7 @@ begin
 end;
 
 {$IFDEF _D3orHigher}
-function WDirectoryExists(const Name: WideString): Boolean;
+function WDirectoryExists(const Name: KOLWideString): Boolean;
 var
   Code: Integer;
 begin
@@ -23714,7 +23796,8 @@ end;
 
 {$ENDIF WIN}
 
-function CheckDirectoryContent( const Name: KOLString; SubDirsOnly: Boolean; const Mask: AnsiString ): Boolean;
+function CheckDirectoryContent( const Name: KOLString; SubDirsOnly: Boolean;
+         const Mask: KOLString ): Boolean;
 var FD: TFindFileData;
 begin
   if not DirectoryExists( Name ) then
@@ -23844,7 +23927,7 @@ begin
 end;
 
 {$IFDEF WIN} //vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-function GetFileList(const dir: Ansistring): PStrList;
+function GetFileList(const dir: KOLString): PKOLStrList;
 var
    Srch: TFindFileData;
    succ: Boolean;
@@ -23854,9 +23937,9 @@ begin
    while succ do begin
       if (not (Srch.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY > 0))then begin
          if Result = nil then begin
-            Result := NewStrList;
+            Result := NewKOLStrList;
          end;
-         Result.Add(AnsiString(Srch.cFileName)); // TODO: because AStrList
+         Result.Add(Srch.cFileName);
       end;
       succ := Find_Next(Srch);
    end;
@@ -23999,7 +24082,7 @@ end;
 {$ENDIF ASM_VERSION}
 
 {$IFDEF _D3orHigher}
-function WExtractFilePath( const Path: WideString ) : WideString;
+function WExtractFilePath( const Path: KOLWideString ) : KOLWideString;
 var P, P0: PWideChar;
 begin
   P0 := PWideChar( Path );
@@ -24793,7 +24876,7 @@ begin
             LongBool(FindAttr and FILE_ATTRIBUTE_NORMAL));
   if not Result then Exit;
 
-  if (FileName <> {$IFDEF UNICODE_CTRLS} WideString( '.' )
+  if (FileName <> {$IFDEF UNICODE_CTRLS} KOLWideString( '.' )
                   {$ELSE} {$IFDEF F_P}Dot{$ELSE}'.'{$ENDIF}
                   {$ENDIF UNICODE_CTRLS} ) and
      (FileName <> '..') then
@@ -24808,7 +24891,7 @@ begin
     F := PKOLChar(fFilters.fList.Items[ I ]);
     if F = '' then continue;
 
-    if (F = {$IFDEF UNICODE_CTRLS} WideString( '.' ) {$ELSE}
+    if (F = {$IFDEF UNICODE_CTRLS} KOLWideString( '.' ) {$ELSE}
             {$IFDEF F_P}Dot{$ELSE}'.'{$ENDIF}
             {$ENDIF UNICODE_CTRLS} ) or (F = '..') then
     begin
@@ -24816,7 +24899,7 @@ begin
         Exit;
     end
       else
-    if (Filename = {$IFDEF UNICODE_CTRLS} WideString( '.' ) {$ELSE}
+    if (Filename = {$IFDEF UNICODE_CTRLS} KOLWideString( '.' ) {$ELSE}
                    {$IFDEF F_P}Dot{$ELSE}'.'{$ENDIF}
                    {$ENDIF UNICODE_CTRLS} ) or (FileName = '..') then
       continue;
@@ -24841,7 +24924,7 @@ begin
   end;
 
   Result := HasOnlyNegFilters and
-            (FileName <> {$IFDEF UNICODE_CTRLS} WideString( '.' ) {$ELSE}
+            (FileName <> {$IFDEF UNICODE_CTRLS} KOLWideString( '.' ) {$ELSE}
                          {$IFDEF F_P}Dot{$ELSE}'.'{$ENDIF}
                          {$ENDIF UNICODE_CTRLS} ) and (FileName <> '..');
 end;
@@ -25188,7 +25271,7 @@ var I : Integer;
     Item1, Item2 : PFindFileData;
     S1, S2 : PKOLChar;
     {$IFDEF UNICODE_CTRLS}
-    W1, W2: WideString;
+    W1, W2: KOLWideString;
     {$ENDIF}
     IsDir1, IsDir2 : Boolean;
     Date1, Date2 : PFileTime;
@@ -25256,9 +25339,9 @@ begin
       begin
         S1 := Item1.cFileName;
         S2 := Item2.cFileName;
-        S1 := {$IFDEF UNICODE_CTRLS} @ S1[ DelimiterLast( WideString( S1 ), '.' ) - 1 ]
+        S1 := {$IFDEF UNICODE_CTRLS} @ S1[ DelimiterLast( KOLWideString( S1 ), '.' ) - 1 ]
               {$ELSE} __DelimiterLast( S1, '.' ) {$ENDIF};
-        S2 := {$IFDEF UNICODE_CTRLS} @ S2[ DelimiterLast( WideString( S2 ), '.' ) - 1 ]
+        S2 := {$IFDEF UNICODE_CTRLS} @ S2[ DelimiterLast( KOLWideString( S2 ), '.' ) - 1 ]
               {$ELSE} __DelimiterLast( S2, '.' ) {$ENDIF};
         if not Data.CaseSensitive then
            Result := {$IFDEF UNICODE_CTRLS}
@@ -27145,7 +27228,7 @@ begin
 end;
 
 {$IFDEF _D3orHigher}
-function TStream.ReadWStrZ: WideString;
+function TStream.ReadWStrZ: KOLWideString;
 var C: WideChar;
 begin
   Result := '';
@@ -27155,7 +27238,7 @@ begin
     if C <> #0 then
       Result := Result +
        {$IFDEF _D3}
-       WideString( C )
+       KOLWideString( C )
        {$ELSE}
        C
        {$ENDIF};
@@ -27209,7 +27292,7 @@ begin
 end;
 
 {$IFDEF _D3orHigher}
-function TStream.WriteWStrZ(S: WideString): DWORD;
+function TStream.WriteWStrZ(S: KOLWideString): DWORD;
 var C: WideChar;
 begin
   if S = '' then
@@ -28008,7 +28091,7 @@ begin
 end;
 
 {$IFDEF _D3orHigher}
-function NewReadFileStreamW( const FileName: WideString ): PStream;
+function NewReadFileStreamW( const FileName: KOLWideString ): PStream;
 begin
   Result := _NewStream( BaseFileMethods );
   Result.fMethods.fRead := ReadFileStreamProc;
@@ -28038,7 +28121,7 @@ begin
 end;
 
 {$IFDEF _D3orHigher}
-function NewWriteFileStreamW( const FileName: WideString ): PStream;
+function NewWriteFileStreamW( const FileName: KOLWideString ): PStream;
 begin
   Result := _NewStream( BaseFileMethods );
   Result.fMethods.fWrite := WriteFileStreamEOF;
@@ -28088,7 +28171,7 @@ end;
 {$ENDIF ASM_VERSION}
 
 {$IFDEF _D3orHigher}
-function NewReadWriteFileStreamW( const FileName: WideString ): PStream;
+function NewReadWriteFileStreamW( const FileName: KOLWideString ): PStream;
 var Creation: DWORD;
 begin
   Result := _NewStream( BaseFileMethods );
@@ -28387,34 +28470,6 @@ begin
   inherited;
 end;
 {$ENDIF ASM_VERSION}
-
-{$IFNDEF _D5orHigher}
-// Place here correct definition for WritePrivateProfileStruct
-// and GetPrivateProfileStruct (a bug in Delphi2, Delphi3 and Delphi4)
-//dufa
-{function WritePrivateProfileStruct(lpszSection, lpszKey: PAnsiChar;
-  lpStruct: Pointer; uSizeStruct: UINT; szFile: PAnsiChar): BOOL; stdcall;
-  external kernel32 name 'WritePrivateProfileStructA';
-function GetPrivateProfileStruct(lpszSection, lpszKey: PAnsiChar;
-  lpStruct: Pointer; uSizeStruct: UINT; szFile: PAnsiChar): BOOL; stdcall;
-  external kernel32 name 'GetPrivateProfileStructA';}
-
-// + by Slava A. Gavrik:
-////////////////////////////////////////////////////////////////////////////
-//dufa
-{function WritePrivateProfileSection(lpAppName, lpString,
-  lpFileName: PAnsiChar): BOOL; stdcall;
-  external kernel32 name 'WritePrivateProfileSectionA';
-function GetPrivateProfileSection(lpAppName: PAnsiChar; lpReturnedString: PAnsiChar;
-  nSize: DWORD; lpFileName: PAnsiChar): DWORD; stdcall;
-  external kernel32 name 'GetPrivateProfileSectionA';
-
-function GetPrivateProfileSectionNames(lpszReturnBuffer: PAnsiChar; nSize:
-DWORD;
-  lpFileName: PAnsiChar): DWORD; stdcall;
-  external kernel32 name 'GetPrivateProfileSectionNamesA';}
-////////////////////////////////////////////////////////////////////////////
-{$ENDIF}
 
 procedure TIniFile.ClearAll;
 begin
@@ -30166,7 +30221,7 @@ begin
   {$IFNDEF UNICODE_CTRLS}
   if not (moBitmap in Options) then MII.cch := StrLen( ACaption );
   {$ELSE}
-  if not (moBitmap in Options) then MII.cch := WStrLen( ACaption );	
+  if not (moBitmap in Options) then MII.cch := WStrLen( ACaption );
   {$ENDIF}
   InsertMenuItem( FHandle, InsertBefore, InsertBefore = -1,
                   PMenuItemInfo( @ MII )^ );
@@ -30447,7 +30502,7 @@ end;
 function DumpWindowed( c: PControl ): PControl;
 var P: PByte;
     i, j: Integer;
-    s, ss: String;
+    s, ss: KOLString;
 begin
     P := Pointer( c );
     ss := '';
@@ -31270,6 +31325,7 @@ var CtlIdCount: WORD = $8000;
 {$ENDIF WIN_GDI}
 
 {$IFDEF GDI}
+
 {$IFDEF ASM_UNICODE}
 function _NewControl( AParent: PControl; ControlClassName: PKOLChar;
                       Style: DWORD; Ctl3D: Boolean;
@@ -31357,7 +31413,7 @@ asm
         TEST     [EBX].TControl.fStyle, WS_TABSTOP
         JZ       @@CurrentControl_set
         CMP      [ECX].TControl.DF.fCurrentControl, 0
-        JZ       @@CurrentControl_set
+        JNZ      @@CurrentControl_set
         MOV      [ECX].TControl.DF.fCurrentControl, EBX
 @@CurrentControl_set:
 @@noParentForm:
@@ -31370,6 +31426,11 @@ asm
         CALL     TControl.AttachProc
         XCHG     EAX, EBX
         POP      EBX
+        {$IFDEF  DEBUG_ALTSPC}
+        PUSH     EAX
+        CALL     DumpWindowed
+        POP      EAX
+        {$ENDIF}
 end;
 {$ELSE ASM_VERSION} //Pascal
 function _NewControl( AParent: PControl; ControlClassName: PKOLChar;
@@ -31420,6 +31481,9 @@ begin
   Result.fMenu := CtlIdCount;
   Inc( CtlIdCount );
   Result.AttachProc( WndProcCtrl );
+  {$IFDEF DEBUG_ALTSPC}
+  DumpWindowed(Result);
+  {$ENDIF}
 end;
 {$ENDIF ASM_VERSION}
 {$ENDIF GDI}
@@ -31552,7 +31616,6 @@ begin
   {$ENDIF}
 end;
 {$ELSE USE_CONSTRUCTORS}
-
 
 {$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
 function NewButton( AParent: PControl; const Caption: KOLString ): PControl;
@@ -33819,78 +33882,88 @@ begin
   begin
       I := Self_.fParent.fChildren.IndexOf( Self_ );
       Prev := Self_;
-      if I > 0 then
-        Prev := Self_.FParent.fChildren.Items[ I - 1 ];
+      if  I > 0 then
+          Prev := Self_.FParent.fChildren.Items[ I - 1 ];
       GetCursorPos( MousePos );
-      if Cancel then
-        MousePos := Self_.DF.fSplitStartPos;
+      {$IFDEF SPEED_FASTER}
+          if  (MousePos.X = Self_.DF.fSplitLastPos.X)
+          and (MousePos.Y = Self_.DF.fSplitLastPos.Y) then
+          begin
+              asm
+                nop
+              end;
+              Exit;
+          end;
+          Self_.DF.fSplitLastPos := MousePos;
+      {$ENDIF SPEED_FASTER}
+      if  Cancel then
+          MousePos := Self_.DF.fSplitStartPos;
       M := 1;
-      if Self_.FAlign in [ caRight, caBottom ] then
-        M := -1;
-      if Self_.FAlign in [ caTop, caBottom ] then
+      if  Self_.FAlign in [ caRight, caBottom ] then
+          M := -1;
+      if  Self_.FAlign in [ caTop, caBottom ] then
       begin
-        NewSize1 := (MousePos.y - Self_.DF.fSplitStartPos.y)* M
-                  + Self_.DF.fSplitStartSize;
-        NewSize2 := Self_.fParent.ClientHeight - NewSize1
-                  - Self_.fBoundsRect.Bottom + Self_.fBoundsRect.Top
-                  - Self_.fParent.fMargin * 4;
-        if Self_.DF.fSecondControl <> nil then
-        begin
-          NewSize2 := Self_.DF.fSecondControl.fBoundsRect.Bottom
-                    - Self_.DF.fSecondControl.fBoundsRect.Top;
-          if Self_.DF.fSecondControl.FAlign = caClient then
-            NewSize2 := Self_.DF.fSplitStartPos2.y
-                      - (MousePos.y - Self_.DF.fSplitStartPos.y)* M
-                      - Self_.fParent.fMargin * 4;
-        end;
-    end
-       else
-    begin
-        NewSize1 := (MousePos.x - Self_.DF.fSplitStartPos.x)* M
-                  + Self_.DF.fSplitStartSize;
-        NewSize2 := Self_.fParent.ClientWidth - NewSize1
-                  - Self_.fBoundsRect.Right + Self_.fBoundsRect.Left
-                  - Self_.fParent.fMargin * 4;
-        if Self_.DF.fSecondControl <> nil then
-        begin
-          NewSize2 := Self_.DF.fSecondControl.fBoundsRect.Right
-                    - Self_.DF.fSecondControl.fBoundsRect.Left;
-          if Self_.DF.fSecondControl.FAlign = caClient then
-            NewSize2 := Self_.DF.fSplitStartPos2.x
-                      - (MousePos.x - Self_.DF.fSplitStartPos.x)* M
-                      - Self_.fParent.Margin * 4;
-        end;
-    end;
-    if  (NewSize1 < Self_.DF.fSplitMinSize1) then
-    begin
-        Dec( NewSize2, Self_.DF.fSplitMinSize1 - NewSize1 );
-        NewSize1 := Self_.DF.fSplitMinSize1;
-    end;
-    if  (NewSize2 < Self_.DF.fSplitMinSize2) then
-    begin
-        Dec( NewSize1, Self_.DF.fSplitMinSize2 - NewSize2 );
-        NewSize2 := Self_.DF.fSplitMinSize2;
-    end;
-    if  NewSize1 < Self_.DF.fSplitMinSize1 then Exit;
-    if  NewSize2 < Self_.DF.fSplitMinSize2 then Exit;
-    {$IFDEF NIL_EVENTS}
-    if  assigned( Self_.EV.fOnSplit ) then
-    {$ENDIF}
-        if  not Self_.EV.fOnSplit( Self_, NewSize1, NewSize2 ) then
-            Exit;
-    R := Prev.BoundsRect;
-    case Self_.FAlign of
-    caTop: R.Bottom := R.Top + NewSize1;
-    caBottom: R.Top := R.Bottom - NewSize1;
-    caRight: R.Left := R.Right - NewSize1;
-    else R.Right := R.Left + NewSize1;
-    end;
-    Prev.BoundsRect := R;
-    {$IFDEF OLD_ALIGN}
-    Global_Align( Self_.fParent );
-    {$ELSE NEW_ALIGN}
-    Global_Align( Self_ );
-    {$ENDIF}
+          NewSize1 := (MousePos.y - Self_.DF.fSplitStartPos.y)* M
+                    + Self_.DF.fSplitStartSize;
+          NewSize2 := Self_.fParent.ClientHeight - NewSize1
+                    - Self_.fBoundsRect.Bottom + Self_.fBoundsRect.Top
+                    - Self_.fParent.fMargin * 4;
+          if Self_.DF.fSecondControl <> nil then
+          begin
+            NewSize2 := Self_.DF.fSecondControl.fBoundsRect.Bottom
+                      - Self_.DF.fSecondControl.fBoundsRect.Top;
+            if Self_.DF.fSecondControl.FAlign = caClient then
+              NewSize2 := Self_.DF.fSplitStartPos2.y
+                        - (MousePos.y - Self_.DF.fSplitStartPos.y)* M
+                        - Self_.fParent.fMargin * 4;
+          end;
+      end else
+      begin
+          NewSize1 := (MousePos.x - Self_.DF.fSplitStartPos.x)* M
+                    + Self_.DF.fSplitStartSize;
+          NewSize2 := Self_.fParent.ClientWidth - NewSize1
+                    - Self_.fBoundsRect.Right + Self_.fBoundsRect.Left
+                    - Self_.fParent.fMargin * 4;
+          if Self_.DF.fSecondControl <> nil then
+          begin
+            NewSize2 := Self_.DF.fSecondControl.fBoundsRect.Right
+                      - Self_.DF.fSecondControl.fBoundsRect.Left;
+            if Self_.DF.fSecondControl.FAlign = caClient then
+              NewSize2 := Self_.DF.fSplitStartPos2.x
+                        - (MousePos.x - Self_.DF.fSplitStartPos.x)* M
+                        - Self_.fParent.Margin * 4;
+          end;
+      end;
+      if  (NewSize1 < Self_.DF.fSplitMinSize1) then
+      begin
+          Dec( NewSize2, Self_.DF.fSplitMinSize1 - NewSize1 );
+          NewSize1 := Self_.DF.fSplitMinSize1;
+      end;
+      if  (NewSize2 < Self_.DF.fSplitMinSize2) then
+      begin
+          Dec( NewSize1, Self_.DF.fSplitMinSize2 - NewSize2 );
+          NewSize2 := Self_.DF.fSplitMinSize2;
+      end;
+      if  NewSize1 < Self_.DF.fSplitMinSize1 then Exit;
+      if  NewSize2 < Self_.DF.fSplitMinSize2 then Exit;
+      {$IFDEF NIL_EVENTS}
+      if  assigned( Self_.EV.fOnSplit ) then
+      {$ENDIF}
+          if  not Self_.EV.fOnSplit( Self_, NewSize1, NewSize2 ) then
+              Exit;
+      R := Prev.BoundsRect;
+      case Self_.FAlign of
+      caTop: R.Bottom := R.Top + NewSize1;
+      caBottom: R.Top := R.Bottom - NewSize1;
+      caRight: R.Left := R.Right - NewSize1;
+      else R.Right := R.Left + NewSize1;
+      end;
+      Prev.BoundsRect := R;
+      {$IFDEF OLD_ALIGN}
+      Global_Align( Self_.fParent );
+      {$ELSE NEW_ALIGN}
+      Global_Align( Self_ );
+      {$ENDIF}
   end;
 end;
 {$ENDIF}
@@ -33946,6 +34019,9 @@ begin
           Self_.DF.fSplitStartPos2 :=
             MakePoint( Self_.DF.fSecondControl.Width, Self_.DF.fSecondControl.Height );
         SetCapture( Self_.fHandle );
+        {$IFDEF SPEED_FASTER}
+                Self_.DF.fSplitLastPos := MakePoint( -1, -1 );
+        {$ENDIF}
         {$IFDEF USE_FLAGS} Include( Self_.fFlagsG6, G6_Dragging );
         {$ELSE} Self_.fDragging := True; {$ENDIF}
         SetTimer( Self_.fHandle, $7B, 100, nil );
@@ -34030,6 +34106,7 @@ end;
 
 {$ENDIF USE_CONSTRUCTORS}
 
+{$IFDEF USE_MDI}
 //===================== MDI client window control =============//
 
 procedure DestroyMDIChildren( Form: PControl );
@@ -34164,8 +34241,23 @@ begin
 end;
 
 function WndProcMDIClient( MDIClient: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean;
+//var i: Integer;
+//    C: PControl;
+    (*procedure Set_WindowState( state: TWindowState );
+    begin
+        {$IFDEF USE_PROP}
+        C := GetProp( Msg.wParam, ID_SELF );
+        {$ELSE}
+        C := Pointer( GetWindowLong( Msg.wParam, GWL_USERDATA ) );
+        {$ENDIF}
+        {$IFDEF SAFE_CODE}
+        if  C <> nil then
+        {$ENDIF}
+            C.DF.fWindowState := state;
+    end;*)
 begin
-  if  not MDIClient.fAnchors and MDI_DESTROYING = 0 then
+  Result := FALSE;
+  if  MDIClient.fAnchors and MDI_DESTROYING = 0 then
   case Msg.message of
   $3f:
       begin
@@ -34197,8 +34289,29 @@ begin
         MDIClient.InvalidateNC( TRUE );
         MDIClient.InvalidateEx;
       end;
+  WM_DESTROY:
+      begin
+        MDIClient.FParent.fMDIClient := nil;
+      end;
+  {WM_MDIMAXIMIZE:
+      begin
+          for i := 0 to MDIClient.ChildCount-1 do
+          begin
+              C := MDIClient.Children[i];
+              if  (C.Handle <> DWORD( Msg.wParam ))
+              and (C.DF.fWindowState = wsMaximized) then
+              begin
+                  MDIClient.Perform( WM_MDIRESTORE, C.Handle, 0 );
+                  C.DF.fWindowState := wsNormal;
+                  Result := TRUE;
+                  PostMessage( MDIClient.Handle, WM_MDIMAXIMIZE, Msg.wParam, 0 );
+                  Exit;
+              end;
+          end;
+          Set_WindowState( wsMaximized );
+      end;
+  WM_MDIRESTORE: Set_WindowState( wsNormal );}
   end;
-  Result := FALSE;
 end;
 
 // function added by Thaddy de Koning to fix MDI behaviour
@@ -34234,6 +34347,7 @@ begin
          WS_VISIBLE or WS_TABSTOP or MDIS_ALLCHILDSTYLES, TRUE,
          {$IFDEF PACK_COMMANDACTIONS} PAnsiChar(OTHER_ACTIONS)
          {$ELSE} nil {$ENDIF} );
+  AParent.fMDIClient := Result;
   {$IFDEF DEBUG_OBJKIND}
   Result.fObjKind := 'TControl:MDIClient';
   {$ENDIF}
@@ -34286,13 +34400,15 @@ function Pass2DefMDIChildProc( Sender_: PControl; var Msg: TMsg; var Rslt: Integ
 begin
   Result := FALSE;
   if Sender_ = nil then Exit;
-  if Sender_.Parent = nil then Exit;
-  if  {$IFDEF USE_FLAGS} G2_Destroying in Sender_.Parent.fFlagsG2
-      {$ELSE} Sender_.Parent.fDestroying {$ENDIF} then Exit;
+  if Sender_.fParent = nil then Exit;
+  if  {$IFDEF USE_FLAGS} G2_Destroying in Sender_.fParent.fFlagsG2
+      {$ELSE} Sender_.fParent.fDestroying {$ENDIF} then Exit;
   if (Msg.message = WM_SYSCOMMAND) or (Msg.message = WM_CHILDACTIVATE) or
      (Msg.message = WM_SETFOCUS) or (Msg.message = WM_SIZE) or
      (Msg.message = WM_MOVE) or (Msg.message = WM_MENUCHAR) or
-     (Msg.message = WM_GETMINMAXINFO) {and IsZoomed( Sender_.fHandle ) {and (Msg.hwnd = Sender_.fHandle) { -- doesn't work -- } then
+     (Msg.message = WM_GETMINMAXINFO) {and IsZoomed( Sender_.fHandle ) {and (Msg.hwnd = Sender_.fHandle) { -- doesn't work -- }
+     or (Msg.message = WM_PAINT)
+     then
   begin
     Rslt := DefMDIChildProc( Msg.hwnd, Msg.message, Msg.lParam, Msg.wParam );
     Result := TRUE;
@@ -34323,6 +34439,17 @@ begin
       Result := TRUE;
       Exit;
     end;
+  {WM_SYSCOMMAND:
+    begin
+      CASE Msg.wParam OF
+      SC_MAXIMIZE:
+          MDIChild.DF.fWindowState := wsMaximized;
+      SC_RESTORE:
+          MDIChild.DF.fWindowState := wsNormal;
+      SC_MINIMIZE:
+          MDIChild.DF.fWindowState := wsMinimized;
+      END;
+    end;}
   end;
   if  MDIChild.fAnchors and MDI_NOT_AVAILABLE <> 0 then
   begin
@@ -34341,19 +34468,37 @@ begin
     DrawMenuBar( F.fHandle );
 end;
 
+var mdi_child_id: Integer = $FF00;
+
 function NewMDIChild( AParent: PControl; const ACaption: KOLString ): PControl;
 var MDIClient: PControl;
     MDIChildren: PList;
+    i: Integer;
 begin
   Assert( (AParent <> nil) and (AParent.ParentForm <> nil) and
           (AParent.ParentForm.MDIClient <> nil), 'Error creating MDI child' );
   MDIClient := AParent.ParentForm.MDIClient;
+  MDIChildren := Pointer( MDIClient.PropInt[ MDI_CHLDRN ] );
+
+  for i := 0 to MDIChildren.Count-1 do
+  begin
+      Result := MDIChildren.Items[i];
+      //if  Result.DF.fWindowState = wsMaximized then
+      if  IsZoomed( Result.fHandle ) then
+      begin
+          MDIClient.Perform( WM_MDIRESTORE, Result.fHandle, 0 );
+      end;
+  end;
+
   Result := NewForm( MDIClient, ACaption );
+  {$IFDEF DEBUG_OBJKIND}
+  Result.fObjKind := 'TControl:MDIChild';
+  {$ENDIF}
   {$IFDEF USE_FLAGS} include( Result.fFlagsG3, G3_IsMDIChild );
   {$ELSE} Result.fIsMDIChild := TRUE; {$ENDIF}
-  Result.fMenu := CtlIdCount;
-  Inc( CtlIdCount );
-  MDIChildren := Pointer( MDIClient.PropInt[ MDI_CHLDRN ] );
+  Result.fMenu := mdi_child_id; // CtlIdCount;
+  Inc( mdi_child_id );
+
   MDIChildren.Add( Result );
   Result.fExStyle := Result.fExStyle or WS_EX_MDICHILD;
   Result.PP.fWndFunc := @ MDIChildFunc;
@@ -34364,8 +34509,9 @@ begin
   Result.SubClassName := 'MDI_chld';
   Result.fAnchors := Result.fAnchors or MDI_NOT_AVAILABLE;
   Result.PP.fCreateWndExt := CreateMDIChildExt;
-
+  Result.fCreateWindowProc := CreateMDIWindow;
 end;
+{$ENDIF USE_MDI}
 
 //===================== Gradient panel ========================//
 
@@ -34449,7 +34595,7 @@ end;
 
 {$IFDEF _D3orHigher}
 function WndProcUnicodeChars( Sender: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean;
-var WStr, WW: WideString;
+var WStr, WW: KOLWideString;
     RepeatCount: Integer;
 begin
     Result := FALSE;
@@ -35022,6 +35168,7 @@ begin
   CM_SIZE:
     begin
       Self_.Perform( WM_SIZE, 0, 0 );
+      Self_.Invalidate;
     end;
   end;
 end;
@@ -36178,7 +36325,7 @@ var Notify: PTBNotify;
     Mouse: PNMMouse;
 {$IFNDEF _FPC}
 {$IFNDEF _D2}
-var WStr: WideString;
+var WStr: KOLWideString;
 {$ENDIF _D2}
 {$ENDIF _FPC}
 begin
@@ -36239,7 +36386,7 @@ begin
             ZeroMemory( @lpttt.szText[ 0 ], 160 );
             if Idx >= 0 then
             begin
-              WStr := WideString(Self_.DF.fTBttTxt.Items[ Idx ]);
+              WStr := KOLWideString(Self_.DF.fTBttTxt.Items[ Idx ]);
               if WStr <> '' then
                 Move( Wstr[ 1 ], lpttt.szText, Min( 158, (Length( WStr ) + 1) * 2 ) );
             end;
@@ -38193,20 +38340,32 @@ begin
    {$IFDEF INPACKAGE}
    Log( '/// Calling CreateWindowEx' );
    {$ENDIF INPACKAGE}
-   {$IFNDEF UNICODE_CTRLS}
-   fHandle := CreateWindowEx( Params.ExStyle, Params.WinClassName,
-                              Params.Caption, Params.Style, Params.X, Params.Y,
-                              Params.Width, Params.Height, Params.WndParent,
-                              Params.Menu, Params.WindowClass.hInstance,
-                              Params.Param );
-   {$ELSE}
-   fHandle := CreateWindowExW( Params.ExStyle{ or WS_EX_RTLREADING}, Params.WinClassName,
-							Params.Caption, Params.Style, Params.X, Params.Y,
-							Params.Width, Params.Height, Params.WndParent,
-							Params.Menu, Params.WindowClass.hInstance,
-							Params.Param );
-
+   {$IFDEF USE_MDI}
+   if  Assigned( fCreateWindowProc ) then
+       fHandle := fCreateWindowProc(
+          Params.WinClassName, Params.Caption, Params.Style,
+          Params.X, Params.Y, Params.Width, Params.Height,
+          Params.WndParent, Params.WindowClass.hInstance,
+          Integer( Params.Param ) )
+   else
    {$ENDIF}
+   begin
+       {$IFNDEF UNICODE_CTRLS}
+       fHandle := CreateWindowEx(
+           Params.ExStyle, Params.WinClassName,
+           Params.Caption, Params.Style, Params.X, Params.Y,
+           Params.Width, Params.Height, Params.WndParent,
+           Params.Menu, Params.WindowClass.hInstance,
+           Params.Param );
+       {$ELSE}
+       fHandle := CreateWindowExW(
+           Params.ExStyle{ or WS_EX_RTLREADING}, Params.WinClassName,
+           Params.Caption, Params.Style, Params.X, Params.Y,
+           Params.Width, Params.Height, Params.WndParent,
+           Params.Menu, Params.WindowClass.hInstance,
+           Params.Param );
+       {$ENDIF}
+   end;
    {$IFDEF INPACKAGE}
    Log( '/// CreateWindowEx called' );
    {$ENDIF INPACKAGE}
@@ -38609,6 +38768,7 @@ begin
               if Sender.IsMainWindow or ( Applet = Sender ) then
               begin
                 PostQuitMessage( 0 );
+                AppletTerminated := TRUE;
                 Rslt := 0;
               end
               else
@@ -38635,6 +38795,7 @@ begin
                 if  Sender.IsMainWindow or (Applet = Sender) then
                 begin
                     PostQuitMessage( 0 );
+                    AppletTerminated := TRUE;
                     Rslt := 0;
                 end else
                     Exit; //Default;
@@ -38682,11 +38843,13 @@ begin
   AttachProc( WndProcFormOnClick );
 end;
 
-
 {$IFDEF ASM_VERSION}//------------------
 
 {$DEFINE ASM_LOCAL}
 {$IFDEF NEW_MODAL}
+  {$UNDEF ASM_LOCAL}
+{$ENDIF}
+{$IFDEF USE_MDI}
   {$UNDEF ASM_LOCAL}
 {$ENDIF}
 
@@ -38719,6 +38882,7 @@ var C : PControl;
     end;
 
 begin
+  //RefInc;
   {$IFDEF INPACKAGE}
   Log( '->TControl.WndProc' );
   TRY
@@ -38756,7 +38920,10 @@ begin
                    WM_CLOSE:
                      begin // handler by default - simple:
                        if (Applet = @ Self) or IsMainWindow then
+                       begin
                          PostQuitMessage( 0 );
+                         AppletTerminated := TRUE;
+                       end;
                        Default;
                      end;
                    {$IFDEF USE_PROP}
@@ -38769,6 +38936,13 @@ begin
                              begin
                                {$IFDEF USE_FLAGS} include( fFlagsG2, G2_BeginDestroying );
                                {$ELSE} fBeginDestroying := TRUE; {$ENDIF}
+                               {$IFDEF SAFE_CODE}
+                                       (*{$IFDEF USE_PROP}
+                                       PropInt[ ID_SELF ] := 0;
+                                       {$ELSE}
+                                       SetWindowLong( fHandle, GWL_USERDATA, 0 );
+                                       {$ENDIF}*)
+                               {$ENDIF}
                                Default;
                                {$IFDEF INPACKAGE}
                                LogOK;
@@ -38937,7 +39111,10 @@ begin
     LogOK;
   FINALLY
     Log( '<-TControl.WndProc' );
+    //RefDec;
   END;
+  {$ELSE}
+      //RefDec;
   {$ENDIF INPACKAGE}
 end;
 {$ENDIF ASM_LOCAL}
@@ -40647,7 +40824,24 @@ begin
 end;
 {$ENDIF ASM_VERSION}
 
-{$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
+{$IFDEF ASM_TLIST}
+procedure TControl.CreateChildWindows;
+asm
+        PUSH      ESI
+        MOV       ESI, [EAX].TControl.fChildren
+        MOV       ECX, [ESI].TList.fCount
+        MOV       ESI, [ESI].TList.fItems
+        JECXZ     @@exit
+
+@@loop: PUSH      ECX
+        LODSD
+        CALL      CallTControlCreateWindow
+        POP       ECX
+        LOOP      @@loop
+
+@@exit: POP       ESI
+end;
+{$ELSE ASM_VERSION} //Pascal
 procedure TControl.CreateChildWindows;
 var I: Integer;
     C: PControl;
@@ -40658,11 +40852,11 @@ begin
   {$ENDIF INPACKAGE}
   for I := 0 to fChildren.Count - 1 do
   begin
-    {$IFDEF INPACKAGE}
-    Log( Int2Str( I ) );
-    {$ENDIF INPACKAGE}
+     {$IFDEF INPACKAGE}
+             Log( Int2Str( I ) );
+     {$ENDIF INPACKAGE}
      C := fChildren.Items[ I ];
-       C.CreateWindow; //virtual!!!
+     C.CreateWindow; //virtual!!!
   end;
   {$IFDEF INPACKAGE}
     LogOK;
@@ -46658,7 +46852,7 @@ asm
 end;
 
 {$IFDEF _D3orHigher}
-function UTF8_2WideString( const s: AnsiString ): WideString;
+function UTF8_2KOLWideString( const s: AnsiString ): KOLWideString;
 var Buffer: PWideChar;
     L: Integer;
 begin
@@ -46690,7 +46884,7 @@ end;
 
 { TWStrList }
 
-function TWStrList.Add(const W: WideString): Integer;
+function TWStrList.Add(const W: KOLWideString): Integer;
 begin
   Result := Count;
   Insert( Result, W );
@@ -46759,7 +46953,7 @@ begin
   Result := fList.Count;
 end;
 
-function TWStrList.GetItems(Idx: Integer): WideString;
+function TWStrList.GetItems(Idx: Integer): KOLWideString;
 begin
   Result := PWideChar( fList.Items[ Idx ] );
 end;
@@ -46769,7 +46963,7 @@ begin
   Result := fList.Items[ Idx ];
 end;
 
-function TWStrList.GetText: WideString;
+function TWStrList.GetText: KOLWideString;
 const
   EoL: Array[ 0..5 ] of AnsiChar = ( #13, #0, #10, #0, #0, #0 ); // KOL_ANSI
 var
@@ -46806,7 +47000,7 @@ begin
   fNameDelim := WideChar( DefaultNameDelimiter );
 end;
 
-procedure TWStrList.Insert(Idx: Integer; const W: WideString);
+procedure TWStrList.Insert(Idx: Integer; const W: KOLWideString);
 var P: Pointer;
 begin
   while Idx > Count do // by Misha Shar. a.k.a. kreit
@@ -46822,9 +47016,9 @@ begin
   Result := MergeFromFile( Filename );
 end;
 
-procedure TWStrList.LoadFromStream(Strm: PStream);
+procedure TWStrList.LoadFromStream(Strm: PStream; AppendToList: Boolean);
 begin
-  Clear;
+  if  not AppendToList then Clear;
   MergeFromStream( Strm );
 end;
 
@@ -46847,7 +47041,7 @@ begin
 end;
 
 procedure TWStrList.MergeFromStream(Strm: PStream);
-var Buf: WideString;
+var Buf: KOLWideString;
     L: Integer;
 begin
   L := Strm.Size - Strm.Position;
@@ -46865,7 +47059,7 @@ begin
   fList.MoveItem( IdxOld, IdxNew );
 end;
 
-procedure TWStrList.Put(Idx: integer; const Value: WideString);
+procedure TWStrList.Put(Idx: integer; const Value: KOLWideString);
 begin
   Delete( Idx );
   Insert( Idx, Value );
@@ -46920,7 +47114,7 @@ begin
   FreeMem( Buf );
 end;
 
-procedure TWStrList.SetItems(Idx: Integer; const Value: WideString);
+procedure TWStrList.SetItems(Idx: Integer; const Value: KOLWideString);
 var P: Pointer;
 begin
   while Idx > Count-1 do
@@ -46939,7 +47133,7 @@ begin
   end;
 end;
 
-procedure TWStrList.SetText(const Value: WideString);
+procedure TWStrList.SetText(const Value: KOLWideString);
 var L, N: Integer;
     P: PWideChar;
 begin
@@ -47040,7 +47234,7 @@ begin
   fList.Swap( Idx1, Idx2 );
 end;
 
-function TWStrList.IndexOf( const s: WideString ): Integer;
+function TWStrList.IndexOf( const s: KOLWideString ): Integer;
 var i: Integer;
     p: PWideChar;
 begin
@@ -47073,7 +47267,7 @@ begin
   Result := -1;
 end;
 
-function TWStrList.IndexOf_NoCase( const s: WideString ): Integer;
+function TWStrList.IndexOf_NoCase( const s: KOLWideString ): Integer;
 var i: Integer;
     p: PWideChar;
 begin
@@ -47106,7 +47300,7 @@ begin
   Result := -1;
 end;
 
-function TWStrList.Last: WideString;
+function TWStrList.Last: KOLWideString;
 begin
   if Count <= 0 then Result := ''
   else Result := Items[ Count-1 ];
@@ -47120,8 +47314,8 @@ begin
   {$ENDIF}
 end;
 
-function TWStrList.GetLineName(Idx: Integer): WideString;
-var s: WideString;
+function TWStrList.GetLineName(Idx: Integer): KOLWideString;
+var s: KOLWideString;
     Q: PWideChar;
 begin
   s := ItemPtrs[ Idx ];
@@ -47130,7 +47324,7 @@ begin
   Result := PWideChar(s);
 end;
 
-function TWStrList.GetLineValue(Idx: Integer): WideString;
+function TWStrList.GetLineValue(Idx: Integer): KOLWideString;
 var Q: PWideChar;
 begin
   Q := ItemPtrs[ Idx ];
@@ -47140,15 +47334,15 @@ begin
   Result := Q;
 end;
 
-procedure TWStrList.SetLineName(Idx: Integer; const NV: WideString);
-var del: WideString;
+procedure TWStrList.SetLineName(Idx: Integer; const NV: KOLWideString);
+var del: KOLWideString;
 begin
   del := fNameDelim;
   Items[ Idx ] := NV + del + LineValue[ Idx ];
 end;
 
-procedure TWStrList.SetLineValue(Idx: Integer; const Value: WideString);
-var del: WideString;
+procedure TWStrList.SetLineValue(Idx: Integer; const Value: KOLWideString);
+var del: KOLWideString;
 begin
   del := fNameDelim;
   Items[ Idx ] := LineName[ Idx ] + del + Value;
@@ -47156,7 +47350,7 @@ end;
 
 { TWStrListEx }
 
-function TWStrListEx.AddObject(const S: WideString; Obj: DWORD): Integer;
+function TWStrListEx.AddObject(const S: KOLWideString; Obj: DWORD): Integer;
 begin
   Result := Count;
   InsertObject( Count, S, Obj );
@@ -47227,7 +47421,7 @@ begin
   fObjects := NewList;
 end;
 
-procedure TWStrListEx.InsertObject(Before: Integer; const S: WideString;
+procedure TWStrListEx.InsertObject(Before: Integer; const S: KOLWideString;
   Obj: DWORD);
 begin
   Insert( Before, S );
@@ -55619,7 +55813,7 @@ var CR: TRect;
           end;
         {$IFDEF SAFE_CODE}
         FINALLY
-          RefDec;
+          C.RefDec;
         END;
         {$ENDIF SAFE_CODE}
         if oaWaitAlign in fAligning then AlignChildrenProc_(C);
@@ -55637,7 +55831,241 @@ begin
   exclude(P.fAligning,oaAligning);
 end;
 
-{$IFDEF ASM_VERSION}{$ELSE PAS_VERSION} // Pascal
+{$IFDEF ASM_TLIST}
+procedure AlignChildrenProc(Sender: PObj);
+const AlignModes = (1 shl byte(caBottom))+(1 shl byte(caTop))+
+                 (((1 shl byte(caRight)) +(1 shl byte(caLeft)))shl 8)+
+                 (((1 shl byte(caClient))+(1 shl byte(caNone)))shl 16);
+asm     //cmd    //opd
+        TEST     EAX,EAX
+        JZ       @@21
+        CMP      [EAX].TControl.fParent,0
+        SETZ     DL
+        {$IFDEF  USE_FLAGS}
+        TEST     [EAX].TControl.fFlagsG3, (1 shl G3_IsForm)
+        SETNZ    DH
+        OR       DL, DH
+        {$ELSE}
+        OR       DL,[EAX].TControl.fIsForm
+        {$ENDIF}
+        BTR      dword ptr[EAX].TControl.fAligning,oaFromSelf
+        JA       @@20
+        OR       byte ptr[EAX].TControl.fAligning,(1 shl oaWaitAlign)
+        MOV      EAX,[EAX].TControl.fParent
+@@20:   TEST     EAX, EAX
+        JZ       @@21
+        CALL     @@ToBeAlign
+        JNZ      @@DoAlign
+@@21:   RETN
+
+@@ToBeAlign:
+        {$IFDEF  USE_FLAGS}
+        TEST     [EAX].TControl.fStyle.f3_Style, 1 shl F3_Visible
+        SETNZ    DL
+        {$ELSE}
+        MOV      DL,[EAX].TControl.fVisible
+        {$ENDIF}
+        {$IFDEF  USE_FLAGS}
+        TEST     [EAX].TControl.fFlagsG3, 1 shl G3_IsForm
+        SETNZ    DH
+        OR       DL, DH
+        TEST     [EAX].TControl.fFlagsG4, (1 shl G4_CreateHidden)
+        SETNZ    DH
+        OR       DL, DH
+        {$ELSE}
+        OR       DL,[EAX].TControl.fCreateHidden
+        {$ENDIF}
+        JE       @@10
+        {$IFDEF  USE_FLAGS}
+        TEST     [EAX].TControl.fFlagsG3, 1 shl G3_IsForm
+        SETNZ    DH
+        AND      DL, DH
+        {$ELSE}
+        AND      DL,[EAX].TControl.fIsForm
+        {$ENDIF}
+        JNE      @@12
+        CMP      dword ptr[EAX].TControl.fParent,0
+        JE       @@11
+        PUSH     EAX
+        MOV      EAX,[EAX].TControl.fParent
+        CALL     @@ToBeAlign
+        POP      EAX
+@@10:   XOR      DL,1
+//!!! Important: oaWaitAlign=0
+        OR       [EAX].TControl.fAligning,DL
+@@11:   XOR      DL,1
+@@12:   RETN
+
+@@DoAlign:
+        //CALL     AlignChildrenProc_
+        //RET
+        PUSH     EBP
+        PUSH     EBX
+        PUSH     ESI
+        PUSH     EDI
+        PUSH     AlignModes //00210A14h
+        SUB      ESP,030h
+        MOV      EBX,EAX
+        AND      byte ptr[EBX].TControl.fAligning,not(1 shl oaWaitAlign)
+        OR       byte ptr[EBX].TControl.fAligning,(1 shl oaAligning)
+        LEA      EDX,[ESP+20h] //@CR
+        CALL     TControl.ClientRect
+@@Main:
+        MOV      EAX,[EBX].TControl.fChildren
+        MOV      EDI,[EAX].TList.fCount
+        MOV      EBP,[EAX].TList.fItems
+        JMP      @@entry
+@@loop:
+        MOV      ESI,[EBP]
+        {$IFDEF  USE_FLAGS}
+        MOV      AL,[ESI].TControl.fStyle.f3_Style
+        SHR      AL, F3_Visible
+        OR       AL,[ESI].TControl.fFlagsG4
+        AND      AL, 1 shl G4_CreateHidden // G4_CreateHidden = 0 !!!
+        {$ELSE}
+        MOV      AL,[ESI].TControl.fVisible
+        OR       AL,[ESI].TControl.fCreateHidden
+        {$ENDIF}
+        JZ       @@continue
+        MOVZX    EAX,[ESI].TControl.fAlign
+        BT       [ESP+30h],EAX //Allowed
+        JNC      @@continue
+        {$IFDEF  USE_FLAGS}
+        TEST     [ESI].TControl.fFlagsG4, 1 shl G4_NotUseAlign
+        {$ELSE}
+        CMP      byte ptr[ESI].TControl.fNotUseAlign,0
+        {$ENDIF}
+        JNE      @@align
+        MOV      EDX,ESP       //@R
+        MOV      EAX,ESI       //C
+        CALL     TControl.GetBoundsRect
+        MOV      EAX,[ESP+0Ch] //R.Bottom
+        MOV      [ESP+1Ch],EAX //H
+        MOV      EAX,[ESP+08h] //R.Right
+        MOV      [ESP+18h],EAX //W
+        MOV      EAX,[ESP+04h] //R.Top
+        MOV      [ESP+14h],EAX //R1.Top
+        SUB      [ESP+1Ch],EAX //H
+        MOV      EAX,[ESP]     //R.Left
+        MOV      [ESP+10h],EAX //R1.Left
+        SUB      [ESP+18h],EAX //W
+        MOVSX    EDX,[EBX].TControl.fMargin
+        MOVZX    ECX,byte ptr[ESI].TControl.fAlign
+//!!! Order of caXXX-constants is important
+        LOOP     @@caTop
+        MOV      EAX,[ESP+20h] //CR.Left
+        SUB      EAX,[ESP]     //R.Left
+        ADD      EAX,EDX       //+Margin
+        MOV      ECX,[ESP+18h] //W
+        ADD      ECX,EDX       //+Margin
+        ADD      [ESP+20h],ECX //CR.Left
+        JMP      @@00
+@@caTop:
+        LOOP     @@caRight
+        MOV      EAX,[ESP+24h] //CR.Top
+        SUB      EAX,[ESP+04h] //R.Top
+        ADD      EAX,EDX       //+Margin
+        MOV      ECX,[ESP+1Ch] //H
+        ADD      ECX,EDX       //+Margin
+        ADD      [ESP+24h],ECX //CR.Top
+        JMP      @@01
+@@caRight:
+        LOOP     @@caBottom
+        MOV      EAX,[ESP+28h] //CR.Right
+        SUB      EAX,[ESP+08h] //R.Right
+        SUB      EAX,EDX       //-Margin
+        MOV      ECX,[ESP+18h] //W
+        ADD      ECX,EDX       //+Margin
+        SUB      [ESP+28h],ECX //CR.Right
+@@00:   ADD      [ESP],EAX     //R.Left
+        ADD      [ESP+08h],EAX //R.Right
+        MOV      EAX,[ESP+2Ch] //CR.Bottom
+        SUB      EAX,EDX       //+Margin
+        MOV      [ESP+0Ch],EAX //R.Bottom
+        ADD      EDX,[esp+24h] //Margin+CR.Top
+        MOV      [ESP+04h],edx //R.Top
+        JMP      @@caNone
+@@caBottom:
+        LOOP     @@caClient
+        MOV      EAX,[ESP+2Ch] //CR.Bottom
+        SUB      EAX,[ESP+0Ch] //R.Bottom
+        SUB      EAX,EDX       //-Margin
+        MOV      ECX,[ESP+1Ch] //H
+        ADD      ECX,EDX       //+Margin
+        SUB      [ESP+2Ch],ECX //CR.Bottom
+@@01:   ADD      [ESP+04h],EAX //R.Top
+        ADD      [ESP+0Ch],EAX //R.Bottom
+        MOV      EAX,[ESP+28h] //CR.Right
+        SUB      EAX,EDX       //-Margin
+        MOV      [esp+08h],EAX //R.Right
+        ADD      EDX,[ESP+20h] //Margin+CR.Left
+        MOV      [ESP],EDX     //R.Left
+        JMP      @@caNone
+@@caClient:
+        LOOP     @@caNone
+        MOV      EAX,[ESP+2Ch] //CR.Bottom
+        SUB      EAX,EDX       //-Margin
+        MOV      [ESP+0Ch],EAX //R.Bottom
+        MOV      EAX,[ESP+28h] //CR.Right
+        SUB      EAX,EDX       //-Margin
+        MOV      [ESP+08h],EAX //R.Right
+        MOV      EAX,[ESP+24h] //CR.Top
+        ADD      EAX,EDX       //+Margin
+        MOV      [ESP+04h],EAX //R.Top
+        ADD      EDX,[ESP+20h] //Margin+CR.Left
+        MOV      [ESP],EDX     //R.Left
+@@caNone:
+        MOV      EAX,[ESP]     //R.Left
+        CMP      EAX,[ESP+08h] //R.Right
+        JLE      @@02  //CMOVG ???
+        MOV      [ESP+08h],EAX //R.Right
+@@02:   MOV      EAX,[ESP+04h] //R.Top
+        CMP      EAX,[ESP+0Ch] //R.Bottom
+        JLE      @@03  //CMOVG ???
+        MOV      [ESP+0Ch],EAX //R.Bottom
+@@03:   MOV      EDX,[ESP]     //R.Left
+        SUB      EDX,[ESP+10h] //R1.Left
+        MOV      EAX,[ESP+04h] //R.Top
+        SUB      EAX,[ESP+14h] //R1.Top
+        OR       EDX,EAX       //ChgPos
+        MOV      ECX,[ESP+08h] //R.Right
+        SUB      ECX,[ESP]     //R.Left
+        SUB      ECX,[ESP+18h] //W
+        MOV      EAX,[ESP+0Ch] //R.Bottom
+        SUB      EAX,[ESP+04h] //R.Top
+        SUB      EAX,[ESP+1Ch] //H
+        OR       EAX,ECX
+        JZ       @@04
+        AND      byte ptr[ESI].TControl.fAligning,not(1 shl oaWaitAlign)
+        OR       byte ptr[ESI].TControl.fAligning,(1 shl oaFromSelf)
+@@04:   OR       EAX,EDX
+        JZ       @@align
+        MOV      EDX,ESP       //@R
+        MOV      EAX,ESI       //C
+        CALL     TControl.SetBoundsRect
+@@align:
+        TEST     byte ptr[ESI].TControl.fAligning,(1 shl oaWaitAlign)
+        JZ       @@continue
+        MOV      EAX,ESI       //C
+        CALL     @@DoAlign
+@@continue:
+        TEST     byte ptr[EBX].TControl.fAligning,(1 shl oaAligning)
+        JZ       @@exit
+        ADD      EBP,4
+@@entry:
+        DEC      EDI
+        JGE      @@loop
+        SHR      dword ptr[ESP+30h],8 //Allowed
+        JNZ      @@Main
+        AND      byte ptr[EBX].TControl.fAligning,not(1 shl oaAligning)
+@@exit:
+        ADD      ESP,34h
+        POP      EDI
+        POP      ESI
+        POP      EBX
+        POP      EBP
+end;
+{$ELSE PAS_VERSION} // Pascal
 procedure AlignChildrenProc(Sender: PObj);
   function ToBeAlign( S: PControl ):Boolean;
   begin
@@ -55670,7 +56098,7 @@ begin
     include(S.fAligning, oaWaitAlign);
     S := S.Parent;
   end;
-  if ToBeAlign(S) then
+  if (S <> nil) and ToBeAlign(S) then
     AlignChildrenProc_(S);
 end;
 {$ENDIF ASM_VERSION}
@@ -56332,8 +56760,8 @@ begin
 end;
 
     {$IFNDEF _FPC}
-    {$IFNDEF _D2} //------- WideString not supported in D2
-function TControl.RE_WSearchText(const Value: WideString; MatchCase,
+    {$IFNDEF _D2} //------- KOLWideString not supported in D2
+function TControl.RE_WSearchText(const Value: KOLWideString; MatchCase,
   WholeWord, ScanForward: Boolean; SearchFrom, SearchTo: Integer): Integer;
 var Flags: Integer;
    FT: TFindTextW;
@@ -57254,6 +57682,7 @@ begin
             Exit;
           end;
         end;
+        //Rslt := Form.CallDefWndProc( Msg ); // to handle Alt+Space ???
     end;
   end
     else
@@ -57401,7 +57830,11 @@ end;
 
 procedure TControl.DoSelChange;
 begin
+  {$IFDEF NIL_EVENTS}
   if  Assigned( EV.fOnSelChange ) then
+  {$ELSE}
+  if  TMethod( EV.fOnSelChange ).Code <> @DummyObjProc then
+  {$ENDIF}
       EV.fOnSelChange( @Self )
   else
   {$IFDEF NIL_EVENTS}
@@ -58657,7 +59090,7 @@ begin
 end;
 
 {$IFNDEF _D2}
-function Clipboard2WText: WideString;
+function Clipboard2WText: KOLWideString;
 var gbl: THandle;
     str: PWideChar;
 begin
@@ -58706,7 +59139,7 @@ begin
 end;
 
 {$IFNDEF _D2}
-function WText2Clipboard( const WS: WideString ): Boolean;
+function WText2Clipboard( const WS: KOLWideString ): Boolean;
 var gbl: THandle;
     str: PAnsiChar;
 begin
@@ -61880,7 +62313,7 @@ begin
   if  ( ParentHavingFont <> nil ) then
       OldFont := SelectObject( DC, ParentHavingFont.Font.Handle );
   OldBrush := SelectObject( DC, GetStockObject( NULL_BRUSH ) );
-  fDrawThemeText( Theme, DC, CtlType, CtlStates, @ WideString( Ctl.fCaption )[ 1 ],
+  fDrawThemeText( Theme, DC, CtlType, CtlStates, @ KOLWideString( Ctl.fCaption )[ 1 ],
                   Length( Ctl.fCaption ), Flags1, Flags2, @ R );
   SelectObject( DC, OldBrush );
   if  ( ParentHavingFont <> nil ) then
@@ -65124,7 +65557,7 @@ begin
         Result := GetWindowContextHelpId( fHandle );
 end;
 
-function TControl.Get_MDIClient: PControl;
+{function TControl.Get_MDIClient: PControl;
 var i: Integer;
 begin
     Result := nil;
@@ -65134,7 +65567,7 @@ begin
         if  Result.fControlClassName = 'MDICLIENT' then break;
         Result := nil;
     end;
-end;
+end;}
 
 function TControl.Get_Ctl3D: Boolean;
 begin
