@@ -14,7 +14,7 @@
   Key Objects Library (C) 2000 by Kladov Vladimir.
 
 ****************************************************************
-* VERSION 3.00.Y
+* VERSION 3.00.Y+
 ****************************************************************
 
   K.O.L. - is a set of objects to create small programs
@@ -22764,7 +22764,7 @@ asm
         XCHG    ESI,EAX
         XOR     EBX, EBX
         JECXZ   @@fin
-  @@1:  MOV     AL, BYTE PTR [EDI]
+  @@1:  MOVZX   EAX, BYTE PTR [EDI]
         INC     EDI
         MOV     BL, BYTE PTR [EAX+Upper]
         LODSB
