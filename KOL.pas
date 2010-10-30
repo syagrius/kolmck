@@ -14,7 +14,7 @@
   Key Objects Library (C) 2000 by Kladov Vladimir.
 
 ****************************************************************
-* VERSION 3.00.U
+* VERSION 3.00.Y
 ****************************************************************
 
   K.O.L. - is a set of objects to create small programs
@@ -884,6 +884,7 @@ type
     fLastKnownBlockIdx: Integer;
     fLastKnownCountBefore: Integer;
     fUseBlocks: Boolean;
+    fNotOptimized: Boolean;
     {$ENDIF}
   public
     procedure Clear;
@@ -953,6 +954,7 @@ type
   {$IFDEF TLIST_FAST}
     property UseBlocks: Boolean read fUseBlocks write fUseBlocks;
   {$ENDIF}
+    procedure OptimizeForRead;
   end;
 
 function NewList: PList;
@@ -1444,9 +1446,12 @@ function NewMemBlkStream( BlkSize: Integer ): PStream;
    a memory stream, contents of the blocks stream should not be accessed
    directly via fMemory but therefore it is possible to access its parts by
    portions written to blocks still those were written contigously. To do so,
-   get an address of just written portion for further usage via procedure
-   GetAddressOfWrittenBlock. It is guarantee that blocks of memory allocated
+   get an address of just written portion for further usage via field
+   fJustWrittenBlkAddress. It is guarantee that blocks of memory allocated
    during write process never are relocated until destruction the stream. }
+
+function NewMemBlkStream_WriteOnly( BlkSize: Integer ): PStream;
+{* Same as NewMemoryStream}
 
 function NewConcatStream( Stream1, Stream2: PStream ): PStream;
 {* Creates a stream which is a concatenation of two source stream. After
@@ -1600,8 +1605,9 @@ type
     function GetValue(const AName: Ansistring): Ansistring;
   public
     // by Dod:
-    function IndexOfName(AName: Ansistring): Integer;
+    function IndexOfName_old(AName: Ansistring): Integer;
     {* by Dod. Returns index of line starting like Name=... }
+    function IndexOfName(AName: Ansistring): Integer;
     property Values[const AName: Ansistring]: Ansistring read GetValue write SetValue;
     {* by Dod. Returns right side of a line starting like Name=... }
   public
@@ -1698,6 +1704,7 @@ type
     function AppendToFile(const FileName: KOLString): Boolean;
     {* Appends strings of string list to the end of a file. }
     {$ENDIF WIN_GDI}
+    procedure OptimizeForRead;
   end;
 
 var DefaultNameDelimiter: AnsiChar = '=';
@@ -1776,6 +1783,7 @@ type
     function IndexOfObj( Obj: Pointer ): Integer;
     {* Returns an index of a string associated with the object passed as a
        parameter. If there are no such strings, -1 is returned. }
+    procedure OptimizeForRead;
   end;
 
 function NewStrListEx: PStrListEx;
@@ -1877,6 +1885,7 @@ type
     property LineName[ Idx: Integer ]: KOLWideString read GetLineName write SetLineName;
     property LineValue[ Idx: Integer ]: KOLWideString read GetLineValue write SetLineValue;
     property NameDelimiter: WideChar read fNameDelim write fNameDelim;
+    procedure OptimizeForRead;
   end;
 
   PWStrListEx = ^TWStrListEx;
@@ -1913,6 +1922,7 @@ type
     function IndexOfObj( Obj: Pointer ): Integer;
     {* Returns an index of a string associated with the object passed as a
        parameter. If there are no such strings, -1 is returned. }
+    procedure OptimizeForRead;
   end;
 
 function NewWStrList: PWStrList;
@@ -4454,7 +4464,8 @@ type
 
   {$IFDEF USE_MHTOOLTIP}
   {$DEFINE pre_interface}
-  {$I KOLMHToolTip}
+  PMHHint = ^TMHHint;
+  TKOLMHHint = PMHHint;
   {$UNDEF pre_interface}
   {$ENDIF}
 
@@ -5055,7 +5066,9 @@ type
     function GetLVColText(Idx: Integer): KOLString;
     procedure SetLVColText(Idx: Integer; const Value: KOLString);
     {$IFDEF ENABLE_DEPRECATED}
-    {$DEFINE interface_2} {$I KOL_deprecated.inc} {$UNDEF interface_2}
+    {$DEFINE interface_2}
+    {$I KOL_deprecated.inc}
+    {$UNDEF interface_2}
     {$ENDIF DISABLE_DEPRECATED}
   protected
     function LVGetItemText(Idx, Col: Integer): KOLString;
@@ -5596,11 +5609,11 @@ type
 
     {$IFDEF USE_MHTOOLTIP}
     {$DEFINE var}
-    {$I KOLMHToolTip}
+    fHint: PMHHint;
     {$UNDEF var}
 
     {$DEFINE function}
-    {$I KOLMHToolTip}
+    function GetHint: PMHHint;
     {$UNDEF function}
     {$ENDIF}
 
@@ -5922,7 +5935,7 @@ type
 
     {$IFDEF USE_MHTOOLTIP}
     {$DEFINE public}
-    {$I KOLMHToolTip}
+    property Hint: PMHHint read GetHint;
     {$UNDEF public}
     {$ENDIF}
 
@@ -9420,8 +9433,14 @@ type
 
   {$IFDEF USE_MHTOOLTIP}
   {$DEFINE interface_part}
-  {$I KOLMHToolTip}
+  {$I KOLMHToolTip_interface.inc}
   {$UNDEF interface_part}
+  {$ENDIF}
+
+  {$IFDEF USE_MHTOOLTIP}
+  {$DEFINE interface_2}
+  {$I KOLMHToolTip_intf2.inc}
+  {$UNDEF interface_2}
   {$ENDIF}
 
 {$IFDEF EVENTS_DYNAMIC}
@@ -11541,7 +11560,7 @@ function WAnsiEq( const S1, S2 : KOLWideString ) : Boolean;
 {$ENDIF _FPC}
 {$ENDIF _D2}
 
-function StrIn( const S : AnsiString; const A : array of String ) : Boolean;
+function StrIn( const S : AnsiString; const A : array of AnsiString ) : Boolean;
 {* Returns True, if S is "equal" to one of strings, taking place
    in A array. To check equality, StrEq function is used, i.e.
    comaprison is taking place without case sensitivity. }
@@ -14666,6 +14685,13 @@ end;
 
 const size_TRect = 16; // used often in assembler versions of code
 
+//        {$DEFINE ASM_LOCAL}
+//{$IFDEF PAS_VERSION}  {$UNDEF ASM_LOCAL}{$ENDIF}
+//{$IFDEF UNICODE_CTRLS}{$UNDEF ASM_LOCAL}{$ENDIF}
+//{$IFDEF ASM_VERSION}
+//        {$DEFINE ASM_LOCAL}
+//{$ENDIF}
+
 {$IFDEF ASM_VERSION}
 const
   EmptyString: AnsiString = '';
@@ -16430,6 +16456,7 @@ begin
           DelFromBlock := Len;
         if DelFromBlock < CountCurrent then
         begin
+          fNotOptimized := TRUE;
           move( Pointer( Integer( BlockStart ) + (Idx - CountBefore + DelFromBlock) * Sizeof( Pointer ) )^,
                 Pointer( Integer( BlockStart ) + (Idx - CountBefore) * Sizeof( Pointer ) )^,
                 (CountCurrent - (Idx - CountBefore) - DelFromBlock) * Sizeof( Pointer ) );
@@ -16587,27 +16614,37 @@ begin
   {$IFDEF TLIST_FAST}
   if fUseBlocks and ( fBlockList <> nil ) then
   begin
-    CountBefore := 0;
-    i := 0;
-    if (fLastKnownBlockIdx > 0) and
-       (Idx >= fLastKnownCountBefore) then
+    if  fNotOptimized then
     begin
-      i := fLastKnownBlockIdx;
-      CountBefore := fLastKnownCountBefore;
-    end;
-    while {i < fBlockList.fCount div 2} TRUE do
-    begin
-      BlockStart := fBlockList.fItems[ i * 2 ];
-      CountCurrent := Integer( fBlockList.fItems[ i * 2 + 1 ] );
-      if (CountBefore <= Idx) and (Idx < CountBefore + CountCurrent) then
-      begin
-        fLastKnownBlockIdx := i;
-        fLastKnownCountBefore := CountBefore;
-        Result := Pointer( PDWORD( Integer( BlockStart ) + (Idx - CountBefore) * Sizeof( Pointer ) )^ );
-        Exit;
-      end;
-      inc( CountBefore, CountCurrent );
-      inc( i );
+        CountBefore := 0;
+        i := 0;
+        if (fLastKnownBlockIdx > 0) and
+           (Idx >= fLastKnownCountBefore) then
+        begin
+          i := fLastKnownBlockIdx;
+          CountBefore := fLastKnownCountBefore;
+        end;
+        while {i < fBlockList.fCount div 2} TRUE do
+        begin
+          BlockStart := fBlockList.fItems[ i * 2 ];
+          CountCurrent := Integer( fBlockList.fItems[ i * 2 + 1 ] );
+          if (CountBefore <= Idx) and (Idx < CountBefore + CountCurrent) then
+          begin
+            fLastKnownBlockIdx := i;
+            fLastKnownCountBefore := CountBefore;
+            Result := Pointer( PDWORD( Integer( BlockStart ) + (Idx - CountBefore) * Sizeof( Pointer ) )^ );
+            Exit;
+          end;
+          inc( CountBefore, CountCurrent );
+          inc( i );
+        end;
+    end
+      else
+    begin // optimized!
+        i := Idx shr 8;
+        BlockStart := fBlockList.fItems[ i * 2 ];
+        i := Idx and 255;
+        Result := Pointer( PDWORD( Integer( BlockStart ) + i * Sizeof( Pointer ) )^ );
     end;
   end
     else
@@ -16746,6 +16783,7 @@ begin
      end;
      if fBlockList.fCount = 0 then
      begin
+       fNotOptimized := FALSE;
        GetMem( NewBlock, 256 * Sizeof( Pointer ) );
        fBlockList.Add( NewBlock );
        fBlockList.Add( nil );
@@ -16785,6 +16823,7 @@ begin
          end
            else // new block is created since current block is full 256 items
          begin
+           fNotOptimized := TRUE;
            GetMem( NewBlock, 256 * Sizeof( Pointer ) );
            fBlockList.Insert( (i+1)*2, Pointer( 256-Idx ) );
            fBlockList.Insert( (i+1)*2, NewBlock );
@@ -16835,7 +16874,17 @@ begin
 end;
 {$ENDIF ASM_VERSION}
 
-{$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
+{$IFDEF ASM_TLIST}
+function TList.Last: Pointer;
+asm     //cmd    //opd
+        MOV      ECX, [EAX].fCount
+        JECXZ    @@0
+        MOV      EAX, [EAX].fItems
+        DEC      ECX
+        MOV      ECX, [EAX + ECX*4]
+@@0:    XCHG     EAX, ECX
+end;
+{$ELSE ASM_VERSION} //Pascal
 function TList.Last: Pointer;
 begin
   if Count = 0 then
@@ -17147,6 +17196,44 @@ begin
   {$ENDIF INPACKAGE}
 end;
 {$ENDIF ASM_VERSION}
+
+procedure TList.OptimizeForRead;
+{$IFDEF TLIST_FAST}
+var i, j, N: Integer;
+    NewBlocksList: PList;
+    BlockStart: PPointer;
+{$ENDIF}
+begin
+    {$IFDEF TLIST_FAST}
+    if  fNotOptimized and fUseBlocks then
+    begin
+        NewBlocksList := NewList;
+        NewBlocksList.UseBlocks := FALSE;
+        i := 0;
+        while i < Count do
+        begin
+            N := 256;
+            if  N > Count-i then
+                N := Count-i;
+            GetMem( BlockStart, 256 * Sizeof(Pointer) );
+            NewBlocksList.Add( BlockStart );
+            NewBlocksList.Add( Pointer(N) );
+            for j := i to i+N-1 do
+            begin
+                BlockStart^ := Items[j];
+                inc( BlockStart );
+            end;
+            inc( i, 256 );
+        end;
+        N := Count;
+        Clear;
+        Free_And_Nil( fBlockList );
+        fBlockList := NewBlocksList;
+        fCount := N;
+        fNotOptimized := FALSE;
+    end;
+    {$ENDIF}
+end;
 
 var
   IdleHandlers: PList;
@@ -17850,7 +17937,7 @@ end;
 
 procedure TGraphicTool.SetFontName(const Value: KOLString);
 begin
-  if fData.Font.Name = Value then Exit;
+  if KOLString(fData.Font.Name) = Value then Exit;
   FillChar( fData.Font.Name[ 0 ], LF_FACESIZE, #0 );
   //ZeroMemory( @fData.Font.Name[ 0 ], LF_FACESIZE );
   {$IFDEF UNICODE_CTRLS} WStrLCopy {$ELSE} StrLCopy {$ENDIF}
@@ -18267,9 +18354,7 @@ VAR s: AnsiString;
    'Light', 'Normal', 'Normal', 'Normal',
    'Bold', 'Ultrabold', 'Heavy' );}
 BEGIN
-  //////////////////////////////////////
   IF  NOT Assigned( fPangoFontDesc ) THEN
-  //////////////////////////////////////
   BEGIN
       s := FontName; { + ' ' +
         IfThen( FontWeight <> 400, Weights[ FontWeight div 100 ] + ' ' ) +
@@ -18345,9 +18430,7 @@ end;
 {$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
 procedure TCanvas.CreateBrush;
 begin
-  //////////////////////////
   if assigned( fBrush ) then
-  //////////////////////////
   begin
     SelectObject( GetHandle, fBrush.Handle );
     AssignChangeEvents;
@@ -19596,8 +19679,8 @@ begin
     Inc( I );
   while I <= Length( S ) do
   begin
-    if not( S[ I ] in [ '0'..'9' ] ) then
-      break;
+    if  (S[ I ] < '0') or (S[ I ] > '9') then
+        break;
     Result := Mul64i( Result, 10 );
     IncInt64( Result, Integer( S[ I ] ) - Integer( '0' ) );
     Inc( I );
@@ -20068,65 +20151,26 @@ asm     // EAX = Value
 
         PUSH      EAX
         {$IFDEF PARANOIA} DB $24, $0F {$ELSE} AND AL, 0Fh {$ENDIF}
+        AAM
+        DB $D5, $11 //AAD
+        ADD      AL, $30
 
-        {$IFDEF oldcode}
-
-                {$IFDEF PARANOIA} DB $3C, 9 {$ELSE} CMP AL, 9 {$ENDIF}
-                JA        @@10
-                {$IFDEF PARANOIA} DB $04, 30h-41h+0Ah {$ELSE} ADD AL,30h-41h+0Ah {$ENDIF}
-        @@10:
-                {$IFDEF PARANOIA} DB $04, 41h-0Ah {$ELSE} ADD AL,41h-0Ah {$ENDIF}
-
-        {$ELSE newcode}
-
-                AAM
-                DB $D5, $11 //AAD
-                ADD      AL, $30
-
-        {$ENDIF newcode}
-
-
-        //MOV       byte ptr [EDI], AL
         STOSB
         DEC       EDI
         POP       EAX
         SHR       EAX, 4
-
         JNZ       @@loop
-
         TEST      EDX, EDX
         JG        @@loop
 
         POP       EAX      // EAX = @Result
         MOV       EDX, EDI // EDX = @resulting string
         {$IFDEF _D2009orHigher}
-        //PUSH     ECX       // TODO: remove ecx protection
         XOR      ECX, ECX
         {$ENDIF}
         CALL      System.@LStrFromPChar
-        {$IFDEF _D2009orHigher}
-        //POP       ECX      // ECX popup twice to eax?
-        {$ENDIF}
         POP       EDI
         ADD       ESP, 10h
-
-{== by KSer - to test it only.
-function Int2Hex( Value : DWord; Digits : Integer ) : shortString;
-asm
-        MOV       [ECX], DL
-        XADD      EDX, ECX
-@@loop1:
-        PUSH      EAX
-        db   $24, $0F    // and  al,$0F
-        AAM
-        DB $D5, $11      // AAD
-        db   $04, $30    // add  al,$30
-        MOV       [EDX], AL
-        POP       EAX
-        SHR       EAX, 4
-        DEC       EDX
-        LOOP      @@loop1
-}
 end;
 {$ELSE ASM_VERSION}
 function Int2Hex( Value : DWord; Digits : Integer ) : KOLString;
@@ -20222,8 +20266,8 @@ begin
   Result := 0;
   for I := 1 to Length( Value ) do
   begin
-    if Value[ I ] in [ '0'..'7' ] then
-      Result := Result * 8 + Ord( Value[ I ] ) - Ord( '0' )
+    if   (Value[ I ] >= '0') and (Value[ I ] <= '7') then
+         Result := Result * 8 + Ord( Value[ I ] ) - Ord( '0' )
     else break;
   end;
 end;
@@ -20234,8 +20278,8 @@ begin
   Result := 0;
   for I := 1 to Length( Value ) do
   begin
-    if Value[ I ] in [ '0'..'1' ] then
-      Result := Result * 2 + Ord( Value[ I ] ) - Ord( '0' )
+    if   (Value[ I ] = '0') or (Value[ I ] = '1') then
+         Result := Result * 2 + Ord( Value[ I ] ) - Ord( '0' )
     else break;
   end;
 end;
@@ -20476,10 +20520,12 @@ const RomeDigs = KOLString('IVXLCDMT');
   begin
     CASE N OF
     1, 2, 3:    Result := StrRepeat( RomeDigs[ FromIdx ], N );
-    4:          Result := KOLString('') + RomeDigs[ FromIdx ] + RomeDigs[ FromIdx + 1 ];
-    5, 6, 7, 8: Result := RomeDigs[ FromIdx + 1 ] + StrRepeat( RomeDigs[ FromIdx ],
-                       N - 5 );
-    9:          Result := KOLString('') + RomeDigs[ FromIdx ] + RomeDigs[ FromIdx + 2 ]
+    4:          Result := KOLString('') + KOLString(RomeDigs[ FromIdx ]) +
+                          KOLString(RomeDigs[ FromIdx + 1 ]);
+    5, 6, 7, 8: Result := KOLString(RomeDigs[ FromIdx + 1 ]) +
+                          StrRepeat( RomeDigs[ FromIdx ], N - 5 );
+    9:          Result := KOLString('') + KOLString(RomeDigs[ FromIdx ]) +
+                          KOLString(RomeDigs[ FromIdx + 2 ]);
     else        Result := '';
     END;
   end;
@@ -20567,11 +20613,11 @@ begin
   while S <> '' do
   begin
     if Result <> '' then
-       Result := ThsSeparator + Result;
+       Result := KOLString(ThsSeparator) + Result;
     Result := CopyTail( S, 3 ) + Result;
     S := Copy( S, 1, Length( S ) - 3 );
   end;
-  if Copy( Result, 1, 2 ) = KOLString('-') + ThsSeparator then
+  if Copy( Result, 1, 2 ) = KOLString('-') + KOLString(ThsSeparator) then
      Result := '-' + CopyEnd( Result, 3 );
 end;
 {$ENDIF ASM_VERSION}
@@ -20648,8 +20694,9 @@ end;
 {$ENDIF ASM_VERSION}
 
 {$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
+{$IFDEF _D2009orHigher}  const Suffix: AnsiString = 'KMGT';
+{$ELSE}                  const Suffix = 'KMGT';    {$ENDIF}
 function Num2Bytes( Value : Double ) : AnsiString;
-const Suffix = 'KMGT';
 var V, I : Integer;
 begin
   Result := '';
@@ -20943,8 +20990,8 @@ var I : Integer;
 begin
   Result := S;
   for I := 1 to Length( S ) do
-    if Result[ I ] in [ 'A'..'Z' ] then
-       Inc( Result[ I ], 32 );
+      if  (Result[ I ] >= 'A') and (Result[ I ] <= 'Z') then
+          Inc( Result[ I ], 32 );
 end;
 {$ENDIF ASM_VERSION}
 
@@ -20954,8 +21001,8 @@ var I : Integer;
 begin
   Result := S;
   for I := 1 to Length( S ) do
-    if Result[ I ] in [ 'a'..'z' ] then
-       Dec( Result[ I ], 32 );
+      if  (Result[ I ] >= 'a') and (Result[ I ] <= 'z') then
+          Dec( Result[ I ], 32 );
 end;
 {$ENDIF ASM_VERSION}
 
@@ -21258,7 +21305,13 @@ end;
 {$ENDIF _D2}
 {$ENDIF _FPC}
 
-{$IFDEF ASM_UNICODE}
+        {$DEFINE ASM_LOCAL}
+{$IFDEF PAS_VERSION}  {$UNDEF ASM_LOCAL}{$ENDIF}
+{$IFDEF UNICODE_CTRLS}{$UNDEF ASM_LOCAL}{$ENDIF}
+{$IFDEF _D2}          {$UNDEF ASM_LOCAL}{$ENDIF}
+{$IFDEF _D3}          {$UNDEF ASM_LOCAL}{$ENDIF}
+
+{$IFDEF ASM_LOCAL}
 function IndexOfStr( const S, Sub : KOLString ) : Integer;
 asm
         PUSH     EBX
@@ -21322,8 +21375,12 @@ asm
 end;
 {$ELSE ASM_VERSION} //Pascal
 function IndexOfStr( const S, Sub : KOLString ) : Integer;
-var I : Integer;
+//var I : Integer;
 begin
+  Result := pos( Sub, S );
+  if  Result = 0 then
+      Result := -1;
+  {
   Result := Length( S );
   if Sub = '' then Exit;
   Result := 0;
@@ -21340,6 +21397,7 @@ begin
     Inc( Result );
   end;
   Result := -1;
+  }
 end;
 {$ENDIF ASM_VERSION}
 
@@ -22101,14 +22159,14 @@ end;
 {$ENDIF _D2}
 
 {$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
-function StrIn(const S: AnsiString; const A: array of String): Boolean;
+function StrIn(const S: AnsiString; const A: array of AnsiString): Boolean;
 var I : Integer;
 begin
   for I := Low( A ) to High( A ) do
-      if StrEq( S, A[ I ] ) then
+      if  StrEq( S, A[ I ] ) then
       begin
-        Result := True;
-        Exit;
+          Result := True;
+          Exit;
       end;
   Result := False;
 end;
@@ -23143,7 +23201,7 @@ asm
         SUB     EDX,EAX
         SHR     EDX,1
 @@5:    POP     ECX
-        JMP     LStrFromPWCharLen 
+        JMP     LStrFromPWCharLen
 end {$IFDEF F_P} [ 'EAX', 'EDX', 'ECX' ] {$ENDIF};
 {$ENDIF _FPC}
 
@@ -23166,7 +23224,6 @@ end;
 {
    This part of the unit modified by Tim Slusher and Vladimir Kladov.
 }
-
 {* Set of utility methods to work with files
    and reqistry.
    When programming KOL, which is Windows API-oriented, You should
@@ -23995,7 +24052,7 @@ function IncludeTrailingChar( const S: KOLString; C: KOLChar ): KOLString;
 begin
   Result := S;
   if (Result = '') or (Result[ Length( Result ) ] <> C) then
-    Result := Result + C;
+    Result := Result + KOLString(C);
 end;
 {$ENDIF ASM_VERSION}
 
@@ -24481,7 +24538,7 @@ asm
   {$IFDEF _D2009orHigher}
   xor ecx, ecx // ecx is argument
   {$ENDIF}
-  call System.@LStrFromPChar 
+  call System.@LStrFromPChar
   add  esp, 268
 end;
 {$ELSE PASCAL}
@@ -24510,8 +24567,8 @@ begin
    succ := Find_First(dir, Srch);
    while succ do begin
       if (not (Srch.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY > 0))then begin
-         if Result<>''then Result:=Result+FileOpSeparator;
-         Result:=Result+FPath+Srch.cFileName;
+         if Result<>'' then Result := Result + KOLString(FileOpSeparator);
+         Result := Result + FPath + KOLString(Srch.cFileName);
       end;
       succ := Find_Next(Srch);
    end;
@@ -24595,6 +24652,7 @@ function DoFileOp( const FromList, ToList: KOLString; FileOp: UINT; Flags: Word;
 var FOS : {$IFDEF UNICODE_CTRLS}TSHFileOpStructW{$ELSE}TSHFileOpStruct{$ENDIF};
     Buf : PKOLChar;
     L : Integer;
+    ToList0: KOLString;
 begin
   L := Length( FromList );
   Buf := AllocMem( L+2 );
@@ -24608,7 +24666,8 @@ begin
   FOS.wFunc := FileOp;
   FOS.lpszProgressTitle := Title;
   FOS.pFrom := Buf;
-  FOS.pTo := PKOLChar( ToList + #0 );
+  ToList0 := ToList0 + #0;
+  FOS.pTo := PKOLChar( ToList0 );
   FOS.fFlags := Flags;
   FOS.fAnyOperationsAborted := True;
   Result := {$IFDEF UNICODE_CTRLS}SHFileOperationW{$ELSE}SHFileOperationA{$ENDIF}( FOS ) = 0;
@@ -24696,7 +24755,6 @@ begin
 end;
 {$ENDIF ASM_VERSION}
 
-//+
 function TDirList.Get(Idx: Integer): PFindFileData;
 begin
   {$IFDEF DIRLIST_FASTER}
@@ -24876,7 +24934,7 @@ begin
             LongBool(FindAttr and FILE_ATTRIBUTE_NORMAL));
   if not Result then Exit;
 
-  if (FileName <> {$IFDEF UNICODE_CTRLS} KOLWideString( '.' )
+  if (KOLString(FileName) <> {$IFDEF UNICODE_CTRLS} KOLWideString( '.' )
                   {$ELSE} {$IFDEF F_P}Dot{$ELSE}'.'{$ENDIF}
                   {$ENDIF UNICODE_CTRLS} ) and
      (FileName <> '..') then
@@ -24891,7 +24949,7 @@ begin
     F := PKOLChar(fFilters.fList.Items[ I ]);
     if F = '' then continue;
 
-    if (F = {$IFDEF UNICODE_CTRLS} KOLWideString( '.' ) {$ELSE}
+    if (KOLString(F) = {$IFDEF UNICODE_CTRLS} KOLWideString( '.' ) {$ELSE}
             {$IFDEF F_P}Dot{$ELSE}'.'{$ENDIF}
             {$ENDIF UNICODE_CTRLS} ) or (F = '..') then
     begin
@@ -24899,7 +24957,7 @@ begin
         Exit;
     end
       else
-    if (Filename = {$IFDEF UNICODE_CTRLS} KOLWideString( '.' ) {$ELSE}
+    if (KOLString(Filename) = {$IFDEF UNICODE_CTRLS} KOLWideString( '.' ) {$ELSE}
                    {$IFDEF F_P}Dot{$ELSE}'.'{$ENDIF}
                    {$ENDIF UNICODE_CTRLS} ) or (FileName = '..') then
       continue;
@@ -24924,7 +24982,7 @@ begin
   end;
 
   Result := HasOnlyNegFilters and
-            (FileName <> {$IFDEF UNICODE_CTRLS} KOLWideString( '.' ) {$ELSE}
+            (KOLString(FileName) <> {$IFDEF UNICODE_CTRLS} KOLWideString( '.' ) {$ELSE}
                          {$IFDEF F_P}Dot{$ELSE}'.'{$ENDIF}
                          {$ENDIF UNICODE_CTRLS} ) and (FileName <> '..');
 end;
@@ -25135,7 +25193,7 @@ begin
               if  fStoreFiles = nil then
               begin
                   {$IFDEF DIRLIST_FASTER}
-                  fStoreFiles := NewMemBlkStream( 32 * Sizeof( FindData ) );
+                  fStoreFiles := NewMemBlkStream_WriteOnly( 32 * Sizeof( FindData ) );
                   {$ELSE}
                   fStoreFiles := NewMemoryStream( );
                   fStoreFiles.Capacity := 64 * Sizeof( FindData );
@@ -26240,14 +26298,10 @@ var h12, hAM: Boolean;
     while (S^ <> #0) and (NChars <> 0) do
     begin
       Dec( NChars );
-      {$IFDEF UNICODE_CTRLS}
-      if (S^ >= '0') and (S^ <= '9') then
-      {$ELSE}
-      if S^ in ['0'..'9'] then
-      {$ENDIF}
+      if  (S^ >= '0') and (S^ <= '9') then
       begin
-        Result := Result * 10 + Ord(S^) - Ord('0');
-        Inc( S );
+          Result := Result * 10 + Ord(S^) - Ord('0');
+          Inc( S );
       end
       else
         break;
@@ -26357,13 +26411,9 @@ begin
   hAM := FALSE;
   while (FmtStr^ <> #0) and (S^ <> #0) do
   begin
-    {$IFDEF UNICODE_CTRLS}
     if ((FmtStr^ >= 'a') and (FmtStr^ <= 'z') or
        (FmtStr^ >= 'A') and (FmtStr^ <= 'Z')) and
        (S^ >= '0') and (S^ <= '9') then
-    {$ELSE}
-    if (FmtStr^ in ['a'..'z','A'..'Z']) and (S^ in ['0'..'9']) then
-    {$ENDIF}
     begin
       if      FmtIs1( 'yyyy'   ) then ST.wYear := GetNum( S, 4 )
       else if FmtIs1( 'yy' )     then ST.wYear := GetYear( S, 2 )
@@ -26377,11 +26427,7 @@ begin
       else break; // + ECM
     end
       else
-    {$IFDEF UNICODE_CTRLS}
     if (FmtStr^ = 'M') or (FmtStr^ = 'd') or (FmtStr^ = 'g') then
-    {$ELSE}
-    if (FmtStr^ in [ 'M', 'd', 'g' ]) then
-    {$ENDIF}
     begin
       if      FmtIs1( 'MMMM' ) then ST.wMonth := GetMonth( 'MMMM', S )
       else if FmtIs1( 'MMM'  ) then ST.wMonth := GetMonth( 'MMM', S )
@@ -27268,7 +27314,7 @@ begin
       if C <> #13 then
         Result := Result + C;
     end;
-  UNTIL C in [ #13, #0 ];
+  UNTIL (C = #13) or (C = #0);
 end;
 
 function TStream.ReadStrLen(Len: Integer): AnsiString;
@@ -27382,7 +27428,6 @@ begin
   F.Free;
 end;
 
-//+-
 function _NewStream( const StreamMethods: TStreamMethods ): PStream;
 begin
   New( Result, Create );
@@ -27394,7 +27439,6 @@ begin
   TMethod( Result.fOnChangePos ).Code := @DummyObjProc;
 end;
 
-//+
 function SeekFileStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
 begin
   Result := FileSeek( Strm.fData.fHandle, MoveTo, MoveFrom );
@@ -27403,7 +27447,6 @@ begin
   {$ENDIF}
 end;
 
-//+
 function GetSizeFileStream( Strm: PStream ): TStrmSize;
 {$IFDEF STREAM_LARGE64}
 var SizeHigh: DWORD;
@@ -27429,6 +27472,17 @@ end;
 function DummyReadWrite( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
 asm
   XOR EAX, EAX
+  {$IFDEF STREAM_LARGE64}
+  XOR EDX, EDX
+  {$ENDIF}
+end;
+
+function DummySeek( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmMove; MoveMethod: TMoveMethod ): TStrmSize;
+asm
+  XOR EAX, EAX
+  {$IFDEF STREAM_LARGE64}
+  XOR EDX, EDX
+  {$ENDIF}
 end;
 
 function ReadFileStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
@@ -28270,6 +28324,20 @@ begin
   Result.Add2AutoFreeEx( TObjectMethod( MakeMethod( Result, @FreeMemBlkStream ) ) );
 end;
 
+function NewMemBlkStream_WriteOnly( BlkSize: Integer ): PStream;
+begin
+  Result := NewMemoryStream;
+  Result.fData.fBlkSize := BlkSize;
+  Result.fData.fBlocks := NewList;
+  Result.fMethods.fWrite := WriteMemBlkStream;
+  Result.fMethods.fSetSiz := DummySetSize;
+  Result.fMethods.fClose := DummyClose_ExMemStream;
+  Result.fMethods.fRead := DummyReadWrite;
+  Result.fMethods.fSeek := DummySeek;
+  Result.fMethods.fSetSiz := ResizeMemBlkStream;
+  Result.Add2AutoFreeEx( TObjectMethod( MakeMethod( Result, @FreeMemBlkStream ) ) );
+end;
+
 function NewConcatStream( Stream1, Stream2: PStream ): PStream;
 begin
   Result := _NewStream( ConcatStreamMethods );
@@ -28580,7 +28648,6 @@ asm
 //        JE      @@EXIT
 //      возможна нехватка Буфера... в принципе не ошибка :)
 //      возвращаем что влезло...
-//////////////////////////////
 @@LOOP:
         LEA     EAX,[ESI+4]
         CALL    StrLen
@@ -28713,10 +28780,8 @@ asm
         POP     EDX
         POP     ESI
         POP     EBX
-///////////////////////////////////
-        MOV     EAX,EBX                 // нодо очищать
+        MOV     EAX,EBX
         CALL    ClearSection
-//////////////////////////////////
 
         PUSH    [EBX].fFileName
         PUSH    ESI
@@ -28812,7 +28877,7 @@ var
     if GetKeyNameText(Code shl 16, KeyName, 256) > 0 then begin
       if Result <> '' then
         Result := Result + '+';
-      Result := Result + KeyName;
+      Result := Result + KOLString(KeyName);
     end;
   end;
 
@@ -29110,7 +29175,7 @@ FUNCTION NewMenu( AParent : PControl; MaxCmdReserve : DWORD;
         ParentMenu.FItems := NewList;
       ParentMenu.FItems.Add( Item );
 
-      IF  (s <> '') AND (s[ 1 ] in [ '+', '-' ]) THEN
+      IF  (s <> '') AND ((s[ 1 ] = '+') or (s[ 1 ] = '-')) THEN
       BEGIN
           Item.fIsCheckItem := TRUE;
           Item.fChecked := S[ 1 ] = '+';
@@ -32514,9 +32579,7 @@ begin
     begin
       CapText := Self_.Caption;
       CapTxtOrig := CapText; /////////////////////////// added 19 Nov 2001
-      //{$IFDEF NIL_EVENTS}
       if  Assigned( Self_.DF.FBitBtnGetCaption ) then
-      //{$ENDIF}
           CapText := Self_.DF.FBitBtnGetCaption( Self_, CapText ); ////////////
       Bk := 0;
       Blend := 0;
@@ -34241,20 +34304,6 @@ begin
 end;
 
 function WndProcMDIClient( MDIClient: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean;
-//var i: Integer;
-//    C: PControl;
-    (*procedure Set_WindowState( state: TWindowState );
-    begin
-        {$IFDEF USE_PROP}
-        C := GetProp( Msg.wParam, ID_SELF );
-        {$ELSE}
-        C := Pointer( GetWindowLong( Msg.wParam, GWL_USERDATA ) );
-        {$ENDIF}
-        {$IFDEF SAFE_CODE}
-        if  C <> nil then
-        {$ENDIF}
-            C.DF.fWindowState := state;
-    end;*)
 begin
   Result := FALSE;
   if  MDIClient.fAnchors and MDI_DESTROYING = 0 then
@@ -34293,24 +34342,6 @@ begin
       begin
         MDIClient.FParent.fMDIClient := nil;
       end;
-  {WM_MDIMAXIMIZE:
-      begin
-          for i := 0 to MDIClient.ChildCount-1 do
-          begin
-              C := MDIClient.Children[i];
-              if  (C.Handle <> DWORD( Msg.wParam ))
-              and (C.DF.fWindowState = wsMaximized) then
-              begin
-                  MDIClient.Perform( WM_MDIRESTORE, C.Handle, 0 );
-                  C.DF.fWindowState := wsNormal;
-                  Result := TRUE;
-                  PostMessage( MDIClient.Handle, WM_MDIMAXIMIZE, Msg.wParam, 0 );
-                  Exit;
-              end;
-          end;
-          Set_WindowState( wsMaximized );
-      end;
-  WM_MDIRESTORE: Set_WindowState( wsNormal );}
   end;
 end;
 
@@ -37639,7 +37670,7 @@ begin
   {$ENDIF}
    {$IFDEF USE_MHTOOLTIP}
    {$DEFINE destroy}
-   {$I KOLMHToolTip}
+   fHint.Free;
    {$UNDEF destroy}
    {$ENDIF USE_MHTOOLTIP}
    {$IFDEF DEBUG}
@@ -37773,7 +37804,6 @@ begin
        fTmpFont.Free;
        {$ENDIF}
        fDynHandlers.Free;
-       //fREUrl := '';
        inherited;
    end;
 end;
@@ -37781,7 +37811,12 @@ end;
 
    {$IFDEF USE_MHTOOLTIP}
    {$DEFINE code}
-   {$I KOLMHToolTip}
+    function TControl.GetHint: PMHHint;
+    begin
+      if fHint = nil then
+        fHint := NewHint(@Self);
+      Result := fHint;
+    end;
    {$UNDEF code}
    {$ENDIF}
 
@@ -37961,7 +37996,6 @@ asm
         {$IFDEF  USE_FLAGS}
         TEST     [EBX].fFlagsG4, 1 shl G4_CreateHidden
         {$ELSE}
-        //MOV      DL, 0
         CMP      [EBX].fCreateHidden, 0
         {$ENDIF}
         JZ       @@create_children
@@ -40656,9 +40690,9 @@ begin
 end;
 
 {$IFDEF USE_MHTOOLTIP}
-{$DEFINE implementation}
-{$I KOLMHToolTip}
-{$UNDEF implementation}
+{$DEFINE implementation_part}
+{$I KOLMHToolTip_implem.inc}
+{$UNDEF implementation_part}
 {$ENDIF}
 
 procedure TControl.SetConstraint(const Index: Integer; Value: SmallInt);
@@ -46236,28 +46270,54 @@ begin
 end;
 
 //-- code by Dod:
-function TStrList.IndexOfName(AName: Ansistring): Integer;
-var
-  i: Integer;
-  L: Integer;
+function TStrList.IndexOfName_old(AName: Ansistring): Integer;
+var i: Integer;
+    L: Integer;
 begin
-  Result:=-1;
-  // Do not start search if empty string
-  L := Length( AName );
-  if L > 0 then
-  begin
-    AName := LowerCase( AName ) + fNameDelim;
-    Inc( L );
-    for i := 0 to fCount - 1 do
+    Result:=-1;
+    // Do not start search if empty string
+    L := Length( AName );
+    if L > 0 then
     begin
-      // For optimization, check only list entry that begin with same letter as searched name
-      if StrLComp( PAnsiChar( LowerCase( ItemPtrs[ i ] ) ), PAnsiChar( AName ), L ) = 0 then
+      AName := LowerCase( AName ) + fNameDelim;
+      Inc( L );
+      for i := 0 to fCount - 1 do
       begin
-        Result:=i;
-        exit;
+        // For optimization, check only list entry that begin with same letter as searched name
+        if StrLComp( PAnsiChar( LowerCase( ItemPtrs[ i ] ) ), PAnsiChar( AName ), L ) = 0 then
+        begin
+          Result:=i;
+          exit;
+        end;
       end;
     end;
-  end;
+end;
+
+function TStrList.IndexOfName(AName: Ansistring): Integer;
+var i: Integer;
+    L: Integer;
+    s, p: PAnsiChar;
+begin
+    Result:=-1;
+    L := Length( AName );
+    if L > 0 then
+    begin
+      s := PAnsiChar( AName );
+      for i := 0 to fCount - 1 do
+      begin
+        if StrLComp_NoCase( ItemPtrs[ i ], s, L ) = 0 then
+        begin
+            p := ItemPtrs[ i ];
+            inc( p, L );
+            while (p^ <> #0) and (p^ <= ' ') do inc( p );
+            if  p^ = fNameDelim then
+            begin
+                Result := i;
+                exit;
+            end;
+        end;
+      end;
+    end;
 end;
 
 //-- code by Dod:
@@ -46479,7 +46539,7 @@ asm
         {$IFDEF _D2}
         CALL     _LStrFromPCharLen
         {$ELSE}
-        {$IFDEF _D2009orHigher} 
+        {$IFDEF _D2009orHigher}
         push     0
         {$ENDIF}
         CALL     System.@LStrFromPCharLen
@@ -46582,6 +46642,14 @@ begin
    Stream.Write( S[1], L );
 end;
 {$ENDIF ASM_VERSION}
+
+procedure TStrList.OptimizeForRead;
+begin
+    {$IFDEF TLIST_FAST}
+    if  fList <> nil then
+        fList.OptimizeForRead;
+    {$ENDIF}
+end;
 
 {$ENDIF WIN_GDI}
 ////////////////////////////////// EXTENDED STRING LIST OBJECT ////////////////
@@ -46849,6 +46917,16 @@ asm
          SUB      EAX, ECX
 @@exit0:
          MOV      EDI, EDX
+end;
+
+procedure TStrListEx.OptimizeForRead;
+begin
+    {$IFDEF TLIST_FAST}
+    if  fList <> nil then
+        fList.OptimizeForRead;
+    if  FObjects <> nil then
+        FObjects.OptimizeForRead;
+    {$ENDIF}
 end;
 
 {$IFDEF _D3orHigher}
@@ -47348,6 +47426,14 @@ begin
   Items[ Idx ] := LineName[ Idx ] + del + Value;
 end;
 
+procedure TWStrList.OptimizeForRead;
+begin
+    {$IFDEF TLIST_FAST}
+    if  fList <> nil then
+        fList.OptimizeForRead;
+    {$ENDIF}
+end;
+
 { TWStrListEx }
 
 function TWStrListEx.AddObject(const S: KOLWideString; Obj: DWORD): Integer;
@@ -47436,6 +47522,16 @@ begin
     ProvideObjectsCapacity( Max( IdxOld, IdxNew ) + 1 );
     FObjects.MoveItem( IdxOld, IdxNew );
   end;
+end;
+
+procedure TWStrListEx.OptimizeForRead;
+begin
+    {$IFDEF TLIST_FAST}
+    if  fList <> nil then
+        fList.OptimizeForRead;
+    if  FObjects <> nil then
+        FObjects.OptimizeForRead;
+    {$ENDIF}
 end;
 
 procedure TWStrListEx.ProvideObjectsCapacity(NewCap: Integer);
@@ -49114,7 +49210,7 @@ end;
 {$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
 function TControl.GetChildCount: Integer;
 begin
-  Result := fChildren.fCount;
+  Result := fChildren.Count;
 end;
 {$ENDIF ASM_VERSION}
 {$IFDEF WIN_GDI}
@@ -49701,8 +49797,8 @@ begin
     fOpenReadOnly := OFN_READONLY and ofn.Flags <> 0; // by ECM (in my redaction)
     if OSAllowMultiSelect in foptions then begin
       FFileName := copy(TempFileName, 1, pos(KOLString(#0#0), tempfilename)-1);
-      while pos(#0, ffilename) > 0 do begin
-        FFilename[pos(#0, ffilename)]:=#13;
+      while pos(KOLString(#0), ffilename) > 0 do begin
+        FFilename[pos(KOLString(#0), ffilename)]:=#13;
       end;
     end else
       FFileName := copy(tempFileName, 1, pos(KOLString(#0), TempFilename)
@@ -50364,7 +50460,6 @@ asm
 @@2a:
 
         MOV      EAX, [ToolbarsIDcmd]
-        //INC      [ToolbarsIDcmd]
         STOSD
         TEST     EBX, EBX
         {$IFDEF USE_CMOV}
@@ -50479,6 +50574,7 @@ function TControl.TBAddInsButtons(Idx: Integer; const Buttons: array of PKOLChar
           I, N, nBmp: Integer;
           PAB: PTBButton;
           Str: PKOLChar;
+          Str0: KOLString;
       begin
         Result := -1;
         AB := nil;
@@ -50536,15 +50632,19 @@ function TControl.TBAddInsButtons(Idx: Integer; const Buttons: array of PKOLChar
               inc( Str );
             end;
             {$ENDIF TOOLBAR_DOT_NOAUTOSIZE_BUTTON}
-            if (Str = KOLString( {$IFDEF F_P}''+{$ENDIF} KOLChar( ' ' ) )) or (Str^ = #0) then
+            if (KOLString(Str) = KOLString( {$IFDEF F_P}''+{$ENDIF} KOLChar( ' ' ) )) or (Str^ = #0) then
               PAB.iString := -1
                 //Perform( TB_ADDSTRING, 0, Integer( PChar( '' + #0 ) ) )
                 // an experiment: is it possible to remove space right to image
                 // without setting tboTextBottom option (non compatible with FixFlatXP)
                 // answer: seems not possible.
             else
+            begin
+              Str0 := KOLString('') + KOLString(Str) + #0;
               PAB.iString :=
-                Perform( TB_ADDSTRING, 0, Integer( PKOLChar( KOLString( KOLString('') + Str + #0 ) ) ) );
+                Perform( TB_ADDSTRING, 0,
+                    Integer( PKOLChar( Str0 ) ) );
+            end;
           end;
 
           PAB.idCommand := ToolbarsIDcmd;
@@ -50600,7 +50700,6 @@ end;
 
 function GetTBBtnGoodID( Toolbar: PControl; BtnIDorIdx: Integer ): Integer;
 // change by Alexander Pravdin (to fix toolbar with separator first):
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 var Btn1st, i: Integer; btn: TTBButton;
 begin
   Result := BtnIDorIdx;
@@ -58888,7 +58987,7 @@ begin
   while Item <> 0 do
   begin
     if Result <> '' then
-      Result := Delimiter + Result;
+      Result := KOLString(Delimiter) + Result;
     Result := TVItemText[ Item ] + Result;
     Item := TVItemParent[ Item ];
   end;
@@ -59562,10 +59661,10 @@ var P: PAnsiChar;
       begin
         C1 := Pattern^;
         C2 := Pos^;
-        if C1 in [ 'a'..'z' ] then
-          C1 := AnsiChar( Ord( C1 ) - $20 );
-        if C2 in [ 'a'..'z' ] then
-          C2 := AnsiChar( Ord( C2 ) - $20 );
+        if  (C1 >= 'a') and (C1 <= 'z') then
+            C1 := AnsiChar( Ord( C1 ) - $20 );
+        if  (C2 >= 'a') and (C2 <= 'z') then
+            C2 := AnsiChar( Ord( C2 ) - $20 );
         if C1 <> C2 then
         begin
           Result := False;
@@ -59977,6 +60076,7 @@ var Flags: DWORD;
       SetStdHandle( STD_INPUT_HANDLE, SaveStdIn );
     end;
 
+var Cmd: KOLString;
 begin
   Result := FALSE;
   Flags := 0;
@@ -60003,7 +60103,8 @@ begin
   end;;
   if DfltDirectory <> '' then
     DfltDir := PKOLChar( DfltDirectory );
-  if CreateProcess( nil, PKOLChar( '"' + AppPath + '" ' + CmdLine ),
+  Cmd := '"' + AppPath + '" ' + CmdLine;
+  if CreateProcess( nil, PKOLChar( Cmd ),
      nil, nil, TRUE, Flags, nil, DfltDir, Startup,
      ProcInf ) then
   begin
@@ -61153,7 +61254,7 @@ begin
         if FList <> '' then
           FList := FList + #13;
         DragQueryFile( hDrop, I, Buf, Sizeof( Buf ) );
-        FList := FList + Buf;
+        FList := FList + KOLString(Buf);
       end;
       DragFinish( hDrop );
       Sender.EV.FOnDropFiles( Sender, FList, Pt );
@@ -62321,7 +62422,7 @@ begin
 end;
 {$ENDIF}
 
-procedure PaintGraphicChildren( Self_, Sender: PControl; DC: HDC );
+procedure PaintGraphicChildren( Self_, _Sender: PControl; DC: HDC );
 var i, sav: Integer;
     C: PControl;
     R: TRect;
@@ -62354,10 +62455,9 @@ begin
       {$ENDIF}
           C.EV.fOnPrePaint( C, DC );
 
+      C.EV.fPaintProc( DC );
       if  Assigned( C.EV.fOnPaint ) then
-          C.EV.fOnPaint( C, DC )
-      else
-          C.EV.fPaintProc( DC );
+          C.EV.fOnPaint( C, DC );
 
       {$IFDEF NIL_EVENTS}
       if  Assigned( C.EV.fOnPostPaint ) then
@@ -62405,13 +62505,14 @@ begin
     //if not Result then
     begin
       WasOnPaint := Self_.EV.fOnPaint;
-      Self_.EV.fOnPaint2 := Self_.EV.fOnPaint;
+      Self_.{$IFDEF EVENTS_DYNAMIC} ProvideUniqueEvents {$ELSE} EV {$ENDIF}
+      .fOnPaint2 := Self_.EV.fOnPaint;
       //Self_.fPaintMsg := Msg;
       {$IFDEF MAKE_METHOD}
       TMethod( Self_.EV.fOnPaint ) := MakeMethod( Self_, @ PaintGraphicChildren );
       {$ELSE}
       TMethod( Self_.EV.fOnPaint ).Code := @ PaintGraphicChildren;
-      TMethod( Self_.EV.fOnPaint ).Data := @ Self_;
+      TMethod( Self_.EV.fOnPaint ).Data := Self_;
       {$ENDIF}
 
       save_Paint2 := Self_.EV.fOnPaint2;
@@ -62775,6 +62876,7 @@ begin
   end;
   Result.fBoundsRect.Right := Result.fBoundsRect.Left + 64;
   Result.fBoundsRect.Bottom := Result.fBoundsRect.Top + 22;
+  Result.EV.fOnPaint := nil;
 
   {$IFDEF GRAPHCTL_XPSTYLES}
   if WinVer < wvXP then
@@ -64153,55 +64255,6 @@ begin
                                 PProgressbarOptions(Form.FormGetIntParam)^ );
 end;
 
-{function FormNewToolbar( Form: PControl ): PControl;
-type PToolbarOptions = ^TToolbarOptions;
-type TAnsiStringArray = array[0..65535] of String;
-     PAnsiStringArray = ^TAnsiStringArray;
-var a, o, m, b, N, N2, i: Integer;
-    map: array[0..1] of Integer;
-    butt1: PKOLStrList;
-    butt2: array[0..255] of PKOLChar;
-    imgs: array of Integer;
-begin
-    a := Form.FormGetIntParam;
-    o := Form.FormGetIntParam;
-    m := Form.FormGetIntParam;
-    CASE m OF
-    1:  begin
-            Form.FormGetStrParam;
-            map[0] := Form.FormGetIntParam;
-            map[0] := Color2RGB( clBtnFace );
-            b := LoadMappedBitmapEx( Form, hInstance, PKOLChar( Form.FormString ), map );
-        end;
-    2:  begin
-            Form.FormGetStrParam;
-            b := LoadBmp( hInstance, PKOLChar( Form.FormString ), Form );
-        end;
-    else
-        b := m;
-    END;
-    N := Form.FormGetIntParam; // N must be < 256
-    butt1 := NewKOLStrList;
-    for i := 0 to N-1 do
-    begin
-        Form.FormGetStrParam;
-        butt1.Add( Form.FormString );
-        butt2[i] := butt1.ItemPtrs[i];
-    end;
-    butt2[N] := nil;
-    N2 := Form.FormGetIntParam; // N2 must be < 256
-    SetLength( imgs, N2 );
-    for i := 0 to N2-1 do
-        imgs[i] := Form.FormGetIntParam;
-    Result := NewToolbar( Form.DF.FormCurrentParent,
-           TControlAlign( a ),
-           PToolbarOptions( @ o )^,
-           b,
-           butt2,
-           imgs );
-    Free_And_Nil(butt1);
-end;}
-
 function FormNewDateTimePicker( Form: PControl ): PControl;
 type PDateTimePickerOptions = ^TDateTimePickerOptions;
 var o: Integer;
@@ -64765,523 +64818,357 @@ begin
     Form.AnchorTop    := I and 2 <> 0;
     Form.AnchorRight  := I and 4 <> 0;
     Form.AnchorBottom := I and 8 <> 0;
-end;
-
+end;////////////////////////////////////////////////////////////////////////////
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormSetCaption( Form: PControl );
-var Ctl: PControl;
-begin
-    Ctl := Form;
-    Form := Form.ParentForm;
-    Form.FormGetStrParam;
-    Ctl.Caption := Form.FormString;
+var   Ctl: PControl;
+begin Ctl := Form;
+      Form := Form.ParentForm;
+      Form.FormGetStrParam;
+      Ctl.Caption := Form.FormString;
 end;
 {$ENDIF ASM_VERSION}
-
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormSetGradienStyle( Form: PControl );
-begin
-    Form.GradientStyle := TGradientStyle( ParentForm_IntParamPas(Form) );
+begin Form.GradientStyle := TGradientStyle( ParentForm_IntParamPas(Form) );
 end;
-{$ENDIF ASM_VERSION}
-
+{$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
 procedure FormOverrideScrollbars( Form: PControl );
-begin
-    OverrideScrollbars( Form );
+begin OverrideScrollbars( Form );
 end;
 
 {$IFDEF USE_RICHEDIT}
-
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormSetRE_AutoFontFalse( Form: PControl );
-begin
-    Form.RE_AutoFont := FALSE;
+begin Form.RE_AutoFont := FALSE;
 end;
-{$ENDIF ASM_VERSION}
-
+{$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormSetRE_AutoFontSizeAdjustFalse( Form: PControl );
 begin
     Form.RE_AutoFontSizeAdjust := FALSE;
 end;
-{$ENDIF PASCAL}
-
+{$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormSetRE_DualFontTrue( Form: PControl );
-begin
-    Form.RE_DualFont := TRUE;
+begin Form.RE_DualFont := TRUE;
 end;
-{$ENDIF ASM_VERSION}
-
+{$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormSetRE_UIFontsTrue( Form: PControl );
-begin
-    Form.RE_UIFonts := TRUE;
+begin Form.RE_UIFonts := TRUE;
 end;
-{$ENDIF ASM_VERSION}
-
+{$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormSetRE_IMECancelCompleteTrue( Form: PControl );
-begin
-    Form.RE_IMECancelComplete := TRUE;
+begin Form.RE_IMECancelComplete := TRUE;
 end;
-{$ENDIF ASM_VERSION}
-
+{$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormSetRE_IMEAlwaysSendNotifyTrue( Form: PControl );
-begin
-    Form.RE_IMEAlwaysSendNotify := TRUE;
+begin Form.RE_IMEAlwaysSendNotify := TRUE;
 end;
-{$ENDIF ASM_VERSION}
-
+{$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormSetMaxTextSize( Form: PControl );
-begin
-    Form.MaxTextSize := DWORD( ParentForm_IntParamPas(Form) );
+begin Form.MaxTextSize := DWORD( ParentForm_IntParamPas(Form) );
 end;
-{$ENDIF ASM_VERSION}
-
+{$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormSetRE_AutoKeyboardTrue( Form: PControl );
-begin
-    Form.RE_AutoKeyboard := TRUE;
+begin Form.RE_AutoKeyboard := TRUE;
 end;
-{$ENDIF ASM_VERSION}
-
+{$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
 procedure FormSetRE_DisableOverwriteChangeTrue( Form: PControl );
-begin
-    Form.RE_DisableOverwriteChange := TRUE;
-end;
-
+begin Form.RE_DisableOverwriteChange := TRUE;
+end;////////////////////////////////////////////////////////////////////////////
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormSetRE_Zoom( Form: PControl );
-var zoom: TSmallPoint;
-begin
-    zoom.X := ParentForm_IntParamPas(Form);
-    zoom.Y := ParentForm_IntParamPas(Form);
-    Form.RE_Zoom := zoom;
+var   zoom: TSmallPoint;
+begin zoom.X := ParentForm_IntParamPas(Form);
+      zoom.Y := ParentForm_IntParamPas(Form);
+      Form.RE_Zoom := zoom;
 end;
-{$ENDIF ASM_VERSION}
-
+{$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
 {$ENDIF USE_RICHEDIT}
-
 procedure FormSetListItems( Form: PControl );
 var N, i: Integer;
-begin
-    N := ParentForm_IntParamPas(Form);
-    for i := 0 to N-1 do
-    begin
-        ParentForm_StrParam(Form);
-        Form.Items[i] := Form.ParentForm.FormString;
-    end;
+begin N := ParentForm_IntParamPas(Form);
+      for i := 0 to N-1 do BEGIN
+          ParentForm_StrParam(Form);
+          Form.Items[i] := Form.ParentForm.FormString;
+      END;
 end;
-
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormSetCount( Form: PControl );
-begin
-    Form.Count := ParentForm_IntParamPas(Form);
+begin Form.Count := ParentForm_IntParamPas(Form);
 end;
-{$ENDIF ASM_VERSION}
-
+{$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormSetDroppedWidth( Form: PControl );
-begin
-    Form.DroppedWidth := ParentForm_IntParamPas(Form);
+begin Form.DroppedWidth := ParentForm_IntParamPas(Form);
 end;
-{$ENDIF ASM_VERSION}
-
+{$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
 procedure FormSetButtonIcon( Form: PControl );
 begin
     Form.SetButtonIcon( LoadImage( hInstance,
          ParentForm_PCharParam(Form),
          IMAGE_ICON, 0, 0, $8000 {LR_SHARED} ) );
-end;
-
+end;////////////////////////////////////////////////////////////////////////////
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormSetButtonImage( Form: PControl );
-var w, h: Integer;
-begin
-    w := ParentForm_IntParamPas(Form);
-    h := ParentForm_IntParamPas(Form);
-    Form.SetButtonIcon( LoadImage( hInstance,
-        ParentForm_PCharParam(Form),
-        IMAGE_ICON, w, h, $8000 {LR_SHARED} ) );
+var   w, h: Integer;
+begin w := ParentForm_IntParamPas(Form);
+      h := ParentForm_IntParamPas(Form);
+      Form.SetButtonIcon( LoadImage( hInstance,
+          ParentForm_PCharParam(Form),
+          IMAGE_ICON, w, h, $8000 {LR_SHARED} ) );
 end;
-{$ENDIF ASM_VERSION}
-
+{$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormSetButtonBitmap( Form: PControl );
-begin
-    Form.SetButtonBitmap( LoadBitmap( hInstance,
-         ParentForm_PCharParam(Form) ) );
+begin Form.SetButtonBitmap( LoadBitmap( hInstance,
+           ParentForm_PCharParam(Form) ) );
 end;
-{$ENDIF ASM_VERSION}
-
+{$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormSetMaxProgress( Form: PControl );
-begin
-    Form.MaxProgress := ParentForm_IntParamPas(Form);
+begin Form.MaxProgress := ParentForm_IntParamPas(Form);
 end;
-{$ENDIF ASM_VERSION}
-
+{$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormSetProgress( Form: PControl );
-begin
-    Form.Progress := ParentForm_IntParamPas(Form);
+begin Form.Progress := ParentForm_IntParamPas(Form);
 end;
-{$ENDIF ASM_VERSION}
-
+{$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormLVColumsAdd( Form: PControl );
-var N, i, w: Integer;
-begin
-    N := ParentForm_IntParamPas(Form);
-    for i := 0 to N-1 do
-    begin
-        w := ParentForm_IntParamPas(Form);
-        ParentForm_StrParam(Form);
-        Form.LVColAdd( Form.ParentForm.FormString, taLeft, w );
-    end;
+var   N, i, w: Integer;
+begin N := ParentForm_IntParamPas(Form);
+      for i := 0 to N-1 do BEGIN
+          w := ParentForm_IntParamPas(Form);
+          ParentForm_StrParam(Form);
+          Form.LVColAdd( Form.ParentForm.FormString, taLeft, w );
+      END;
 end;
-{$ENDIF ASM_VERSION}
-
+{$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormSetLVColOrder( Form: PControl );
-var N, i: Integer;
-begin
-    N := ParentForm_IntParamPas(Form);
-    i := ParentForm_IntParamPas(Form);
-    Form.LVColOrder[N] := i;
+var   N, i: Integer;
+begin N := ParentForm_IntParamPas(Form);
+      i := ParentForm_IntParamPas(Form);
+      Form.LVColOrder[N] := i;
 end;
-{$ENDIF ASM_VERSION}
-
+{$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormSetLVColImage( Form: PControl );
-var N, i: Integer;
-begin
-    N := ParentForm_IntParamPas(Form);
-    i := ParentForm_IntParamPas(Form);
-    Form.LVColImage[N] := i;
+var   N, i: Integer;
+begin N := ParentForm_IntParamPas(Form);
+      i := ParentForm_IntParamPas(Form);
+      Form.LVColImage[N] := i;
 end;
-{$ENDIF ASM_VERSION}
-
+{$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormSetTVIndent( Form: PControl );
-begin
-    Form.TVIndent := ParentForm_IntParamPas(Form);
+begin Form.TVIndent := ParentForm_IntParamPas(Form);
 end;
-{$ENDIF ASM_VERSION}
-
+{$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
 procedure FormSetTBBtnImgWidth( Form: PControl );
-begin
-    Form.TBBtnImgWidth := ParentForm_IntParamPas( Form );
-end;
-
+begin Form.TBBtnImgWidth := ParentForm_IntParamPas( Form );
+end;////////////////////////////////////////////////////////////////////////////
 procedure FormTBAddBitmap( Form: PControl );
-var m: Boolean;
-    map: array[ 0..1 ] of TColor;
-    b: Integer;
-    C: PControl;
-begin
-    C := Form;
-    Form := Form.ParentForm;
-    Form.FormGetStrParam;
-    m := Form.FormGetIntParam <> 0;
-    if  m then
-    begin
-        map[0] := Form.FormGetColorParam;
-        map[1] := Color2RGB( clBtnFace );
-        b := LoadMappedBitmapEx( Form, hInstance, PKOLChar( KOLString( Form.FormString )), map );
-    end
-      else
-    begin
-        b := LoadBmp( hInstance, PKOLChar(KOLString(Form.FormString)), Form );
-    end;
-    C.TBAddBitmap( b );
-end;
-
+var   m: Boolean;
+      map: array[ 0..1 ] of TColor;
+      b: Integer;
+      C: PControl;
+begin C := Form;
+      Form := Form.ParentForm;
+      Form.FormGetStrParam;
+      m := Form.FormGetIntParam <> 0;
+      if  m then
+      begin
+          map[0] := Form.FormGetColorParam;
+          map[1] := Color2RGB( clBtnFace );
+          b := LoadMappedBitmapEx( Form, hInstance, PKOLChar( KOLString( Form.FormString )), map );
+      end else
+          b := LoadBmp( hInstance, PKOLChar(KOLString(Form.FormString)), Form );
+      C.TBAddBitmap( b );
+end;////////////////////////////////////////////////////////////////////////////
 procedure FormSetTBButtonSize( Form: PControl );
-//var HW: Integer;
-begin
-    //HW := Form.Perform( TB_GETBUTTONSIZE, 0, 0 );
-    Form.Perform( TB_SETBUTTONSIZE, 0,
-                  ParentForm_IntParamPas(Form) or $10000 {or (HiWord(HW) shl 16)} );
-end;
-
+begin Form.Perform( TB_SETBUTTONSIZE, 0,
+                    ParentForm_IntParamPas(Form) or $10000 {or (HiWord(HW) shl 16)} );
+end;////////////////////////////////////////////////////////////////////////////
 {$IFDEF _D4orHigher}
 procedure FormTBSetTooltips( Form: PControl );
-var A1: array of KOLString;
-    A2: array of PKOLChar;
-    N, i: Integer;
-    C: PControl;
-begin
-    C := Form;
-    Form := Form.ParentForm;
-    N := Form.FormGetIntParam;
-    SetLength( A1, N );
-    SetLength( A2, N );
-    for i := 0 to N-1 do
-    begin
-        Form.FormGetStrParam;
-        A1[i] := Form.FormString;
-        A2[i] := PKOLChar( A1[i] );
-    end;
-    C.TBSetTooltips( 0, A2 );
-    SetLength( A1, 0 );
-    SetLength( A2, 0 );
+var   A1: array of KOLString;
+      A2: array of PKOLChar;
+      N, i: Integer;
+      C: PControl;
+begin C := Form;
+      Form := Form.ParentForm;
+      N := Form.FormGetIntParam;
+      SetLength( A1, N );
+      SetLength( A2, N );
+      for i := 0 to N-1 do
+      begin
+          Form.FormGetStrParam;
+          A1[i] := Form.FormString;
+          A2[i] := PKOLChar( A1[i] );
+      end;
+      C.TBSetTooltips( 0, A2 );
+      SetLength( A1, 0 );
+      SetLength( A2, 0 );
 end;
-{$ENDIF}
-
+{$ENDIF _D4orHigher}////////////////////////////////////////////////////////////
 procedure FormSetTBButtonsMinWidth( Form: PControl );
-begin
-    Form.TBButtonsMinWidth := ParentForm_IntParamPas(Form);
-end;
-
+begin Form.TBButtonsMinWidth := ParentForm_IntParamPas(Form);
+end;////////////////////////////////////////////////////////////////////////////
 procedure FormSetTBButtonsMaxWidth( Form: PControl );
-begin
-    Form.TBButtonsMaxWidth := ParentForm_IntParamPas(Form);
-end;
-
+begin Form.TBButtonsMaxWidth := ParentForm_IntParamPas(Form);
+end;////////////////////////////////////////////////////////////////////////////
 procedure FormHideToolbarButton( Form: PControl );
 var i: Integer;
-begin
-    i := ParentForm_IntParamPas(Form);
-    {$IFDEF USE_GRUSH}
-            ShowHideToolbarButton( Form, i, FALSE );
-    {$ELSE}
-            Form.TBButtonVisible[ i ] := FALSE;
-    {$ENDIF}
-end;
-
+begin i := ParentForm_IntParamPas(Form);
+      {$IFDEF USE_GRUSH}
+              ShowHideToolbarButton( Form, i, FALSE );
+      {$ELSE} Form.TBButtonVisible[ i ] := FALSE; {$ENDIF}
+end;////////////////////////////////////////////////////////////////////////////
 procedure FormDisableToolbarButton( Form: PControl );
-var i: Integer;
-begin
-    i := ParentForm_IntParamPas(Form);
-    {$IFDEF USE_GRUSH}
-            EnableToolbarButton( Form, i, FALSE );
-    {$ELSE}
-            Form.TBButtonEnabled[ i ] := FALSE;
-    {$ENDIF}
-end;
-
+var   i: Integer;
+begin i := ParentForm_IntParamPas(Form);
+      {$IFDEF USE_GRUSH}
+              EnableToolbarButton( Form, i, FALSE );
+      {$ELSE} Form.TBButtonEnabled[ i ] := FALSE; {$ENDIF}
+end;////////////////////////////////////////////////////////////////////////////
 procedure FormFixFlatXPToolbar( Form: PControl );
-begin
-    Form.OnTBCustomDraw := nil;
-end;
-
+begin Form.OnTBCustomDraw := nil;
+end;////////////////////////////////////////////////////////////////////////////
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormSetDateTimeFormat( Form: PControl );
-begin
-    ParentForm_StrParam(Form);
-    Form.DateTimeFormat := Form.ParentForm.FormString;
+begin ParentForm_StrParam(Form);
+      Form.DateTimeFormat := Form.ParentForm.FormString;
 end;
-{$ENDIF ASM_VERSION}
-
-{$IFDEF noASM_VERSION}
+{$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
 procedure FormSetDateTimeColor( Form: PControl );
-asm
-    CALL ParentForm_ColorParamAsm
-    PUSH EDX
-    CALL ParentForm_IntParamAsm
-    POP  ECX
-    CALL TControl.SetDateTimePickerColor
-end;
-{$ELSE PASCAL}
-procedure FormSetDateTimeColor( Form: PControl );
-var i: Integer;
-    C: TColor;
-begin
-    C := ParentForm_ColorParamPas( Form );
-    i := ParentForm_IntParamPas( Form );
-    Form.DateTimePickerColors[TDateTimePickerColor(i)] := C;
-end;
-{$ENDIF ASM_VERSION}
-
+var   i: Integer;
+      C: TColor;
+begin C := ParentForm_ColorParamPas( Form );
+      i := ParentForm_IntParamPas( Form );
+      Form.DateTimePickerColors[TDateTimePickerColor(i)] := C;
+end;////////////////////////////////////////////////////////////////////////////
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormSetCurrentTab( Form: PControl );
 var i: Integer;
-begin
-    i := ParentForm_IntParamPas(Form);
-    Form.CurIndex := i;
-    Form.Pages[i].BringToFront;
+begin i := ParentForm_IntParamPas(Form);
+      Form.CurIndex := i;
+      Form.Pages[i].BringToFront;
 end;
-{$ENDIF ASM_VERSION}
-
+{$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormSetCurIdx( Form: PControl );
-begin
-    Form.CurIndex := ParentForm_IntParamPas(Form);
+begin Form.CurIndex := ParentForm_IntParamPas(Form);
 end;
-{$ENDIF ASM_VERSION}
-
+{$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormSetSBMin( Form: PControl );
-begin
-    Form.SBMin := ParentForm_IntParamPas(Form);
+begin Form.SBMin := ParentForm_IntParamPas(Form);
 end;
-{$ENDIF ASM_VERSION}
-
+{$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormSetSBMax( Form: PControl );
-begin
-    Form.SBMax := ParentForm_IntParamPas(Form);
+begin Form.SBMax := ParentForm_IntParamPas(Form);
 end;
-{$ENDIF ASM_VERSION}
-
+{$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormSetSBPosition( Form: PControl );
-begin
-    Form.SBPosition := ParentForm_IntParamPas(Form);
+begin Form.SBPosition := ParentForm_IntParamPas(Form);
 end;
-{$ENDIF ASM_VERSION}
-
+{$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormSetSBPageSize( Form: PControl );
-begin
-    Form.SBPageSize := ParentForm_IntParamPas(Form);
+begin Form.SBPageSize := ParentForm_IntParamPas(Form);
 end;
-{$ENDIF ASM_VERSION}
-
+{$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormLastCreatedChildAsNewCurrentParent( Form: PControl );
-var C: PControl;
-begin
-    C := Form;
-    Form := Form.ParentForm;
-    Form.DF.FormCurrentParent := C;
+var   C: PControl;
+begin C := Form;
+      Form := Form.ParentForm;
+      Form.DF.FormCurrentParent := C;
 end;
-{$ENDIF ASM_VERSION}
-
+{$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
 procedure FormSetUpperParent( Form: PControl );
-begin
-    Form := Form.ParentForm;
-    Form.DF.FormCurrentParent := Form.DF.FormCurrentParent.Parent;
+begin Form := Form.ParentForm;
+      Form.DF.FormCurrentParent := Form.DF.FormCurrentParent.Parent;
 end;
-
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormSetTabpageAsParent( Form: PControl );
-var i: Integer;
-    C: PControl;
-begin
-    C := Form;
-    Form := Form.ParentForm;
-    i := Form.FormGetIntParam;
-    Form.DF.FormCurrentParent := C.Pages[i];
+var   i: Integer;
+      C: PControl;
+begin C := Form;
+      Form := Form.ParentForm;
+      i := Form.FormGetIntParam;
+      Form.DF.FormCurrentParent := C.Pages[i];
 end;
-{$ENDIF ASM_VERSION}
-
+{$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
 {$IFDEF ASM_VERSION}{$ELSE PASCAL}
 procedure FormSetCurCtl( Form: PControl );
-var i: Integer;
-    C: PControl;
-begin
-    Form := Form.ParentForm;
-    i := Form.FormGetIntParam;
-    C := PPControl(Integer( Form.DF.FormAddress ) + i * 4)^;
-    if  C = nil then
-        C := Form;
-    Form.DF.FormLastCreatedChild := C;
+var   i: Integer;
+      C: PControl;
+begin Form := Form.ParentForm;
+      i := Form.FormGetIntParam;
+      C := PPControl(Integer( Form.DF.FormAddress ) + i * 4)^;
+      if  C = nil then C := Form;
+      Form.DF.FormLastCreatedChild := C;
 end;
-{$ENDIF ASM_VERSION}
-
+{$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
 procedure FormSetParent( Form: PControl );
-var C: PControl;
-begin
-    C := Form;
-    Form := Form.ParentForm;
-    Form.DF.FormCurrentParent := C;
-end;
-
-{$IFDEF ASM_VERSION}
+var   C: PControl;
+begin C := Form;
+      Form := Form.ParentForm;
+      Form.DF.FormCurrentParent := C;
+end;////////////////////////////////////////////////////////////////////////////
+{$IFDEF ASM_VERSION}{$ELSE}
 procedure FormSetEvent( Form: PControl );
-asm
-    PUSH  EDI
-    MOV   EDI, EAX
-    PUSH  ESI
-    CALL  TControl.ParentForm
-    MOV   ESI, EAX
-    PUSH  [ESI].TControl.DF.FormObj
-    CALL  ParentForm_IntParamAsm
-    MOV   ESI, [EAX].TControl.DF.FormAlphabet
-    PUSH  dword ptr [ESI+EDX*4]
-    CALL  ParentForm_IntParamAsm
-    XCHG  EAX, EDI
-    CALL  dword ptr [ESI+EDX*4]
-    POP   ESI
-    POP   EDI
+type  TSetEventProc = procedure( TargetCtl: PControl; const event: TOnEvent );
+var   C: PControl;
+      idx_handler, idx_setter: Integer;
+      handler, setter: Pointer;
+      event: TOnEvent;
+      set_proc: TSetEventProc;
+begin C := Form;
+      Form := Form.ParentForm;
+      idx_handler := Form.FormGetIntParam;
+      idx_setter := Form.FormGetIntParam;
+      handler := @Form.DF.FormAlphabet[idx_handler];
+      setter := @Form.DF.FormAlphabet[idx_setter];
+      set_proc := TSetEventProc( setter );
+      Pointer( TMethod( event ).Code ) := handler;
+      TMethod( event ).Data := Form.DF.FormObj;
+      set_proc( PControl( C ), event );
 end;
-{$ELSE}
-procedure FormSetEvent( Form: PControl );
-type
-    TSetEventProc = procedure( TargetCtl: PControl; const event: TOnEvent );
-var C: PControl;
-    idx_handler, idx_setter: Integer;
-    handler, setter: Pointer;
-    event: TOnEvent;
-    set_proc: TSetEventProc;
-begin
-    C := Form;
-    Form := Form.ParentForm;
-    idx_handler := Form.FormGetIntParam;
-    idx_setter := Form.FormGetIntParam;
-    handler := @Form.DF.FormAlphabet[idx_handler];
-    setter := @Form.DF.FormAlphabet[idx_setter];
-    set_proc := TSetEventProc( setter );
-    Pointer( TMethod( event ).Code ) := handler;
-    TMethod( event ).Data := Form.DF.FormObj;
-    set_proc( PControl( C ), event );
-end;
-{$ENDIF}
-
-{$IFDEF ASM_VERSION}
+{$ENDIF}////////////////////////////////////////////////////////////////////////
+{$IFDEF ASM_VERSION}{$ELSE}
 procedure FormSetIndexedEvent( Form: PControl );
-asm
-    PUSH  EDI
-    MOV   EDI, EAX
-    PUSH  ESI
-    CALL  TControl.ParentForm
-    MOV   ESI, EAX
-    PUSH  [ESI].TControl.DF.FormObj
-    CALL  ParentForm_IntParamAsm
-    MOV   ESI, [EAX].TControl.DF.FormAlphabet
-    PUSH  dword ptr [ESI+EDX*4]
-
-    CALL  ParentForm_IntParamAsm // idx
-    PUSH  EDX
-
-    CALL  ParentForm_IntParamAsm
-    XCHG  EAX, EDI
-    MOV   ECX, dword ptr [ESI+EDX*4]
-
-    POP   EDX
-    CALL  ECX 
-    POP   ESI
-    POP   EDI
+type  TSetIndexedEventProc = procedure( TargetCtl: PControl; Index: Integer; const event: TOnEvent );
+var   C: PControl;
+      idx_handler, idx_setter, idx: Integer;
+      handler, setter: Pointer;
+      event: TOnEvent;
+      set_proc: TSetIndexedEventProc;
+begin C := Form;
+      Form := Form.ParentForm;
+      idx_handler := Form.FormGetIntParam;
+      idx := Form.FormGetIntParam;
+      idx_setter := Form.FormGetIntParam;
+      handler := @Form.DF.FormAlphabet[idx_handler];
+      setter := @Form.DF.FormAlphabet[idx_setter];
+      set_proc := TSetIndexedEventProc( setter );
+      Pointer( TMethod( event ).Code ) := handler;
+      TMethod( event ).Data := Form.DF.FormObj;
+      set_proc( PControl( C ), idx, event );
 end;
-{$ELSE}
-procedure FormSetIndexedEvent( Form: PControl );
-type
-    TSetIndexedEventProc = procedure( TargetCtl: PControl; Index: Integer; const event: TOnEvent );
-var C: PControl;
-    idx_handler, idx_setter, idx: Integer;
-    handler, setter: Pointer;
-    event: TOnEvent;
-    set_proc: TSetIndexedEventProc;
-begin
-    C := Form;
-    Form := Form.ParentForm;
-    idx_handler := Form.FormGetIntParam;
-    idx := Form.FormGetIntParam;
-    idx_setter := Form.FormGetIntParam;
-    handler := @Form.DF.FormAlphabet[idx_handler];
-    setter := @Form.DF.FormAlphabet[idx_setter];
-    set_proc := TSetIndexedEventProc( setter );
-    Pointer( TMethod( event ).Code ) := handler;
-    TMethod( event ).Data := Form.DF.FormObj;
-    set_proc( PControl( C ), idx, event );
-end;
-{$ENDIF}
-
+{$ENDIF}////////////////////////////////////////////////////////////////////////
 procedure DummyOverrideScrollbars(Sender: PControl);
 begin
 end;
@@ -65294,11 +65181,9 @@ end;
   {$DEFINE implementation} {$I KOL_Linux.inc} {$UNDEF implementation}
 {$ENDIF LIN}
 
-{ -- }
 {$IFDEF USE_CUSTOMEXTENSIONS}
   {$I CUSTOM_CODE_EXTENSION.inc} // See comments in TControl
 {$ENDIF USE_CUSTOMEXTENSIONS}
-
 
 {$IFNDEF NOT_UNLOAD_RICHEDITLIB}
 {$IFDEF UNLOAD_RICHEDITLIB}
@@ -65557,18 +65442,6 @@ begin
         Result := GetWindowContextHelpId( fHandle );
 end;
 
-{function TControl.Get_MDIClient: PControl;
-var i: Integer;
-begin
-    Result := nil;
-    for i := 0 to ChildCount-1 do
-    begin
-        Result := Children[i];
-        if  Result.fControlClassName = 'MDICLIENT' then break;
-        Result := nil;
-    end;
-end;}
-
 function TControl.Get_Ctl3D: Boolean;
 begin
     Result := fCtl3D_child and 2 <> 0;
@@ -65623,9 +65496,4 @@ finalization
 {$ENDIF INIT_FINIT}
 
 end.
-
-
-
-
-
 

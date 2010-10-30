@@ -5,6 +5,7 @@ interface
 uses Windows, Messages, KOL {$IFDEF USE_GRUSH}, ToGrush, KOLGRushControls {$ENDIF};
 
 {$I KOLDEF.INC}
+{$I DELPHIDEF.INC}
 
 {$IFDEF EXTERNAL_DEFINES}
         {$INCLUDE EXTERNAL_DEFINES.INC}
@@ -164,6 +165,7 @@ type
     procedure RemoveLink( const s: KOLString );
     procedure ClearLinks;
   {$ENDIF DIRDLGEX_LINKSPANEL}
+    function GetBetterPixelFormat: TPixelFormat;
   end;
 
 function NewOpenDirDialogEx: POpenDirDialogEx;
@@ -193,9 +195,12 @@ procedure NewPanelWithSingleButtonToolbar( AParent: PControl; W, H: Integer;
   P: PMenu );
 var i: Integer;
     Buffer: PKOLChar;
+    Wbmp, Hbmp: Integer;
 begin
   Pn := NewPanel( AParent, esNone ).SetSize( 0, H ).SetAlign( A );
   Pn.Border := 0;
+  Wbmp := Bmp.Width;
+  Hbmp := Bmp.Height;
   Bar := NewToolbar( Pn, caClient, [
       tboNoDivider, tboTextBottom {, tboFlat} ],
     Bmp.ReleaseHandle,
@@ -211,7 +216,7 @@ begin
   if NoGrush then
   begin
     i := Bar.TBIndex2Item(0);
-    Bar.Perform( TB_SETBITMAPSIZE, 0, MakeLong( Bmp.Width, Bmp.Height ) );
+    Bar.Perform( TB_SETBITMAPSIZE, 0, MakeLong( Wbmp, Hbmp ) );
   end;
   if not NoGrush then
   {$ENDIF}
@@ -242,7 +247,7 @@ begin
   begin
     i := Bar.TBIndex2Item(0);
     Bar.TBButtonWidth[ i ] := W;
-    Bar.Perform( TB_SETBITMAPSIZE, 0, MakeLong( Bmp.Width, Bmp.Height ) );
+    Bar.Perform( TB_SETBITMAPSIZE, 0, MakeLong( Wbmp, Hbmp ) );
     if not Assigned( ReleaseEvent ) then
       Bar.OnClick := ClickEvent
     else
@@ -259,7 +264,7 @@ begin
   {$ELSE}
   i := Bar.TBIndex2Item(0);
   Bar.TBButtonWidth[ i ] := W;
-  Bar.Perform( TB_SETBITMAPSIZE, 0, MakeLong( Bmp.Width, Bmp.Height ) );
+  Bar.Perform( TB_SETBITMAPSIZE, 0, MakeLong( Wbmp, Hbmp ) );
   if not Assigned( ReleaseEvent ) then
     Bar.OnClick := ClickEvent
   else
@@ -280,8 +285,8 @@ procedure TOpenDirDialogEx.AddLinks(SL: PStrList);
 var i: Integer;
 begin
   for i := 0 to SL.Count-1 do
-    if not LinkPresent( SL.Items[ i ] ) then
-      Links[ LinksCount ] := SL.Items[ i ];
+      if  not LinkPresent( SL.Items[ i ] ) then
+          Links[ LinksCount ] := SL.Items[ i ];
 end;
 
 {$ENDIF DIRDLGEX_LINKSPANEL}
@@ -318,7 +323,7 @@ begin
             while TRUE do
             begin
                 if Find32W.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY <> 0 then
-                if (Find32W.cFileName <> WideString( '.' )) and (Find32.cFileName <> '..') then
+                if (Find32W.cFileName <> WideString( '.' )) and (Find32W.cFileName <> WideString('..')) then
                 if DoFilterAttrs( Find32W.dwFileAttributes, Find32W.cAlternateFileName ) then
                 begin
                   HasSubDirs := TRUE;
@@ -377,7 +382,7 @@ begin
   if LinksList = nil then Exit;
   LinksList.Clear;
   for i := LinksTape.ChildCount-1 downto 0 do
-    LinksTape.Children[ i ].Free;
+      LinksTape.Children[ i ].Free;
   LinksTape.Height := 8;
   LinksTape.Top := 0;
 end;
@@ -513,8 +518,10 @@ var BUp, BDn, BLt: PBitmap;
     {$ENDIF USE_GRUSH}
 
     function NewArrowBitmap( const Pts: array of Integer ): PBitmap;
+    var pf: TPixelFormat;
     begin
-      Result := NewDibBitmap( 16, 8, pf32bit );
+      pf := GetBetterPixelFormat;
+      Result := NewDibBitmap( 16, 8, pf );
       Result.Canvas.Brush.Color := clBtnFace;
       Result.Canvas.FillRect( Result.BoundsRect );
       Result.Canvas.Brush.Color := clBlack;
@@ -522,6 +529,7 @@ var BUp, BDn, BLt: PBitmap;
                                MakePoint( Pts[ 2 ], Pts[ 3 ] ),
                                MakePoint( Pts[ 4 ], Pts[ 5 ] ),
                                MakePoint( Pts[ 6 ], Pts[ 7 ] ) ] );
+      //Result.SaveToFile( GetStartDir + 'arrow_bitmap' + Int2Hex( Integer( Result ), 8 ) + '.bmp' );
     end;
 
 var PnUp, LUp, PnDn, LDn, PnLt, LLt: PControl;
@@ -591,7 +599,9 @@ begin
     {$ENDIF TOGRUSH_OPTIONAL}
     ;
   {$ELSE not USE_GRUSH}
-  //LinksTape.Border := 0;
+  LinksTape.Border := 0;
+      //LinksTape.MarginLeft := -2;
+      LinksTape.MarginRight := -4;
   {$ENDIF USE_GRUSH}
   LinksPanel.Visible := FALSE;
   LinksRollTimer := NewTimer( 50 );
@@ -785,6 +795,21 @@ begin
       Path := IncludeTrailingPathDelimiter(
           DirTree.TVItemPath( DirTree.TVSelected, '\' ) );
   end;
+end;
+
+function TOpenDirDialogEx.GetBetterPixelFormat: TPixelFormat;
+var DC: HDC;
+    i: Integer;
+    PF: TPixelFormat;
+begin
+    DC := GetDC( 0 );
+    i := GetDeviceCaps( DC, BITSPIXEL );
+    ReleaseDC( 0, DC );
+    CASE i OF
+    16:  PF := pf16bit;
+    else PF := pf32bit;
+    END;
+    Result := PF;
 end;
 
 function TOpenDirDialogEx.GetDialogForm: PControl;
@@ -1037,6 +1062,8 @@ begin
                     if  not FFindNextFileW( F, @Find32W ) then break;
                 end;
                 SL.Sort( FALSE );
+                //LogFileOutput( 'C:\sort_test.txt', '--------------------------'#13#10#13#10 +
+                //               SL.Text );
               FINALLY
                 FindClose( F );
               END;
@@ -1216,32 +1243,30 @@ begin
   CreateLinksPanel;
 
   s := ExcludeTrailingPathDelimiter( Value );
-  if LinksList = nil then
-    LinksList := NewStrListEx;
+  if  LinksList = nil then
+      LinksList := NewStrListEx;
   while LinksList.Count <= idx do
-    LinksList.AddObject( '', 0 );
-  if LinksList.Objects[ idx ] <> 0 then
-  begin
-    PObj( Pointer( LinksList.Objects[ idx ] ) ).Free;
-  end;
-  Bmp := NewDibBitmap( 32, 32, pf32bit );
+      LinksList.AddObject( '', 0 );
+  if  LinksList.Objects[ idx ] <> 0 then
+      PObj( Pointer( LinksList.Objects[ idx ] ) ).Free;
+  Bmp := NewDibBitmap( 32, 32, GetBetterPixelFormat );
   Bmp.Canvas.Brush.Color := clBtnFace;
   Bmp.Canvas.FillRect( Bmp.BoundsRect );
-  if LinksImgList = nil then
+  if  LinksImgList = nil then
   begin
-    LinksImgList := NewImageList( LinksPanel );
-    LinksImgList.LoadSystemIcons( FALSE );
+      LinksImgList := NewImageList( LinksPanel );
+      LinksImgList.LoadSystemIcons( FALSE );
   end;
   Ico := NewIcon;
   Ico.Handle := LinksImgList.ExtractIcon( FileIconSystemIdx( s ) );
   Ico.Draw( Bmp.Canvas.Handle, 0, 0 );
   Ico.Free;
 
-  if LinksPopupMenu = nil then
+  if  LinksPopupMenu = nil then
   begin
-    NewMenu( Form, 0, [ '' ], nil );
-    LinksPopupMenu := NewMenu( Form, 0, [ '&Remove link' ], nil );
-    LinksPopupMenu.AssignEvents( 0, [ RemoveLinkClick ] );
+      NewMenu( Form, 0, [ '' ], nil );
+      LinksPopupMenu := NewMenu( Form, 0, [ '&Remove link' ], nil );
+      LinksPopupMenu.AssignEvents( 0, [ RemoveLinkClick ] );
   end;
 
   H := 60;
@@ -1253,7 +1278,7 @@ begin
       inc( H, 14 );
   {$ENDIF USE_GRUSH}
   {$ENDIF DIRDLGEX_BIGGERPANEL}
-  NewPanelWithSingleButtonToolbar( LinksTape, LinksBox.Width,
+  NewPanelWithSingleButtonToolbar( LinksTape, LinksBox.Width-8,
     H, caTop, Bmp,
     ExtractFileName( s ), s, Pn, Bar, LinkClick, nil, nil, LinksBtnDnEvt, LinksPopupMenu );
   Pn.CreateWindow;

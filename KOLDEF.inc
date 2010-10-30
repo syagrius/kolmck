@@ -18,6 +18,9 @@
               {$DEFINE _D4}
               {$DEFINE _D4orHigher}
               {$DEFINE _D2orD3orD4}
+                  {$IFnDEF KOL_MCK}
+                           {$DEFINE INPACKAGE}
+                  {$ENDIF}
 {$ENDIF}
 
 {$IFDEF VER130}

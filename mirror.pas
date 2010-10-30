@@ -19,9 +19,9 @@ mmmmm      mmmmm     mmmmm     cccccccccccc       kkkkk     kkkkk
   Key Objects Library (C) 1999 by Kladov Vladimir.
   KOL Mirror Classes Kit (C) 2000 by Kladov Vladimir.
 ********************************************************
-* VERSION 3.00.F
+* VERSION 3.00.X
 ********************************************************
-}
+}                     
 unit mirror;
 {
   This unit contains definitions of mirror classes reflecting to objects of
@@ -36,7 +36,9 @@ unit mirror;
 interface
 
 {$I KOLDEF.INC}
-//{$DEFINE MCKLOG}
+{$IFDEF _D3}
+    //{$DEFINE MCKLOG}
+{$ENDIF}
 {$IFNDEF USE_KOLCTRLWRAPPER}
   {$DEFINE NOT_USE_KOLCTRLWRAPPER}
 {$ENDIF}
@@ -19339,6 +19341,7 @@ begin
     LogOK;
     Exit;
   end;
+  RptDetailed( 'generate dpr -- A', WHITE );
   // copy lines from the first to 'begin', making
   // some changes:
   SL.Add( Signature ); // insert signature
@@ -19350,6 +19353,7 @@ begin
   begin
     Inc( I );
     S := Source[ I ];
+    RptDetailed( 'generate dpr -- A1 - ' + IntToStr(I) + ': ' + S, WHITE );
     if RemoveSpaces( S ) = RemoveSpaces( Signature ) then continue; // skip signature if present
     if LowerCase( Trim( S ) ) = LowerCase( 'program ' + ProjectName + ';' ) then
     begin
@@ -19364,10 +19368,12 @@ begin
     end;
     if S = BeginMark then
       break;
+    RptDetailed( 'generate dpr -- A2', WHITE );
     if S = '//don''t change uses' then
       DontChangeUses := TRUE;
     if not DontChangeUses then
     begin
+      RptDetailed( 'generate dpr -- A3', WHITE );
       if LowerCase( Trim( S ) ) = 'uses' then
       begin
         SL.Add( S );
@@ -19375,6 +19381,7 @@ begin
         Kol_added := TRUE;
         continue;
       end;
+      RptDetailed( 'generate dpr -- A4', WHITE );
       if Kol_added then
       begin
         J := IndexOfStr( S, 'KOL,' ); //pos( 'KOL,', S );
@@ -19384,13 +19391,16 @@ begin
           if Trim( S ) = '' then continue;
         end;
       end;
+      RptDetailed( 'generate dpr -- A5: <' + S + '>', WHITE );
       J := IndexOfStr( S, 'Forms,' ); // pos( 'Forms,', S );
+      RptDetailed( 'generate dpr -- A5-a', WHITE );
       if J > 0 then // remove reference to Forms.pas
       begin
         S := Copy( S, 1, J-1 ) + Copy( S, J+6, Length( S )-J-5 );
         if Trim( S ) = '' then continue;
       end;
     end;
+    RptDetailed( 'generate dpr -- A6', WHITE );
     J := pos( '{$r *.res}', LowerCase( S ) );
     if J > 0 then // remove/insert reference to project resource file
       if DprResource then
@@ -19399,6 +19409,7 @@ begin
         S := '//{$R *.res}';
     SL.Add( S );
   end;
+  RptDetailed( 'generate dpr -- B', WHITE );
   SL.Add( BeginMark );
   SL.Add( '' );
  if GlobalNewIf then // D[u]fa теперь форма видна сразу на версиях выше 7
@@ -19453,12 +19464,14 @@ begin
       AForms.Add( Trim( S ) );
     end;
   end;
+  RptDetailed( 'generate dpr -- C', WHITE );
   ReorderForms( Self, AForms );
 
   Prepare_0inc;
   Prepare_134inc;
   Prepare_2inc;
 
+  RptDetailed( 'generate dpr -- D', WHITE );
   if (ResStrings <> nil) and (ResStrings.Count > 0) then
   begin
     for I := 0 to SL.Count-1 do
@@ -19488,6 +19501,7 @@ begin
     end;
   end;
 
+  RptDetailed( 'generate dpr -- E', WHITE );
   AfterGenerateDPR( SL, Updated );
   // store SL as <ProjectDest>.dpr
   SaveStrings( SL, Path + '.dpr', Updated );
@@ -19502,6 +19516,7 @@ begin
     F.GenerateUnit( ExtractFilePath( Path ) + F.FormUnit );
   end;
 
+  RptDetailed( 'generate dpr -- F', WHITE );
   if Updated then
   begin
     // mark modified here
@@ -19511,6 +19526,7 @@ begin
     MarkModified( Path + '_3.inc' );
   end;
 
+  RptDetailed( 'generate dpr -- G', WHITE );
   Result := True;
 
   except on E: Exception do

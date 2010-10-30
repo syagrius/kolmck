@@ -15,7 +15,7 @@
 
 //[VERSION]
 ****************************************************************
-* VERSION 2.82
+* VERSION 3.00.P
 ****************************************************************
 //[END OF VERSION]
 
@@ -2722,7 +2722,7 @@ var
 
 begin
   i:= IndexOfChar(Value, #9); //Pos(#9, Value);
-  if i <> 0 then begin
+  if i > 0 then begin
     c:=Copy(Value, 1, i - 1);
     ss:=Copy(Value, i + 1, MaxInt);
   end

@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 // KOL_ASM.inc ()to be inlude in KOL.pas)
-// v 3.00.u
+// v 3.00.y
 
 function MsgBox( const S: KOLString; Flags: DWORD ): DWORD;
 asm
@@ -616,6 +616,20 @@ asm
   {$IFDEF TLIST_FAST}
   CMP    [EAX].fUseBlocks, 0
   JZ     @@old
+  CMP    [EAX].fNotOptimized, 0
+  JNZ    @@slow
+
+  MOV    ECX, [EAX].fBlockList
+  JECXZ  @@old
+  MOV    ECX, [ECX].fItems
+  MOV    EAX, EDX
+  SHR    EAX, 8
+  MOV    ECX, dword ptr [ECX+EAX*8]
+  MOVZX  EAX, DL
+  MOV    EAX, dword ptr [ECX+EAX*4]
+  RET
+
+@@slow:
   MOV    ECX, [EAX].fBlockList
   JECXZ  @@old
   PUSH   EBX
@@ -661,16 +675,6 @@ asm
   RET
 @@ret_nil:
   XOR    EAX, EAX
-end;
-
-function TList.Last: Pointer;
-asm     //cmd    //opd
-        MOV      ECX, [EAX].fCount
-        JECXZ    @@0
-        MOV      EAX, [EAX].fItems
-        DEC      ECX
-        MOV      ECX, [EAX + ECX*4]
-@@0:    XCHG     EAX, ECX
 end;
 
 procedure Run( var AppletWnd: PControl );
@@ -2657,7 +2661,7 @@ asm
         SETZ     AL
 end;
 
-function StrIn(const S: AnsiString; const A: array of String): Boolean;
+function StrIn(const S: AnsiString; const A: array of AnsiString): Boolean;
 asm
 @@1:
         TEST     ECX, ECX
@@ -4286,7 +4290,8 @@ asm
         JECXZ    @@fin_false
         {$ENDIF}
         {$IFDEF  EVENTS_DYNAMIC}
-        MOV      EDX, [EAX].TEvents.fOnClick.TMethod.Data
+        MOV      EDX, [EAX].TControl.EV
+        MOV      EDX, [EDX].TEvents.fOnClick.TMethod.Data
         {$ELSE}
         MOV      EDX, [EAX].TControl.EV.fOnClick.TMethod.Data
         {$ENDIF}
@@ -8610,13 +8615,13 @@ asm
         JMP      @@0
 
 @@else: MOV      [EAX].FCurIndex, EDX
-        CALL     Invalidate
+        CALL     TControl.Invalidate
         JMP      @@exit
 
 @@chk_aExSetSelRange:
         {$IFDEF  COMMANDACTIONS_OBJ}
-        MOV      EAX, [EAX].fCommandActions
-        MOVZX    ECX, [EAX].TCommandActionsObj.aExSetSelRange
+        MOV      ECX, [EAX].fCommandActions
+        MOVZX    ECX, [ECX].TCommandActionsObj.aExSetSelRange
         {$ELSE}
         MOVZX    ECX, [EAX].fCommandActions.aExSetSelRange
         {$ENDIF}
@@ -14874,6 +14879,49 @@ asm
 
 @@1:
     MOV  [EAX].TControl.DF.FormLastCreatedChild, ECX
+end;
+
+procedure FormSetEvent( Form: PControl );
+asm
+    PUSH  EDI
+    MOV   EDI, EAX
+    PUSH  ESI
+    CALL  TControl.ParentForm
+    MOV   ESI, EAX
+    PUSH  [ESI].TControl.DF.FormObj
+    CALL  ParentForm_IntParamAsm
+    MOV   ESI, [EAX].TControl.DF.FormAlphabet
+    PUSH  dword ptr [ESI+EDX*4]
+    CALL  ParentForm_IntParamAsm
+    XCHG  EAX, EDI
+    CALL  dword ptr [ESI+EDX*4]
+    POP   ESI
+    POP   EDI
+end;
+
+procedure FormSetIndexedEvent( Form: PControl );
+asm
+    PUSH  EDI
+    MOV   EDI, EAX
+    PUSH  ESI
+    CALL  TControl.ParentForm
+    MOV   ESI, EAX
+    PUSH  [ESI].TControl.DF.FormObj
+    CALL  ParentForm_IntParamAsm
+    MOV   ESI, [EAX].TControl.DF.FormAlphabet
+    PUSH  dword ptr [ESI+EDX*4]
+
+    CALL  ParentForm_IntParamAsm // idx
+    PUSH  EDX
+
+    CALL  ParentForm_IntParamAsm
+    XCHG  EAX, EDI
+    MOV   ECX, dword ptr [ESI+EDX*4]
+
+    POP   EDX
+    CALL  ECX
+    POP   ESI
+    POP   EDI
 end;
 
 {$ENDIF}
