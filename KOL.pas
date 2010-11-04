@@ -14,7 +14,7 @@
   Key Objects Library (C) 2000 by Kladov Vladimir.
 
 ****************************************************************
-* VERSION 3.00.Z3
+* VERSION 3.00.Z4
 ****************************************************************
 
   K.O.L. - is a set of objects to create small programs
@@ -59008,6 +59008,7 @@ asm
 
 @@4:
     ADD  ESP, 16
+@@4_1:
     MOV  EAX, ESI
     CALL TControl.Invalidate
     JMP  @@retFalse
@@ -59017,7 +59018,7 @@ asm
     BTR  dword ptr [ESI].TControl.fFlagsG3, G3_MouseInCtl
     JNC  @@retFalse
     {$ELSE}
-    BTR  DWORD PTR [ESI].TControl.fMouseInControl, 1
+    BTR  DWORD PTR [ESI].TControl.fMouseInControl, 0
     JNC  @@retFalse
     {$ENDIF}
 
@@ -59107,16 +59108,16 @@ begin
               {$IFDEF USE_FLAGS} exclude( Self_.fFlagsG3, G3_MouseInCtl);
               {$ELSE} Self_.fMouseInControl := FALSE; {$ENDIF}
               {$IFDEF GRAPHCTL_HOTTRACK}
-              {$IFDEF NIL_EVENTS}
-              if  Assigned( Self_.EV.fMouseLeaveProc ) then
-              {$ENDIF}
-                  Self_.EV.fMouseLeaveProc( Self_ );
-              {$ENDIF}
+                  {$IFDEF NIL_EVENTS}
+                  if  Assigned( Self_.EV.fMouseLeaveProc ) then
+                  {$ENDIF}
+                      Self_.EV.fMouseLeaveProc( Self_ );
+                  {$ENDIF}
               {$IFDEF NIL_EVENTS}
               if  Assigned( Self_.EV.fOnMouseLeave ) then
               {$ENDIF}
                   Self_.EV.fOnMouseLeave( Self_ );
-              Self_.Invalidate; //Erase( FALSE );
+              Self_.Invalidate; 
           end;
       end;
   end;
@@ -63679,95 +63680,71 @@ var R, R1: TRect;
     {$IFDEF GRAPHCTL_XPSTYLES}
     Theme: THandle;
     {$ENDIF}
-begin
-  R := DoGraphCtlPrepaint;
-
+begin R := DoGraphCtlPrepaint;
   {$IFDEF GRAPHCTL_XPSTYLES}
   OpenThemeDataProc;
   Theme := 0;
   if  Assigned( fOpenThemeDataProc ) and not DoNotDrawGraphCtlsUsingXPStyles then
       Theme := fOpenThemeDataProc( 0, 'Button' );
-  if Theme <> 0 then
-  begin
-
-    W := GetSystemMetrics( SM_CXMENUCHECK );
-    H := GetSystemMetrics( SM_CYMENUCHECK );
-
-    R1 := R;
-    R1.Right := R1.Left + W;
-    if  {$IFDEF USE_FLAGS} G1_WordWrap in fFlagsG1
-        {$ELSE} fWordWrap {$ENDIF} then
-        R1.Top := R1.Top + Border
-    else
-        R1.Top := R1.Top + (R1.Bottom - R1.Top - H) div 2;
-    R1.Bottom := R1.Top + H;
-
-    Flag := 1; {CBS_UNCHECKEDNORMAL}
-    if not Enabled then
-      Flag := 4 {CBS_UNCHECKEDDISABLED}
-    else
-    if  {$IFDEF USE_FLAGS} G4_Hot in fFlagsG4
-        {$ELSE} fHot {$ENDIF} then
-        Flag := 2; {CBS_UNCHECKEDHOT}
-    if  {$IFDEF USE_FLAGS} G4_Checked in fFlagsG4
-        {$ELSE} fChecked {$ENDIF} then
-        Inc( Flag, 4 );
-    fDrawThemeBackground( Theme, DC, 3 {BP_CHECKBOX}, Flag, @R1, @R  );
-
-    R.Left := R1.Left + W + Border;
-
-    if fCaption <> '' then
-    begin
-      DrawFormattedText( @ Self, DC, R, DT_CALCRECT );
-      if  {$IFDEF USE_FLAGS} G1_WordWrap in fFlagsG1
-          {$ELSE} fWordWrap {$ENDIF} then
-      begin
-          DrawFormattedText( @ Self, DC, R, 0 );
-          GraphCtlDrawFocusRect( DC, R );
-      end
-        else
-      begin
-          GraphCtlDrawFocusRect( DC, R );
-          DrawFormattedTextXP( Theme, @ Self, DC, R, 3 {BP_CHECKBOX}, Flag, 0, 0 );
+  if  Theme <> 0 then begin
+      W := GetSystemMetrics( SM_CXMENUCHECK );
+      H := GetSystemMetrics( SM_CYMENUCHECK );
+      R1 := R;
+      R1.Right := R1.Left + W;
+      if   {$IFDEF USE_FLAGS} G1_WordWrap in fFlagsG1
+           {$ELSE} fWordWrap {$ENDIF} then
+           R1.Top := R1.Top + Border
+      else R1.Top := R1.Top + (R1.Bottom - R1.Top - H) div 2;
+      R1.Bottom := R1.Top + H;
+      Flag := 1; {CBS_UNCHECKEDNORMAL}
+      if  not Enabled then
+          Flag := 4 {CBS_UNCHECKEDDISABLED}
+      else if  {$IFDEF USE_FLAGS} G4_Hot in fFlagsG4
+          {$ELSE} fHot {$ENDIF} then
+          Flag := 2; {CBS_UNCHECKEDHOT}
+      if  {$IFDEF USE_FLAGS} G4_Checked in fFlagsG4
+          {$ELSE} fChecked {$ENDIF} then
+          Inc( Flag, 4 );
+      fDrawThemeBackground( Theme, DC, 3 {BP_CHECKBOX}, Flag, @R1, @R  );
+      R.Left := R1.Left + W + Border;
+      if fCaption <> '' then begin
+          DrawFormattedText( @ Self, DC, R, DT_CALCRECT );
+          if  {$IFDEF USE_FLAGS} G1_WordWrap in fFlagsG1
+              {$ELSE} fWordWrap {$ENDIF} then begin
+              DrawFormattedText( @ Self, DC, R, 0 );
+              GraphCtlDrawFocusRect( DC, R );
+          end else begin
+              GraphCtlDrawFocusRect( DC, R );
+              DrawFormattedTextXP( Theme, @ Self, DC, R, 3 {BP_CHECKBOX}, Flag, 0, 0 );
+          end;
       end;
-    end;
-
-    fCloseThemeData( Theme );
-  end
-    else
+      fCloseThemeData( Theme );
+  end else
   {$ENDIF}
-  begin
-
-    W := GetSystemMetrics( SM_CXMENUCHECK );
-    H := GetSystemMetrics( SM_CYMENUCHECK );
-
-    R1 := R;
-    R1.Right := R1.Left + W;
-    if  {$IFDEF USE_FLAGS} G1_WordWrap in fFlagsG1
-        {$ELSE} fWordWrap {$ENDIF} then
-        R1.Top := R1.Top + Border
-    else
-        R1.Top := R1.Top + (R1.Bottom - R1.Top - H) div 2;
-    R1.Bottom := R1.Top + H;
-    Flag := 0;
-    if  {$IFDEF USE_FLAGS} G4_Checked in fFlagsG4
-        {$ELSE} fChecked {$ENDIF} then
-        Flag := DFCS_CHECKED;
-    DrawFrameControl( DC, R1, DFC_BUTTON, DFCS_BUTTONCHECK or
-                      $800 {DFCS_TRANSPARENT} or Flag );
-
-    R.Left := R1.Left + W + Border;
-    DrawFormattedText( @ Self, DC, R, 0 );
-    GraphCtlDrawFocusRect( DC, R );
+  begin W := GetSystemMetrics( SM_CXMENUCHECK );
+        H := GetSystemMetrics( SM_CYMENUCHECK );
+        R1 := R;
+        R1.Right := R1.Left + W;
+        if   {$IFDEF USE_FLAGS} G1_WordWrap in fFlagsG1
+             {$ELSE} fWordWrap {$ENDIF} then
+             R1.Top := R1.Top + Border
+        else R1.Top := R1.Top + (R1.Bottom - R1.Top - H) div 2;
+        R1.Bottom := R1.Top + H;
+        Flag := 0;
+        if  {$IFDEF USE_FLAGS} G4_Checked in fFlagsG4
+            {$ELSE} fChecked {$ENDIF} then
+            Flag := DFCS_CHECKED;
+        DrawFrameControl( DC, R1, DFC_BUTTON, DFCS_BUTTONCHECK or
+                          $800 {DFCS_TRANSPARENT} or Flag );
+        R.Left := R1.Left + W + Border;
+        DrawFormattedText( @ Self, DC, R, 0 );
+        GraphCtlDrawFocusRect( DC, R );
   end;
-end;
-
+end;////////////////////////////////////////////////////////////////////////////
 procedure TControl.GraphicCheckBoxMouse(var Msg: TMsg);
-begin
-  if (Msg.message = WM_LBUTTONDOWN) or (Msg.message = WM_LBUTTONDBLCLK) then
-    ClickGraphCheck( @ Self );
-end;
-
+begin if (Msg.message = WM_LBUTTONDOWN) or (Msg.message = WM_LBUTTONDBLCLK) then
+         ClickGraphCheck( @ Self );
+end;////////////////////////////////////////////////////////////////////////////
 procedure TControl.GraphicRadioBoxPaint(DC: HDC);
 var R, R1: TRect;
     Flag: DWORD;
@@ -63775,83 +63752,67 @@ var R, R1: TRect;
     {$IFDEF GRAPHCTL_XPSTYLES}
     Theme: THandle;
     {$ENDIF}
-begin
-  R := DoGraphCtlPrepaint;
+begin R := DoGraphCtlPrepaint;
   {$IFDEF GRAPHCTL_XPSTYLES}
   OpenThemeDataProc;
   Theme := 0;
   if  Assigned( fOpenThemeDataProc ) and not DoNotDrawGraphCtlsUsingXPStyles then
       Theme := fOpenThemeDataProc( 0, 'Button' );
-  if  Theme <> 0 then
-  begin
-
-    W := GetSystemMetrics( SM_CXMENUCHECK );
-    H := GetSystemMetrics( SM_CYMENUCHECK );
-
-    R1 := R;
-    R1.Right := R1.Left + W;
-    if  {$IFDEF USE_FLAGS} G1_WordWrap in fFlagsG1
-        {$ELSE} fWordWrap {$ENDIF} then
-        R1.Top := R1.Top + Border
-    else
-        R1.Top := R1.Top + (R1.Bottom - R1.Top - H) div 2;
-    R1.Bottom := R1.Top + H;
-
-    Flag := 1; {CBS_UNCHECKEDNORMAL}
-    if not Enabled then
-      Flag := 4 {CBS_UNCHECKEDDISABLED}
-    else
-    if  {$IFDEF USE_FLAGS} G4_Hot in fFlagsG4
-        {$ELSE} fHot {$ENDIF} then
-        Flag := 2; {CBS_UNCHECKEDHOT}
-    if  {$IFDEF USE_FLAGS} G4_Checked in fFlagsG4
-        {$ELSE} fChecked {$ENDIF} then
-        Inc( Flag, 4 );
-    fDrawThemeBackground( Theme, DC, 2 {BP_RADIOBOX}, Flag, @R1, @R  );
-
-    R.Left := R1.Left + W + Border;
-
-    if fCaption <> '' then
-    begin
-      DrawFormattedText( @ Self, DC, R, DT_CALCRECT );
-      if  {$IFDEF USE_FLAGS} G1_WordWrap in fFlagsG1
-          {$ELSE} fWordWrap {$ENDIF} then
-      begin
-          DrawFormattedText( @ Self, DC, R, 0 );
-          GraphCtlDrawFocusRect( DC, R );
-      end else
-      begin
-          GraphCtlDrawFocusRect( DC, R );
-          DrawFormattedTextXP( Theme, @ Self, DC, R, 2 {BP_RADIOBOX}, Flag, 0, 0 );
+  if  Theme <> 0 then begin
+      W := GetSystemMetrics( SM_CXMENUCHECK );
+      H := GetSystemMetrics( SM_CYMENUCHECK );
+      R1 := R;
+      R1.Right := R1.Left + W;
+      if   {$IFDEF USE_FLAGS} G1_WordWrap in fFlagsG1
+           {$ELSE} fWordWrap {$ENDIF} then
+           R1.Top := R1.Top + Border
+      else R1.Top := R1.Top + (R1.Bottom - R1.Top - H) div 2;
+      R1.Bottom := R1.Top + H;
+      Flag := 1; {CBS_UNCHECKEDNORMAL}
+      if  not Enabled then
+          Flag := 4 {CBS_UNCHECKEDDISABLED}
+      else if  {$IFDEF USE_FLAGS} G4_Hot in fFlagsG4
+               {$ELSE} fHot {$ENDIF} then
+          Flag := 2; {CBS_UNCHECKEDHOT}
+      if  {$IFDEF USE_FLAGS} G4_Checked in fFlagsG4
+          {$ELSE} fChecked {$ENDIF} then
+          Inc( Flag, 4 );
+      fDrawThemeBackground( Theme, DC, 2 {BP_RADIOBOX}, Flag, @R1, @R  );
+      R.Left := R1.Left + W + Border;
+      if  fCaption <> '' then begin
+          DrawFormattedText( @ Self, DC, R, DT_CALCRECT );
+          if  {$IFDEF USE_FLAGS} G1_WordWrap in fFlagsG1
+              {$ELSE} fWordWrap {$ENDIF} then begin
+              DrawFormattedText( @ Self, DC, R, 0 );
+              GraphCtlDrawFocusRect( DC, R );
+          end else begin
+              GraphCtlDrawFocusRect( DC, R );
+              DrawFormattedTextXP( Theme, @ Self, DC, R, 2 {BP_RADIOBOX}, Flag, 0, 0 );
+          end;
       end;
-    end;
-    fCloseThemeData( Theme );
-  end
-    else
+      fCloseThemeData( Theme );
+  end else
   {$ENDIF}
-  begin
-    W := GetSystemMetrics( SM_CXMENUCHECK );
-    H := GetSystemMetrics( SM_CYMENUCHECK );
-    R1 := R;
-    R1.Right := R1.Left + W;
-    if  {$IFDEF USE_FLAGS} G1_WordWrap in fFlagsG1
-        {$ELSE} fWordWrap {$ENDIF} then
-        R1.Top := R1.Top + Border
-    else
-        R1.Top := R1.Top + (R1.Bottom - R1.Top - H) div 2;
-    R1.Bottom := R1.Top + H;
-    Flag := 0;
-    if  {$IFDEF USE_FLAGS} G4_Checked in fFlagsG4
-        {$ELSE} fChecked {$ENDIF} then
-        Flag := DFCS_CHECKED;
-    DrawFrameControl( DC, R1, DFC_BUTTON, DFCS_BUTTONRADIO
-                      or $800 {DFCS_TRANSPARENT} {or DFCS_ADJUSTRECT} or Flag );
-    R.Left := R1.Right + 2;
-    DrawFormattedText( @ Self, DC, R, 0 );
-    GraphCtlDrawFocusRect( DC, R );
+  begin W := GetSystemMetrics( SM_CXMENUCHECK );
+        H := GetSystemMetrics( SM_CYMENUCHECK );
+        R1 := R;
+        R1.Right := R1.Left + W;
+        if   {$IFDEF USE_FLAGS} G1_WordWrap in fFlagsG1
+             {$ELSE} fWordWrap {$ENDIF} then
+             R1.Top := R1.Top + Border
+        else R1.Top := R1.Top + (R1.Bottom - R1.Top - H) div 2;
+        R1.Bottom := R1.Top + H;
+        Flag := 0;
+        if  {$IFDEF USE_FLAGS} G4_Checked in fFlagsG4
+            {$ELSE} fChecked {$ENDIF} then
+            Flag := DFCS_CHECKED;
+        DrawFrameControl( DC, R1, DFC_BUTTON, DFCS_BUTTONRADIO
+                          or $800 {DFCS_TRANSPARENT} {or DFCS_ADJUSTRECT} or Flag );
+        R.Left := R1.Right + 2;
+        DrawFormattedText( @ Self, DC, R, 0 );
+        GraphCtlDrawFocusRect( DC, R );
   end;
-end;
-
+end;////////////////////////////////////////////////////////////////////////////
 procedure TControl.GraphicButtonPaint(DC: HDC);
 var R: TRect;
     Flag: DWORD;
@@ -63863,160 +63824,126 @@ var R: TRect;
     BI: TagBitmap;
     Y: Integer;
     R1: TRect;
-begin
-  R := DoGraphCtlPrepaint;
+begin R := DoGraphCtlPrepaint;
   {$IFDEF GRAPHCTL_XPSTYLES}
   OpenThemeDataProc;
   Theme := 0;
-  if Assigned( fOpenThemeDataProc ) and not DoNotDrawGraphCtlsUsingXPStyles then
-    Theme := fOpenThemeDataProc( 0, 'Button' );
-  if Theme <> 0 then
-  begin
-    Flag := 1; {PBS_UNCHECKEDNORMAL}
-    if  not Enabled then
-        Flag := 4 {PBS_UNCHECKEDDISABLED}
-    else
-    if  {$IFDEF USE_FLAGS} G4_Pushed in fFlagsG4
-        {$ELSE} fPushed {$ENDIF} then
-        Flag := 3 {PBS_UNCHECKEDPRESSED}
-    else
-    if  {$IFDEF USE_FLAGS} G4_Hot in fFlagsG4
-        {$ELSE} fHot {$ENDIF} then
-        Flag := 2; {PBS_UNCHECKEDHOT}
-    if  {$IFDEF USE_FLAGS} G4_Checked in fFlagsG4
-        {$ELSE} fChecked {$ENDIF} then
-        Inc( Flag, 4 );
-
-    fDrawThemeBackground( Theme, DC, 1 {BP_PUSHBUTTON}, Flag, @R, @R  );
-
-    fGetThemeBackgroundContentRect( Theme, DC, 1 {BS_PUSHBUTTON}, Flag, @R, @R1 );
-    GraphCtlDrawFocusRect( DC, R1 );
-
-    if (DF.fButtonIcon <> 0) and GetIconInfo( DF.fButtonIcon, II ) then
-    begin
-      if GetObject( II.hbmColor, Sizeof( BI ), @ BI ) <> 0 then
-      begin
-        CASE fVerticalAlign OF
-        vaTop:
-          Y := R.Top + Border;
-        vaBottom:
-          Y := R.Bottom - Border - BI.bmHeight;
-        else //vaCenter:
-          Y := R.Top + (R.Bottom - R.Top - BI.bmHeight) div 2;
-        END;
-        DrawIcon( DC, R.Left + Border, Y, DF.fButtonIcon );
-        Inc( R1.Left, BI.bmWidth + Border * 2 );
+  if  Assigned( fOpenThemeDataProc ) and not DoNotDrawGraphCtlsUsingXPStyles then
+      Theme := fOpenThemeDataProc( 0, 'Button' );
+  if  Theme <> 0 then begin
+      Flag := 1; {PBS_UNCHECKEDNORMAL}
+      if  not Enabled then
+          Flag := 4 {PBS_UNCHECKEDDISABLED}
+      else
+      if  {$IFDEF USE_FLAGS} G4_Pushed in fFlagsG4
+          {$ELSE} fPushed {$ENDIF} then
+          Flag := 3 {PBS_UNCHECKEDPRESSED}
+      else
+      if  {$IFDEF USE_FLAGS} G4_Hot in fFlagsG4
+          {$ELSE} fHot {$ENDIF} then
+          Flag := 2; {PBS_UNCHECKEDHOT}
+      if  {$IFDEF USE_FLAGS} G4_Checked in fFlagsG4
+          {$ELSE} fChecked {$ENDIF} then
+          Inc( Flag, 4 );
+      fDrawThemeBackground( Theme, DC, 1 {BP_PUSHBUTTON}, Flag, @R, @R  );
+      fGetThemeBackgroundContentRect( Theme, DC, 1 {BS_PUSHBUTTON}, Flag, @R, @R1 );
+      GraphCtlDrawFocusRect( DC, R1 );
+      if (DF.fButtonIcon <> 0) and GetIconInfo( DF.fButtonIcon, II ) then begin
+          if GetObject( II.hbmColor, Sizeof( BI ), @ BI ) <> 0 then begin
+              CASE fVerticalAlign OF
+              vaTop:    Y := R.Top + Border;
+              vaBottom: Y := R.Bottom - Border - BI.bmHeight;
+              else {vaCenter:}Y := R.Top + (R.Bottom - R.Top - BI.bmHeight) div 2;
+              END;
+              DrawIcon( DC, R.Left + Border, Y, DF.fButtonIcon );
+              Inc( R1.Left, BI.bmWidth + Border * 2 );
+          end;
+          DeleteObject( II.hbmColor );
+          if II.hbmMask <> 0 then
+            DeleteObject( II.hbmMask );
       end;
-      DeleteObject( II.hbmColor );
-      if II.hbmMask <> 0 then
-        DeleteObject( II.hbmMask );
-    end;
-
-    if fCaption <> '' then
-    begin
-      Flag1 := DT_SINGLELINE;
-      if WordWrap then
-        Flag1 := DT_WORDBREAK;
-      DrawFormattedText( @ Self, DC, R1, DT_CALCRECT );
-      DrawFormattedTextXP( Theme, @ Self, DC, R1, 1 {BP_PUSHBUTTON}, Flag,
-        Flag1, 0 );
-    end;
-    fCloseThemeData( Theme );
-  end
-    else
+      if  fCaption <> '' then begin
+          Flag1 := DT_SINGLELINE;
+          if  WordWrap then Flag1 := DT_WORDBREAK;
+          DrawFormattedText( @ Self, DC, R1, DT_CALCRECT );
+          DrawFormattedTextXP( Theme, @ Self, DC, R1, 1 {BP_PUSHBUTTON}, Flag,
+            Flag1, 0 );
+      end;
+      fCloseThemeData( Theme );
+  end else
   {$ENDIF}
   begin
     Flag := 0;
     if  {$IFDEF USE_FLAGS} G4_Checked in fFlagsG4
-        {$ELSE} fChecked {$ENDIF} then
-        Flag := DFCS_CHECKED
-    else
-        if  {$IFDEF USE_FLAGS} G4_Pushed in fFlagsG4
-            {$ELSE} fPushed {$ENDIF} then
-            Flag := DFCS_PUSHED;
+        {$ELSE} fChecked {$ENDIF} then Flag := DFCS_CHECKED
+    else if  {$IFDEF USE_FLAGS} G4_Pushed in fFlagsG4
+             {$ELSE} fPushed {$ENDIF} then
+             Flag := DFCS_PUSHED;
     if  {$IFDEF USE_FLAGS} G3_Flat in fFlagsG3
         {$ELSE} fFlat {$ENDIF} then
         Flag := Flag or DFCS_FLAT;
     DrawFrameControl( DC, R, DFC_BUTTON, DFCS_BUTTONPUSH or
                       $800 {DFCS_TRANSPARENT} or DFCS_ADJUSTRECT or Flag );
-    //{$IFNDEF GRAPHCTL_XPSTYLES}
     R1 := R;
-    //{$ENDIF}
-
-    if (DF.fButtonIcon <> 0) and GetIconInfo( DF.fButtonIcon, II ) then
-    begin
-      if GetObject( II.hbmColor, Sizeof( BI ), @ BI ) <> 0 then
-      begin
-        CASE fVerticalAlign OF
-        vaTop:
-          Y := R.Top + Border;
-        vaBottom:
-          Y := R.Bottom - Border - BI.bmHeight;
-        else //vaCenter:
-          Y := R.Top + (R.Bottom - R.Top - BI.bmHeight) div 2;
-        END;
-        DrawIcon( DC, R.Left + Border, Y, DF.fButtonIcon );
-        Inc( R1.Left, BI.bmWidth + Border * 2 );
-      end;
-      DeleteObject( II.hbmColor );
-      if II.hbmMask <> 0 then
-        DeleteObject( II.hbmMask );
+    if (DF.fButtonIcon <> 0) and GetIconInfo( DF.fButtonIcon, II ) then begin
+        if  GetObject( II.hbmColor, Sizeof( BI ), @ BI ) <> 0 then begin
+            CASE fVerticalAlign OF
+            vaTop:    Y := R.Top + Border;
+            vaBottom: Y := R.Bottom - Border - BI.bmHeight;
+            else {vaCenter:}Y := R.Top + (R.Bottom - R.Top - BI.bmHeight) div 2;
+            END;
+            DrawIcon( DC, R.Left + Border, Y, DF.fButtonIcon );
+            Inc( R1.Left, BI.bmWidth + Border * 2 );
+        end;
+        DeleteObject( II.hbmColor );
+        if  II.hbmMask <> 0 then DeleteObject( II.hbmMask );
     end;
-
     DrawFormattedText( @ Self, DC, R1, 0 );
     GraphCtlDrawFocusRect( DC, R );
   end;
-end;
-
+end;////////////////////////////////////////////////////////////////////////////
 procedure TControl.GraphicButtonMouse(var Msg: TMsg);
 var Pt: TPoint;
-begin
-  CASE Msg.message OF
-  WM_LBUTTONDOWN, WM_LBUTTONDBLCLK:
-    begin
-      GraphButtonSetFocus(@Self);
-      RefInc;
-      SetCapture( Parent.Handle );
-      Parent.fPushedBtn := @ Self;
-      {$IFDEF USE_FLAGS} include( fFlagsG4, G4_Pushed );
-      {$ELSE} fPushed := TRUE; {$ENDIF}
-      Invalidate;
-    end;
-  WM_LBUTTONUP:
-    begin
-      ReleaseCapture;
-      Invalidate;
-      if  {$IFDEF USE_FLAGS} G4_Pushed in fFlagsG4
-          {$ELSE} fPushed {$ENDIF} then
-      begin
-          Pt.X := SmallInt( LoWord( Msg.lParam ) );
-          Pt.Y := SmallInt( HiWord( Msg.lParam ) );
-          if  PtInRect( ClientRect, Pt ) then
-              DoClick;
-          {$IFDEF USE_FLAGS} exclude( fFlagsG4, G4_Pushed );
-          {$ELSE} fPushed := FALSE; {$ENDIF}
-          Parent.fPushedBtn := nil;
-          RefDec;
-      end;
-    end;
-  END;
-end;
-
+begin CASE Msg.message OF
+      WM_LBUTTONDOWN, WM_LBUTTONDBLCLK:
+        begin GraphButtonSetFocus(@Self);
+              RefInc;
+              SetCapture( Parent.Handle );
+              Parent.fPushedBtn := @ Self;
+              {$IFDEF USE_FLAGS} include( fFlagsG4, G4_Pushed );
+              {$ELSE} fPushed := TRUE; {$ENDIF}
+              Invalidate;
+        end;
+      WM_LBUTTONUP:
+        begin
+          ReleaseCapture;
+          Invalidate;
+          if  {$IFDEF USE_FLAGS} G4_Pushed in fFlagsG4
+              {$ELSE} fPushed {$ENDIF} then begin
+              Pt.X := SmallInt( LoWord( Msg.lParam ) );
+              Pt.Y := SmallInt( HiWord( Msg.lParam ) );
+              if  PtInRect( ClientRect, Pt ) then DoClick;
+              {$IFDEF USE_FLAGS} exclude( fFlagsG4, G4_Pushed );
+              {$ELSE} fPushed := FALSE; {$ENDIF}
+              Parent.fPushedBtn := nil;
+              RefDec;
+          end;
+        end;
+      END;
+end;////////////////////////////////////////////////////////////////////////////
 procedure TControl.LeaveGraphButton( Sender: PObj );
-begin
-    {$IFDEF USE_FLAGS} exclude( fFlagsG6, G6_Focused );
-    {$ELSE} fFocused := FALSE; {$ENDIF}
-    if  Parent.DF.fCurrentControl = @ Self then
-        Parent.DF.fCurrentControl := nil;
-    if  ParentForm.DF.fCurrentControl = @ Self then
-        ParentForm.DF.fCurrentControl := nil;
-    Invalidate;
-    {$IFDEF NIL_EVENTS}
-    if  Assigned( EV.fOnLeave ) then
-    {$ENDIF}
-        EV.fOnLeave( @ Self );
-end;
-
+begin {$IFDEF USE_FLAGS} exclude( fFlagsG6, G6_Focused );
+      {$ELSE} fFocused := FALSE; {$ENDIF}
+      if  Parent.DF.fCurrentControl = @ Self then
+          Parent.DF.fCurrentControl := nil;
+      if  ParentForm.DF.fCurrentControl = @ Self then
+          ParentForm.DF.fCurrentControl := nil;
+      Invalidate;
+      {$IFDEF NIL_EVENTS}
+      if  Assigned( EV.fOnLeave ) then
+      {$ENDIF}
+          EV.fOnLeave( @ Self );
+end;////////////////////////////////////////////////////////////////////////////
 function TControl.GraphButtonKeyboardProcess(var Msg: TMsg;
   var Rslt: Integer): Boolean;
 var SpacePressed: Boolean;
@@ -64055,57 +63982,56 @@ var R: TRect;
     Flag, Flag1: DWORD;
     Theme: THandle;
     {$ENDIF}
-begin
-  R := ClientRect;
-  {$IFDEF GRAPHCTL_XPSTYLES}
-  OpenThemeDataProc;
-  Theme := 0;
-  if  Assigned( fOpenThemeDataProc ) and not DoNotDrawGraphCtlsUsingXPStyles then
-      Theme := fOpenThemeDataProc( 0, 'Edit' );
-  if  Theme <> 0 then
-  begin
-      Flag := 1; {ETS_NORMAL}
-      if   not Enabled then
-           Flag := 4 {ETS_DISABLED}
-      else if  eoReadonly in DF.fEditOptions then
-           Flag := 6 {ETS_READONLY}
-      else if  {$IFDEF USE_FLAGS} G6_Focused in fFlagsG6
-               {$ELSE} fFocused {$ENDIF} then
-           Flag := 5 {ETS_FOCUSED}
-      else if  {$IFDEF USE_FLAGS} G4_Hot in fFlagsG4
-               {$ELSE} fHot {$ENDIF} then
-           Flag := 2; {ETS_HOT}
-      fDrawThemeBackground( Theme, DC, 1 {EP_EDITTEXT}, Flag, @R, @R  );
-      Inc( R.Left, 2 );
-      Dec( R.Right, 2 );
-      fGetThemeBackgroundContentRect( Theme, DC, 1 {EP_EDITTEXT}, Flag, @R, @R1 );
-      if fCaption <> '' then
+begin R := ClientRect;
+      {$IFDEF GRAPHCTL_XPSTYLES}
+      OpenThemeDataProc;
+      Theme := 0;
+      if  Assigned( fOpenThemeDataProc ) and not DoNotDrawGraphCtlsUsingXPStyles then
+          Theme := fOpenThemeDataProc( 0, 'Edit' );
+      if  Theme <> 0 then
       begin
-          Flag1 := DT_SINGLELINE;
-          if  eoMultiline in DF.fEditOptions then
-              Flag1 := DT_WORDBREAK;
-          CASE fTextAlign OF
-          taCenter: Flag1 := Flag1 or DT_CENTER;
-          taRight:  Flag1 := Flag1 or DT_RIGHT;
-          END;
-          CASE fVerticalAlign OF
-          vaCenter: Flag1 := Flag1 or DT_VCENTER;
-          vaBottom: Flag1 := Flag1 or DT_BOTTOM;
-          END;
-          DrawFormattedTextXP( Theme, @ Self, DC, R1, 1 {EP_EDITTEXT}, Flag,
-            Flag1, 0 );
+          Flag := 1; {ETS_NORMAL}
+          if   not Enabled then
+               Flag := 4 {ETS_DISABLED}
+          else if  eoReadonly in DF.fEditOptions then
+               Flag := 6 {ETS_READONLY}
+          else if  {$IFDEF USE_FLAGS} G6_Focused in fFlagsG6
+                   {$ELSE} fFocused {$ENDIF} then
+               Flag := 5 {ETS_FOCUSED}
+          else if  {$IFDEF USE_FLAGS} G4_Hot in fFlagsG4
+                   {$ELSE} fHot {$ENDIF} then
+               Flag := 2; {ETS_HOT}
+          fDrawThemeBackground( Theme, DC, 1 {EP_EDITTEXT}, Flag, @R, @R  );
+          Inc( R.Left, 2 );
+          Dec( R.Right, 2 );
+          fGetThemeBackgroundContentRect( Theme, DC, 1 {EP_EDITTEXT}, Flag, @R, @R1 );
+          if fCaption <> '' then
+          begin
+              Flag1 := DT_SINGLELINE;
+              if  eoMultiline in DF.fEditOptions then
+                  Flag1 := DT_WORDBREAK;
+              CASE fTextAlign OF
+              taCenter: Flag1 := Flag1 or DT_CENTER;
+              taRight:  Flag1 := Flag1 or DT_RIGHT;
+              END;
+              CASE fVerticalAlign OF
+              vaCenter: Flag1 := Flag1 or DT_VCENTER;
+              vaBottom: Flag1 := Flag1 or DT_BOTTOM;
+              END;
+              DrawFormattedTextXP( Theme, @ Self, DC, R1, 1 {EP_EDITTEXT}, Flag,
+                Flag1, 0 );
+          end;
+          fCloseThemeData( Theme );
+      end else
+      {$ENDIF}
+      begin
+        if  not Assigned( EV.fOnPrepaint ) and not Transparent then begin
+            Canvas.Brush.Color := fColor;
+            Canvas.FillRect( R );
+        end;
+        DrawEdge( DC, R, BDR_SUNKENINNER or BDR_SUNKENOUTER, BF_ADJUST or BF_RECT  );
+        DrawFormattedText( @ Self, DC, R, DT_EDITCONTROL );
       end;
-      fCloseThemeData( Theme );
-  end else
-  {$ENDIF}
-  begin
-    if  not Assigned( EV.fOnPrepaint ) and not Transparent then begin
-        Canvas.Brush.Color := fColor;
-        Canvas.FillRect( R );
-    end;
-    DrawEdge( DC, R, BDR_SUNKENINNER or BDR_SUNKENOUTER, BF_ADJUST or BF_RECT  );
-    DrawFormattedText( @ Self, DC, R, DT_EDITCONTROL );
-  end;
 end;////////////////////////////////////////////////////////////////////////////
 procedure TControl.GraphicEditMouse(var Msg: TMsg);
 var E: PControl;
@@ -64144,19 +64070,18 @@ begin
 end;////////////////////////////////////////////////////////////////////////////
 procedure TControl.GraphCtlDrawFocusRect(DC: HDC; const R: TRect);
 var rgn: HRgn;
-begin
-  if  {$IFDEF USE_FLAGS} (G6_Focused in fFlagsG6)
-      {$ELSE} fFocused {$ENDIF}
-  and (GetActiveWindow = ParentForm.Handle) then begin
-      BeginPath( DC );
-      Canvas.FrameRect( R );
-      EndPath( DC );
-      Canvas.FrameRect( R );
-      DrawFocusRect( DC, R );
-      rgn := PathToRegion( DC );
-      ExtSelectClipRgn( DC, rgn, RGN_DIFF );
-      DeleteObject( rgn );
-  end;
+begin if  {$IFDEF USE_FLAGS} (G6_Focused in fFlagsG6)
+          {$ELSE} fFocused {$ENDIF}
+      and (GetActiveWindow = ParentForm.Handle) then begin
+          BeginPath( DC );
+          Canvas.FrameRect( R );
+          EndPath( DC );
+          Canvas.FrameRect( R );
+          DrawFocusRect( DC, R );
+          rgn := PathToRegion( DC );
+          ExtSelectClipRgn( DC, rgn, RGN_DIFF );
+          DeleteObject( rgn );
+      end;
 end;////////////////////////////////////////////////////////////////////////////
 procedure TControl.GroupBoxPaint(DC: HDC);
 var bk_erased: Boolean;
@@ -64491,9 +64416,8 @@ end;
 {$ENDIF}////////////////////////////////////////////////////////////////////////
 {$IFDEF ASM_VERSION}{$ELSE}
 function FormNewButton( Form: PControl ): PControl;
-begin
-    Form.FormGetStrParam;
-    Result := NewButton( Form.DF.FormCurrentParent, Form.FormString );
+begin Form.FormGetStrParam;
+      Result := NewButton( Form.DF.FormCurrentParent, Form.FormString );
 end;
 {$ENDIF}////////////////////////////////////////////////////////////////////////
 function FormNewBitBtn( Form: PControl ): PControl;
