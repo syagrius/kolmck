@@ -61,8 +61,10 @@ Delphi version 8 not supported! (delphi 8 is .net only)
              {$DEFINE _D4orHigher}
              {$DEFINE _D5orHigher}
              {$DEFINE _D6orHigher}
-             {$DEFINE _D7}
              {$DEFINE _D7orHigher}
+             {$DEFINE _D8}
+             {$DEFINE _D8orHigher}
+             {$DEFINE _D2005}
              {$DEFINE _D2005orHigher}
 {$WARN UNIT_DEPRECATED OFF}
 {$WARN SYMBOL_PLATFORM OFF}
@@ -76,8 +78,9 @@ Delphi version 8 not supported! (delphi 8 is .net only)
              {$DEFINE _D4orHigher}
              {$DEFINE _D5orHigher}
              {$DEFINE _D6orHigher}
-             {$DEFINE _D7}
              {$DEFINE _D7orHigher}
+             {$DEFINE _D8orHigher}
+             {$DEFINE _D2005}
              {$DEFINE _D2005orHigher}
              {$DEFINE _D2006orHigher}
 {$WARN UNIT_DEPRECATED OFF}
@@ -95,10 +98,10 @@ Delphi version 8 not supported! (delphi 8 is .net only)
                {$DEFINE _D4orHigher}
                {$DEFINE _D5orHigher}
                {$DEFINE _D6orHigher}
-               {$DEFINE _D7}
                {$DEFINE _D7orHigher}
                {$DEFINE _D2005orHigher}
                {$DEFINE _D2006orHigher}
+               {$DEFINE _D2007}
                {$DEFINE _D2007orHigher}
   {$WARN UNIT_DEPRECATED OFF}
   {$WARN SYMBOL_PLATFORM OFF}
@@ -115,11 +118,11 @@ Delphi version 8 not supported! (delphi 8 is .net only)
              {$DEFINE _D4orHigher}
              {$DEFINE _D5orHigher}
              {$DEFINE _D6orHigher}
-             {$DEFINE _D7}
              {$DEFINE _D7orHigher}
              {$DEFINE _D2005orHigher}
              {$DEFINE _D2006orHigher}
              {$DEFINE _D2007orHigher}
+             {$DEFINE _D2009}
              {$DEFINE _D2009orHigher}
 {$WARN UNIT_DEPRECATED OFF}
 {$WARN SYMBOL_PLATFORM OFF}
@@ -133,14 +136,35 @@ Delphi version 8 not supported! (delphi 8 is .net only)
 	{$DEFINE _D4orHigher}
 	{$DEFINE _D5orHigher}
 	{$DEFINE _D6orHigher}
-	{$DEFINE _D7}
+	{$DEFINE _D7orHigher}
+	{$DEFINE _D2005orHigher}
+	{$DEFINE _D2006orHigher}
+	{$DEFINE _D2007orHigher}
+	{$DEFINE _D2009orHigher}
+	{$DEFINE _D2010}
+	{$DEFINE _D2010orHigher}
+	{$WARN UNIT_DEPRECATED OFF}
+	{$WARN SYMBOL_PLATFORM OFF}
+	{$WARN UNSAFE_TYPE OFF}
+	{$WARN UNSAFE_CAST OFF}
+	{$WARN UNSAFE_CODE OFF}
+{$ENDIF}
+
+{$IFDEF VER220} // Delphi XE
+	{$DEFINE _D3orHigher}
+	{$DEFINE _D4orHigher}
+	{$DEFINE _D5orHigher}
+	{$DEFINE _D6orHigher}
 	{$DEFINE _D7orHigher}
 	{$DEFINE _D2005orHigher}
 	{$DEFINE _D2006orHigher}
 	{$DEFINE _D2007orHigher}
 	{$DEFINE _D2009orHigher}
 	{$DEFINE _D2010orHigher}
-	{$WARN UNIT_DEPRECATED OFF}
+	{$DEFINE _DXE}
+	{$DEFINE _DXEorHigher}
+  {$DEFINE _DXEorHigher}
+  {$WARN UNIT_DEPRECATED OFF}
 	{$WARN SYMBOL_PLATFORM OFF}
 	{$WARN UNSAFE_TYPE OFF}
 	{$WARN UNSAFE_CAST OFF}

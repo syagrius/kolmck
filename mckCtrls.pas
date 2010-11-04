@@ -11080,6 +11080,7 @@ var W, I: Integer;
     Bt: TKOLToolbarButton;
     Format: TPixelFormat;
     KOLBmp: KOL.PBitmap;
+    Colors: KOL.PList;
 begin
   asm
     jmp @@e_signature
@@ -11109,12 +11110,17 @@ begin
             bitmap.Canvas.Handle, 0, 0, SRCCOPY );
     KOLBmp.HandleType := KOL.bmDIB;
     KOLBmp.PixelFormat := KOL.pf32bit;
-    case CountSystemColorsUsedInBitmap( KOLBmp ) of
-    KOL.pf1bit: Format := pf1bit;
-    KOL.pf4bit: Format := pf4bit;
-    KOL.pf8bit: Format := pf8bit;
-    else        Format := pf24bit;
-    end;
+    Colors := NewList;
+    TRY
+        case CountSystemColorsUsedInBitmap( KOLBmp, Colors ) of
+        KOL.pf1bit: Format := pf1bit;
+        KOL.pf4bit: Format := pf4bit;
+        KOL.pf8bit: Format := pf8bit;
+        else        Format := pf24bit;
+        end;
+    FINALLY
+        Colors.Free;
+    END;
   FINALLY
     KOLBmp.Free;
   END;

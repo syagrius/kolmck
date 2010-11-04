@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 // KOL_ASM.inc ()to be inlude in KOL.pas)
-// v 3.00.y
+// v 3.00.z
 
 function MsgBox( const S: KOLString; Flags: DWORD ): DWORD;
 asm
@@ -2395,7 +2395,7 @@ asm     //cmd    //opd
         POP      EBX
 end;
 
-function cHex2Int( const Value : AnsiString) : Integer;
+function cHex2Int( const Value : KOLString) : Integer;
 asm
      TEST  EAX, EAX
      JZ    @@exit
@@ -2409,114 +2409,6 @@ asm
 @@2Hex2Int:
      JMP   Hex2Int
 @@exit:
-end;
-
-function Num2Bytes( Value : Double ) : AnsiString;
-asm
-        PUSH     EBX
-        PUSH     ESI
-        PUSH     EDI
-        MOV      EBX, ESP
-        MOV      ESI, EAX
-
-        MOV      ECX, 4
-        MOV      EDX, 'TGMk'
-@@1:
-        FLD      [Value]
-@@10:
-        FICOM    dword ptr [@@1024]
-        FSTSW    AX
-        SAHF
-        JB       @@2
-
-        FIDIV    dword ptr [@@1024]
-        FST      [Value]
-        WAIT
-
-        TEST     DL, 20h
-        JE       @@ror
-        AND      DL, not 20h
-        JMP      @@nxt
-@@1024: DD       1024
-@@100:  DD       100
-
-@@ror:
-        ROR      EDX, 8
-@@nxt:
-        LOOP     @@10
-@@2:
-        TEST     DL, 20h
-        JZ       @@3
-        MOV      DL, 0
-@@3:    MOV      DH, 0
-        PUSH     DX
-        MOV      EDI, ESP
-
-        FLD      ST(0)
-        CALL     System.@TRUNC
-        {$IFDEF _D2orD3}
-        PUSH     0
-        {$ELSE}
-        PUSH     EDX
-        {$ENDIF}
-        PUSH     EAX
-        FILD     qword ptr [ESP]
-        POP      EDX
-        POP      EDX
-
-        MOV      EDX, ESI
-        CALL     Int2Str
-
-        FSUBP    ST(1), ST
-        FIMUL    dword ptr [@@100]
-        CALL     System.@TRUNC
-
-        TEST     EAX, EAX
-        JZ       @@4
-
-        XOR      ECX, ECX
-        MOV      CL, 0Ah
-        CDQ
-        IDIV     ECX
-        TEST     EDX, EDX
-        JZ       @@5
-
-        MOV      AH, DL
-        SHL      EAX, 16
-        ADD      EAX, '00. '
-        PUSH     EAX
-        MOV      EDI, ESP
-        INC      EDI
-        JMP      @@4
-
-@@5:    SHL      EAX, 8
-        ADD      AX, '0.'
-        PUSH     AX
-        MOV      EDI, ESP
-
-@@4:
-        MOV      EAX, [ESI]
-        CALL     System.@LStrLen
-        ADD      ESP, -100
-
-        SUB      EDI, EAX
-        PUSH     ESI
-        PUSH     EDI
-        MOV      ESI, [ESI]
-        MOV      ECX, EAX
-        REP      MOVSB
-
-        POP      EDX
-        POP      EAX
-        {$IFDEF _D2009orHigher}
-        XOR      ECX, ECX // TODO: IDIV
-        {$ENDIF}
-        CALL     System.@LStrFromPChar
-
-        MOV      ESP, EBX
-        POP      EDI
-        POP      ESI
-        POP      EBX
 end;
 
 function Trim( const S : KOLString): KOLString;

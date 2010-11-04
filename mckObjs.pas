@@ -363,7 +363,7 @@ type KOLTPixelFormat = KOL.TPixelFormat;
 
 
 
-function CountSystemColorsUsedInBitmap( Bmp: KOL.PBitmap ): KOLTPixelFormat;
+function CountSystemColorsUsedInBitmap( Bmp: KOL.PBitmap; ColorList: KOL.PList ): KOLTPixelFormat;
 //function SaveBitmap( Bitmap: TBitmap; const Path: String ): Boolean;
 procedure GenerateBitmapResource( Bitmap: TBitmap; const RsrcName, FileName: String;
           var Updated: Boolean );
@@ -628,23 +628,25 @@ begin
   Result := TRUE;
 end;
 
-function CountSystemColorsUsedInBitmap( Bmp: KOL.PBitmap ): KOL.TPixelFormat;
+function CountSystemColorsUsedInBitmap( Bmp: KOL.PBitmap; ColorList: KOL.PList ): KOL.TPixelFormat;
 var Y, X: Integer;
     L: PDWORD;
-    ColorList: KOL.PList;
     C: TColor;
     R, G, B: Byte;
+    not_use_16bpp: Boolean;
 begin
-  ColorList := NewList;
+  Rpt( 'CountSystemColorsUsedInBitmap()', YELLOW );
+  ColorList.Clear;
   ColorList.Capacity := 65537;
   TRY
+    not_use_16bpp := FALSE;
     for Y := 0 to Bmp.Height - 1 do
     begin
       L := Bmp.ScanLine[ Y ];
       for X := 0 to Bmp.Width - 1 do
       begin
         C := L^ and $FFFFFF;
-        if (C and $E0C0E0) <> C then
+        if ((C and $E0C0E0) <> C) and not not_use_16bpp then
         begin
           R := C and $FF;
           G := (C and $FF00) shr 8;
@@ -653,9 +655,10 @@ begin
              ((G and $C0) <> G) and (G <> $FF) or
              ((B and $E0) <> B) and (B <> $FF) then
           begin
-            Result := KOL.pf24bit;
+            //Result := KOL.pf24bit;
             //Rpt( '~~~ color not found: ' + Int2Hex( C, 6 ), WHITE );
-            Exit;
+            //Exit;
+            not_use_16bpp := TRUE;
           end;
         end;
         if ColorList.IndexOf( Pointer( C ) ) < 0 then
@@ -663,44 +666,48 @@ begin
           ColorList.Add( Pointer( C ) );
           if ColorList.Count > 65536 then
           begin
-            Result := KOL.pf24bit;
-            Rpt( '~~~~~ pf24bit (break) ~~~~~ (' + IntToStr( ColorList.Count ) +
-              ')', WHITE );
-            Exit;
+            //Result := KOL.pf24bit;
+            //Rpt( '~~~~~ pf24bit (break) ~~~~~ (' + IntToStr( ColorList.Count ) +
+            //  ')', WHITE );
+            //Exit;
+            not_use_16bpp := TRUE;
+            break;
           end;
+          if not_use_16bpp and (ColorList.Count > 256) then
         end;
         Inc( L );
       end;
     end;
-    //Rpt( '------ Colors in bitmap: ' + IntToStr( ColorList.Count ) );
-    if (ColorList.Count <= 2) and
+    if (ColorList.Count <= 2) {and
        ((ColorList.Count = 0) or
         (ColorList.Count > 0) and (DWORD(ColorList.Items[ 0 ]) and $FFFFFF = $FFFFFF) and
         ((ColorList.Count < 2) or
-         (ColorList.Count = 2) and (DWORD( ColorList.Items[ 1 ] ) and $FFFFFF = 0) )) then
+         (ColorList.Count = 2) and (DWORD( ColorList.Items[ 1 ] ) and $FFFFFF = 0) ))} then
     begin
       Result := KOL.pf1bit;
-      //Rpt( '~~~~~ pf1bit ~~~~~', WHITE );
-    end else if (ColorList.Count <= 16) and ColorsAreSystem16( ColorList ) then
+      Rpt( '~~~~~ pf1bit ~~~~~', WHITE );
+    end else if (ColorList.Count <= 16) {and ColorsAreSystem16( ColorList )} then
     begin
       Result := KOL.pf4bit;
-      //Rpt( '~~~~~ pf4bit ~~~~~', WHITE );
-    end else if (ColorList.Count <= 256) and ColorsAreSystem256( ColorList ) then
+      Rpt( '~~~~~ pf4bit ~~~~~', WHITE );
+    end else if (ColorList.Count <= 256) {and ColorsAreSystem256( ColorList )} then
     begin
       Result := KOL.pf8bit;
-      //Rpt( '~~~~~ pf8bit ~~~~~', WHITE );
-    end else if (ColorList.Count <= 65536) and ColorsAre64K( ColorList ) then
+      Rpt( '~~~~~ pf8bit ~~~~~', WHITE );
+    end else if (ColorList.Count <= 65536) and not not_use_16bpp
+    and ColorsAre64K( ColorList ) then
     begin
       Result := KOL.pf16bit;
-      //Rpt( '~~~~~ pf16bit ~~~~~', WHITE );
+      Rpt( '~~~~~ pf16bit ~~~~~', WHITE );
     end
     else
     begin
       Result := KOL.pf24bit;
-      //Rpt( '~~~~~ pf32bit ~~~~~ (' + IntToStr( ColorList.Count ) + ')', WHITE );
+      Rpt( '~~~~~ pf24bit ~~~~~ (' + IntToStr( ColorList.Count ) + ')', WHITE );
     end;
   FINALLY
-    ColorList.Free;
+    Rpt( '------ Colors in bitmap: ' + IntToStr( ColorList.Count ), YELLOW );
+    //ColorList.Free;
   END;
 end;
 
@@ -792,6 +799,62 @@ end;
 
 {$ELSE not _D2}
 
+procedure OptimizeKOLBitmapBeforeRLEEncoding( B: KOL.PBitmap );
+var ColorCounts: array[ 0..255 ] of Integer;
+    x, y, N, i, M: Integer;
+    Src: PByte;
+    C1, C2: TColor;
+    Tmp: KOL.PBitmap;
+begin
+    FillChar( ColorCounts, Sizeof( ColorCounts ), 0 );
+    N := 0;
+    for y := 0 to B.Height-1 do
+    begin
+        Src := B.ScanLine[y];
+        if  B.PixelFormat = KOL.pf4bit then
+        begin
+            x := B.Width;
+            while x > 0 do
+            begin
+                inc( ColorCounts[ Src^ shr 4 ] );
+                if  x > 1 then
+                    inc( ColorCounts[ Src^ and 15 ] );
+                dec( x, 2 );
+                inc( Src );
+            end;
+            N := 16;
+        end else
+        begin
+            for x := B.Width downto 1 do
+            begin
+                inc( ColorCounts[ Src^ ] );
+                inc( Src );
+            end;
+            N := 256;
+        end;
+    end;
+    M := 0;
+    for i := 0 to N-1 do
+    begin
+        if  ColorCounts[i] > ColorCounts[M] then
+            M := i;
+    end;
+    if  M > 0 then
+    begin
+        C1 := B.DIBPalEntries[0];
+        C2 := B.DIBPalEntries[M];
+        Tmp := NewBitmap( 0, 0 );
+        TRY
+            Tmp.Assign( B );
+            B.DIBPalEntries[0] := C2;
+            B.DIBPalEntries[M] := C1;
+            Tmp.Draw( B.Canvas.Handle, 0, 0 );
+        FINALLY
+            Tmp.Free;
+        END;
+    end;
+end;
+
 // This version of GenerateBitmapResource provided by Alex Pravdin.
 // It does not use brcc32.exe, and creates res-file directly, so
 // it is fast and has no restrictions on bitmap format at all.
@@ -825,7 +888,9 @@ var
 
     KOLBmp: KOL.PBitmap;
     KOLPF: KOL.TPixelFormat;
-
+    ColorList: KOL.PList;
+    N, i: Integer;
+    Mem, MemRLE: KOL.PStream;
 begin
   asm
     jmp @@e_signature
@@ -837,16 +902,67 @@ begin
   Bmp := ProjectSourcePath + FileName + '.bmp';
   FE := FileExists( Res );
 
+  Rpt( 'Generating resource ' + RsrcName, YELLOW );
   //Bitmap.SaveToFile( Bmp );
   KOLBmp := KOL.NewDIBBitmap( Bitmap.Width, Bitmap.Height, KOL.pf32bit );
   BitBlt( KOLBmp.Canvas.Handle, 0, 0, Bitmap.Width, Bitmap.Height,
           Bitmap.Canvas.Handle, 0, 0, SRCCOPY );
   KOLBmp.HandleType := KOL.bmDIB;
   KOLBmp.PixelFormat := KOL.pf32bit;
-  KOLPF := CountSystemColorsUsedInBitmap( KOLBmp );
-  KOLBmp.PixelFormat := KOLPF;
-  KOLBmp.SaveToFile( Bmp );
-  KOLBmp.Free;
+  ColorList := NewList;
+  TRY
+      KOLPF := CountSystemColorsUsedInBitmap( KOLBmp, ColorList );
+      if  ColorList.Count > 0 then
+      begin
+          KOLBmp.PixelFormat := KOLPF;
+          KOLBmp.HandleType := KOL.bmDIB;
+          N := 0;
+          CASE KOLPF OF
+          KOL.pf1bit: N := 2;
+          KOL.pf4bit: N := 16;
+          KOL.pf8bit: N := 256;
+          END;
+          if  N > 0 then
+          begin
+              for i := 0 to min( ColorList.Count, N )-1 do
+              begin
+                  KOLBmp.DIBPalEntries[i] := Integer( ColorList.Items[i] );
+              end;
+              //
+              BitBlt( KOLBmp.Canvas.Handle, 0, 0, Bitmap.Width, Bitmap.Height,
+                  Bitmap.Canvas.Handle, 0, 0, SRCCOPY );
+              //
+          end;
+          //KOLBmp.SaveToFile( Bmp );
+          Mem := NewMemoryStream;
+          MemRLE := NewMemoryStream;
+          TRY
+              KOLBmp.CoreSaveToStream( Mem );
+              if  N > 0 then
+              begin
+                  if  KOLPF = KOL.pf1bit then
+                      KOLBmp.PixelFormat := KOL.pf4bit;
+                  OptimizeKOLBitmapBeforeRLEEncoding( KOLBmp );
+                  KOLBmp.RLESaveToStream( MemRLE );
+              end;
+              if  (MemRLE.Size > 0) and (MemRLE.Size < Mem.Size) then
+                  KOL.Swap( Integer( Mem ), Integer( MemRLE ) );
+              Mem.Position := 0;
+              Mem.SaveToFile( Bmp, 0, Mem.Size );
+          FINALLY
+              Mem.Free;
+              MemRLE.Free;
+          END;
+      end
+        else
+      begin
+          Bitmap.SaveToFile( Bmp );
+      end;
+      Rpt( 'Bitmap saved to ' + Bmp, YELLOW );
+      KOLBmp.Free;
+  FINALLY
+      ColorList.Free;
+  END;
 
   if FE then
   begin
@@ -896,6 +1012,7 @@ begin
   WriteFile( hFR, Buf1[0], RLen, br, nil );
   CloseHandle( hFtm );
   CloseHandle( hFR );
+  //------------------------------------------------
   DeleteFile( Bmp );
 
   if FE then begin
@@ -1500,13 +1617,15 @@ begin
     Colors := ilcColorDDB
   else
   begin
+    //if  Colors = ilcDefault then
     case FBitmap.PixelFormat of
     pf1bit,
-    pf4bit: Colors := ilcColor4;
-    pf8bit: Colors := ilcColor8;
-    pf32bit: Colors := ilcColor32;
+    pf4bit: if Colors < ilcColor4 then Colors := ilcColor4;
+    pf8bit: if Colors < ilcColor8 then Colors := ilcColor8;
+    pf15bit, pf16bit: if  Colors < ilcColor16 then Colors := ilcColor16;
+    pf32bit:if Colors < ilcColor32 then Colors := ilcColor32;
     //pf24bit:
-    else Colors := ilcColor24;
+    else if Colors < ilcColor24 then Colors := ilcColor24;
     end;
   end;
   {$ENDIF}
