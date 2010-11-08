@@ -14,7 +14,7 @@
   Key Objects Library (C) 2000 by Kladov Vladimir.
 
 ****************************************************************
-* VERSION 3.00.Z4
+* VERSION 3.00.Z6
 ****************************************************************
 
   K.O.L. - is a set of objects to create small programs
@@ -591,7 +591,9 @@ interface
         {$UNDEF SAFE_CODE}
 {$ENDIF}
 {$IFnDEF NO_SAFE_CODE}
+{$IFnDEF SMALLER_CODE}
         {$DEFINE SAFE_CODE}
+{$ENDIF}
 {$ENDIF}
 
 {$IFDEF NOT_USE_RICHEDIT}
@@ -18478,8 +18480,7 @@ begin
       SelectObject( GetHandle, fFont.Handle );
       SetTextColor( fHandle, Color2RGB( fFont.fData.Color ) );
       AssignChangeEvents;
-  end
-     else
+  end else
   if  ( fOwnerControl <> nil ) then
   begin
       SetTextColor( fHandle,
@@ -19024,6 +19025,11 @@ asm
         CALL     EDX2PChar
         PUSH     EDX               // prepare PChar(Text)
 
+        {$IFDEF  SAFE_CODE}
+        MOV      EAX, EBX
+        CALL     RefInc
+        {$ENDIF}
+
         PUSH     HandleValid or FontValid
         PUSH     EBX
         CALL     RequiredState
@@ -19062,6 +19068,12 @@ asm
         CALL     SetHandle
 
 @@exit:
+        {$IFDEF  SAFE_CODE}
+        PUSH     EAX
+        XCHG     EAX, EBX
+        CALL     RefDec
+        POP      EAX
+        {$ENDIF}
         POP      ESI
         POP      EBX
 end;
@@ -19082,7 +19094,7 @@ begin
        ClearHandle := True; //************ // Added By Gerasimov
   end;
   RequiredState( HandleValid or FontValid );
-  GetTextExtentPoint32( fHandle, PKOLChar(Text), Length(Text), Result); 
+  GetTextExtentPoint32( fHandle, PKOLChar(Text), Length(Text), Result);
   if ClearHandle then
     SetHandle( 0 );
     { DC must be freed here automatically (never leaks):
@@ -22638,8 +22650,8 @@ begin
         begin
             if S[I] = #0 then
             begin
-                S[J] := #13;
-                S[J-1] := #10;
+                S[J] := #10;
+                S[J-1] := #13;
                 dec( J );
             end
               else
@@ -44758,6 +44770,9 @@ end;
 {$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
 function TControl.GetCanvas: PCanvas;
 begin
+  {$IFDEF SAFE_CODE}
+  CreateWindow;
+  {$ENDIF}
   if ( fCanvas = nil ) then
   begin
     fCanvas := NewCanvas( 0 );
@@ -44790,20 +44805,23 @@ BEGIN
   END;
 END;
 
-function TControl.GetCanvas: PCanvas;
-begin
-  if  ( fCanvas = nil ) then
-  begin
+FUNCTION TControl.GetCanvas: PCanvas;
+BEGIN
+  {$IFDEF SAFE_CODE}
+  CreateWindow;
+  {$ENDIF}
+  IF  ( fCanvas = nil ) then
+  BEGIN
       fCanvas := NewCanvas( nil );
       fCanvas.fOnGetHandle := ProvideCanvasHandle;
       fCanvas.fOwnerControl := @Self;
       fCanvas.fDrawable := Pointer( fEventboxHandle.window );
-  end;
+  END;
   fCanvas.GetHandle; // получим здесь тот контекст, который соответствует
                      // текущему состоянию контрола (если это контрол) и текущей
                      // стадии рисования
   Result := fCanvas;
-end;
+END;
 {$ENDIF GTK}
 {$ENDIF _X_}
 {$IFDEF WIN_GDI}
