@@ -14,7 +14,7 @@
   Key Objects Library (C) 2000 by Kladov Vladimir.
 
 ****************************************************************
-* VERSION 3.00.Z6
+* VERSION 3.00.Z7
 ****************************************************************
 
   K.O.L. - is a set of objects to create small programs
@@ -34740,6 +34740,7 @@ end;
 function WndProcUnicodeChars( Sender: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean;
 var WStr, WW: KOLWideString;
     RepeatCount: Integer;
+    C: KOLChar;
 begin
     Result := FALSE;
     if  (Msg.message = WM_CHAR)
@@ -34752,6 +34753,16 @@ begin
         {$ENDIF} then
     begin
         Result := TRUE;
+
+        {$IFDEF NIL_EVENTS}
+        if assigned( Self_.EV.fOnChar ) then
+        {$ENDIF}
+        begin
+           C := KOLChar( Msg.wParam );
+           Sender.EV.fOnChar( Sender, C, GetShiftState );
+           Msg.wParam := Integer( C );
+        end;
+
         WStr := WideChar(Msg.wParam);
         if  WStr <> '' then
         begin
@@ -39185,19 +39196,19 @@ begin
                                  {$IFDEF USE_FLAGS} exclude( fFlagsG4, G4_Pushed );
                                  {$ELSE} fKeyPreviewing:=false; {$ENDIF}
                                  {$ENDIF}
-                                 if fGlobalProcKeybd( @Self, Msg, Result ) then
+                                 if  fGlobalProcKeybd( @Self, Msg, Result ) then
                                  begin
-                                   {$IFDEF INPACKAGE}
-                                   LogOK;
-                                   {$ENDIF INPACKAGE}
-                                   Exit; //??????????????????
+                                     {$IFDEF INPACKAGE}
+                                     LogOK;
+                                     {$ENDIF INPACKAGE}
+                                     Exit; //??????????????????
                                  end;
-                                 if PP.fWndProcKeybd( @Self, Msg, Result ) then
+                                 if  PP.fWndProcKeybd( @Self, Msg, Result ) then
                                  begin
-                                   {$IFDEF INPACKAGE}
-                                   LogOK;
-                                   {$ENDIF INPACKAGE}
-                                   Exit; //???????????????????
+                                     {$IFDEF INPACKAGE}
+                                     LogOK;
+                                     {$ENDIF INPACKAGE}
+                                     Exit; //???????????????????
                                  end;
                                  if ((GetKeystate( VK_CONTROL ) or GetKeyState( VK_MENU )) >= 0) then
                                  begin
@@ -39206,26 +39217,26 @@ begin
                                    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                                    then
                                    begin
-                                     C := ParentForm;
-                                     if  (C <> nil)
-                                     {$IFDEF NIL_EVENTS}
-                                     and Assigned(C.PP.fGotoControl)
-                                     {$ENDIF}
-                                     and C.PP.fGotoControl( @Self, Msg.wParam,
-                                         (Msg.message <> WM_KEYDOWN) and
-                                         (Msg.message <> WM_SYSKEYDOWN) ) then
-                                     begin
-                                          Msg.wParam := 0;
-                                          Result := 0;
-                                     end
-                                     else Default;
+                                       C := ParentForm;
+                                       if  (C <> nil)
+                                       {$IFDEF NIL_EVENTS}
+                                       and Assigned(C.PP.fGotoControl)
+                                       {$ENDIF}
+                                       and C.PP.fGotoControl( @Self, Msg.wParam,
+                                           (Msg.message <> WM_KEYDOWN) and
+                                           (Msg.message <> WM_SYSKEYDOWN) ) then
+                                       begin
+                                            Msg.wParam := 0;
+                                            Result := 0;
+                                       end
+                                       else Default;
                                    end
                                    //+++++++++++++++++++++++++++++++++++++++++++++//
-                                     else                                         //
+                                   else                                           //
                                    if Msg.wParam = 9 then // prevent system beep  //
                                    begin                                          //
-                                      Msg.wParam := 0;                            //
-                                      Result := 0;                                //
+                                          Msg.wParam := 0;                        //
+                                          Result := 0;                            //
                                    end                                            //
                                    //+++++++++++++++++++++++++++++++++++++++++++++//
                                    else Default;
@@ -41192,8 +41203,8 @@ begin
   end;
 end;
 {$ENDIF ASM_VERSION}
-
 {$ENDIF WIN_GDI}
+
 {$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
 function GetPrevCtrlBoundsRect( P: PControl; var R: TRect ): Boolean;
 var Idx: Integer;
@@ -41366,17 +41377,18 @@ begin
        begin
   {$IFDEF KEY_PREVIEW}
   //--------------------------------Truf-------------------------------------
-         if ParentForm <> Self_ then
+         F := ParentForm;
+         if F <> Self_ then
             begin
-              if  {$IFDEF USE_FLAGS} G6_KeyPreview in ParentForm.fFlagsG6
-                  {$ELSE} ParentForm.fKeyPreview {$ENDIF} then
+              if  {$IFDEF USE_FLAGS} G6_KeyPreview in F.fFlagsG6
+                  {$ELSE} F.fKeyPreview {$ENDIF} then
               begin
-                  {$IFDEF USE_FLAGS} 
-                          include( ParentForm.fFlagsG4, G4_Pushed );
-                  {$ELSE} ParentForm.fKeyPreviewing := TRUE; {$ENDIF}
-                  inc( ParentForm.DF.fKeyPreviewCount );
-                  ParentForm.Perform(WM_KEYDOWN,msg.wParam,msg.lParam);
-                  dec( ParentForm.DF.fKeyPreviewCount );
+                  {$IFDEF USE_FLAGS}
+                          include( F.fFlagsG4, G4_Pushed );
+                  {$ELSE} F.fKeyPreviewing := TRUE; {$ENDIF}
+                  inc( F.DF.fKeyPreviewCount );
+                  F.Perform(WM_KEYDOWN,msg.wParam,msg.lParam);
+                  dec( F.DF.fKeyPreviewCount );
               end;
             end;
   //--------------------------------Truf-------------------------------------
@@ -41384,28 +41396,32 @@ begin
   {$IFDEF ESC_CLOSE_DIALOGS}
   //---------------------------------Babenko Alexey--------------------------
          begin
-           if  (Self_.ParentForm.fExStyle and WS_EX_DLGMODALFRAME) <> 0 then
+           F := ParentForm;
+           if  (F.fExStyle and WS_EX_DLGMODALFRAME) <> 0 then
            if  Msg.wParam = 27 then
-               Self_.ParentForm.Perform(WM_CLOSE, 0, 0);
+               F.Perform(WM_CLOSE, 0, 0);
          end;
   //---------------------------------Babenko Alexey--------------------------
   {$ENDIF ESC_CLOSE_DIALOGS}
        end;
   {$IFDEF KEY_PREVIEW}
-  WM_SYSKEYDOWN,
-  WM_KEYUP, WM_SYSKEYUP,
-  WM_CHAR, WM_SYSCHAR:
-         if ParentForm <> Self_ then
-            begin
-              if  {$IFDEF USE_FLAGS} G6_KeyPreview in ParentForm.fFlagsG6
-                  {$ELSE} ParentForm.fKeyPreview {$ENDIF} then
+  WM_KEYUP..WM_SYSDEADCHAR:
+       begin
+           F := ParentForm;
+           if F <> Self_ then
+           begin
+              if  {$IFDEF USE_FLAGS} G6_KeyPreview in F.fFlagsG6
+                  {$ELSE} F.fKeyPreview {$ENDIF} then
               begin
                   {$IFDEF USE_FLAGS}
-                          include( ParentForm.fFlagsG4, G4_Pushed );
-                  {$ELSE} ParentForm.fKeyPreviewing := TRUE; {$ENDIF}
-                  ParentForm.Perform(Msg.message,msg.wParam,msg.lParam);
+                          include( F.fFlagsG4, G4_Pushed );
+                  {$ELSE} F.fKeyPreviewing := TRUE; {$ENDIF}
+                  inc( F.DF.fKeyPreviewCount );
+                  F.Perform(Msg.message,msg.wParam,msg.lParam);
+                  dec( F.DF.fKeyPreviewCount );
               end;
-            end;
+           end;
+       end;
   {$ENDIF KEY_PREVIEW}
   {$ENDIF KEY_PREVIEW_OR_ESC_CLOSE_DIALOGS}
   end;
@@ -63644,11 +63660,9 @@ begin
   if  Assigned( Ctl.EV.fOnEnter ) then
   {$ENDIF}
       Ctl.EV.fOnEnter( Ctl );
-end;
-
+end;////////////////////////////////////////////////////////////////////////////
 function NewGraphEditbox( AParent: PControl; Options: TEditOptions ): PControl;
-begin
-  {$IFDEF INPACKAGE}
+begin {$IFDEF INPACKAGE}
   Result := NewEditbox( AParent, Options );
   {$ELSE}
   Result := _NewGraphCtl( AParent, TRUE,
@@ -63664,33 +63678,24 @@ begin
   Result.fLookTabKeys := [ tkTab, tkUpDown, tkPageUpPageDn ];
   Result.EV.fLeave := Result.LeaveGraphEdit;
   {$ENDIF}
-end;
-
+end;////////////////////////////////////////////////////////////////////////////
 { TGraphicControl }
 
 function TControl.DoGraphCtlPrepaint: TRect;
 begin
   Result := ClientRect;
   if not Assigned( EV.fOnPrepaint ) and not Transparent then
-  begin
-    if  fBrush <> nil then
+      begin if   fBrush <> nil then
         Canvas.Brush.Assign( fBrush )
-    else
-        Canvas.Brush.Color := Color;
+            else Canvas.Brush.Color := Color;
     Canvas.FillRect( Result );
   end;
-end;
-
+end;////////////////////////////////////////////////////////////////////////////
 procedure TControl.GraphicLabelPaint(DC: HDC);
 var R: TRect;
-begin
-  R := DoGraphCtlPrepaint;
-  if Text <> '' then
-    DrawFormattedText( @ Self, DC, R, 0 );
-  //SaveImg( Canvas, R, 'bm09.bmp' );
-  //sv1 := FALSE;
-end;
-
+begin R := DoGraphCtlPrepaint;
+      if  Text <> '' then DrawFormattedText( @ Self, DC, R, 0 );
+end;////////////////////////////////////////////////////////////////////////////
 procedure TControl.GraphicCheckBoxPaint(DC: HDC);
 var R, R1: TRect;
     Flag: DWORD;

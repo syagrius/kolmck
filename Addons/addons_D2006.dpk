@@ -4,6 +4,7 @@ package addons_D2006;
 {$R 'mckCCtrls.dcr'}
 {$R 'mckHTTPDownload.dcr'}
 {$R 'mckQProgBar.dcr'}
+{$R 'MCKMHIPEdit.dcr'}
 {$ALIGN 1}
 {$ASSERTIONS ON}
 {$BOOLEVAL OFF}
@@ -85,6 +86,8 @@ contains
   tinyJPGGIFBMP in 'tinyJPGGIFBMP.pas',
   mckWebBrowser in 'mckWebBrowser.pas',
   mckDHTML in 'mckDHTML.pas',
-  KolZLibBzip in 'KolZLibBzip.pas';
+  KolZLibBzip in 'KolZLibBzip.pas',
+  KOLMHIPEdit in 'KOLMHIPEdit.pas',
+  MCKMHIPEdit in 'MCKMHIPEdit.pas';
 
 end.

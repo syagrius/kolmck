@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 // KOL_ASM.inc ()to be inlude in KOL.pas)
-// v 3.00.z
+// v 3.00.z6
 
 function MsgBox( const S: KOLString; Flags: DWORD ): DWORD;
 asm
@@ -8911,7 +8911,12 @@ function TControl.GetCanvas: PCanvas;
 asm
         PUSH     EBX
         PUSH     ESI
+        {$IFDEF  SAFE_CODE}
+        MOV      EBX, EAX
+        CALL     CreateWindow
+        {$ELSE}
         XCHG     EBX, EAX
+        {$ENDIF}
 
         MOV      ESI, [EBX].fCanvas
         TEST     ESI, ESI
@@ -14816,6 +14821,6 @@ asm
     POP   EDI
 end;
 
-{$ENDIF}
+//{$ENDIF}
 
 //======================================== THE END OF FILE KOL_ASM.inc

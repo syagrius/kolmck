@@ -2,10 +2,10 @@ unit KOLDirDlgEx;
 
 interface
 
-uses Windows, Messages, KOL {$IFDEF USE_GRUSH}, ToGrush, KOLGRushControls {$ENDIF};
+uses
+  Windows, Messages, KOL {$IFDEF USE_GRUSH}, ToGrush, KOLGRushControls {$ENDIF};
 
 {$I KOLDEF.INC}
-{$I DELPHIDEF.INC}
 
 {$IFDEF EXTERNAL_DEFINES}
         {$INCLUDE EXTERNAL_DEFINES.INC}
