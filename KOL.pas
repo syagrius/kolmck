@@ -14,7 +14,7 @@
   Key Objects Library (C) 2000 by Kladov Vladimir.
 
 ****************************************************************
-* VERSION 3.00.Z8
+* VERSION 3.00.Z9
 ****************************************************************
 
   K.O.L. - is a set of objects to create small programs
@@ -12352,7 +12352,7 @@ type
              of object;
   TSortDirRules = ( sdrNone, sdrFoldersFirst, sdrCaseSensitive, sdrByName, sdrByExt,
                     sdrBySize, sdrBySizeDescending, sdrByDateCreate, sdrByDateChanged,
-                    sdrByDateAccessed );
+                    sdrByDateAccessed, sdrInvertOrder );
   {* List of rules (options) to sort directories. Rules are passed to Sort
      method in an array, and first placed rules are applied first. }
 
@@ -24772,8 +24772,8 @@ var FOS : {$IFDEF UNICODE_CTRLS}TSHFileOpStructW{$ELSE}TSHFileOpStruct{$ENDIF};
     ToList0: KOLString;
 begin
   L := Length( FromList );
-  Buf := AllocMem( L+2 );
-  Move( FromList[ 1 ], Buf^, L );
+  Buf := AllocMem( (L+2) * Sizeof( KOLChar ) );
+  Move( FromList[ 1 ], Buf^, L * Sizeof( KOLChar ) );
   for L := L downto 0 do
     if Buf[ L ] = FileOpSeparator then Buf[ L ] := #0;
   //FillChar( FOS, Sizeof( FOS ), #0 );
@@ -24783,7 +24783,7 @@ begin
   FOS.wFunc := FileOp;
   FOS.lpszProgressTitle := Title;
   FOS.pFrom := Buf;
-  ToList0 := ToList0 + #0;
+  ToList0 := ToList + #0;
   FOS.pTo := PKOLChar( ToList0 );
   FOS.fFlags := Flags;
   FOS.fAnyOperationsAborted := True;
@@ -25436,8 +25436,8 @@ type
   PSortDirData = ^TSortDirData;
   TSortDirData = packed Record
     CountRules: Integer;
-    FoldersFirst, CaseSensitive : Boolean;
-    Rules : array[ 0..9 ] of TSortDirRules;
+    FoldersFirst, CaseSensitive, InvertSortOrder : Boolean;
+    Rules : array[ 0..10 ] of TSortDirRules;
     Dir : PDirList;
   end;
 
@@ -25564,6 +25564,8 @@ begin
     end; {case}
     if Result <> 0 then break;
   end;
+  if  Data.InvertSortOrder then
+      Result := -Result;
 end;
 
 {$IFDEF ASM_VERSION}
@@ -25689,12 +25691,14 @@ var SortDirData : TSortDirData;
 
     procedure AddRule( Rule : TSortDirRules );
     begin
-      if  Rule in [sdrFoldersFirst, sdrCaseSensitive] then
+      if  Rule in [sdrFoldersFirst, sdrCaseSensitive, sdrInvertOrder] then
       begin
           if  Rule = sdrFoldersFirst then
               SortDirData.FoldersFirst := TRUE;
           if  Rule = sdrCaseSensitive then
               SortDirData.CaseSensitive := TRUE;
+          if  Rule = sdrInvertOrder then
+              SortDirData.InvertSortOrder := TRUE;
           Exit;
       end;
       {$IFDEF SAFE_CODE}
@@ -53561,7 +53565,7 @@ var Pos : DWORD;
         begin
           //Exit;
           {$IFDEF FILL_BROKEN_BITMAP}
-          ZeroMemory( Pointer( Integer( fDIBBits ) + i )^, Size - i );
+          ZeroMemory( Pointer( Integer( fDIBBits ) + i ), Size - i );
           {$ENDIF FILL_BROKEN_BITMAP}
         end;
       end

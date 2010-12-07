@@ -2,8 +2,7 @@ unit KOLDirDlgEx;
 
 interface
 
-uses
-  Windows, Messages, KOL {$IFDEF USE_GRUSH}, ToGrush, KOLGRushControls {$ENDIF};
+uses Windows, Messages, KOL {$IFDEF USE_GRUSH}, ToGrush, KOLGRushControls {$ENDIF};
 
 {$I KOLDEF.INC}
 
@@ -451,7 +450,7 @@ begin
        DTSubPanel.SetAlign( caClient );
        DirTree := NewTreeView( DTSubPanel, [ tvoLinesRoot ], Sysimages, nil );
        {$IFNDEF DIRDLGEX_NO_DBLCLK_ON_NODE_OK}
-       DirTree.OnMouseDblClk := DoubleClick;
+       //DirTree.OnMouseDblClk := DoubleClick;
        {$ENDIF}
        DirTree.Color := clWindow;
        DirTree.OnTVExpanding := DoExpanding;
@@ -508,6 +507,11 @@ begin
      end;
      {$ENDIF USE_GRUSH}
    end;
+
+   {$IFNDEF DIRDLGEX_NO_DBLCLK_ON_NODE_OK}
+   DirTree.OnMouseDblClk := DoubleClick;
+   {$ENDIF}
+
 end;
 
 {$IFDEF DIRDLGEX_LINKSPANEL}

@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 // KOL_ASM.inc ()to be inlude in KOL.pas)
-// v 3.00.z6
+// v 3.00.z9
 
 function MsgBox( const S: KOLString; Flags: DWORD ): DWORD;
 asm
@@ -7545,7 +7545,7 @@ asm     //cmd    //opd
                 JE       @@ret0
 
                 {$IFDEF  USE_FLAGS}
-                TEST     [EAX].fFlagsG6, 1 shl G6_KeyPreview
+                TEST     [EAX].TControl.fFlagsG6, 1 shl G6_KeyPreview
                 {$ELSE}
                 CMP      [EAX].fKeyPreview, 0
                 {$ENDIF}
