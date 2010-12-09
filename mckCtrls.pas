@@ -65,8 +65,10 @@ type
     FimageBitmap: Graphics.TBitmap;
     FimageIcon: KOL.PIcon;
     Fimage: TPicture;
+    FAllowBitmapCompression: Boolean;
     procedure SetFlat(const Value: Boolean);
     procedure Setimage(const Value: TPicture);
+    procedure SetAllowBitmapCompression(const Value: Boolean);
   public
     function TabStopByDefault: Boolean; override;
     procedure FirstCreate; override;
@@ -126,6 +128,8 @@ type
     property Flat: Boolean read FFlat write SetFlat; // only for not windowed ?
     property WordWrap;
     property LikeSpeedButton;
+    property AllowBitmapCompression: Boolean read FAllowBitmapCompression write SetAllowBitmapCompression
+             default TRUE;
   public
     procedure SetupConstruct_Compact; override;
     function SupportsFormCompact: Boolean; override;
@@ -149,6 +153,7 @@ type
     FBitBtnDrawMnemonic: Boolean;
     FTextShiftY: Integer;
     FTextShiftX: Integer;
+    FAllowBitmapCompression: Boolean;
     procedure SetOptions(Value: TBitBtnOptions);
     procedure SetGlyphBitmap(const Value: TBitmap);
     procedure SetGlyphCount(Value: Integer);
@@ -163,6 +168,7 @@ type
     procedure SetBitBtnDrawMnemonic(const Value: Boolean);
     procedure SetTextShiftX(const Value: Integer);
     procedure SetTextShiftY(const Value: Integer);
+    procedure SetAllowBitmapCompression(const Value: Boolean);
   public
     function TabStopByDefault: Boolean; override;
     procedure FirstCreate; override;
@@ -225,6 +231,8 @@ type
     property Brush;
     property action;
     property LikeSpeedButton;
+    property AllowBitmapCompression: Boolean read FAllowBitmapCompression write SetAllowBitmapCompression
+             default TRUE;
   end;
 
 
@@ -1621,6 +1629,7 @@ type
     FCompactCode: Boolean;
     FAutosizeButtons: Boolean;
     FNoSpaceForImages: Boolean;
+    FAllowBitmapCompression: Boolean;
     procedure SetOptions(const Value: TToolbarOptions);
     procedure Setbitmap(const Value: TBitmap);
     procedure SetnoTextLabels(const Value: Boolean);
@@ -1651,6 +1660,7 @@ type
     procedure SetCompactCode(const Value: Boolean);
     procedure SetAutosizeButtons(const Value: Boolean);
     procedure SetNoSpaceForImages(const Value: Boolean);
+    procedure SetAllowBitmapCompression(const Value: Boolean);
   protected
     FResBmpID: Integer;
     fNewVersion: Boolean;
@@ -1755,6 +1765,8 @@ type
     property AutosizeButtons: Boolean read FAutosizeButtons write SetAutosizeButtons;
     property NoSpaceForImages: Boolean read FNoSpaceForImages write SetNoSpaceForImages;
     property Autosize;
+    property AllowBitmapCompression: Boolean read FAllowBitmapCompression write SetAllowBitmapCompression
+             default TRUE;
   end;
 
   TKOLToolbarButtonsEditor = class( TStringProperty )
@@ -2155,6 +2167,7 @@ begin
   TextAlign := taCenter;
   VerticalAlign := vaCenter;
   TabStop := True;
+  FAllowBitmapCompression := TRUE;
 end;
 
 procedure TKOLButton.CreateKOLControl(Recreating: boolean);
@@ -2511,7 +2524,7 @@ begin
   begin
     Rpt( 'Button has bitmap, generate resource', WHITE );
     GenerateBitmapResource( FimageBitmap, ImageResourceName, ImageResourceName,
-                         Updated );
+                         Updated, AllowBitmapCompression );
   end;
 end;
 
@@ -2633,6 +2646,13 @@ begin
   FINALLY
     Strm.Free;
   END;
+end;
+
+procedure TKOLButton.SetAllowBitmapCompression(const Value: Boolean);
+begin
+  if  FAllowBitmapCompression = Value then Exit;
+  FAllowBitmapCompression := Value;
+  Change;
 end;
 
 procedure TKOLButton.SetFlat(const Value: Boolean);
@@ -2773,7 +2793,7 @@ begin
         else
           SL.Add( '{$R ' + ImageResourceName + '.res}' );
       GenerateBitmapResource( FimageBitmap, ImageResourceName, ImageResourceName,
-                          Updated );
+                          Updated, AllowBitmapCompression );
   end;
 end;
 
@@ -3693,6 +3713,7 @@ begin
   TabStop := True;
   fTextShiftX := 1;
   fTextShiftY := 1;
+  FAllowBitmapCompression := TRUE;
 end;
 
 procedure TKOLBitBtn.CreateKOLControl(Recreating: boolean);
@@ -3845,7 +3866,8 @@ begin
     RName := ParentKOLForm.FormName + '_' + Name;
     Rpt( 'Prepare resource ' + RName + ' (' + UpperCase( Name + '_BITMAP' ) + ')',
       WHITE );
-    GenerateBitmapResource( GlyphBitmap, UpperCase( Name + '_BITMAP' ), RName, fUpdated );
+    GenerateBitmapResource( GlyphBitmap, UpperCase( Name + '_BITMAP' ), RName,
+        fUpdated, AllowBitmapCompression );
     SL.Add( Prefix + '{$R ' + RName + '.res}' );
   end
     else
@@ -3979,6 +4001,13 @@ begin
     DefaultWidth := 64;
     DefaultHeight := 22;
   end;
+end;
+
+procedure TKOLBitBtn.SetAllowBitmapCompression(const Value: Boolean);
+begin
+  if  FAllowBitmapCompression = Value then Exit;
+  FAllowBitmapCompression := Value;
+  Change;
 end;
 
 procedure TKOLBitBtn.SetautoAdjustSize(const Value: Boolean);
@@ -4248,7 +4277,8 @@ begin
     RName := ParentKOLForm.FormName + '_' + Name;
     Rpt( 'Prepare resource ' + RName + ' (' + UpperCase( Name + '_BITMAP' ) +
       ')', WHITE );
-    GenerateBitmapResource( GlyphBitmap, UpperCase( Name + '_BITMAP' ), RName, fUpdated );
+    GenerateBitmapResource( GlyphBitmap, UpperCase( Name + '_BITMAP' ), RName, fUpdated,
+                            AllowBitmapCompression );
     if  (KF <> nil) and KF.FormCompact and SupportsFormCompact then
     begin
         (SL as TFormStringList).OnAdd := nil;
@@ -11243,6 +11273,7 @@ begin
   FTimer.OnTimer := Tick;
   FTimer.Enabled := TRUE;
   AllowPostPaint := True;
+  FAllowBitmapCompression := TRUE;
 end;
 
 procedure TKOLToolbar.DefineProperties(Filer: TFiler);
@@ -11729,7 +11760,8 @@ begin
             Inc( N );
           end;
         end;
-        GenerateBitmapResource( Bmp, RsrcName, RsrcFile, fUpdated );
+        GenerateBitmapResource( Bmp, RsrcName, RsrcFile, fUpdated,
+                                AllowBitmapCompression );
       FINALLY
         Bmp.Free;
       END;
@@ -13273,7 +13305,7 @@ begin
           Inc( N );
         end;
       end;
-      GenerateBitmapResource( Bmp, RsrcName, RsrcFile, fUpdated );
+      GenerateBitmapResource( Bmp, RsrcName, RsrcFile, fUpdated, AllowBitmapCompression );
     FINALLY
       Bmp.Free;
     END;
@@ -13996,6 +14028,13 @@ begin
     if  FNoSpaceForImages = Value then Exit;
     FNoSpaceForImages := Value;
     Change;
+end;
+
+procedure TKOLToolbar.SetAllowBitmapCompression(const Value: Boolean);
+begin
+  if  FAllowBitmapCompression = Value then Exit;
+  FAllowBitmapCompression := Value;
+  Change;
 end;
 
 { TKOLToolbarButtonsEditor }

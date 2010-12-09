@@ -144,6 +144,8 @@ type
     FColors: TImageListColors;
     FMasked: Boolean;
     FBkColor: TColor;
+    FAllowCompression: Boolean;
+    FForce32bit: Boolean;
     procedure SetImgHeight(Value: Integer);
     procedure SetImgWidth(Value: Integer);
     procedure SetCount(const Value: Integer);
@@ -157,6 +159,8 @@ type
     procedure SetBkColor(const Value: TColor);
     function GetImageListHandle: THandle;
     procedure AssignBitmapToKOLImgList;
+    procedure SetAllowCompression(const Value: Boolean);
+    procedure SetForce32bit(const Value: Boolean);
   protected
     FKOLImgList: PImageList;
     procedure SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
@@ -179,6 +183,9 @@ type
     property Colors: TImageListColors read FColors write SetColors;
     property Masked: Boolean read FMasked write SetMasked;
     property BkColor: TColor read FBkColor write SetBkColor;
+    property AllowCompression: Boolean read FAllowCompression write SetAllowCompression
+             default TRUE;
+    property Force32bit: Boolean read FForce32bit write SetForce32bit;
   end;
 
   TKOLImageListEditor = class(TComponentEditor)
@@ -366,7 +373,7 @@ type KOLTPixelFormat = KOL.TPixelFormat;
 function CountSystemColorsUsedInBitmap( Bmp: KOL.PBitmap; ColorList: KOL.PList ): KOLTPixelFormat;
 //function SaveBitmap( Bitmap: TBitmap; const Path: String ): Boolean;
 procedure GenerateBitmapResource( Bitmap: TBitmap; const RsrcName, FileName: String;
-          var Updated: Boolean );
+          var Updated: Boolean; AllowCompression: Boolean );
 procedure GenerateIconResource( Icon: TIcon; const RsrcName, FileName: KOLString;
           var Updated: Boolean );
 procedure RemoveSelection( FD: IFormDesigner );
@@ -860,7 +867,7 @@ end;
 // it is fast and has no restrictions on bitmap format at all.
 
 procedure GenerateBitmapResource( Bitmap: TBitmap; const RsrcName, FileName:
-          String; var Updated: Boolean );
+          String; var Updated: Boolean; AllowCompression: Boolean );
 var
     HD1: packed record // First part of RESOURCEHEADER structure before
                        // Unicode string contained bitmap resource name
@@ -937,8 +944,10 @@ begin
           Mem := NewMemoryStream;
           MemRLE := NewMemoryStream;
           TRY
-              KOLBmp.CoreSaveToStream( Mem );
-              if  N > 0 then
+              if   AllowCompression then
+                   KOLBmp.CoreSaveToStream( Mem )
+              else KOLBmp.SaveToStream( Mem );
+              if  (N > 0) and AllowCompression then
               begin
                   if  KOLPF = KOL.pf1bit then
                       KOLBmp.PixelFormat := KOL.pf4bit;
@@ -1449,6 +1458,7 @@ begin
   NeedFree := False; // ImageList in KOL destroyes self when its parent
                      // control is destroyed - automatically.
   fCreationPriority := 10;
+  FAllowCompression := TRUE;
 end;
 
 destructor TKOLImageList.Destroy;
@@ -1573,8 +1583,15 @@ begin
       {P}SL.Add( ' L(0) C1 LoadStr ''' + RsrcName + ''' #0 LoadHInstance' +
                  ' LoadBmp<3> RESULT C2 TImageList.Add<3>' );
     //Rpt( 'Generating resource: ' + ProjectSourcePath + RsrcFile + '.res' );
-    GenerateBitmapResource( FBitmap, RsrcName, RsrcFile, fUpdated );
+    GenerateBitmapResource( FBitmap, RsrcName, RsrcFile, fUpdated, AllowCompression );
   end;
+end;
+
+procedure TKOLImageList.SetAllowCompression(const Value: Boolean);
+begin
+  if  FAllowCompression = Value then Exit;
+  FAllowCompression := Value;
+  Change;
 end;
 
 procedure TKOLImageList.SetBitmap(const Value: TBitmap);
@@ -1724,6 +1741,13 @@ begin
   Change;
 end;
 
+procedure TKOLImageList.SetForce32bit(const Value: Boolean);
+begin
+  if  FForce32bit = Value then Exit;
+  FForce32bit := Value;
+  Change;
+end;
+
 procedure TKOLImageList.SetImgHeight(Value: Integer);
 var I: Integer;
 begin
@@ -1861,7 +1885,7 @@ const Booleans: array[ Boolean ] of String = ( 'False', 'True' );
 const ColorsValues: array[ TImageListColors ] of String = ( 'ilcColor', 'ilcColor4',
                     'ilcColor8', 'ilcColor16', 'ilcColor24', 'ilcColor32', 'ilcColorDDB',
                     'ilcDefault' );
-var RsrcName, RsrcFile: String;
+var RsrcName, RsrcFile, is32: String;
 begin
   asm
     jmp @@e_signature
@@ -1890,6 +1914,8 @@ begin
     if FImgHeight <> 32 then
       SL.Add( Prefix + '  ' + AName + '.ImgHeight := ' + IntToStr( FImgHeight ) + ';' );
   end;
+  is32 := '';
+  if  Force32bit then is32 := '32';
   if (FBitmap.Width <> 0) and (FBitmap.Height <> 0) then
   begin
     if (FImgHeight = 32) and (FImgWidth <> FImgHeight)  then
@@ -1898,15 +1924,15 @@ begin
     RsrcFile := ParentKOLForm.FormName + '_' + Name;
     SL.Add( Prefix + '  {$R ' + RsrcFile + '.res}' );
     if Masked then
-      SL.Add( Prefix + AName + '.AddMasked( LoadBmp( hInstance, ''' +
+      SL.Add( Prefix + AName + '.AddMasked( LoadBmp' + is32 + '( hInstance, ''' +
               RsrcName + ''', ' +
               AName + ' ), ' + Color2Str( TransparentColor ) + ' );' )
     else
-      SL.Add( Prefix + AName + '.Add( LoadBmp( hInstance, ''' +
+      SL.Add( Prefix + AName + '.Add( LoadBmp' + is32 + '( hInstance, ''' +
               RsrcName + ''', ' +
               AName + ' ), 0 );' );
     //Rpt( 'Generating resource: ' + ProjectSourcePath + RsrcFile + '.res' );
-    GenerateBitmapResource( FBitmap, RsrcName, RsrcFile, fUpdated );
+    GenerateBitmapResource( FBitmap, RsrcName, RsrcFile, fUpdated, AllowCompression );
   end;
 end;
 

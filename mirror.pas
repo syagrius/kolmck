@@ -19,7 +19,7 @@ mmmmm      mmmmm     mmmmm     cccccccccccc       kkkkk     kkkkk
   Key Objects Library (C) 1999 by Kladov Vladimir.
   KOL Mirror Classes Kit (C) 2000 by Kladov Vladimir.
 ********************************************************
-* VERSION 3.00.X
+* VERSION 3.01
 ********************************************************
 }                     
 unit mirror;
@@ -473,9 +473,11 @@ type
     FColor: TColor;
     FBitmap: TBitmap;
     fChangingNow: Boolean;
+    FAllowBitmapCompression: Boolean;
     procedure SetBitmap(const Value: TBitmap);
     procedure SetBrushStyle(const Value: TBrushStyle);
     procedure SetColor(const Value: TColor);
+    procedure SetAllowBitmapCompression(const Value: Boolean);
   protected
     procedure GenerateCode( SL: TStrings; const AName: String );
     procedure P_GenerateCode( SL: TStrings; const AName: String );
@@ -488,6 +490,8 @@ type
     property Color: TColor read FColor write SetColor;
     property BrushStyle: TBrushStyle read FBrushStyle write SetBrushStyle;
     property Bitmap: TBitmap read FBitmap write SetBitmap;
+    property AllowBitmapCompression: Boolean read FAllowBitmapCompression write SetAllowBitmapCompression
+             default TRUE;
   end;
 
 
@@ -1432,6 +1436,7 @@ type
     FMenuBreak: TMenuBreak;
     FTag: Integer;
     Faction: TKOLAction;
+    FAllowBitmapCompression: Boolean;
     procedure SetBitmap(Value: TBitmap);
     procedure SetCaption(const Value: TDelphiString);
     function GetCount: Integer;
@@ -1459,6 +1464,7 @@ type
     procedure SetMenuBreak(const Value: TMenuBreak);
     procedure SetTag(const Value: Integer);
     procedure Setaction(const Value: TKOLAction);
+    procedure SetAllowBitmapCompression(const Value: Boolean);
   protected
     FDestroying: Boolean;
     FSubItemCount: Integer;
@@ -1548,6 +1554,8 @@ type
     property WindowMenu: Boolean read FWindowMenu write SetWindowMenu;
     property HelpContext: Integer read FHelpContext write SetHelpContext;
     property action: TKOLAction read Faction write Setaction;
+    property AllowBitmapCompression: Boolean read FAllowBitmapCompression write SetAllowBitmapCompression
+             default TRUE;
   end;
   {$IFDEF _D2orD3}
     {$WARNINGS ON}
@@ -24091,6 +24099,7 @@ begin
     else
       Items.Insert( I, Self );
   end;
+  FAllowBitmapCompression := TRUE;
 end;
 
 destructor TKOLMenuItem.Destroy;
@@ -24279,12 +24288,7 @@ begin
   Change;
 end;
 
-procedure TKOLMenuItem.
-{$IFDEF _D2009orHigher}
-    SetCaption(const Value: WideString);
-{$ELSE}
-    SetCaption(const Value: String);
-{$ENDIF}
+procedure TKOLMenuItem.SetCaption(const Value: TDelphiString);
 begin
   asm
     jmp @@e_signature
@@ -24824,11 +24828,7 @@ begin
 end;
 
 procedure TKOLMenuItem.SetupTemplate(SL: TStringList; FirstItem: Boolean);
-{$IFDEF _D2009orHigher}
-    procedure Add2SL( const S: WideString );
-{$ELSE}
-    procedure Add2SL( const S: String );
-{$ENDIF}
+    procedure Add2SL( const S: TDelphiString );
     begin
       if Length( SL[ SL.Count - 1 ] + S ) > 64 then
         SL.Add( '      ' + S )
@@ -25104,7 +25104,7 @@ begin
             MenuName + ' );' );
     SL.Add( '    {$R ' + RsrcName + '.res}' );
     GenerateBitmapResource( Bitmap, UPPERCASE( RsrcName + '_BITMAP' ), RsrcName,
-    MenuComponent.fUpdated );
+        MenuComponent.fUpdated, AllowBitmapCompression );
   end;
   if (BitmapChecked <> nil) and (bitmapChecked.Width <> 0) and (bitmapChecked.Height <> 0) then
   begin
@@ -25114,7 +25114,7 @@ begin
             MenuName + ' );' );
     SL.Add( '    {$R ' + RsrcName + '.res}' );
     GenerateBitmapResource( bitmapChecked, UPPERCASE( RsrcName ), RsrcName,
-    MenuComponent.fUpdated );
+        MenuComponent.fUpdated, AllowBitmapCompression );
   end;
   if (BitmapItem <> nil) and (bitmapItem.Width <> 0) and (bitmapItem.Height <> 0) then
   begin
@@ -25124,7 +25124,7 @@ begin
             MenuName + ' );' );
     SL.Add( '    {$R ' + RsrcName + '.res}' );
     GenerateBitmapResource( bitmapItem, UPPERCASE( RsrcName ), RsrcName,
-    MenuComponent.fUpdated );
+        MenuComponent.fUpdated, AllowBitmapCompression );
   end;
   //-if FownerDraw then
   //-  SL.Add( '    ' + MenuName + '.Items[ ' + IntToStr( ItemIndex ) +
@@ -25638,7 +25638,7 @@ begin
     SL.Add( '    {$R ' + RsrcName + '.res}' ); //todo: в П-компиляторе перенести все
     // такие строки в компилируемую часть кода!!!!!!
     GenerateBitmapResource( Bitmap, UPPERCASE( RsrcName + '_BITMAP' ), RsrcName,
-      MenuComponent.fUpdated );
+        MenuComponent.fUpdated, AllowBitmapCompression );
   end;
   if (BitmapChecked <> nil) and (bitmapChecked.Width <> 0) and (bitmapChecked.Height <> 0) then
   begin
@@ -25654,7 +25654,7 @@ begin
                ' TMenu_.SetbitmapChecked<2>' );
     SL.Add( '    {$R ' + RsrcName + '.res}' );
     GenerateBitmapResource( bitmapChecked, UPPERCASE( RsrcName ), RsrcName,
-      MenuComponent.fUpdated );
+        MenuComponent.fUpdated, AllowBitmapCompression );
   end;
   if (BitmapItem <> nil) and (bitmapItem.Width <> 0) and (bitmapItem.Height <> 0) then
   begin
@@ -25670,7 +25670,7 @@ begin
                ' TMenu_.SetbitmapItem<2>' );
     SL.Add( '    {$R ' + RsrcName + '.res}' );
     GenerateBitmapResource( bitmapItem, UPPERCASE( RsrcName ), RsrcName,
-      MenuComponent.fUpdated );
+        MenuComponent.fUpdated, AllowBitmapCompression );
   end;
   (**************** -> P_SetupAttributesLast
   if FownerDraw then
@@ -25814,6 +25814,13 @@ begin
     {P}SL.Add( ' L(1) L(' + IntToStr( ItemIndex ) + ')' +
                ' C2 TMenu_.GetItems<2> RESULT' +
                ' TMenu_.SetownerDraw<2>' );
+end;
+
+procedure TKOLMenuItem.SetAllowBitmapCompression(const Value: Boolean);
+begin
+  if  FAllowBitmapCompression = Value then Exit;
+  FAllowBitmapCompression := Value;
+  Change;
 end;
 
 { TKOLMenuEditor }
@@ -26792,6 +26799,7 @@ begin
   FOwner := AOwner;
   FBitmap := TBitmap.Create;
   FColor := clBtnFace;
+  FAllowBitmapCompression := TRUE;
 end;
 
 destructor TKOLBrush.Destroy;
@@ -26837,7 +26845,8 @@ begin
       begin
         RsrcName := (FOwner as TKOLForm).Owner.Name + '_' +
                     (FOwner as TKOLForm).Name + '_BRUSH_BMP';
-        GenerateBitmapResource( Bitmap, UPPERCASE( RsrcName ), RsrcName, Updated );
+        GenerateBitmapResource( Bitmap, UPPERCASE( RsrcName ), RsrcName, Updated,
+            AllowBitmapCompression );
         if  KF.FormCompact then
         begin
             (SL as TFormStringList).OnAdd := nil;
@@ -26884,7 +26893,8 @@ begin
     begin
       RsrcName := (FOwner as TKOLCustomControl).ParentForm.Name + '_' +
                   (FOwner as TKOLCustomControl).Name + '_BRUSH_BMP';
-      GenerateBitmapResource( Bitmap, UPPERCASE( RsrcName ), RsrcName, Updated );
+      GenerateBitmapResource( Bitmap, UPPERCASE( RsrcName ), RsrcName, Updated,
+                              AllowBitmapCompression );
       if  (KF <> nil) and KF.FormCompact then
       begin
           (SL as TFormStringList).OnAdd := nil;
@@ -26947,7 +26957,8 @@ begin
                   (FOwner as TKOLForm).Name + '_BRUSH_BMP';
       SL.Add( '    {$R ' + RsrcName + '.res}' );
       //todo: (PCompiler) copy {$R ...} from Pcode to asm as is!
-      GenerateBitmapResource( Bitmap, UPPERCASE( RsrcName ), RsrcName, Updated );
+      GenerateBitmapResource( Bitmap, UPPERCASE( RsrcName ), RsrcName, Updated,
+                              AllowBitmapCompression );
       //SL.Add( '    ' + AName + '.Brush.BrushBitmap := LoadBmp( hInstance, ''' + UpperCase( RsrcName )
       //        + ''', Result );' );
       ProvideBrushInStack;
@@ -26983,7 +26994,8 @@ begin
       RsrcName := (FOwner as TKOLCustomControl).ParentForm.Name + '_' +
                   (FOwner as TKOLCustomControl).Name + '_BRUSH_BMP';
       SL.Add( '    {$R ' + RsrcName + '.res}' );
-      GenerateBitmapResource( Bitmap, UPPERCASE( RsrcName ), RsrcName, Updated );
+      GenerateBitmapResource( Bitmap, UPPERCASE( RsrcName ), RsrcName, Updated,
+                              AllowBitmapCompression );
       //SL.Add( '    ' + AName + '.Brush.BrushBitmap := LoadBmp( hInstance, ''' + UpperCase( RsrcName )
       //        + ''', Result );' );
       {P}SL.Add( ' LoadAnsiStr ' + P_String2Pascal( UpperCase( RsrcName ) ) );
@@ -26995,6 +27007,13 @@ begin
   end;
   if BrushInStack then
     {P}SL.Add( ' DEL // Brush ' );
+end;
+
+procedure TKOLBrush.SetAllowBitmapCompression(const Value: Boolean);
+begin
+  if  FAllowBitmapCompression = Value then Exit;
+  FAllowBitmapCompression := Value;
+  Change;
 end;
 
 procedure TKOLBrush.SetBitmap(const Value: TBitmap);

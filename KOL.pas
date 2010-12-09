@@ -14,7 +14,7 @@
   Key Objects Library (C) 2000 by Kladov Vladimir.
 
 ****************************************************************
-* VERSION 3.00.Z9
+* VERSION 3.01
 ****************************************************************
 
   K.O.L. - is a set of objects to create small programs
@@ -3006,6 +3006,7 @@ function ImageList_Merge(ImageList1: HImageList; Index1: Integer;
   HImageList; stdcall;
 
 function LoadBmp( Instance: Integer; Rsrc: PKOLChar; MasterObj: PObj ): HBitmap;
+function LoadBmp32( Instance: Integer; Rsrc: PKOLChar; MasterObj: PObj ): HBitmap;
 
 type
   tagBitmap = Windows.TBitmap;
@@ -3324,7 +3325,7 @@ function CalcScanLineSize( Header: PBitmapInfoHeader ): Integer;
 {* May be will be useful. }
 
 var
-  DefaultPixelFormat: TPixelFormat = pf16bit;
+  DefaultPixelFormat: TPixelFormat = pf32bit; //pf16bit;
 
 function LoadMappedBitmap( hInst: THandle; BmpResID: Integer; const Map: array of TColor )
          : HBitmap;
@@ -33383,6 +33384,9 @@ function WndProcImageShow( Sender: PControl; var Msg: TMsg;
 var PaintStruct: TPaintStruct;
     IL: PImageList;
     OldPaintDC: HDC;
+    {$IFDEF TEST_IL}
+    B: PBitmap;
+    {$ENDIF TEST_IL}
 begin
   Result := FALSE;
   if (Msg.message = WM_PAINT) or (Msg.message = WM_PRINT) then
@@ -33394,6 +33398,14 @@ begin
     IL := Sender.ImageListNormal;
     if IL <> nil then
     begin
+      IL.DrawingStyle := [ dsTransparent ];
+      {$IFDEF TEST_IL}
+      B := NewBitmap( 0, 0 );
+      B.Handle := IL.GetBitmap;
+      B.SaveToFile( GetStartDir + 'test_IL_show.bmp' );
+      B.ReleaseHandle;
+      B.Free;
+      {$ENDIF TEST_IL}
       IL.Draw( Sender.fCurIndex, Sender.fPaintDC, Sender.fClientLeft, Sender.fClientTop );
       Result := TRUE;
     end;
@@ -48600,9 +48612,35 @@ begin
 end;
 
 function LoadBmp( Instance: Integer; Rsrc: PKOLChar; MasterObj: PObj ): HBitmap;
+{$IFDEF LOAD_RLE_BMP_RSRCES}
+var B: PBitmap;
+    R: PStream;
+{$ENDIF}
 begin
+  {$IFDEF LOAD_RLE_BMP_RSRCES}
+  R := NewMemoryStream;
+  Resource2Stream( R, hInstance, Rsrc, RT_BITMAP );
+  B := NewBitmap( 0, 0 );
+  R.Position := 0;
+  B.LoadFromStreamEx( R );
+  R.Free;
+  //B.SaveToFile( GetStartDir + 'test_loadbmp.bmp' );
+  Result := B.ReleaseHandle;
+  B.Free;
+  {$ELSE}
   Result := LoadBitmap( Instance, Rsrc );
+  {$ENDIF}
   MasterObj.Add2AutoFreeEx( TObjectMethod( MakeMethod( Pointer( Result ), @ FreeBmp ) ) );
+end;
+
+function LoadBmp32( Instance: Integer; Rsrc: PKOLChar; MasterObj: PObj ): HBitmap;
+var B: PBitmap;
+begin
+    B := NewBitmap( 0, 0 );
+    B.Handle := LoadBmp( Instance, Rsrc, MasterObj );
+    B.PixelFormat := pf32bit;
+    Result := B.ReleaseHandle;
+    B.Free;
 end;
 
 { TImageList }
@@ -48628,10 +48666,33 @@ begin
 end;
 
 function TImageList.AddMasked(Bmp: HBitmap; Color: TColor): Integer;
+{$IFDEF TEST_IL}
+var B: PBitmap;
+{$ENDIF}
 begin
   Result := -1;
   if not HandleNeeded then Exit;
+  {$IFDEF TEST_IL}
+  B := NewBitmap( 0, 0 );
+  B.Handle := Bmp;
+  B.PixelFormat := pf32bit;
+  B.SaveToFile( GetStartDir + 'test_Add_masked1.bmp' );
+  Bmp := B.ReleaseHandle;
+  B.Free;
+  {$ENDIF}
   Result := ImageList_AddMasked( FHandle, Bmp, Color2RGB( Color ) );
+  {$IFDEF TEST_IL}
+  B := NewBitmap( 0, 0 );
+  B.Handle := GetBitmap;
+  B.SaveToFile( GetStartDir + 'test_Add_masked2.bmp' );
+  B.ReleaseHandle;
+  B.Free;
+  B := NewBitmap( 0, 0 );
+  B.Handle := GetMask;
+  B.SaveToFile( GetStartDir + 'test_Add_masked3.bmp' );
+  B.ReleaseHandle;
+  B.Free;
+  {$ENDIF}
 end;
 
 procedure TImageList.Clear;
@@ -54220,7 +54281,8 @@ begin
   Clear;
   if Value = 0 then Exit;
   if (WinVer >= wvNT) and
-     (GetObject( Value, Sizeof( Dib ), @ Dib ) = Sizeof( Dib )) then
+     (GetObject( Value, Sizeof( Dib ), @ Dib ) = Sizeof( Dib ))
+     and (Dib.dsBmih.biBitCount > 8) then
   begin
     fHandle := Value;
     fHandleType := bmDIB;
