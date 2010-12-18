@@ -11810,8 +11810,8 @@ begin
           if  (KF <> nil) and KF.FormCompact then
           begin
               KF.FormAddCtlCommand( Name, 'FormTBAddBitmap' );
-              KF.FormAddStrParameter( RsrcName );
               KF.FormAddNumParameter( Integer(mapBitmapColors) );
+              KF.FormAddStrParameter( RsrcName );
               if  mapBitmapColors then
                   KF.FormAddNumParameter( (FBmpTranColor shl 1) or (FBmpTranColor shr 31)  );
           end

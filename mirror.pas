@@ -19,7 +19,7 @@ mmmmm      mmmmm     mmmmm     cccccccccccc       kkkkk     kkkkk
   Key Objects Library (C) 1999 by Kladov Vladimir.
   KOL Mirror Classes Kit (C) 2000 by Kladov Vladimir.
 ********************************************************
-* VERSION 3.01
+* VERSION 3.03
 ********************************************************
 }                     
 unit mirror;
@@ -4711,7 +4711,7 @@ begin
   // ---------------------------------------------------------------------------
   [ 'OnClick:^TControl.SetOnClick',
     'OnMouseDblClk:^TControl.SetOnMouseEvent,' + IntToStr(idx_fOnMouseDblClk),
-    'OnMessage: TControl.SetOnMessage',
+    'OnMessage: TControl.Set_OnMessage',
     'OnMouseDown:^TControl.SetOnMouseEvent,' + IntToStr(idx_fOnMouseDown),
     'OnMouseMove:^TControl.SetOnMouseEvent,' + IntToStr(idx_fOnMouseMove),
     'OnMouseUp:^TControl.SetOnMouseEvent,' + IntToStr(idx_fOnMouseUp),
@@ -18225,7 +18225,9 @@ end;
 
 procedure TKOLForm.SetGenerateCtlNames(const Value: Boolean);
 begin
+  if  FGenerateCtlNames = Value then Exit;
   FGenerateCtlNames := Value;
+  Change( Self );
 end;
 
 function TKOLForm.FormFlushedCompact: Boolean;
@@ -21542,20 +21544,18 @@ end;
 
 procedure TKOLObj.SetupName(SL: TStringList; const AName, AParent,
   Prefix: String );
+var KF: TKOLForm;
 begin
   if FNameSetuped then Exit;
-  if Name <> '' then
+  KF := ParentKOLForm;
+  if  KF = nil then Exit;
+  if  (Name <> '') and KF.GenerateCtlNames then
   begin
-    SL.Add( '   {$IFDEF USE_NAMES}' );
-    //SL.Add( Prefix + AName + '.Name := ''' + Name + ''';' );
-
-    if AParent <> 'nil' then
-      Sl.Add(Format( '%s%s.SetName( Result.Form, ''%s'' ); ', [Prefix, AName, Name]))
-    else
-      Sl.Add(Format( '%s%s.SetName( Result, ''%s'' ); ', [Prefix, AName, Name]));
-
-    SL.Add( '   {$ENDIF}' );
-    FNameSetuped := TRUE;
+      if  AParent <> 'nil' then
+          SL.Add(Format( '%s%s.SetName( Result.Form, ''%s'' ); ', [Prefix, AName, Name]))
+      else
+          SL.Add(Format( '%s%s.SetName( Result, ''%s'' ); ', [Prefix, AName, Name]));
+      FNameSetuped := TRUE;
   end;
 end;
 

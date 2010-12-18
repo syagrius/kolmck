@@ -2328,8 +2328,11 @@ begin
     OnChange := nil;
     SetEvent( FinEvent );
   end;
-  FMonitor.WaitFor;
-  FMonitor.Free;
+  if  FMonitor <> nil then
+  begin
+      FMonitor.WaitFor;
+      FMonitor.Free;
+  end;
   CloseHandle( FinEvent );
   FPath := '';
   inherited;

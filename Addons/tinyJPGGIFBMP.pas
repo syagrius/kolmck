@@ -11,9 +11,12 @@ unit tinyJPGGIFBMP;
 
 interface
 
-uses Windows, Kol, ActiveX;
+uses
+  Windows, KOL, ActiveX;
 
-type    TBitmapmod = object( TBitMap )end;
+type
+  TBitmapmod = object( TBitMap )
+  end;
 
 procedure tinyLoadJPGGIFBMPFile(var TargetBitmap: PBitMap; FileName: String);
 procedure tinyLoadJPGGIFBMPMemory(var TargetBitmap: PBitMap; Ptr: HGlobal; Size: DWORD);
@@ -21,9 +24,10 @@ procedure tinyLoadJPGGIFBMPResource(var TargetBitmap: PBitMap; Inst : HInst; Res
 
 implementation
 
-const IID_IPicture:TGUID='{7BF80980-BF32-101A-8BBB-00AA00300CAB}';
+const
+  IID_IPicture:TGUID='{7BF80980-BF32-101A-8BBB-00AA00300CAB}';
 
-function SHCreateStreamOnFileA(FileName: PChar; grfMode: DWORD;var stream: IStream):HResult;
+function SHCreateStreamOnFileA(FileName: PChar; grfMode: DWORD;var stream: IStream): HResult;
     external 'shlwapi.dll' name 'SHCreateStreamOnFileA';
 
 procedure OleFree( Picta: IPicture );
