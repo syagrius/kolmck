@@ -19,7 +19,7 @@ mmmmm      mmmmm     mmmmm     cccccccccccc       kkkkk     kkkkk
   Key Objects Library (C) 1999 by Kladov Vladimir.
   KOL Mirror Classes Kit (C) 2000 by Kladov Vladimir.
 ********************************************************
-* VERSION 3.03
+* VERSION 3.04
 ********************************************************
 }                     
 unit mirror;
@@ -950,6 +950,7 @@ type
     function BestEventName: String; override;
   protected
     fCreating: Boolean;
+    fOrderControl: Integer;
     ResStrings: TStringList;
     procedure MakeResourceString( const ResourceConstName, Value: String );
   public
@@ -2096,6 +2097,7 @@ type
     FIgnoreDefault: Boolean;
     FResetTabStopByStyle: Boolean;
     FWordWrap: Boolean;
+    fOrderChild: Integer;
     procedure SetWordWrap(const Value: Boolean);
 
     procedure SetVerticalAlign(const Value: TVerticalAlign); virtual;
@@ -2183,8 +2185,9 @@ type
     procedure P_SetupName( SL: TStringList );
     procedure DoGenerateConstants( SL: TStringList ); virtual;
 
-    procedure SetupTabOrder( SL: TStringList; const AName: String ); virtual;
-    procedure P_SetupTabOrder( SL: TStringList; const AName: String ); virtual;
+    procedure SetupTabStop( SL: TStringList; const AName: String ); virtual;
+    procedure SetupTabOrder( SL: TStringList; const AName: String );
+    procedure P_SetupTabStop( SL: TStringList; const AName: String ); virtual;
     function DefaultColor: TColor; virtual;
     {* by default, clBtnFace. Override it for controls, having another
        Color as default. Usually these are controls, which main purpose is
@@ -2223,6 +2226,7 @@ type
   public
     ControlInStack: Boolean;
   protected
+    fCreationOrder: Integer;
     // Is called after generating of constructors of all child controls and
     // objects - to generate final initialization of object (if necessary).
     //
@@ -4727,7 +4731,7 @@ begin
     'OnKeyChar:^TControl.SetOnChar',
     'OnKeyDeadChar:^TControl.SetOnDeadChar',
 
-    'OnChange: TControl.Set_TOnEvent,' + IntToStr(idx_fOnChange),
+    'OnChange: TControl.Set_TOnEvent,' + IntToStr(idx_fOnChangeCtl),
     'OnSelChange: TControl.Set_TOnEvent,' + IntToStr(idx_fOnSelChange),
     'OnPaint:^TControl.SetOnPaint',
     'OnEraseBkgnd:^TControl.SetOnEraseBkgnd',
@@ -7930,6 +7934,7 @@ begin
   Log( '->TKOLCustomControl.SetupFirst' );
   try
 
+  fOrderChild := 0;
   SetupConstruct( SL, AName, AParent, Prefix );
   SetupName( SL, AName, AParent, Prefix );
 
@@ -7972,7 +7977,7 @@ begin
     //ShowMessage( AName + '.HasBorder := ' + BoolVals[ FHasBorder ] );
   end;
 
-  SetupTabOrder( SL, AName );
+  SetupTabStop( SL, AName );
   SetupFont( SL, AName );
   SetupTextAlign( SL, AName );
   if  (csAcceptsControls in ControlStyle) or BorderNeeded then
@@ -8200,7 +8205,7 @@ begin
   try
 
   KF := ParentKOLForm;
-  Rpt( 'Setuplast for form entered', WHITE );
+  Rpt( 'Setuplast for ' + AName + ' entered', WHITE );
 
   if  not SetupColorFirst then
       SetupColor( SL, AName );
@@ -8271,6 +8276,8 @@ begin
           SL.Add( Prefix + '{$ENDIF OVERRIDE_SCROLLBARS}' );
       end;
   end;
+
+  SetupTabOrder( SL, AName );
   Rpt( 'Setuplast for form finished', WHITE );
 
   //LogOK;
@@ -8316,7 +8323,7 @@ begin
   Result := AParent;
 end;
 
-procedure TKOLCustomControl.SetupTabOrder(SL: TStringList; const AName: String);
+procedure TKOLCustomControl.SetupTabStop(SL: TStringList; const AName: String);
 {var K, C: TComponent;
     I, N: Integer;
     kC: TKOLCustomControl;}
@@ -8334,10 +8341,10 @@ begin
   asm
     jmp @@e_signature
     DB '#$signature$#', 0
-    DB 'TKOLCustomControl.SetupTabOrder', 0
+    DB 'TKOLCustomControl.SetupTabStop', 0
   @@e_signature:
   end;
-  Log( '->TKOLCustomControl.SetupTabOrder' );
+  Log( '->TKOLCustomControl.SetupTabStop' );
 
   KF := ParentKOLForm;
 
@@ -8360,7 +8367,7 @@ begin
   end;
   LogOK;
   finally
-  Log( '<-TKOLCustomControl.SetupTabOrder' );
+  Log( '<-TKOLCustomControl.SetupTabStop' );
   end;
 end;
 
@@ -9589,7 +9596,7 @@ begin
     {P}SL.Add( ' L(' + IntToStr( Integer( FHasBorder ) ) + ')' );
     {P}SL.Add( ' C1 TControl_.SetHasBorder<2>' );
   end;
-  P_SetupTabOrder( SL, AName );
+  P_SetupTabStop( SL, AName );
   P_SetupFont( SL, AName );
   P_SetupTextAlign( SL, AName );
   //SetupColor( SL, AName );
@@ -9758,7 +9765,7 @@ begin
   end;
 end;
 
-procedure TKOLCustomControl.P_SetupTabOrder(SL: TStringList;
+procedure TKOLCustomControl.P_SetupTabStop(SL: TStringList;
   const AName: String);
 begin
   asm
@@ -10421,6 +10428,19 @@ begin
         Move( s[1], StoreDef^, Length(s)+1 );
         FEventDefs.AddObject( ev_name, Pointer( StoreDef ) );
     end;
+end;
+
+procedure TKOLCustomControl.SetupTabOrder(SL: TStringList;
+  const AName: String);
+begin
+    Rpt( 'SetupLast for ' + AName + ', TabStop = ' + IntToStr( Integer( TabStop ) ),
+         YELLOW );
+    if  not TabStop then Exit;
+    Rpt( 'TabOrder = ' + IntToStr( FTabOrder ) +
+         ', Creation order = ' + IntToStr( Integer( fCreationOrder ) ),
+         YELLOW );
+    if  TabOrder <> fCreationOrder then
+        SL.Add( '    ' + AName + '.TabOrder := ' + IntToStr( TabOrder ) + ';' );
 end;
 
 { TKOLApplet }
@@ -12052,7 +12072,18 @@ begin
               end;
           end;
       end;
+      if  OfParent is TKOLCustomControl then
+          KC.fCreationOrder := (OfParent as TKOLCustomControl).fOrderChild
+      else
+          KC.fCreationOrder := fOrderControl;
       KC.SetupFirst( SL, KC.RefName, OfParentName, Prefix );
+      if  KC.TabStop then
+      begin
+          if  OfParent is TKOLCustomControl then
+              inc( (OfParent as TKOLCustomControl).fOrderChild )
+          else
+              inc( fOrderControl );
+      end;
       KC.SetupName( SL, KC.RefName, OfParentName, Prefix ); // на случай, если
         // SetupFirst переопределена, и SetupName не вызвана
       if  FormCompact then
@@ -12920,6 +12951,7 @@ begin
   // +++ by Alexander Shakhaylo:
   if not fileexists(Path + '.pas') or FLocked then
   begin
+     Rpt( 'File not exists: ' + Path + '.pas', YELLOW );
      LogOK; exit;
   end;
   // ---
@@ -12948,21 +12980,51 @@ begin
     RptDetailed( 'uses.inc prepared', CYAN );
   end;
 
+  RptDetailed( 'Loading source for ' + Path + '.pas', BLUE );
   LoadSource( Source, Path + '.pas' );
   RptDetailed( 'Source loaded for ' + Name, CYAN );
   for I := 0 to Source.Count- 1 do
-    if RemoveSpaces( Source[ I ] ) = RemoveSpaces( Signature ) then
-    begin
-      Result := True;
-      if (I < Source.Count - 1) and (Source[ I + 1 ] <> DefString) and
-         (KOLProject <> nil) and KOLProject.IsKOLProject then
+  begin
+      if RemoveSpaces( Source[ I ] ) = RemoveSpaces( Signature ) then
       begin
-        chg_src := TRUE;
-        Source.Insert( I + 1, DefString );
-        //SaveStrings( Source, Path + '.pas', Updated );
+        Result := True;
+        if (I < Source.Count - 1) and (Source[ I + 1 ] <> DefString) and
+           (KOLProject <> nil) and KOLProject.IsKOLProject then
+        begin
+          chg_src := TRUE;
+          Source.Insert( I + 1, DefString );
+          //SaveStrings( Source, Path + '.pas', Updated );
+        end;
+        break;
       end;
-      break;
-    end;
+  end;
+  {$IFnDEF NOT_CONVERT_TMSG}
+  Rpt( 'Convering tagmsg', RED );
+  for I := 0 to Source.Count- 1 do
+  begin
+      //--------------- from KOL/MCK 3.04, convert tagMSG -> TMsg:
+      S := Source[I];
+      if  pos( 'tagmsg', LowerCase( S ) ) > 0 then
+      begin
+          RptDetailed( 'tagmsg found in line ' + Int2Str(I+1), CYAN );
+          for J := Length(S)-5 downto 1 do
+          begin
+              if  StrLComp_NoCase( PChar(@S[J]), 'tagmsg', 6 ) = 0 then
+              begin
+                  if  ( (J = 1) or not(S[J-1] in ['A'..'Z','a'..'z','_']) )
+                  and ( (J = Length(S)-5) or not(S[J+6] in
+                      ['0'..'9','A'..'Z','a'..'z','_']) ) then
+                  begin
+                       RptDetailed( 'tagmsg replaced with TMsg in line ' + Int2Str(I+1), CYAN );
+                       S := Copy( S, 1, J-1 ) + 'TMsg' + Copy( S, J+6, MaxInt );
+                       Source[I] := S;
+                       chg_src := TRUE;
+                  end;
+              end;
+          end;
+      end;
+  end;
+  {$ENDIF}
 
   if Result then
   begin
@@ -25782,8 +25844,8 @@ begin
     RptDetailed( 'EvntName = ' + EvntName, BLUE );
     if FD.MethodExists( EvntName ) then
     begin
-      RptDetailed( 'Method ' + EvntName +
-        ' exists: generate AssignEvents', RED );
+      //RptDetailed( 'Method ' + EvntName +
+      //  ' exists: generate AssignEvents', RED );
       FOnMenuMethodName := EvntName;
       Result := TRUE;
     end

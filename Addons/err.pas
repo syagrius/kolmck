@@ -21,10 +21,11 @@
 
   Key Objects Library (C) 2000 by Kladov Vladimir.
 
-  mailto: vk@kolmck.net
-  Home: http://kolmck.net
+  mailto: bonanzas@xcl.cjb.net
+  Home: http://kol.nm.ru
+        http://xcl.cjb.net
+        http://xcl.nm.ru
 
-  This version is compatible with KOL 3.00+
  =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-}
 {
   This code is grabbed mainly from standard SysUtils.pas unit,

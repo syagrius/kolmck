@@ -3338,6 +3338,7 @@ begin
   {$IFNDEF NO_CHECK_STAYONTOP}
   DoStayOnTop := FALSE;
   {$ENDIF  NO_CHECK_STAYONTOP}
+  CurForm := nil;
   if Applet <> nil then
   begin
     Title := Applet.Caption;
@@ -3356,8 +3357,8 @@ begin
   {$ENDIF}
   Dialog := NewForm( Applet, KOLString(Title) ).SetSize( 300, 40 );
   {$IFNDEF NO_CHECK_STAYONTOP}
-  if DoStayOnTop then
-    Dialog.StayOnTop := TRUE;
+  if  DoStayOnTop then
+      Dialog.StayOnTop := TRUE;
   {$ENDIF  NO_CHECK_STAYONTOP}
   Dialog.Style := Dialog.Style and not (WS_MINIMIZEBOX or WS_MAXIMIZEBOX);
   Dialog.OnClose := TOnEventAccept( MakeMethod( Dialog, @CloseMsg ) );
@@ -3526,7 +3527,7 @@ begin
   Bmp.Free;
   {$ENDIF USE_GRUSH}
 
-  Dialog.CenterOnParent.Tabulate.CanResize := FALSE;
+  Dialog.CenterOnForm( CurForm ).Tabulate.CanResize := FALSE;
 
   if Assigned( CallBack ) then
     CallBack( Dialog );
