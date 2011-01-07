@@ -155,6 +155,7 @@ const   tinyERROR_OK =                                  $0000;
 
 function tinyLoadPNG(var TargetBitmap: PBitMap; FileImage: PStream): DWORD;
 function tinyLoadPNGResource(var TargetBitmap: PBitMap; Inst : HInst; ResName : PChar; ResType : PChar): DWORD;
+function tinyLoadPNGFromFile(out TargetBitmap: PBitMap; const Filename: String): DWORD;
 
 implementation
 
@@ -1323,4 +1324,14 @@ begin
     TargetBitmap.Handle := Bitmap;
     result := tinyERROR_OK;
 end;
+//
+function tinyLoadPNGFromFile(out TargetBitmap: PBitMap; const Filename: String): DWORD;
+var
+  strm: PStream;
+begin
+  strm := NewReadFileStream(Filename);
+  Result := tinyLoadPNG(TargetBitmap, strm);
+  strm.Free;
+end;
+
 end.

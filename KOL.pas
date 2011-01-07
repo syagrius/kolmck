@@ -14,7 +14,7 @@
   Key Objects Library (C) 2000 by Kladov Vladimir.
 
 ****************************************************************
-* VERSION 3.04
+* VERSION 3.04+++
 ****************************************************************
 
   K.O.L. - is a set of objects to create small programs
@@ -1916,6 +1916,10 @@ type
     {* }
     procedure Move( IdxOld, IdxNew: Integer );
     {* }
+    procedure Swap( Idx1, Idx2: Integer );
+    {* See also TStrList.Swap }
+    procedure Sort( CaseSensitive: Boolean );
+    {* See also TStrList.Sort }
     function AddObject( const S: KOLWideString; Obj: DWORD ): Integer;
     {* Adds a string and associates given number with it. Index of the item added
        is returned. }
@@ -7318,7 +7322,9 @@ type
     procedure Delete( Idx: Integer );
     {* |<#listbox>
        |<#combo>
-       Only for listbox and combobox. }
+       |<#listview>
+       |<#treeview>
+       Only listed controls. }
     procedure Clear;
     {* Clears object content. Has different sense for different controls.
        E.g., for label, editbox, button and other simple controls it
@@ -12448,6 +12454,8 @@ type
    {* Allows to delete an item from the directory list (not from the disk!) }
    procedure AddItem( FindData: PFindFileData );
    {* Allows to add arbitrary item to the list. }
+   procedure InsertItem( idx: Integer; FindData: PFindFileData );
+   {* Allows to add arbitrary item to the list. }
   end;
 
 function NewDirList( const DirPath, Filter: KOLString; Attr: DWORD ): PDirList;
@@ -13557,7 +13565,7 @@ const
   #$B0#0 +   // EM_GETSEL
   #$BB#0 +   // EM_LINEINDEX
   #202 +
-  #$BA#0 +   // EM_SETSEL
+  #$B1#0 +   // EM_SETSEL
   #202 +
   #$C2#0 +   // EM_REPLACESEL
   #201 +     // ES_LEFT
@@ -13784,7 +13792,9 @@ const
   #201 +
   #4#$10 +   // LVM_GETITEMCOUNT
   #47#$10 +  // LVM_SETITEMCOUNT
-  #211 +
+  //#211 +
+  #206 + #8#$10 // LVM_DELETEITEM
+  + #204 +
   #50#$10 +  // LVM_GETSELECTEDCOUNT
   #44#$10 +  // LVM_GETITEMSTATE
   #201 +
@@ -13810,12 +13820,12 @@ const
     aGetItemData: 0;
     aSetItemData: 0;
     aAddItem: 0;
-    aDeleteItem: 0;
+    aDeleteItem: LVM_DELETEITEM;
     aInsertItem: 0;
     aFindItem: 0;
     aFindPartial: 0;
-    bItem2Pos: 0;
-    bPos2Item: 0;
+      bItem2Pos: 0;
+      bPos2Item: 0;
     aGetSelCount: { $8000 or} LVM_GETSELECTEDCOUNT;
     aGetSelected: LVM_GETITEMSTATE;
     aGetSelRange: 0;
@@ -13850,7 +13860,9 @@ const
   {$IFDEF UNICODE_CTRLS} #$34#$FE {$ELSE} #$65#$FE {$ENDIF} + // TVN_ENDLABELEDIT(W)
   {$IFDEF UNICODE_CTRLS} #$3E#$FE {$ELSE} #$6E#$FE {$ENDIF} + // TVN_SELCHANGED(W)
   #5#$11 + // TVM_GETCOUNT
-  #229 +
+  #207 +
+  #1#$11 + // TVM_DELETEITEM
+  #221 +
   #9#$11 + // TVM_SETIMAGELIST
   #29#$11 + // TVM_SETBKCOLOR
   #4#$11;   // TVM_GETITEMRECT
@@ -13871,7 +13883,7 @@ const
     aGetItemData: 0;
     aSetItemData: 0;
     aAddItem: 0;
-    aDeleteItem: 0;
+    aDeleteItem: TVM_DELETEITEM;
     aInsertItem: 0;
     aFindItem: 0;
     aFindPartial: 0;
@@ -25799,6 +25811,44 @@ begin
     fStoreFiles.Write( FindData^, Sizeof( FindData^ ) );
     {$IFDEF DIRLIST_FASTER}
     FListPositions.Add( fStoreFiles.fData.fJustWrittenBlkAddress );
+    {$ENDIF}
+end;
+
+procedure TDirList.InsertItem(idx: Integer; FindData: PFindFileData);
+begin
+    if  fStoreFiles = nil then
+    begin
+        {$IFDEF DIRLIST_FASTER}
+        fStoreFiles := NewMemBlkStream_WriteOnly( 32 * Sizeof( FindData ) );
+        {$ELSE}
+        fStoreFiles := NewMemoryStream( );
+        fStoreFiles.Capacity := 64 * Sizeof( FindData );
+        {$ENDIF}
+        FListPositions := NewList;
+    end;
+    {$IFDEF DIRLIST_FASTER}{$ELSE}
+    FListPositions.Insert( idx, Pointer( fStoreFiles.Position ) );
+    {$ENDIF}
+    {$IFDEF UNICODE_CTRLS}
+            {$IFDEF SPEED_FASTER}
+                    {$IFDEF DIRLIST_OPTIMIZE_ASCII}
+                    FindData.dwReserved0 := 0;
+                    P := @ FindData.cFileName[0];
+                    while P^ <> #0 do
+                    begin
+                        if  PWord( P )^ > 255 then
+                        begin
+                            inc( FindData.dwReserved0 );
+                            break;
+                        end;
+                        inc( P );
+                    end;
+                    {$ENDIF}
+            {$ENDIF}
+    {$ENDIF}
+    fStoreFiles.Write( FindData^, Sizeof( FindData^ ) );
+    {$IFDEF DIRLIST_FASTER}
+    FListPositions.Insert( idx, fStoreFiles.fData.fJustWrittenBlkAddress );
     {$ENDIF}
 end;
 
@@ -38279,7 +38329,7 @@ asm
         CMOVZ    EAX, ECX
         {$ELSE}
         JNZ      @@2
-        XCHG     EAX, ECX
+        MOV      EAX, ECX
 @@2:    {$ENDIF}
 
         PUSH     EAX         // Params.Width := Width | CW_UseDefault
@@ -47754,6 +47804,35 @@ begin
   begin
     ProvideObjectsCapacity( Max( IdxOld, IdxNew ) + 1 );
     FObjects.MoveItem( IdxOld, IdxNew );
+  end;
+end;
+
+procedure SwapWStrListExItems( const Sender: Pointer; const Idx1, Idx2: DWORD );
+var WL: PWStrListEx;
+begin
+  WL := Sender;
+  WL.Swap( Idx1, Idx2 );
+end;
+
+procedure TWStrListEx.Sort(CaseSensitive: Boolean);
+begin
+  if CaseSensitive then
+    SortData( @ Self, Count, @CompareWStrListItems, @SwapWStrListExItems )
+  else
+  begin
+    SortData( @ Self, Count, @CompareWStrListItems_UpperCase, @SwapWStrListExItems );
+    fTmp1 := '';
+    fTmp2 := '';
+  end;
+end;
+
+procedure TWStrListEx.Swap(Idx1, Idx2: Integer);
+begin
+  inherited Swap( Idx1, Idx2 );
+  if FObjects.fCount >= Min( Idx1, Idx2 ) then
+  begin
+    ProvideObjectsCapacity( max( Idx1, Idx2 ) + 1 );
+    FObjects.Swap( Idx1, Idx2 );
   end;
 end;
 
@@ -65697,6 +65776,7 @@ end; {$ENDIF}///////////////////////////////////////////////////////////////////
 {$ENDIF}
 {$IFDEF INIT_FINIT}//-----------------------------------------------------------
 //******************************************************************************
+
 initialization //...............................................................
 {$IFDEF GRAPHCTL_XPSTYLES}
  CheckThemes;
@@ -65717,4 +65797,6 @@ finalization //.................................................................
 {$ENDIF INIT_FINIT}//-----------------------------------------------------------
 
 end.
+
+
 

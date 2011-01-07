@@ -15,7 +15,7 @@
 
 //[VERSION]
 ****************************************************************
-* VERSION 3.00.P
+* VERSION 3.04+
 ****************************************************************
 //[END OF VERSION]
 
@@ -1309,18 +1309,22 @@ end;
 {$ELSE}
 procedure TBits.SetBit(Idx: Integer; const Value: Boolean);
 var Msk: DWORD;
+    MinListCount: Integer;
 begin
   if Idx >= Capacity then
     Capacity := Idx + 1;
   Msk := 1 shl (Idx and $1F);
   if Value then
     PBitsList( fList ).fItems[ Idx shr 5 ] := Pointer(
-                  DWORD(PBitsList( fList ).fItems[ Idx shr 5 ]) or Msk)
+                  DWORD(PBitsList( fList ).Items[ Idx shr 5 ]) or Msk)
   else
     PBitsList( fList ).fItems[ Idx shr 5 ] := Pointer(
-                  DWORD(PBitsList( fList ).fItems[ Idx shr 5 ]) and not Msk);
+                  DWORD(PBitsList( fList ).Items[ Idx shr 5 ]) and not Msk);
   if Idx >= fCount then
     fCount := Idx + 1;
+  MinListCount := (Idx + 31) shr 5 + 1;
+  if  PBitsList( fList ).fCount < MinListCount then
+      PBitsList( fList ).fCount := MinListCount;
 end;
 {$ENDIF}
 
