@@ -14,7 +14,7 @@
   Key Objects Library (C) 2000 by Kladov Vladimir.
 
 ****************************************************************
-* VERSION 3.04+++
+* VERSION 3.04++++
 ****************************************************************
 
   K.O.L. - is a set of objects to create small programs
@@ -57422,7 +57422,8 @@ begin
   if LongBool( DF.fRECharFormatRec.dwMask and (CFM_COLOR or CFM_BACKCOLOR) ) then
     DF.fRECharFormatRec.dwEffects := DF.fRECharFormatRec.dwEffects and
                                not (CFE_AUTOCOLOR or CFE_AUTOBACKCOLOR);
-  Perform( EM_SETCHARFORMAT, RichAreas[ DF.fRECharArea ], Integer( @DF.fRECharFormatRec ) );
+  Perform( EM_SETCHARFORMAT, RichAreas[ DF.fRECharArea ],
+      Integer( {$IFDEF STATIC_RICHEDIT_DATA} @ {$ENDIF} DF.fRECharFormatRec ) );
 end;
 
 procedure TControl.RESetFontAttr1(const Index, Value: Integer);
@@ -65797,6 +65798,8 @@ finalization //.................................................................
 {$ENDIF INIT_FINIT}//-----------------------------------------------------------
 
 end.
+
+
 
 
 
