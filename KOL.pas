@@ -14,7 +14,7 @@
   Key Objects Library (C) 2000 by Kladov Vladimir.
 
 ****************************************************************
-* VERSION 3.04++++
+* VERSION 3.04+5
 ****************************************************************
 
   K.O.L. - is a set of objects to create small programs
@@ -37351,13 +37351,13 @@ begin
     Buffer[ 0 ] := #0;
     Self_.Perform( EM_GETTEXTRANGE, 0, Integer( @Range ) );
     {$IFDEF UNICODE_CTRLS}
-    s := Buf_W[0]; //todo: check it!
+    s := Buf_W; //todo: check it!
     {$ELSE}
         {$IFDEF _D3orHigher}
         if  (Buffer[ 1 ] = #0) and (Range.chrg.cpMax - Range.chrg.cpMin > 1) then
             begin
             {$WARNINGS OFF}
-            s := Buf_W[ 0 ];
+            s := Buf_W;
             {$WARNINGS ON}
             end
         else
