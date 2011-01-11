@@ -14,7 +14,7 @@
   Key Objects Library (C) 2000 by Kladov Vladimir.
 
 ****************************************************************
-* VERSION 3.04+5
+* VERSION 3.05
 ****************************************************************
 
   K.O.L. - is a set of objects to create small programs
@@ -7323,7 +7323,6 @@ type
     {* |<#listbox>
        |<#combo>
        |<#listview>
-       |<#treeview>
        Only listed controls. }
     procedure Clear;
     {* Clears object content. Has different sense for different controls.
@@ -11485,7 +11484,7 @@ function AnsiCompareStr(const S1, S2: KOLString): Integer;
 function _AnsiCompareStr(S1, S2: PKOLChar): Integer;
 {* The same, but for PChar ANSI strings }
 function AnsiCompareStrNoCase(const S1, S2: KOLString): Integer;
-{* AnsiCompareStr compares S1 to S2, with case-sensitivity. The compare
+{* AnsiCompareStrNoCase compares S1 to S2, without case-sensitivity. The compare
   operation is controlled by the current Windows locale. The return value
   is the same as for CompareStr. }
 function _AnsiCompareStrNoCase(S1, S2: PKOLChar): Integer;
@@ -22134,8 +22133,8 @@ end;
 function CompareAnsiRecNoCase( R: PSortAnsiRec; const e1, e2: Integer ): Integer;
 begin
     Result := _AnsiCompareStrNoCaseA_Slow(
-        R.A[AnsiChar(e1)],
-        R.A[AnsiChar(e2)]
+        R.A[AnsiChar(e1)] + 1,
+        R.A[AnsiChar(e2)] + 1
     );
 end;
 
@@ -22207,14 +22206,16 @@ end;
 function _AnsiCompareStrNoCaseA_Fast(S1, S2: PAnsiChar): Integer;
 var c: AnsiChar;
     R: TSortAnsiRec;
-    Buf: array[ 0..511 ] of AnsiChar;
+    Buf: array[ 0..767 ] of AnsiChar;
     P: PAnsiChar;
 begin
     P := @Buf[0];
     for c := Low(c) to High(c) do
     begin
-        P^ := c;
         R.A[c] := P;
+        P^ := c;
+        inc( P );
+        P^ := AnsiLowerCase( c )[1];
         inc( P );
         P^ := #0;
         inc( P );
@@ -25519,6 +25520,8 @@ begin
                   inc( S1 );
                   inc( S2 );
               end;
+              if  Result = 0 then
+                  Result := _AnsiCompareStr( Item1.cFileName, Item2.cFileName );
           end
             else
           {$ENDIF}
@@ -25532,6 +25535,8 @@ begin
           end;
           {$ELSE not UNICODE_CTRLS}
           Result := _AnsiCompareStrNoCaseA( S1, S2 );
+          if  Result = 0 then
+              Result := _AnsiCompareStr( S1, S2 );
           {$ENDIF}
         end
         else
@@ -61791,37 +61796,6 @@ begin
   begin
       FindBtn( VK_RETURN, @DFLT_BTN, TRUE );
       FindBtn( VK_ESCAPE, @CNCL_BTN, FALSE );
-      (*
-      dfltBtn := Pointer( F.PropInt[ @DFLT_BTN ] ); // .DF.fDefaultBtnCtl;
-      cnclBtn := Pointer( F.PropInt[ @CNCL_BTN ] ); //.DF.fCancelBtnCtl;
-      if  (Msg.wParam = VK_RETURN) and
-          (dfltBtn <> nil) and
-          dfltBtn.ToBeVisible and
-          dfltBtn.Enabled and
-          ( (F.DF.fCurrentControl=nil) or
-            ({$IFDEF USE_FLAGS} not(G6_CancelBtn in F.DF.fCurrentControl.fFlagsG6)
-            {$ELSE} not F.DF.fCurrentControl.fCancelBtn {$ENDIF} and
-            {$IFDEF USE_FLAGS} not(G5_IgnoreDefault in F.DF.fCurrentControl.fFlagsG5)
-            {$ELSE} not F.DF.fCurrentControl.fIgnoreDefault {$ENDIF})
-            or (F.DF.fCurrentControl = dfltBtn)
-          ) then
-          Btn := dfltBtn
-      else
-      if (Msg.wParam = VK_ESCAPE) and
-         (cnclBtn <> nil) and
-         cnclBtn.ToBeVisible and
-         cnclBtn.Enabled then
-         Btn := cnclBtn
-      else
-      if  (Msg.wParam = VK_RETURN) and
-          (F.DF.fAllBtnReturnClick or DF.fAllBtnReturnClick)
-      and (F.ActiveControl <> nil) and
-          (F.ActiveControl.ToBeVisible) and
-          {$IFDEF USE_FLAGS} (G5_IsButton in F.ActiveControl.fFlagsG5)
-          {$ELSE} (F.ActiveControl.IsButton) {$ENDIF}
-      and (F.ActiveControl.Count = 0) then
-          Btn := F.ActiveControl;
-      *)
       if Btn <> nil then
       begin
         if Msg.message = WM_KEYDOWN then

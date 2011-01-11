@@ -15,7 +15,7 @@
 
 //[VERSION]
 ****************************************************************
-* VERSION 3.04+
+* VERSION 3.05
 ****************************************************************
 //[END OF VERSION]
 
@@ -1274,8 +1274,20 @@ end;
 {$IFDEF ASM_VERSION}
 procedure TBits.SetBit(Idx: Integer; const Value: Boolean);
 asm
+  PUSH EBX
+  XCHG EBX, EAX
+  CMP  EDX, [EBX].fCount
+  JL   @@2
+
+  LEA  EAX, [EDX+32]
+  SHR  EAX, 5
+
   PUSH ECX
-  MOV  ECX, [EAX].fList
+  MOV  ECX, [EBX].fList
+  CMP  [ECX].TBitsList.fCount, EAX
+  JGE  @@1
+
+  MOV  [ECX].TBitsList.fCount, EAX
   MOV  ECX, [ECX].TBitsList.fCapacity
   SHL  ECX, 5
   CMP  EDX, ECX
@@ -1289,14 +1301,9 @@ asm
   POP  EDX
 
 @@1:
-  CMP  EDX, [EAX].FCount
-  JL   @@2
-  INC  EDX
-  MOV  [EAX].fCount, EDX
-  DEC  EDX
-@@2:
   POP  ECX
-  MOV  EAX, [EAX].fList
+@@2:
+  MOV  EAX, [EBX].fList
   MOV  EAX, [EAX].TBitsList.fItems
   SHR  ECX, 1
   JC   @@2set
@@ -1305,26 +1312,29 @@ asm
 @@2set:
   BTS  [EAX], EDX
 @@exit:
+  POP  EBX
 end;
 {$ELSE}
 procedure TBits.SetBit(Idx: Integer; const Value: Boolean);
 var Msk: DWORD;
     MinListCount: Integer;
 begin
-  if Idx >= Capacity then
-    Capacity := Idx + 1;
-  Msk := 1 shl (Idx and $1F);
-  if Value then
-    PBitsList( fList ).fItems[ Idx shr 5 ] := Pointer(
-                  DWORD(PBitsList( fList ).Items[ Idx shr 5 ]) or Msk)
-  else
-    PBitsList( fList ).fItems[ Idx shr 5 ] := Pointer(
-                  DWORD(PBitsList( fList ).Items[ Idx shr 5 ]) and not Msk);
-  if Idx >= fCount then
-    fCount := Idx + 1;
   MinListCount := (Idx + 31) shr 5 + 1;
   if  PBitsList( fList ).fCount < MinListCount then
+  begin
       PBitsList( fList ).fCount := MinListCount;
+      if  Idx >= Capacity then
+          Capacity := Idx + 1;
+  end;
+  Msk := 1 shl (Idx and $1F);
+  if  Value then
+      PBitsList( fList ).fItems[ Idx shr 5 ] := Pointer(
+                 DWORD(PBitsList( fList ).Items[ Idx shr 5 ]) or Msk)
+  else
+      PBitsList( fList ).fItems[ Idx shr 5 ] := Pointer(
+                 DWORD(PBitsList( fList ).Items[ Idx shr 5 ]) and not Msk);
+  if  Idx >= fCount then
+      fCount := Idx + 1;
 end;
 {$ENDIF}
 
