@@ -111,6 +111,7 @@ type
     procedure CreateDialogForm;
     property _FindFirstFileEx: TFindFirstFileEx read GetFindFirstFileEx;
     function _FindFirstFileExW: Boolean;
+    procedure SelChanged( Sender: PObj );
     procedure DeleteNode( node: Integer );
     procedure DestroyingForm( Sender: PObj );
   public
@@ -449,9 +450,6 @@ begin
        BtnPanel.Border := 2;
        DTSubPanel.SetAlign( caClient );
        DirTree := NewTreeView( DTSubPanel, [ tvoLinesRoot ], Sysimages, nil );
-       {$IFNDEF DIRDLGEX_NO_DBLCLK_ON_NODE_OK}
-       DirTree.OnMouseDblClk := DoubleClick;
-       {$ENDIF}
        DirTree.Color := clWindow;
        DirTree.OnTVExpanding := DoExpanding;
        DirTree.SetAlign( caClient );
@@ -483,7 +481,11 @@ begin
      DirTree.SetAlign( caClient );
      MsgPanel := DlgClient;
      {$ENDIF}
+     {$IFNDEF DIRDLGEX_NO_DBLCLK_ON_NODE_OK}
+     DirTree.OnMouseDblClk := DoubleClick;
+     {$ENDIF}
      MsgPanel.OnMessage := DoMsg;
+     DirTree.OnSelChange := SelChanged;
      DlgClient := DTSubPanel; // !!!
      s := CancelCaption; if s = '' then s := 'Cancel';
      BtCancel := NewButton( BtnPanel, s );
@@ -862,13 +864,19 @@ var s, CurPath: String;
 begin
   s := IncludeTrailingPathDelimiter(
     PChar( PControl( Sender ).CustomData ) );
-  if DirectoryExists( s ) then
+  if  PControl( Sender ).RightClick then
   begin
-    CurPath := IncludeTrailingPathDelimiter(
-      DirTree.TVItemPath( DirTree.TVSelected, '\' ) );
-    if StrEq( CurPath, s ) then
-      Form.ModalResult := 1
-    else Path := s;
+      RemoveLink( s );
+  end else
+  begin
+      if DirectoryExists( s ) then
+      begin
+        CurPath := IncludeTrailingPathDelimiter(
+          DirTree.TVItemPath( DirTree.TVSelected, '\' ) );
+        if StrEq( CurPath, s ) then
+          Form.ModalResult := 1
+        else Path := s;
+      end;
   end;
 end;
 
@@ -976,7 +984,8 @@ begin
     Pn.Free;
     LinksList.Delete( i );
   end;
-  Global_Align( LinksTape );
+  //LinksTape.Height := LinksTape.Height + 1;
+  //LinksTape.Height := LinksTape.Height - 1;
   SetupLinksTapeHeight;
 end;
 
@@ -1232,6 +1241,13 @@ begin
 end;
 
 {$IFDEF DIRDLGEX_LINKSPANEL}
+procedure TOpenDirDialogEx.SelChanged(Sender: PObj);
+var n: Integer;
+begin
+    n := PControl(Sender).TVSelected;
+    RescanNode( n );
+end;
+
 procedure TOpenDirDialogEx.SetLinks(idx: Integer; const Value: KOLString);
 var Bar, Pn: PControl;
     Bmp: PBitmap;
@@ -1278,7 +1294,7 @@ begin
   {$ENDIF USE_GRUSH}
   {$ENDIF DIRDLGEX_BIGGERPANEL}
   NewPanelWithSingleButtonToolbar( LinksTape, LinksBox.Width-8,
-    H, caTop, Bmp,
+    H, caNone, Bmp,
     ExtractFileName( s ), s, Pn, Bar, LinkClick, nil, nil, LinksBtnDnEvt, LinksPopupMenu );
   Pn.CreateWindow;
 
@@ -1317,12 +1333,17 @@ end;
 procedure TOpenDirDialogEx.SetupLinksTapeHeight;
 var H: Integer;
     Pn: PControl;
+    i: Integer;
 begin
   H := 0;
   if (LinksList <> nil) and (LinksList.Count > 0) then
   begin
-    Pn := Pointer( LinksList.Objects[ LinksList.Count-1 ] );
-    H := Pn.Top + Pn.Height;
+    for i := 0 to LinksList.Count-1 do
+    begin
+        Pn := Pointer( LinksList.Objects[ i ] );
+        Pn.Top := H;
+        H := Pn.Top + Pn.Height;
+    end;
   end;
   LinksTape.Height := H + 4;
 end;

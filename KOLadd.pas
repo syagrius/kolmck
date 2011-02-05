@@ -15,7 +15,7 @@
 
 //[VERSION]
 ****************************************************************
-* VERSION 3.05
+* VERSION 3.05+
 ****************************************************************
 //[END OF VERSION]
 
@@ -433,11 +433,16 @@ type
   TDirChange = object(TObj)
   {* Object type to monitor changes in certain folder. }
   protected
+    {$IFDEF DIRCHG_ONEXECUTE}
+    FOnExecute: TOnEvent;
+    {$ENDIF}
     FOnChange: TOnDirChange;
     FHandle, FinEvent: THandle;
     FPath: KOLString;
     FMonitor: PThread;
+    FWatchSubtree: Boolean;
     FDestroying: Boolean;
+    FFlags: DWORD;
     function Execute( Sender: PThread ): Integer;
     procedure Changed;
   protected
@@ -450,10 +455,15 @@ type
     {* Path to monitored folder (to a root, if tree of folders
        is under monitoring). }
     property OnChange: TOnDirChange read FOnChange write FOnChange;
+    {$IFDEF DIRCHG_ONEXECUTE}
+    property OnExecute: TOnEvent read FOnExecute write FOnExecute;
+    {$ENDIF}
   end;
 
 function NewDirChangeNotifier( const Path: KOLString; Filter: TFileChangeFilter;
-                               WatchSubtree: Boolean; ChangeProc: TOnDirChange )
+                               WatchSubtree: Boolean; ChangeProc: TOnDirChange
+                               {$IFDEF DIRCHG_ONEXECUTE} ; OnExecuteProc: TOnEvent
+                               {$ENDIF} )
                                : PDirChange;
 {* Creates notification object TDirChange. If something wrong (e.g.,
    passed directory does not exist), nil is returned as a result. When change
@@ -1006,7 +1016,7 @@ begin
   if FromIdx + N > FromBits.Count then
     N := FromBits.Count - FromIdx;
   Capacity := (ToIdx + N + 8) div 8;
-  NewCount := Max( Count, ToIdx + N - 1 );
+  NewCount := Max( Count, ToIdx + N );
   fCount := Max( NewCount, fCount );
   PBitsList( fList ).fCount := (Capacity + 3) div 4;
   while ToIdx and $1F <> 0 do
@@ -1186,6 +1196,8 @@ begin
           MOV  D, EAX
         end {$IFDEF F_P} [ 'EAX' ] {$ENDIF};
         Result := I * 32 + Integer( D );
+        if  Result >= fCount then
+            Result := -1;
         break;
       end;
     end;
@@ -1271,7 +1283,7 @@ begin
 end;
 
 //[procedure TBits.SetBit]
-{$IFDEF ASM_VERSION}
+{$IFDEF ASM_noVERSION}
 procedure TBits.SetBit(Idx: Integer; const Value: Boolean);
 asm
   PUSH EBX
@@ -1296,6 +1308,7 @@ asm
   PUSH EDX
   INC  EDX
   PUSH EAX
+  MOV  EAX, EBX
   CALL SetCapacity
   POP  EAX
   POP  EDX
@@ -1319,12 +1332,14 @@ procedure TBits.SetBit(Idx: Integer; const Value: Boolean);
 var Msk: DWORD;
     MinListCount: Integer;
 begin
-  MinListCount := (Idx + 31) shr 5 + 1;
+  MinListCount := //(Idx + 31) shr 5 + 1;
+                  (Idx + 32) shr 5;
   if  PBitsList( fList ).fCount < MinListCount then
   begin
       PBitsList( fList ).fCount := MinListCount;
       if  Idx >= Capacity then
-          Capacity := Idx + 1;
+          Capacity := //Idx + 1;
+                      MinListCount shl 5;
   end;
   Msk := 1 shl (Idx and $1F);
   if  Value then
@@ -2260,30 +2275,26 @@ asm
 end;
 {$ELSE ASM_VERSION} //Pascal
 function NewDirChangeNotifier( const Path: KOLString; Filter: TFileChangeFilter;
-                               WatchSubtree: Boolean; ChangeProc: TOnDirChange )
+                               WatchSubtree: Boolean; ChangeProc: TOnDirChange
+                               {$IFDEF DIRCHG_ONEXECUTE}; OnExecuteProc: TOnEvent
+                               {$ENDIF} )
                                : PDirChange;
-var Flags: DWORD;
 begin
   New( Result, Create );
+  {$IFDEF DIRCHG_ONEXECUTE}
+  Result.OnExecute := OnExecuteProc;
+  {$ENDIF}
 
   Result.FPath := Path;
+  Result.FWatchSubtree := WatchSubtree;
   Result.FOnChange := ChangeProc;
-  if Filter = [ ] then
-    Flags := FILE_NOTIFY_CHANGE_FILE_NAME or FILE_NOTIFY_CHANGE_DIR_NAME or
+  if  Filter = [ ] then
+      Result.FFlags := FILE_NOTIFY_CHANGE_FILE_NAME or FILE_NOTIFY_CHANGE_DIR_NAME or
       FILE_NOTIFY_CHANGE_ATTRIBUTES or FILE_NOTIFY_CHANGE_SIZE or
       FILE_NOTIFY_CHANGE_LAST_WRITE
   else
-      Flags := MakeFlags( @Filter, FilterFlags );
-  Result.FinEvent := CreateEvent( nil, TRUE, FALSE, nil );
-  Result.FHandle := FindFirstChangeNotification(PKOLChar(Result.FPath),
-                    Bool( Integer( WatchSubtree ) ), Flags);
-  if  Result.FHandle <> INVALID_HANDLE_VALUE then
-      Result.FMonitor := NewThreadEx( Result.Execute )
-  else //MsgOK( 'Can not monitor ' + Result.FPath + #13'Error ' + Int2Str( GetLastError ) );
-  begin
-      Result.Free;
-      Result := nil;
-  end;
+      Result.FFlags := MakeFlags( @Filter, FilterFlags );
+  Result.FMonitor := NewThreadEx( Result.Execute )
 end;
 {$ENDIF ASM_VERSION}
 //[END _NewDirChgNotifier]
@@ -2342,12 +2353,15 @@ begin
     OnChange := nil;
     SetEvent( FinEvent );
   end;
-  if  FMonitor <> nil then
+  while FinEvent <> 0 do
   begin
-      FMonitor.WaitFor;
-      FMonitor.Free;
+      if  Applet <> nil then
+          Applet.ProcessMessages; // otherwise deadlock is possible !!!
+      Sleep( 1 );                 // otherwise processor load can be too high !!!
+      if  AppletTerminated then
+          break;
   end;
-  CloseHandle( FinEvent );
+  FMonitor.Free;
   FPath := '';
   inherited;
 end;
@@ -2394,6 +2408,13 @@ function TDirChange.Execute(Sender: PThread): Integer;
 var Handles: array[ 0..1 ] of THandle;
     //i: Integer;
 begin
+  {$IFDEF DIRCHG_ONEXECUTE}
+  if  Assigned( OnExecute ) then
+      OnExecute( @ Self );
+  {$ENDIF}
+  FinEvent := CreateEvent( nil, TRUE, FALSE, nil );
+  FHandle := FindFirstChangeNotification(PKOLChar(FPath),
+          Bool( Integer( FWatchSubtree ) ), FFlags);
   Handles[ 0 ] := FHandle;
   Handles[ 1 ] := FinEvent;
   while not AppletTerminated do
@@ -2401,7 +2422,6 @@ begin
     WAIT_OBJECT_0:
       begin
         if AppletTerminated or FDestroying then break;
-        //Applet.GetWindowHandle;
         Sender.Synchronize( Changed );
         FindNextChangeNotification(Handles[ 0 ]);
       end;
@@ -2411,7 +2431,9 @@ begin
   TRY
   {$ENDIF}
   FindCloseChangeNotification( Handles[ 0 ] );
-  //CloseHandle( Handles[ 1 ] );
+  FHandle := 0;
+  CloseHandle( FinEvent );
+  FinEvent := 0;
   {$IFDEF SAFE_CODE}
   EXCEPT
   END;
@@ -3506,8 +3528,8 @@ begin
     end;
     W := Btn.BoundsRect.Right;
   end;
-  DlgPrnt.Width := Max(
-    Max( DlgPrnt.Width, Lab.Left + Lab.Width + 4 ), W + 8 );
+  DlgPrnt.ClientWidth := Max(
+    Max( DlgPrnt.ClientWidth, Lab.Left + Lab.Width + 4 ), W + 8 );
   X := (DlgPrnt.ClientWidth - W) div 2;
   for I := 0 to Buttons.Count-1 do
   begin
@@ -3536,7 +3558,7 @@ begin
   {$ENDIF TOGRUSH_OPTIONAL}
   begin
     DlgPrnt.ResizeParent;
-    DlgPrnt.Width := Max( DlgPrnt.Width, Dialog.Width - 14 );
+    DlgPrnt.ClientWidth := Max( DlgPrnt.ClientWidth, Dialog.Width - 14 );
   end;
   Bmp.Free;
   {$ENDIF USE_GRUSH}
@@ -3561,8 +3583,7 @@ begin
     Dialog.ShowModal;
     Result := Dialog.ModalResult;
     Dialog.Free;
-  end
-    else
+  end else
   begin
     DlgWnd := Dialog.Handle;
     while IsWindow( DlgWnd ) and (Dialog.ModalResult = 0) do

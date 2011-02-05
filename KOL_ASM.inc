@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 // KOL_ASM.inc ()to be inlude in KOL.pas)
-// v 3.05
+// v 3.08
 
 function MsgBox( const S: KOLString; Flags: DWORD ): DWORD;
 asm
@@ -1675,16 +1675,17 @@ end;
 procedure TCanvas.SetHandle(Value: HDC);
 asm
         PUSH     EBX
-        MOV      EBX, EAX
-        MOV      ECX, [EBX].fHandle
-        CMP      ECX, EDX
-        JZ       @@exit
-        JECXZ    @@chk_val
+        PUSH     ESI
+        MOV      ESI, EDX             // ESI = Value
+        MOV      EBX, EAX             // EAX = @ Self
+        MOV      ECX, [EBX].fHandle   // ECX = fHandle (before)
+        CMP      ECX, ESI             // compare with new Value in EDX
+        JZ       @@exit               // equal? -> nothing to do
+        JECXZ    @@chk_val            // fHandle = 0? -> check new value in EDX
 
-        PUSH     EDX
-        PUSH     ECX
+        PUSH     ECX  // fHandle
           CALL     DeselectHandles
-        POP      EDX
+        POP      EDX  // fHandle
 
         MOV      ECX, [EBX].fOwnerControl
         JECXZ    @@chk_Release
@@ -1692,13 +1693,16 @@ asm
         JE       @@clr_Handle
 
 @@chk_Release:
-        PUSH     EDX
         CMP      [EBX].fOnGetHandle.TMethod.Code, offset[TControl.DC2Canvas]
         JNE      @@deldc
+        PUSH     EDX  // fHandle
         PUSH     [ECX].TControl.fHandle
         CALL     ReleaseDC
         JMP      @@clr_Handle
 @@deldc:
+        CMP      WORD PTR [EBX].fIsPaintDC, 0
+        JNZ      @@clr_Handle
+        PUSH     EDX  // fHandle
         CALL     DeleteDC
 
 @@clr_Handle:
@@ -1707,18 +1711,18 @@ asm
         MOV      [EBX].TCanvas.fIsPaintDC, CL
         AND      [EBX].TCanvas.fState, not HandleValid
 
-        POP      EDX
 @@chk_val:
-        TEST     EDX, EDX
+        TEST     ESI, ESI
         JZ       @@exit
 
         OR       [EBX].TCanvas.fState, HandleValid
-        MOV      [EBX].TCanvas.fHandle, EDX
+        MOV      [EBX].TCanvas.fHandle, ESI
         LEA      EDX, [EBX].TCanvas.fPenPos
         MOV      EAX, EBX
         CALL     SetPenPos
 
-@@exit: POP      EBX
+@@exit: POP      ESI
+        POP      EBX
 end;
 
 procedure TCanvas.SetPenPos(const Value: TPoint);
@@ -2854,6 +2858,10 @@ end;
 
 function TDirList.GetCount: Integer;
 asm
+        {CMP      EAX, 0
+        JNZ      @@1
+        NOP
+@@1:    }
         MOV      ECX, [EAX].FListPositions
         JECXZ    @@retECX
         MOV      ECX, [ECX].TList.fCount
@@ -5419,7 +5427,7 @@ asm     //cmd    //opd
 @@callonmes:
         {$IFDEF  NIL_EVENTS}
         TEST     EBX, EBX
-        JZ       @@exit // @@dynmes1
+        JZ       @@ret 
         {$ENDIF}
 @@onmess1:
         PUSH     0
@@ -5914,7 +5922,8 @@ end;
 
 function TControl.GetVisible: Boolean;
 asm
-        MOV     ECX, [EAX].fHandle
+        //CALL    UpdateWndStyles
+        {MOV     ECX, [EAX].fHandle
         JECXZ   @@check_fStyle
           PUSH  EAX
         PUSH    ECX
@@ -5922,9 +5931,9 @@ asm
         TEST    EAX, EAX
           POP   EAX
         JMP     @@checked // Z if not visible
-
+        }
 @@check_fStyle:
-        TEST    byte ptr [EAX].fStyle.f3_Style, F3_Visible // WS_VISIBLE shr 3
+        TEST    byte ptr [EAX].fStyle.f3_Style, 1 shl F3_Visible // WS_VISIBLE shr 3
 @@checked:
         {$IFDEF USE_FLAGS}
         SETNZ   AL
@@ -6548,6 +6557,7 @@ asm
         MOV       ESI, EAX
 
         CALL      GetEnabled
+        (*
         {$IFDEF   USE_FLAGS}
         MOV       DL, byte ptr [ESI].TControl.fStyle.f2_Style
         // F2_Tabstop = 0 !
@@ -6556,6 +6566,8 @@ asm
         OR        DL, [ESI].TControl.fTabstop
         {$ENDIF   USE_FLAGS}
         AND       AL, DL
+        *)
+        TEST      AL, AL
         JZ        @@exit
 
         INC       [ESI].TControl.fClickDisabled
@@ -9392,6 +9404,8 @@ asm
         {$ENDIF}
 @@01:
         MOV      EAX, [EAX].fList
+        TEST     EAX, EAX
+        JZ       @@exit
         MOV      EDX, [EAX].TList.fCount
         CMP      EDX, 1
         JLE      @@02
@@ -9407,6 +9421,7 @@ asm
 @1:     MOV      EDX, [EAX].fCount
         CALL     SortData
         {$ENDIF}
+@@exit:
 end;
 
 procedure TStrList.MergeFromFile(const FileName: KOLString);
@@ -11370,10 +11385,12 @@ asm
         LOOP     @@ret_Canvas
 
         MOV      [EBX].fApplyBkColor2Canvas, offset[ApplyBitmapBkColor2Canvas]
-        PUSH     0
-        CALL     CreateCompatibleDC
+        //CALL     CreateCompatibleDC
+        XOR      EAX, EAX
+        //PUSH     EAX
         CALL     NewCanvas
         MOV      [EBX].fCanvas, EAX
+        //MOV      [EAX].TCanvas.fIsAlienDC, 0
         MOV      [EAX].TCanvas.fOnChangeCanvas.TMethod.Code, offset[CanvasChanged]
         MOV      [EAX].TCanvas.fOnChangeCanvas.TMethod.Data, EBX
         CALL     TCanvas.GetBrush
@@ -13912,6 +13929,15 @@ asm
     MOV  [EAX].TControl.fWordWrap, 1
     {$ENDIF}
     AND  byte ptr[EAX].TControl.fStyle.f0_Style, not SS_LEFTNOWORDWRAP
+
+    {$IFDEF USE_FLAGS}
+    TEST [EAX].TControl.fFlagsG5, 1 shl G5_IsButton
+    {$ELSE}
+    CMP  [EAX].TControl.fIsButton, 0
+    {$ENDIF}
+    JZ   @@1
+    OR   [EAX].TControl.fStyle.f1_Style, $20 // BS_MULTILINE >> 8
+@@1:
     PUSH EAX
     MOV  EDX, [EAX].TControl.fStyle
     CALL TControl.SetStyle

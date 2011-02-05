@@ -14,7 +14,7 @@
   Key Objects Library (C) 2000 by Kladov Vladimir.
 
 ****************************************************************
-* VERSION 3.05
+* VERSION 3.08
 ****************************************************************
 
   K.O.L. - is a set of objects to create small programs
@@ -1607,9 +1607,9 @@ type
     function GetValue(const AName: Ansistring): Ansistring;
   public
     // by Dod:
-    function IndexOfName_old(AName: Ansistring): Integer;
-    {* by Dod. Returns index of line starting like Name=... }
     function IndexOfName(AName: Ansistring): Integer;
+    {* by Dod. Returns index of line starting like Name=... }
+    function IndexOfName_NoCase(AName: Ansistring): Integer;
     property Values[const AName: Ansistring]: Ansistring read GetValue write SetValue;
     {* by Dod. Returns right side of a line starting like Name=... }
   public
@@ -2584,6 +2584,10 @@ type
     fIsPaintDC : Boolean;
     {* TRUE, if DC obtained during current WM_PAINT (or WM_ERASEBKGND?)
        processing for a control. This affects a way how Handle is released. }
+    fIsAlienDC: Boolean;
+    {* TRUE if Canvas was created on base of existing DC, so DC is not
+       beloning to the Canvas and should not be deleted when the Canvas object
+       is destroyed. }
     destructor Destroy; virtual;
     {* }
     {$ENDIF GDI}
@@ -4628,6 +4632,8 @@ type
   // -- so these can be alternated using variant record type to economy run time
   // size of TControl object instance
   TDataFields = packed record
+  fCurrentControl: PControl; //---- sometimes it is used for a parent control,
+                             // not only for parent form, so should be common.
   {$IFDEF UNION_FIELDS}
   CASE Integer OF
   1:( // Toolbar control fields
@@ -4656,7 +4662,7 @@ type
   {$ENDIF}
     fModalResult: Integer;
     fModalForm: PControl;
-    fCurrentControl: PControl;
+    //fCurrentControl: PControl;
     //FMinimizeWnd: PControl;
     fIcon: HIcon;
 
@@ -4834,14 +4840,14 @@ type
      See also notes about certain control kinds, located together with its
      |<a href="kol_pas.htm#visual_objects_constructors">
      |constructing functions definitions</a></b>. }
+  public
+    procedure SetAnchor(const Index: Integer; const Value: Boolean);
   protected
     function GetAnchor(const Index: Integer): Boolean;
-    procedure SetAnchor(const Index: Integer; const Value: Boolean);
     function Get_StatusWnd: HWND;
     function Get_Prop_Int(PropName: PKOLChar): Integer;
     procedure Set_Prop_Int(PropName: PKOLChar; const Value: Integer);
     function GetHelpContext: Integer;
-    //function Get_MDIClient: PControl;
     function Get_Ctl3D: Boolean;
     function Get_OnMouseEvent(const Index: Integer): TOnMouse;
   public
@@ -5275,6 +5281,7 @@ type
     procedure LVSetItemData(Idx: Integer; const Value: DWORD);
     function LVGetItemIndent(Idx: Integer): Integer;
     procedure LVSetItemIndent(Idx: Integer; const Value: Integer);
+  public
     procedure SetOnDeleteAllLVItems(const Value: TOnEvent);
     procedure SetOnDeleteLVItem(const Value: TOnDeleteLVItem);
     procedure SetOnEndEditLVItem(const Value: TOnEditLVItem);
@@ -5284,7 +5291,7 @@ type
     procedure SetOnMeasureItem(const Value: TOnMeasureItem);
 
     procedure SetItemsCount(const Value: Integer);
-
+  protected
     function GetItemData(Idx: Integer): DWORD;
     procedure SetItemData(Idx: Integer; const Value: DWORD);
     function GetLVCurItem: Integer;
@@ -5310,15 +5317,14 @@ type
     procedure SetOnPaint(const Value: TOnPaint);
     {$IFDEF GDI}
     procedure SetOnEraseBkgnd(const Value: TOnPaint);
-  public procedure SetTVRightClickSelect(const Value: Boolean);
-  protected
+    procedure SetTVRightClickSelect(const Value: Boolean);
     procedure SetOnLVStateChange(const Value: TOnLVStateChange);
     procedure SetOnMove(const Value: TOnEvent);
     procedure SetOnMoving(const Value: TOnEventMoving);
     procedure SetColor1(const Value: TColor);
     procedure SetColor2(const Value: TColor);
     procedure SetGradientLayout(const Value: TGradientLayout);
-  public  procedure SetGradientStyle(const Value: TGradientStyle);
+    procedure SetGradientStyle(const Value: TGradientStyle);
   protected
     procedure SetDroppedDown(const Value: Boolean);
     function get_ClassName: KOLString;
@@ -5692,6 +5698,7 @@ type
     function Get_Visible: Boolean;
     {* Returns True, if correspondent window is Visible, for forms and applet,
        or if fVisible flag is set, for controls. }
+  protected
     {$ENDIF GDI}
     procedure SetCtlColor( Value: TColor );
     {* Sets TControl's Color property value. }
@@ -7323,6 +7330,7 @@ type
     {* |<#listbox>
        |<#combo>
        |<#listview>
+       |<#treeview>
        Only listed controls. }
     procedure Clear;
     {* Clears object content. Has different sense for different controls.
@@ -13928,6 +13936,7 @@ const
   #12#$13 +      // TCM_SETCURSEL
   #211 +
   #3#$13 +       // TCM_SETIMAGELIST
+  #201 +
   #10#$13;       // TCM_GETITEMRECT
   {$ELSE}
   TabControlActions: TCommandActions = (
@@ -14743,13 +14752,6 @@ end;
 
 const size_TRect = 16; // used often in assembler versions of code
 
-//        {$DEFINE ASM_LOCAL}
-//{$IFDEF PAS_VERSION}  {$UNDEF ASM_LOCAL}{$ENDIF}
-//{$IFDEF UNICODE_CTRLS}{$UNDEF ASM_LOCAL}{$ENDIF}
-//{$IFDEF ASM_VERSION}
-//        {$DEFINE ASM_LOCAL}
-//{$ENDIF}
-
 {$IFDEF ASM_VERSION}
 const
   EmptyString: AnsiString = '';
@@ -14780,11 +14782,9 @@ asm
 end;
 
 procedure RemoveStr;
-asm
-        { <- [ESP+4] = string to remove
+asm     { <- [ESP+4] = string to remove
           -> ESP := ESP + 4
-             EAX = 0
-        }
+             EAX = 0 }
         POP      EAX
         XCHG     EAX, [ESP]
         PUSH     EAX
@@ -14795,11 +14795,9 @@ end;
 
 {$IFDEF _D3orHigher}
 procedure RemoveWStr;
-asm
-        { <- [ESP+4] = string to remove
+asm     { <- [ESP+4] = string to remove
           -> ESP := ESP + 4
-             EAX = 0
-        }
+             EAX = 0 }
         POP      EAX
         XCHG     EAX, [ESP]
         PUSH     EAX
@@ -14926,7 +14924,7 @@ begin
               ( (s[j] >= '0') and (s[j] <= '9') or
                 (s[j] >= 'A') and (s[j] <= 'F') ) do
         begin
-            if s[j] <= '9' then R := R * 16 + Ord( s[j] ) - Ord( '0' )
+            if   s[j] <= '9' then R := R * 16 + Ord( s[j] ) - Ord( '0' )
             else R := R * 16 + Ord( s[j] ) - Ord( 'A' ) + 10;
             inc( j );
         end;
@@ -14937,7 +14935,7 @@ begin
               ( (s[j] >= '0') and (s[j] <= '9') or
                 (s[j] >= 'A') and (s[j] <= 'F') ) do
         begin
-            if s[j] <= '9' then A := A * 16 + Ord( s[j] ) - Ord( '0' )
+            if   s[j] <= '9' then A := A * 16 + Ord( s[j] ) - Ord( '0' )
             else A := A * 16 + Ord( s[j] ) - Ord( 'A' ) + 10;
             inc( j );
         end;
@@ -14967,7 +14965,6 @@ begin
     if not Result then Exit;
 
     // 2nd: find line no
-
     Line_found := FALSE;
     CurUnit := '';
     Prev_N := 0;
@@ -14987,8 +14984,7 @@ begin
             end;
             CurUnit := s;
             Prev_N := 0;
-        end
-          else
+        end else
         if s <> '' then
         begin
             j := 1;
@@ -15587,16 +15583,15 @@ begin
     while I > 0 do
     begin
       N := (Result + I) * (Result + I);
-      if N > X then
+      if  N > X then
       begin
-        I := I shr 1;
-        break;
-      end
-        else
-      if N = X then
+          I := I shr 1;
+          break;
+      end else
+      if  N = X then
       begin
-        Result := Result + I;
-        Exit;
+          Result := Result + I;
+          Exit;
       end;
       I := I * 2;
     end;
@@ -15879,26 +15874,23 @@ end;
 procedure TObj.DoDestroy;
 begin
   {$IFDEF OLD_REFCOUNT}
-  if fRefCount > 0 then
+  if  fRefCount > 0 then
   begin
-    if not LongBool( fRefCount and 1) then
-    Dec( fRefCount, 2 );
-    RefDec;
-  end
-  else
-     Self.Destroy;
-  if fRefCount <> 0 then
+      if not LongBool( fRefCount and 1) then
+      Dec( fRefCount, 2 );
+      RefDec;
+  end else
+      Self.Destroy;
+  if  fRefCount <> 0 then
   begin
-    if not LongBool( fRefCount and 1) then
-       Dec( fRefCount );
-  end
-  else
-     Self.Destroy;
+      if not LongBool( fRefCount and 1) then
+         Dec( fRefCount );
+  end else
+      Self.Destroy;
   {$ELSE}
-  if fRefCount > 0 then
-    RefDec
-  else
-    Self.Destroy;
+  if   fRefCount > 0 then
+       RefDec
+  else Self.Destroy;
   {$ENDIF}
 end;
 {$ENDIF ASM_VERSION}
@@ -15940,7 +15932,6 @@ end;
 {$IFDEF ASM_VERSION}{$ELSE ASM_VERSION}
 procedure TObj.Free;
 begin
-  //if @ Self <> nil then
     RefDec;
 end;
 {$ENDIF ASM_VERSION}
@@ -15971,7 +15962,6 @@ begin
   if  fNamedObjList <> nil then
       Free_And_Nil(fNamedObjList);
   {$ENDIF}
-  //Dispose( @Self );
   {$IFDEF CRASH_DEBUG}
   FillChar( Pointer( Integer(@Self) + 4 )^, Sizeof( Self ) - 4, #$DD );
   {$ENDIF}
@@ -16059,8 +16049,8 @@ end;
 {$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
 procedure TObj.Add2AutoFree(Obj: PObj);
 begin
-  if fAutoFree = nil then
-    fAutoFree := NewList;
+  if  fAutoFree = nil then
+      fAutoFree := NewList;
   fAutoFree.Insert( 0, Obj );
   fAutoFree.Insert( 0, Pointer( @TObj.RefDec ) );
 end;
@@ -16163,8 +16153,7 @@ begin
   FName := NewName;
   if FName = '' then
      FOwnerObj.fNamedObjList.Remove( @ Self )
-  else
-  if FOwnerObj.fNamedObjList.IndexOf( @ Self ) < 0 then
+  else if FOwnerObj.fNamedObjList.IndexOf( @ Self ) < 0 then
      FOwnerObj.fNamedObjList.Add( @ Self );
 end;
 
@@ -16207,7 +16196,6 @@ begin
   {$IFDEF DEBUG_OBJKIND}
   fObjKind := 'TList';
   {$ENDIF}
-  //Result.fAddBy := 4;
 end;
 
 {$ELSE not_USE_CONSTRUCTORS}
@@ -16320,26 +16308,23 @@ begin
 end;
 
 {$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
-//var NewItems: PPointerList;
 procedure TList.SetCapacity( Value: Integer );
 begin
   {$IFDEF TLIST_FAST}
   if fUseBlocks and (fBlockList <> nil) then
   begin
-    if  Value > 256 then // Capacitity в обычном смысле работает только для первого
-        Value := 256;    // блока - до 256 элементов, далее оно смысла не имеет,
-                         // т.к. все прочие блоки всегда содержат по 256 позиций
-                         // для элементов, независимо от процента использования.
-    fCapacity := Value;
-  end
-  else
+      if  Value > 256 then // Capacitity в обычном смысле работает только для первого
+          Value := 256;    // блока - до 256 элементов, далее оно смысла не имеет,
+      fCapacity := Value;  // т.к. все прочие блоки всегда содержат по 256 позиций
+                           // для элементов, независимо от процента использования.
+  end else
   {$ENDIF}
   begin
-   if Value < Count then
-      Value := Count;
-   if Value = fCapacity then Exit;
-   ReallocMem( fItems, Value * Sizeof( Pointer ) );
-   fCapacity := Value;
+     if Value < Count then
+        Value := Count;
+     if Value = fCapacity then Exit;
+     ReallocMem( fItems, Value * Sizeof( Pointer ) );
+     fCapacity := Value;
   end;
 end;
 {$ENDIF ASM_VERSION}
@@ -16387,47 +16372,44 @@ begin
    begin
      if fBlockList = nil then
      begin
-       fBlockList := NewList;
-       fBlockList.fUseBlocks := FALSE;
-       fBlockList.Add( fItems );
-       fBlockList.Add( Pointer( fCount ) );
-       fItems := nil;
+         fBlockList := NewList;
+         fBlockList.fUseBlocks := FALSE;
+         fBlockList.Add( fItems );
+         fBlockList.Add( Pointer( fCount ) );
+         fItems := nil;
      end;
      if fBlockList.fCount = 0 then
      begin
-       fBlockList.Add( nil );
-       fBlockList.Add( nil );
-       LastBlockCount := 0;
-     end
-       else
-     begin
-       LastBlockCount := Integer( fBlockList.Items[ fBlockList.fCount-1 ] );
-       if LastBlockCount >= 256 then
-       begin
          fBlockList.Add( nil );
          fBlockList.Add( nil );
          LastBlockCount := 0;
-       end;
+     end else
+     begin
+         LastBlockCount := Integer( fBlockList.Items[ fBlockList.fCount-1 ] );
+         if  LastBlockCount >= 256 then
+         begin
+             fBlockList.Add( nil );
+             fBlockList.Add( nil );
+             LastBlockCount := 0;
+         end;
      end;
      LastBlockStart := fBlockList.Items[ fBlockList.fCount-2 ];
      if LastBlockStart = nil then
      begin
-       GetMem( LastBlockStart, 256 * Sizeof( Pointer ) );
-       fBlockList.Items[ fBlockList.fCount-2 ] := LastBlockStart;
+         GetMem( LastBlockStart, 256 * Sizeof( Pointer ) );
+         fBlockList.Items[ fBlockList.fCount-2 ] := LastBlockStart;
      end;
      fBlockList.Items[ fBlockList.fCount-1 ] := Pointer( LastBlockCount+1 );
      PDWORD( Integer(LastBlockStart) + Sizeof(Pointer)*LastBlockCount )^ :=
-       DWORD( Value );
-   end
-     else
+         DWORD( Value );
+   end else
   {$ENDIF}
   begin
-     if fCapacity <= fCount then
+     if  fCapacity <= fCount then
      begin
-       if fAddBy <= 0 then
-         Capacity := fCount + Min( 1000, fCount div 4 + 1 )
-       else
-         Capacity := fCount + fAddBy;
+         if   fAddBy <= 0 then
+              Capacity := fCount + Min( 1000, fCount div 4 + 1 )
+         else Capacity := fCount + fAddBy;
      end;
      fItems[ fCount ] := Value;
   end;
@@ -16523,8 +16505,7 @@ begin
           dec( fCount, DelFromBlock );
           dec( Len, DelFromBlock );
           if Len <= 0 then Exit;
-        end
-          else
+        end else
         begin // delete entire block
           //++ fix added: 21.06.08 ++ VK
           fLastKnownBlockIdx := 0;
@@ -16542,8 +16523,7 @@ begin
       inc( i );
       inc( CountBefore, CountCurrent );
     end;
-  end
-    else
+  end else
   {$ENDIF}
   begin
     Move( fItems[ Idx + Len ], fItems[ Idx ], Sizeof( Pointer ) * (Count - Idx - Len) );
@@ -16609,10 +16589,9 @@ begin
       inc( CountBefore, CountCurrent );
       inc( i );
     end;
-  end
-    else
+  end else
   {$ENDIF}
-  Result := Pointer( Integer( fItems ) + Idx * Sizeof( Pointer ) );
+      Result := Pointer( Integer( fItems ) + Idx * Sizeof( Pointer ) );
 end;
 
 {$IFDEF ASM_VERSION}{$ELSE not ASM_VERSION}
@@ -16651,10 +16630,9 @@ begin
       inc( CountBefore, CountCurrent );
       inc( i );
     end;
-   end
-     else
+   end else
    {$ENDIF}
-   fItems[ Idx ] := Value;
+       fItems[ Idx ] := Value;
 end;
 {$ENDIF ASM_VERSION}
 
@@ -16696,18 +16674,16 @@ begin
           inc( CountBefore, CountCurrent );
           inc( i );
         end;
-    end
-      else
+    end else
     begin // optimized!
         i := Idx shr 8;
         BlockStart := fBlockList.fItems[ i * 2 ];
         i := Idx and 255;
         Result := Pointer( PDWORD( Integer( BlockStart ) + i * Sizeof( Pointer ) )^ );
     end;
-  end
-    else
+  end else
   {$ENDIF}
-  Result := fItems[ Idx ];
+      Result := fItems[ Idx ];
 end;
 {$ENDIF ASM_VERSION}
 
@@ -16756,37 +16732,33 @@ begin
        CountBefore := 0;
        for I := 0 to fBlockList.fCount div 2 - 1 do
        begin
-         BlockStart := fBlockList.fItems[ I * 2 ];
-         CountCurrent := Integer( fBlockList.fItems[ I * 2 + 1 ] );
-         for j := 0 to CountCurrent-1 do
-         begin
-           if BlockStart^ = DWORD( Value ) then
+           BlockStart := fBlockList.fItems[ I * 2 ];
+           CountCurrent := Integer( fBlockList.fItems[ I * 2 + 1 ] );
+           for j := 0 to CountCurrent-1 do
            begin
-             Result := CountBefore + j;
-             Exit;
+               if  BlockStart^ = DWORD( Value ) then
+               begin
+                   Result := CountBefore + j;
+                   Exit;
+               end;
+               inc( BlockStart );
            end;
-           inc( BlockStart );
-         end;
-         inc( CountBefore, CountCurrent );
+           inc( CountBefore, CountCurrent );
        end;
-     end
-       else
+     end else
      {$ENDIF}
      begin
-       for I := 0 to fCount - 1 do
-       begin
-          if fItems[ I ] = Value then
-          begin
-             Result := I;
-             break;
-          end;
-       end;
+         for I := 0 to fCount - 1 do
+         begin
+             if fItems[ I ] = Value then
+             begin
+                 Result := I;
+                 break;
+             end;
+         end;
      end;
   {$IFDEF DEBUG}
   EXCEPT
-    asm
-      nop
-    end;
   END;
   {$ENDIF}
 end;
@@ -16878,8 +16850,7 @@ begin
            PDWORD( Integer( BlockStart ) + Idx * Sizeof( Pointer ) )^ :=
              DWORD( Value );
            fBlockList.fItems[ i * 2 + 1 ] := Pointer( CountCurrent + 1 );
-         end
-           else // new block is created since current block is full 256 items
+         end else // new block is created since current block is full 256 items
          begin
            fNotOptimized := TRUE;
            GetMem( NewBlock, 256 * Sizeof( Pointer ) );
@@ -16904,14 +16875,13 @@ begin
          fBlockList.Add( nil );
        end;
      end;
-   end
-     else
+   end else
    {$ENDIF}
    begin
-     Add( nil );
-     if fCount > Idx then
-       Move( FItems[ Idx ], FItems[ Idx + 1 ], (fCount - Idx - 1) * Sizeof( Pointer ) );
-     FItems[ Idx ] := Value;
+       Add( nil );
+       if  fCount > Idx then
+           Move( FItems[ Idx ], FItems[ Idx + 1 ], (fCount - Idx - 1) * Sizeof( Pointer ) );
+       FItems[ Idx ] := Value;
    end;
 end;
 {$ENDIF ASM_VERSION}
@@ -16945,10 +16915,9 @@ end;
 {$ELSE ASM_VERSION} //Pascal
 function TList.Last: Pointer;
 begin
-  if Count = 0 then
-    Result := nil
-  else
-    Result := Items[ Count-1 ];
+  if   Count = 0 then
+       Result := nil
+  else Result := Items[ Count-1 ];
 end;
 {$ENDIF ASM_VERSION}
 
@@ -17010,12 +16979,11 @@ begin
         fBlockList.fItems[ i*2 ] := DstBlock;
         move( SrcBlock^, DstBlock^, CountCurrent );
       end;
-    end
-      else
+    end else
     {$ENDIF}
     begin
-      Capacity := SrcList.fCount;
-      Move( SrcList.FItems[ 0 ], FItems[ 0 ], Sizeof( Pointer ) * SrcList.fCount );
+        Capacity := SrcList.fCount;
+        Move( SrcList.FItems[ 0 ], FItems[ 0 ], Sizeof( Pointer ) * SrcList.fCount );
     end;
   end;
   fCount := SrcList.fCount;
@@ -17193,8 +17161,7 @@ begin
         SetWindowLong( W, GWL_USERDATA, Integer( CreatingWindow ) );
         {$ENDIF}
         CreatingWindow := nil;
-     end
-        else
+     end else
      {$IFDEF USE_PROP}
      self_ := Pointer( GetProp( W, ID_SELF ) );
      {$ELSE}
@@ -17207,11 +17174,6 @@ begin
     {$IFDEF INPACKAGE}
     Log( '//// self_ <> nil, calling self_.WndProc' );
     {$ENDIF INPACKAGE}
-     ////{$IFDEF SAFE_CODE}
-     //////inc( self_.fNestedMsgHandling );
-     ////self_.RefInc;
-     ////TRY
-     ////{$ENDIF}
          {$IFDEF DEBUG_KEYDOWN}
          if  M.message = WM_KEYDOWN then
          asm
@@ -17219,25 +17181,10 @@ begin
          end;
          {$ENDIF}
          Result := self_.WndProc( M );
-     ////{$IFDEF SAFE_CODE}
-     ////FINALLY
-     ////   self_.RefDec;
-     ////{$ENDIF}
-         //dec( self_.fNestedMsgHandling );
-         (*if  (self_.fRefCount = 0) and (self_.fNestedMsgHandling <= 0)
-         and {$IFDEF USE_FLAGS} (G2_BeginDestroying in self_.fFlagsG2)
-             {$ELSE} self_.fBeginDestroying {$ENDIF}
-         and (self_ <> Applet) then
-           self_.Free;*)
-     ////{$IFDEF SAFE_CODE}
-     ////END;
-     ////{$ENDIF}
-   end
-   else
-   if ( Applet <> nil ) then
-      Result := Applet.WndProc( M )
-   else
-      Result := DefWindowProc( W, Msg, wParam, lParam );
+   end else
+   if   Applet <> nil then
+        Result := Applet.WndProc( M )
+   else Result := DefWindowProc( W, Msg, wParam, lParam );
    {$IFDEF DEBUG_ENDSESSION}
    if EndSession_Initiated then
    begin
@@ -17433,9 +17380,6 @@ begin
     if Ctl = nil then Exit;
     Result := Ctl.CreateWindow;
   EXCEPT
-    asm
-      nop
-    end;
   END;
   {$ELSE}
   Result := Ctl.CreateWindow;
@@ -17463,27 +17407,26 @@ begin
   while not AppletTerminated do
   begin
     {$IFDEF PSEUDO_THREADS}
-    if ( MainThread <> nil ) then
+    if  MainThread <> nil then
     begin
-      while not PeekMessage( M, 0, 0, 0, pm_noremove ) do
-      begin
-        u := GetTickCount;
-        n := 0;
-        for i := 1 to MainThread.AllThreads.Count-1 do
+        while not PeekMessage( M, 0, 0, 0, pm_noremove ) do
         begin
-          T := MainThread.AllThreads.Items[ i ];
-          if not T.Suspended and not T.Terminated and (T.DoNotWakeUntil < u) then
-          begin
-            inc( n );
-            break;
-          end;
+            u := GetTickCount;
+            n := 0;
+            for i := 1 to MainThread.AllThreads.Count-1 do
+            begin
+                T := MainThread.AllThreads.Items[ i ];
+                if not T.Suspended and not T.Terminated and (T.DoNotWakeUntil < u) then
+                begin
+                    inc( n );
+                    break;
+                end;
+            end;
+            if n = 0 then WaitMessage
+            else MainThread.NextThread;
         end;
-        if n = 0 then WaitMessage
-        else MainThread.NextThread;
-      end;
-    end
-    else
-      WaitMessage;
+    end else
+        WaitMessage;
     {$ELSE}
     WaitMessage;
     {$ENDIF}
@@ -17692,10 +17635,9 @@ end;
 {$IFDEF ASM_VERSION}{$ELSE ASM_VERSION}
 function Color2RGB( Color: TColor ): TColor;
 begin
-  if  Color < 0 then
-      Result := GetSysColor(Color and $7F)
-  else
-      Result := Color;
+  if   Color < 0 then
+       Result := GetSysColor(Color and $7F)
+  else Result := Color;
 end;
 {$ENDIF ASM_VERSION}
 
@@ -17879,9 +17821,9 @@ end;
 {$IFDEF ASM_VERSION}{$ELSE ASM_VERSION PAS_VERSION}
 function TGraphicTool.ReleaseHandle: Integer;
 begin
-  Changed;
-  Result := fHandle;
-  fHandle := 0;
+    Changed;
+    Result := fHandle;
+    fHandle := 0;
 end;
 {$ENDIF ASM_VERSION}
 
@@ -18093,15 +18035,14 @@ end;
 procedure TGraphicTool.SetFontStyle(const Value: TFontStyle);
 begin
   if FontStyle = Value then Exit;
-  if fsBold in Value then
+  if  fsBold in Value then
   begin
-    if fData.Font.Weight < 700 then
-      fData.Font.Weight := 700;
-  end
-    else
+      if fData.Font.Weight < 700 then
+        fData.Font.Weight := 700;
+  end else
   begin
-    if fData.Font.Weight >= 700 then
-      fData.Font.Weight := 0;
+      if fData.Font.Weight >= 700 then
+        fData.Font.Weight := 0;
   end;
   fData.Font.Italic := fsItalic in Value;
   fData.Font.Underline := fsUnderline in Value;
@@ -18171,32 +18112,29 @@ var
 begin
   if Self_.fHandle = 0 then
   begin
-   LogBrush.lbColor := Color2RGB( Self_.fData.Color );
-   if Self_.fData.Brush.Bitmap <> 0 then
-   begin
-     LogBrush.lbStyle := BS_PATTERN;
-     LogBrush.lbHatch := Self_.fData.Brush.Bitmap;
-   end
-      else
-   begin
-     LogBrush.lbHatch := 0;
-     case Self_.fData.Brush.Style of
-       bsSolid: LogBrush.lbStyle := BS_SOLID;
-       bsClear: LogBrush.lbStyle := BS_NULL;
-     else
-       LogBrush.lbStyle := BS_HATCHED;
-       LogBrush.lbHatch := Ord( Self_.fData.Brush.Style ) - Ord( bsHorizontal );
-       LogBrush.lbColor := Color2RGB( Self_.fData.Brush.LineColor );
+     LogBrush.lbColor := Color2RGB( Self_.fData.Color );
+     if  Self_.fData.Brush.Bitmap <> 0 then
+     begin
+         LogBrush.lbStyle := BS_PATTERN;
+         LogBrush.lbHatch := Self_.fData.Brush.Bitmap;
+     end else
+     begin
+         LogBrush.lbHatch := 0;
+         case Self_.fData.Brush.Style of
+           bsSolid: LogBrush.lbStyle := BS_SOLID;
+           bsClear: LogBrush.lbStyle := BS_NULL;
+         else LogBrush.lbStyle := BS_HATCHED;
+              LogBrush.lbHatch := Ord(Self_.fData.Brush.Style)-Ord(bsHorizontal);
+              LogBrush.lbColor := Color2RGB( Self_.fData.Brush.LineColor );
+         end;
      end;
-   end;
-   Self_.fHandle := CreateBrushIndirect(LogBrush);
-   {$IFDEF DEBUG_GDIOBJECTS}
-   if Self_.fHandle <> 0 then
-     Inc( BrushCount )
-   else
-     ShowMessage( 'Could not create brush, error ' + Int2Str( GetLastError ) +
-                  ': ' + SysErrorMessage( GetLastError ) );
-   {$ENDIF}
+     Self_.fHandle := CreateBrushIndirect(LogBrush);
+     {$IFDEF DEBUG_GDIOBJECTS}
+     if   Self_.fHandle <> 0 then
+          Inc( BrushCount )
+     else ShowMessage( 'Could not create brush, error ' + Int2Str( GetLastError ) +
+                    ': ' + SysErrorMessage( GetLastError ) );
+     {$ENDIF}
   end;
   Result := Self_.fHandle;
 end;
@@ -18340,22 +18278,19 @@ begin
       begin
         lbStyle := BS_PATTERN;
         lbHatch := fData.Pen.BrushBitmap;
-      end
-         else
+      end else
       case fData.Pen.BrushStyle of
       bsSolid: lbStyle := BS_SOLID;
       bsClear: lbStyle := BS_NULL;
-      else  begin
-               lbStyle := BS_HATCHED;
-               case fData.Pen.BrushStyle of
-               bsHorizontal: lbHatch := HS_HORIZONTAL;
-               bsVertical:   lbHatch := HS_VERTICAL;
-               bsFDiagonal:  lbHatch := HS_FDIAGONAL;
-               bsBDiagonal:  lbHatch := HS_BDIAGONAL;
-               bsCross:      lbHatch := HS_CROSS;
-               bsDiagCross:  lbHatch := HS_DIAGCROSS;
-               end;
-            end;
+      else lbStyle := BS_HATCHED;
+           case fData.Pen.BrushStyle of
+           bsHorizontal: lbHatch := HS_HORIZONTAL;
+           bsVertical:   lbHatch := HS_VERTICAL;
+           bsFDiagonal:  lbHatch := HS_FDIAGONAL;
+           bsBDiagonal:  lbHatch := HS_BDIAGONAL;
+           bsCross:      lbHatch := HS_CROSS;
+           bsDiagCross:  lbHatch := HS_DIAGCROSS;
+           end;
       end;
   end;
   Self_.fHandle := ExtCreatePen( PS_GEOMETRIC or Byte( Self_.fData.Pen.Style ) or
@@ -18493,26 +18428,22 @@ begin
   begin
     SelectObject( GetHandle, fBrush.Handle );
     AssignChangeEvents;
-    if fBrush.fData.Brush.Style = bsSolid then
+    if  fBrush.fData.Brush.Style = bsSolid then
     begin
-      SetBkColor( fHandle, Color2RGB( fBrush.fData.Color ) );
-      SetBkMode( fHandle, OPAQUE );
-    end
-       else
+        SetBkColor( fHandle, Color2RGB( fBrush.fData.Color ) );
+        SetBkMode( fHandle, OPAQUE );
+    end else
     begin
-      { Win95 doesn't draw brush hatches if bkcolor = brush color }
-      { Since bkmode is transparent, nothing should use bkcolor anyway }
-      SetBkColor( fHandle, not Color2RGB( fBrush.fData.Color ) );
-      SetBkMode( fHandle, TRANSPARENT );
+        { Win95 doesn't draw brush hatches if bkcolor = brush color }
+        { Since bkmode is transparent, nothing should use bkcolor anyway }
+        SetBkColor( fHandle, not Color2RGB( fBrush.fData.Color ) );
+        SetBkMode( fHandle, TRANSPARENT );
     end;
-  end
-     else
-  /////////////////////////////////
-  if Assigned( fOwnerControl ) then
-  /////////////////////////////////
+  end else
+  if  Assigned( fOwnerControl ) then
   begin
-    SetBkColor( GetHandle, Color2RGB( PControl( fOwnerControl ).fColor ) );
-    SetBkMode( fHandle, OPAQUE );
+      SetBkColor( GetHandle, Color2RGB( PControl( fOwnerControl ).fColor ) );
+      SetBkMode( fHandle, OPAQUE );
   end;
 end;
 {$ENDIF ASM_VERSION}
@@ -18686,36 +18617,37 @@ procedure TCanvas.SetHandle(Value: HDC);
 var Ptr1: Pointer;
 {$ENDIF F_P}
 begin
-  if fHandle = Value then Exit;
-  if fHandle <> 0 then
+  if  fHandle = Value then Exit;
+  if  fHandle <> 0 then
   begin
-    DeselectHandles;
-    {$IFDEF GDI}
-      if not( (fOwnerControl <> nil) and
-              (PControl(fOwnerControl).fPaintDC = fHandle) ) then
+      DeselectHandles;
+      {$IFDEF GDI}
+      if (fOwnerControl = nil) or
+         (PControl(fOwnerControl).fPaintDC <> fHandle) then
       begin
-        {$IFDEF F_P}
-        Ptr1 := Self;
-        asm
-          MOV  EAX, [Ptr1]
-          MOV  EAX, [EAX].TCanvas.fOnGetHandle
-          MOV  [Ptr1], EAX
-        end [ 'EAX' ];
-        if Ptr1 = @ TControl.DC2Canvas then
-        {$ELSE DELPHI}
-      //////////////////// SLAG
-        if   TMethod(fOnGetHandle).Code =
-             @TControl.Dc2Canvas then
-        {$ENDIF F_P/DELPHI}
-             ReleaseDC(PControl(fOwnerControl).Handle, fHandle )
-        else
-             DeleteDC( fHandle );
-      ////////////////////
+            {$IFDEF F_P}
+              Ptr1 := Self;
+              asm
+                  MOV  EAX, [Ptr1]
+                  MOV  EAX, [EAX].TCanvas.fOnGetHandle
+                  MOV  [Ptr1], EAX
+              end [ 'EAX' ];
+              if Ptr1 = @ TControl.DC2Canvas then
+            {$ELSE DELPHI}
+            //////////////////// SLAG
+              if  TMethod(fOnGetHandle).Code =
+                  @TControl.Dc2Canvas then
+            {$ENDIF F_P/DELPHI}
+                  ReleaseDC( PControl(fOwnerControl).Handle, fHandle )
+              else
+              if  not (fIsAlienDC or fIsPaintDC) then
+                  DeleteDC( fHandle );
+            ////////////////////
       end;
-    {$ENDIF GDI}
-    fHandle := 0;
-    fIsPaintDC := False;
-    fState := fState and not HandleValid;
+      {$ENDIF GDI}
+      fHandle := 0;
+      fIsPaintDC := False;
+      fState := fState and not HandleValid;
   end;
   if Value <> 0 then
   begin
@@ -18741,9 +18673,7 @@ end;
 {$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
 procedure TCanvas.Changing;
 begin
-  //////////////////////////////
   if  Assigned( fOnChangeCanvas ) then
-  //////////////////////////////
       fOnChangeCanvas( @Self );
 end;
 {$ENDIF ASM_VERSION}
@@ -18839,28 +18769,24 @@ procedure TCanvas.FillRect({$IFNDEF FPC}const{$ENDIF} Rect: TRect);
 var Br: HBrush;
 begin
   RequiredState( HandleValid or BrushValid or ChangingCanvas );
-  if ( fBrush <> nil ) then
+  if  fBrush <> nil then
   begin
-    Windows.FillRect(fHandle, Rect, fBrush.Handle);
-  end
-    else
+      Windows.FillRect(fHandle, Rect, fBrush.Handle);
+  end else
   if ( fOwnerControl <> nil ) then
   begin
-    {$IFDEF GDI}
-    if ( PControl( fOwnerControl ).fBrush <> nil ) then
-      Windows.FillRect( fHandle, Rect, PControl( fOwnerControl ).fBrush.Handle )
-    else
-    begin
-      Br := CreateSolidBrush( Color2RGB(PControl(fOwnerControl).fColor) );
-      Windows.FillRect(fHandle, Rect, Br );
-      DeleteObject( Br );
-    end;
-    {$ENDIF GDI}
-  end
-  else
-  begin
-    Windows.FillRect(fHandle, Rect, HBrush(COLOR_WINDOW + 1) );
-  end;
+      {$IFDEF GDI}
+      if  ( PControl( fOwnerControl ).fBrush <> nil ) then
+          Windows.FillRect( fHandle, Rect, PControl( fOwnerControl ).fBrush.Handle )
+      else
+      begin
+          Br := CreateSolidBrush( Color2RGB(PControl(fOwnerControl).fColor) );
+          Windows.FillRect(fHandle, Rect, Br );
+          DeleteObject( Br );
+      end;
+      {$ENDIF GDI}
+  end else
+      Windows.FillRect(fHandle, Rect, HBrush(COLOR_WINDOW + 1) );
 end;
 {$ENDIF ASM_VERSION}
 {$ENDIF GDI}
@@ -18885,25 +18811,23 @@ begin
   RequiredState( HandleValid or BrushValid or ChangingCanvas );
   if ( fBrush <> nil ) then
     Windows.FillRgn(FHandle, Rgn, fBrush.Handle )
-    else
-  if ( fOwnerControl <> nil ) then
+  else if ( fOwnerControl <> nil ) then
   begin
-    {$IFDEF GDI}
-    if  ( PControl( fOwnerControl ).fBrush <> nil ) then
-        Windows.FillRgn( FHandle, Rgn, PControl( fOwnerControl ).fBrush.Handle )
-    else
-    begin
-        Br := CreateSolidBrush( Color2RGB(PControl(fOwnerControl).fColor) );
-        Windows.FillRgn( fHandle, Rgn, Br );
-        DeleteObject( Br );
-    end;
-    {$ENDIF GDI}
-  end
-     else
+      {$IFDEF GDI}
+      if  ( PControl( fOwnerControl ).fBrush <> nil ) then
+          Windows.FillRgn( FHandle, Rgn, PControl( fOwnerControl ).fBrush.Handle )
+      else
+      begin
+          Br := CreateSolidBrush( Color2RGB(PControl(fOwnerControl).fColor) );
+          Windows.FillRgn( fHandle, Rgn, Br );
+          DeleteObject( Br );
+      end;
+      {$ENDIF GDI}
+  end else
   begin
-    Br := CreateSolidBrush( DWORD(clWindow) );
-    Windows.FillRgn( fHandle, Rgn, Br );
-    DeleteObject( Br );
+      Br := CreateSolidBrush( DWORD(clWindow) );
+      Windows.FillRgn( fHandle, Rgn, Br );
+      DeleteObject( Br );
   end;
 end;
 {$ENDIF ASM_VERSION}
@@ -18924,16 +18848,15 @@ end;
 procedure TCanvas.FrameRect({$IFNDEF FPC}const{$ENDIF} Rect: TRect);
 var SolidBr : HBrush;
 begin
-  RequiredState( HandleValid or ChangingCanvas );
-  if ( fBrush <> nil ) then
-    SolidBr := CreateSolidBrush( Color2RGB( fBrush.fData.Color ) )
-  else
-  if ( fOwnerControl <> nil ) then
-    SolidBr := CreateSolidBrush( PControl(fOwnerControl).fColor )
-  else
-    SolidBr := CreateSolidBrush( clWhite );
-  Windows.FrameRect(FHandle, Rect, SolidBr);
-  DeleteObject( SolidBr );
+    RequiredState( HandleValid or ChangingCanvas );
+    if   fBrush <> nil then
+         SolidBr := CreateSolidBrush( Color2RGB( fBrush.fData.Color ) )
+    else
+    if   fOwnerControl <> nil then
+         SolidBr := CreateSolidBrush( PControl(fOwnerControl).fColor )
+    else SolidBr := CreateSolidBrush( clWhite );
+    Windows.FrameRect(FHandle, Rect, SolidBr);
+    DeleteObject( SolidBr );
 end;
 {$ENDIF ASM_VERSION}
 
@@ -19061,6 +18984,7 @@ asm
         PUSH     ESI
         MOV      EBX, EAX
 
+        PUSH     ECX
         PUSH     ECX               // prepare @Result
 
         MOV      EAX, EDX
@@ -19091,8 +19015,8 @@ asm
         CALL     SetHandle
 
 //****************************************************** // Added By M.Gerasimov
-        CMP      [EBX].TCanvas.fIsPaintDC, 1
-        JZ       @@2
+        CMP      WORD PTR [EBX].TCanvas.fIsPaintDC, 0
+        JNZ      @@2
         XOR      ESI,ESI
 @@2:
 //******************************************************
@@ -19104,6 +19028,17 @@ asm
         PUSH     EAX               // prepare DC
 
         CALL     Windows.GetTextExtentPoint32A  // KOL_ANSI
+
+        POP      EDX // @ Result
+        MOV      ECX, [EBX].fFont
+        JECXZ    @@0
+        CMP      [ECX].TGraphicTool.fData.Font.Italic, 0
+        JZ       @@0
+
+        MOV      EAX, [EDX].TSize.cy
+        SHR      EAX, 2
+        ADD      DWORD PTR [EDX], EAX
+@@0:
 
         TEST     ESI, ESI
         JNZ      @@exit
@@ -19135,11 +19070,17 @@ begin
      DC := CreateCompatibleDC( 0 );
      ClearHandle := True;
      SetHandle( DC );
-     If Not fIsPaintDC then
+     If Not (fIsAlienDC or fIsPaintDC) then
        ClearHandle := True; //************ // Added By Gerasimov
   end;
   RequiredState( HandleValid or FontValid );
   GetTextExtentPoint32( fHandle, PKOLChar(Text), Length(Text), Result);
+  {$IFDEF FIX_ITALIC_TEXT_WIDTH}
+  if  fsItalic in Font.FontStyle then
+  begin
+      inc( Result.cx, Result.cy div 4 );
+  end;
+  {$ENDIF}
   if ClearHandle then
     SetHandle( 0 );
     { DC must be freed here automatically (never leaks):
@@ -19424,8 +19365,7 @@ begin
   begin
       Result := fOnGetHandle( @Self );
       SetHandle( Result );
-  end
-  else
+  end else
       Result := fHandle;
 end;
 {$ENDIF ASM_VERSION}
@@ -19485,7 +19425,6 @@ procedure TCanvas.WTextRect(const Rect: TRect; X, Y: Integer;
 var
   Options: Integer;
 begin
-  //Changing;
   RequiredState( HandleValid or FontValid or BrushValid or ChangingCanvas );
   Options := ETO_CLIPPED;
   if ( fBrush <> nil ) and (fBrush.fData.Brush.Style <> bsClear)
@@ -19721,12 +19660,11 @@ end;
 
 function Int64_2Hex( X: I64; MinDigits: Integer ): KOLString;
 begin
-  if (MinDigits <= 8) and (X.Hi <> 0) then
-    Result := Int2Hex( X.Hi, 1 ) + Int2Hex( X.Lo, 8 )
+  if  (MinDigits <= 8) and (X.Hi <> 0) then
+       Result := Int2Hex( X.Hi, 1 ) + Int2Hex( X.Lo, 8 )
   else if X.Hi <> 0 then
-    Result := Int2Hex( X.Hi, MinDigits - 8 ) + Int2Hex( X.Lo, 8 )
-  else
-    Result := Int2Hex( X.Lo, MinDigits );
+       Result := Int2Hex( X.Hi, MinDigits - 8 ) + Int2Hex( X.Lo, 8 )
+  else Result := Int2Hex( X.Lo, MinDigits );
 end;
 
 function Str2Int64( const S: AnsiString ): I64;
@@ -19738,14 +19676,12 @@ begin
   I := 1;
   if S = '' then Exit;
   M := FALSE;
-  if S[ 1 ] = '-' then
+  if  S[ 1 ] = '-' then
   begin
-    M := TRUE;
-    Inc( I );
-  end
-    else
-  if S[ 1 ] = '+' then
-    Inc( I );
+      M := TRUE;
+      Inc( I );
+  end else if S[ 1 ] = '+' then
+      Inc( I );
   while I <= Length( S ) do
   begin
     if  (S[ I ] < '0') or (S[ I ] > '9') then
@@ -19803,10 +19739,9 @@ begin
   UNTIL Exponent=0;
 end;
 {$ELSE DELPHI}
-// This version of code by Galkov:
-// Changes in comparison to Delphi standard:
-// no Overflow exception if Exponent is very big negative value
-// (just 0 in result in such case).
+// This version of code by Galkov: Changes in comparison to Delphi standard:
+//              no Overflow exception if Exponent is very big negative value
+//              (just 0 in result in such case).
 asm
         fld1             { Result := 1 }
         test    eax,eax  // check Exponent for 0, return 0 ** 0 = 1
@@ -19981,27 +19916,25 @@ function Extended2Str( E: Extended ): KOLString;
       Assert( Result[ 1 ] = '0', 'error!' );
       Delete( Result, 1, 1 );
 
-      if N <= 0 then
+      if  N <= 0 then
       begin
-        while N < 0 do
-        begin
-          Result := '0' + Result;
-          Inc( N );
-        end;
-        Result := '0.' + Result;
-      end
-        else
-      if N < Length( Result ) then
+          while N < 0 do
+          begin
+              Result := '0' + Result;
+              Inc( N );
+          end;
+          Result := '0.' + Result;
+      end else
+      if  N < Length( Result ) then
       begin
-        Result := Copy( Result, 1, N ) + '.' + CopyEnd( Result, N + 1 );
-      end
-        else
+          Result := Copy( Result, 1, N ) + '.' + CopyEnd( Result, N + 1 );
+      end else
       begin
-        while N > Length( Result ) do
-        begin
-          Result := Result + '0';
-        end;
-        Exit;
+          while N > Length( Result ) do
+          begin
+            Result := Result + '0';
+          end;
+          Exit;
       end;
 
       L := Length( Result );
@@ -20071,8 +20004,7 @@ start:
     begin
         if  i <= 0 then Exit;
         delete( Result, i, MaxInt );
-    end
-      else
+    end else
     begin
         if  i <= 0 then
         begin
@@ -20313,17 +20245,14 @@ begin
   begin
     if  (Value[ I ] >= '0')
     and (Value[ I ] <= '9') then
-        Result := (Result shl 4) or (Ord(Value[I]) - Ord('0'))
-    else
-    if  (Value[ I ] >= 'A')
-    and (Value[ I ] <= 'F') then
-        Result := (Result shl 4) or (Ord(Value[I]) - Ord('A') + 10)
-    else
-    if  (Value[ I ] >= 'a')
-    and (Value[ I ] <= 'f') then
-        Result := (Result shl 4) or (Ord(Value[I]) - Ord('a') + 10)
-    else
-        break;
+         Result := (Result shl 4) or (Ord(Value[I]) - Ord('0'))
+    else if  (Value[ I ] >= 'A')
+    and  (Value[ I ] <= 'F') then
+         Result := (Result shl 4) or (Ord(Value[I]) - Ord('A') + 10)
+    else if  (Value[ I ] >= 'a')
+    and  (Value[ I ] <= 'f') then
+         Result := (Result shl 4) or (Ord(Value[I]) - Ord('a') + 10)
+    else break;
     Inc( I );
   end;
 end;
@@ -20379,8 +20308,7 @@ begin
               n := radix + n;
               dec( number );
             end;
-        end
-          else
+        end else
         {$ENDIF}
         begin
             n := number mod radix;
@@ -20454,7 +20382,6 @@ end;
 {$IFDEF ASM_VERSION}{$ELSE ASM_VERSION}
 function cHex2Int( const Value : KOLString) : Integer;
 begin
-  //if StrEq( Copy( Value, 1, 2 ), '0x' ) then
   if   (Length(Value)>2) and (Value[1]='0')
   and  ((Value[2]='x') or (Value[2]='X')) then
        Result := Hex2Int( CopyEnd( Value, 3 ) )
@@ -20912,21 +20839,19 @@ begin
    Result := 0;
    if S = '' then Exit;
    M := 1;
-   if S^ = '-' then
+   if  S^ = '-' then
    begin
-      M := -1;
-      Inc( S );
-   end
-     else
-   if S^ = '+' then
-     Inc( S );
+       M := -1;
+       Inc( S );
+   end else
+   if  S^ = '+' then
+       Inc( S );
    while (S^>='0') and (S^<='9') do
    begin
-      Result := Result * 10 + Integer( S^ ) - Integer( '0' );
-      Inc( S );
+       Result := Result * 10 + Integer( S^ ) - Integer( '0' );
+       Inc( S );
    end;
-   if M < 0 then
-      Result := -Result;
+   if  M < 0 then Result := -Result;
 end;
 {$ENDIF ASM_VERSION}
 
@@ -21279,21 +21204,12 @@ function IndexOfChar( const S : KOLString; Chr : KOLChar ) : Integer;
 asm
         CALL     EAX2PChar
         PUSH     EAX
-        //PUSH     EDX
         MOV      ECX, [EAX-4]
         CALL     StrScanLen
-        //POP      ECX
         POP      EDX
-        //TEST     EAX, EAX
-        //JE       @@exit__1
         JZ       @@1
-        //CMP      [EAX-1], CL
-        //JE       @@1
         LEA      EDX, [EAX+1]
 @@1:    SUB      EAX, EDX
-        //RET
-//@@exit__1:
-        //DEC      EAX
 end;
 {$ELSE ASM_VERSION} //Pascal
 function IndexOfChar( const S : KOLString; Chr : KOLChar ) : Integer;
@@ -21481,11 +21397,9 @@ asm
         CALL     System.@LStrLen
         MOV      EDI, EAX
         POP      EAX
-        //CALL     System.@LStrToPChar
         CALL     EAX2PChar
         MOV      BL, [EAX]
         XCHG     EAX, [ESP]
-        //CALL     System.@LStrToPChar
         CALL     EAX2PChar
 
         MOV      ESI, EAX
@@ -21532,29 +21446,9 @@ asm
 end;
 {$ELSE ASM_VERSION} //Pascal
 function IndexOfStr( const S, Sub : KOLString ) : Integer;
-//var I : Integer;
 begin
   Result := pos( Sub, S );
-  if  Result = 0 then
-      Result := -1;
-  {
-  Result := Length( S );
-  if Sub = '' then Exit;
-  Result := 0;
-  if S = '' then Exit;
-  if Length( Sub ) > Length( S ) then Exit;
-  Result := 1;
-  while Result + Length( Sub ) - 1 <= Length( S ) do
-  begin
-    I := IndexOfChar( CopyEnd( S, Result ), Sub[ 1 ] );
-    if I <= 0 then break;
-    Result := Result + I - 1;
-    if Result <= 0 then Exit;
-    if Copy( S, Result, Length( Sub ) ) = Sub then Exit;
-    Inc( Result );
-  end;
-  Result := -1;
-  }
+  if  Result = 0 then Result := -1;
 end;
 {$ENDIF ASM_VERSION}
 
@@ -21662,71 +21556,64 @@ begin
     begin
       if S[ Pos ] = '''' then
       begin
-        Inc( Pos );
-        while Pos <= Length( S ) do
-        begin
-          if S[ Pos ] = '''' then
-            if (Pos = Length( S )) or (S[ Pos+1 ] <> '''') then
-            begin
-              Inc( Pos );
-              break;
-            end
-            else Inc( Pos );
-          Buf[ Ou ] := S[ Pos ];
-          Inc( Ou );
           Inc( Pos );
-        end;
-      end
-         else
+          while Pos <= Length( S ) do
+          begin
+              if  S[ Pos ] = '''' then
+                  if (Pos = Length( S )) or (S[ Pos+1 ] <> '''') then
+                  begin
+                      Inc( Pos );
+                      break;
+                  end else Inc( Pos );
+              Buf[ Ou ] := S[ Pos ];
+              Inc( Ou );
+              Inc( Pos );
+          end;
+      end else
       if S[ Pos ] = '#' then
       begin
-        Inc( Pos ); Hex := False; Val := 0;
-        if (Pos < Length( S )) and (S[ Pos ] = '$') then
-        begin
-           Inc( Pos ); Hex := True;
-        end;
-        Dec( Pos );
-        while Pos < Length( S ) do
-        begin
-          Inc( Pos );
-          if (S[ Pos ] >= '0') and (S[ Pos ] <= '9') or
-             Hex and ( (S[ Pos ] >= 'a') and (S[ Pos ] <= 'f') or
-                       (S[ Pos ] >= 'A') and (S[ Pos ] <= 'F') ) then
+          Inc( Pos ); Hex := False; Val := 0;
+          if (Pos < Length( S )) and (S[ Pos ] = '$') then
           begin
-            if Hex then
-               Val := Val * 16
-            else
-               Val := Val * 10;
-            if S[ Pos ] <= '9' then
-               Val := Val + Integer( S[ Pos ] ) - Integer( '0' )
-            else
-            if S[ Pos ] <= 'F' then
-               Val := Val + 10 + Integer( S[ Pos ] ) - Integer( 'A' )
-            else
-               Val := Val + 10 + Integer( S[ Pos ] ) - Integer( 'a' );
-            continue;
+             Inc( Pos ); Hex := True;
           end;
-          Inc( Pos ); break;
-        end;
-        Buf[ Ou ] := KOLChar( Val );
-        Inc( Ou );
-      end
-         else break;
+          Dec( Pos );
+          while Pos < Length( S ) do
+          begin
+            Inc( Pos );
+            if  (S[ Pos ] >= '0') and (S[ Pos ] <= '9') or
+                Hex and ( (S[ Pos ] >= 'a') and (S[ Pos ] <= 'f') or
+                          (S[ Pos ] >= 'A') and (S[ Pos ] <= 'F') ) then
+            begin
+                if   Hex then
+                     Val := Val * 16
+                else Val := Val * 10;
+                if   S[ Pos ] <= '9' then
+                     Val := Val + Integer( S[ Pos ] ) - Integer( '0' )
+                else if S[ Pos ] <= 'F' then
+                     Val := Val + 10 + Integer( S[ Pos ] ) - Integer( 'A' )
+                else Val := Val + 10 + Integer( S[ Pos ] ) - Integer( 'a' );
+                continue;
+            end;
+            Inc( Pos ); break;
+          end;
+          Buf[ Ou ] := KOLChar( Val );
+          Inc( Ou );
+      end else break;
       SkipSpaces;
       if S[ Pos ] <> '+' then break;
       SkipSpaces;
     end;
   end;
   Idx := IndexOfCharsMin( CopyEnd( S, Pos ), Separators );
-  if Idx <= 0 then
+  if  Idx <= 0 then
   begin
-    Result := Copy( Buf, 1, Ou - 1 ) + CopyEnd( S, Pos );
-    S := '';
-  end
-     else
+      Result := Copy( Buf, 1, Ou - 1 ) + CopyEnd( S, Pos );
+      S := '';
+  end else
   begin
-    Result := Copy( Buf, 1, Ou - 1 ) + Copy( S, Pos, Idx - 1 );
-    S := CopyEnd( S, Pos + Idx );
+      Result := Copy( Buf, 1, Ou - 1 ) + Copy( S, Pos, Idx - 1 );
+      S := CopyEnd( S, Pos + Idx );
   end;
 end;
 
@@ -21775,10 +21662,9 @@ begin
         Result := Result + '''' + String2DoubleQuotas( Copy( S, Strt, I - Strt ) ) + '''';
       end;
       if I > Length( S ) then break;
-      if Result <> '' then
-         Result := Result + '+'
-      else
-         Result := Result + '''''+';
+      if   Result <> '' then
+           Result := Result + '+'
+      else Result := Result + '''''+';
       Result := Result + '#' + Int2Str( Integer( S[ I ] ) );
       Strt := I + 1;
     end;
@@ -21954,8 +21840,7 @@ begin
       if L^ = #0 then exit;
       Inc(L);
       Inc(R);
-    end
-    else
+    end else
     begin
       Result := (Word(L^) - Word(R^));
       exit;
@@ -22008,7 +21893,6 @@ end;
 type
     TSortAnsiRec = record
         A: array[ AnsiChar ] of PAnsiChar;
-        //X: array[ AnsiChar ] of Integer;
     end;
     PSortAnsiRec = ^TSortAnsiRec;
 var SortAnsiOrderNoCase: array[ AnsiChar ] of SmallInt;
@@ -22189,15 +22073,13 @@ begin
     end;
     {$IFDEF DEBUG_SORTFAST}
     inc( DBSF );
-    if  Result < 0 then
-        LogFileOutput( GetStartDir + 'LT.txt', Int2Str( DBSF ) + ': ' +
-            '"' + S01 + '" < "' + S02 + '"' )
-    else
-    if  Result > 0 then
-        LogFileOutput( GetStartDir + 'GT.txt', Int2Str( DBSF ) + ': ' +
-            '"' + S01 + '" > "' + S02 + '"' )
-    else
-        LogFileOutput( GetStartDir + 'EQ.txt', Int2Str( DBSF ) + ': ' +
+    if   Result < 0 then
+         LogFileOutput( GetStartDir + 'LT.txt', Int2Str( DBSF ) + ': ' +
+             '"' + S01 + '" < "' + S02 + '"' )
+    else if  Result > 0 then
+         LogFileOutput( GetStartDir + 'GT.txt', Int2Str( DBSF ) + ': ' +
+             '"' + S01 + '" > "' + S02 + '"' )
+    else LogFileOutput( GetStartDir + 'EQ.txt', Int2Str( DBSF ) + ': ' +
             '"' + S01 + '" = "' + S02 + '"' )
     {$ENDIF}
 end;
@@ -22225,7 +22107,7 @@ begin
     for c := Succ(Low(c)) to High(c) do
     begin
         //R.X[c] := Byte(c);
-        if _AnsiCompareStrNoCaseA_Slow( R.A[Pred(c)], R.A[c] ) = 0 then
+        if _AnsiCompareStrNoCaseA_Slow( R.A[Pred(c)] + 1, R.A[c] + 1 ) = 0 then
         begin
             if  _AnsiCompareStrA( R.A[Pred(c)], R.A[c] ) < 0 then
             begin
@@ -22235,7 +22117,7 @@ begin
         //   R.X[c] := R.X[Pred(c)];
     end;
     for c := Low(c) to High(c) do
-        SortAnsiOrderNoCase[AnsiChar(R.A[c][0])] := Ord(c); // R.X[c];
+        SortAnsiOrderNoCase[AnsiChar(R.A[c][0])] := Ord( R.A[c][1] ); // Ord(c); // R.X[c];
     _AnsiCompareStrNoCaseA := _AnsiCompareStrNoCaseA_Fast2;
     Result := _AnsiCompareStrNoCaseA_Fast2( S1, S2 );
 end;
@@ -22583,24 +22465,22 @@ function StrReplace( var S: KOLString; const From, ReplTo: KOLString ): Boolean;
 var I: Integer;
 begin
   I := pos( From, S );
-  if I > 0 then
+  if  I > 0 then
   begin
-    S := Copy( S, 1, I - 1 ) + ReplTo + CopyEnd( S, I + Length( From ) );
-    Result := TRUE;
-  end
-  else Result := FALSE;
+      S := Copy( S, 1, I - 1 ) + ReplTo + CopyEnd( S, I + Length( From ) );
+      Result := TRUE;
+  end else Result := FALSE;
 end;
 
 function KOLStrReplace( var S: KOLString; const From, ReplTo: KOLString ): Boolean;
 var I: Integer;
 begin
   I := pos( From, S );
-  if I > 0 then
+  if  I > 0 then
   begin
-    S := Copy( S, 1, I - 1 ) + ReplTo + CopyEnd( S, I + Length( From ) );
-    Result := TRUE;
-  end
-  else Result := FALSE;
+      S := Copy( S, 1, I - 1 ) + ReplTo + CopyEnd( S, I + Length( From ) );
+      Result := TRUE;
+  end else Result := FALSE;
 end;
 
 {$IFDEF _FPC}
@@ -22642,12 +22522,11 @@ function WStrReplace( var S: KOLWideString; const From, ReplTo: KOLWideString ):
 var I: Integer;
 begin
   I := pos( From, S );
-  if I > 0 then
+  if  I > 0 then
   begin
-    S := Copy( S, 1, I - 1 ) + ReplTo + Copy( S, I + Length( From ), MaxInt );
-    Result := TRUE;
-  end
-  else Result := FALSE;
+      S := Copy( S, 1, I - 1 ) + ReplTo + Copy( S, I + Length( From ), MaxInt );
+      Result := TRUE;
+  end else Result := FALSE;
 end;
 
 function WStrRepeat( const S: KOLWideString; Count: Integer ): KOLWideString;
@@ -22700,9 +22579,7 @@ begin
                 S[J] := #10;
                 S[J-1] := #13;
                 dec( J );
-            end
-              else
-                S[J] := S[I];
+            end else S[J] := S[I];
             dec(J);
         end;
     end;
@@ -23037,8 +22914,8 @@ function SkipSpaces( P: PKOLChar ): PKOLChar;
 begin
   while True do
   begin
-    while (P[0] <> #0) and (P[0] <= ' ') do Inc(P);
-    if (P[0] = '"') and (P[1] = '"') then Inc(P, 2) else Break;
+      while (P[0] <> #0) and (P[0] <= ' ') do Inc(P);
+      if (P[0] = '"') and (P[1] = '"') then Inc(P, 2) else Break;
   end;
   Result := P;
 end;
@@ -23049,13 +22926,11 @@ begin
   while P[0] > ' ' do
     if P[0] = '"' then
     begin
-      Inc(P);
-      while (P[0] <> #0) and (P[0] <> '"') do
         Inc(P);
-      if P[0] <> #0 then Inc(P);
-    end
-      else
-      Inc(P);
+        while (P[0] <> #0) and (P[0] <> '"') do
+            Inc(P);
+        if P[0] <> #0 then Inc(P);
+    end else Inc(P);
   Result := P;
 end;
 {$IFDEF WIN}
@@ -23464,17 +23339,25 @@ var FD: TFindFileData;
     //F: DWORD;
     LFT: TFileTime;
     Hi, Lo: Word;
+    e: DWORD;
 {$ELSE}
 var Code: Integer;
 {$ENDIF}
 begin
   {$IFDEF FILE_EXISTS_EX}
   Result := FALSE;
-  if not Find_First( Filename, FD ) then Exit;
-  if FD.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY <> 0 then Exit;
-  FileTimeToLocalFileTime( FD.ftLastWriteTime, LFT );
-  if FileTimeToDosDateTime( LFT, Hi, Lo ) then Result := TRUE;
-  Find_Close( FD );
+  e := SetErrorMode( SEM_NOOPENFILEERRORBOX or SEM_FAILCRITICALERRORS );
+  if Find_First( Filename, FD ) then
+  begin
+      if FD.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY = 0 then
+      begin
+          FileTimeToLocalFileTime( FD.ftLastWriteTime, LFT );
+          if  FileTimeToDosDateTime( LFT, Hi, Lo ) then
+              Result := TRUE;
+      end;
+      Find_Close( FD );
+  end;
+  SetErrorMode( e );
   {$ELSE}
   Code := GetFileAttributes(PKOLChar(FileName));
   Result := (Code <> -1) and (FILE_ATTRIBUTE_DIRECTORY and Code = 0);
@@ -23941,12 +23824,11 @@ function CompareSystemTime(const D1, D2 : TSystemTime) : Integer;
 var R: Integer;
    procedure CompareFields(const F1, F2 : Integer);
    begin
-      if R <> 0 then Exit;
-      if F1 = F2 then Exit;
-      if F1 < F2 then
-         R := -1
-      else
-         R := 1;
+      if   R <> 0 then Exit;
+      if   F1 = F2 then Exit;
+      if   F1 < F2 then
+           R := -1
+      else R := 1;
    end;
 begin
    R := 0;
@@ -23987,18 +23869,16 @@ var e: DWORD;
 begin
   e := 0;
   Restore := FALSE;
-  if (Copy( DrivePath, 1, 2 ) = '\\') then
-  else
-  CASE GetDriveType( PKOLChar( DrivePath ) ) OF
-  DRIVE_REMOVABLE, DRIVE_CDROM, DRIVE_RAMDISK:
-    begin
-      e := SetErrorMode( SEM_NOOPENFILEERRORBOX or SEM_FAILCRITICALERRORS );
-      Restore := TRUE;
-    end;
-  END;
+  if  Copy( DrivePath, 1, 2 ) <> '\\' then
+      CASE GetDriveType( PKOLChar( DrivePath ) ) OF
+      DRIVE_REMOVABLE, DRIVE_CDROM, DRIVE_RAMDISK:
+          begin
+              e := SetErrorMode( SEM_NOOPENFILEERRORBOX or SEM_FAILCRITICALERRORS );
+              Restore := TRUE;
+          end;
+      END;
   Result := DirectoryExists( DrivePath );
-  if Restore then
-    SetErrorMode( e );
+  if Restore then SetErrorMode( e );
 end;
 
 {$IFDEF _D3orHigher}
@@ -24017,27 +23897,23 @@ function CheckDirectoryContent( const Name: KOLString; SubDirsOnly: Boolean;
          const Mask: KOLString ): Boolean;
 var FD: TFindFileData;
 begin
-  if not DirectoryExists( Name ) then
-    Result := TRUE
-  else
+  Result := TRUE;
+  if  DirectoryExists( Name ) then
   begin
-    if not Find_First( IncludeTrailingPathDelimiter( Name ) + Mask, FD ) then
-      Result := TRUE
-    else
+    if  Find_First( IncludeTrailingPathDelimiter( Name ) + Mask, FD ) then
     begin
-      Result := TRUE;
-      repeat
-        if not {$IFDEF UNICODE_CTRLS}WStrIn{$ELSE}StrIn{$ENDIF}( FD.cFileName, ['.','..'] ) then
-        begin
-          if SubDirsOnly and LongBool(FD.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY)
-             or not SubDirsOnly then
+        repeat
+          if not {$IFDEF UNICODE_CTRLS}WStrIn{$ELSE}StrIn{$ENDIF}( FD.cFileName, ['.','..'] ) then
           begin
-            Result := FALSE;
-            break;
+              if SubDirsOnly and LongBool(FD.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY)
+                 or not SubDirsOnly then
+              begin
+                Result := FALSE;
+                break;
+              end;
           end;
-        end;
-      until not Find_Next( FD );
-      Find_Close( FD );
+        until not Find_Next( FD );
+        Find_Close( FD );
     end;
   end;
 end;
@@ -24134,10 +24010,9 @@ begin
   DirList := NewDirList( Path, {$IFDEF LIN} '*' {$ELSE} '*.*' {$ENDIF}, 0 );
   for I := 0 to DirList.Count-1 do
   begin
-    if LongBool( DirList.Items[ I ].dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY ) then
-      Result := Add64( Result, DirectorySize( DirList.Path + DirList.Names[ I ] ) )
-    else
-      Result := Add64( Result, MakeInt64( DirList.Items[ I ].nFileSizeLow,
+    if   LongBool( DirList.Items[ I ].dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY ) then
+         Result := Add64( Result, DirectorySize( DirList.Path + DirList.Names[ I ] ) )
+    else Result := Add64( Result, MakeInt64( DirList.Items[ I ].nFileSizeLow,
              DirList.Items[ I ].nFileSizeHigh ) );
   end;
   DirList.Free;
@@ -24239,25 +24114,22 @@ begin
   if Result = '' then Exit;
   if pos( KOLString(':'), Result ) > 1 then
     Result := Parse( Result, ':' ) + ':\'
-  else
-  if Length( Result ) > 2 then
+  else if Length( Result ) > 2 then
   begin
-    j := 0;
-    for i := 3 to Length( Result ) do
-      if Result[ i ] = '\' then
-      begin
-        inc( j );
-        if j = 2 then
-        begin
-          Result := Copy( Result, 1, i );
-          break;
-        end;
-      end;
-    Result := IncludeTrailingPathDelimiter( Result );
-  end
-    else
-  if Length( Result ) = 1 then
-    Result := Result + ':\';
+      j := 0;
+      for i := 3 to Length( Result ) do
+          if  Result[ i ] = '\' then
+          begin
+              inc( j );
+              if j = 2 then
+              begin
+                  Result := Copy( Result, 1, i );
+                  break;
+              end;
+          end;
+      Result := IncludeTrailingPathDelimiter( Result );
+  end else if Length( Result ) = 1 then
+      Result := Result + ':\';
 end;
 
 {$IFDEF ASM_LStrFromPCharLen} // LStrFromPCharLen - there are no in D2
@@ -24291,10 +24163,9 @@ var P, P0: PKOLChar;
 begin
   P0 := PKOLChar( Path );
   P := __DelimiterLast( P0, ':\/' );
-  if P^ = #0 then
-    Result := ''
-  else
-    Result := Copy( Path, 1, P - P0 + 1 );
+  if   P^ = #0 then
+       Result := ''
+  else Result := Copy( Path, 1, P - P0 + 1 );
 end;
 {$ENDIF ASM_VERSION}
 
@@ -24304,10 +24175,9 @@ var P, P0: PWideChar;
 begin
   P0 := PWideChar( Path );
   P := W__DelimiterLast( P0, ':\/' );
-  if P^ = #0 then
-    Result := ''
-  else
-    Result := Copy( Path, 1, P - P0 + 1 );
+  if   P^ = #0 then
+       Result := ''
+  else Result := Copy( Path, 1, P - P0 + 1 );
 end;
 {$ENDIF}
 
@@ -24346,10 +24216,9 @@ function ExtractFileName( const Path : KOLString ) : KOLString;
 var P: PKOLChar;
 begin
   P := __DelimiterLast( PKOLChar( Path ), ':\/' );
-  if P^ = #0 then
-    Result := Path
-  else
-    Result := P + 1;
+  if   P^ = #0 then
+       Result := Path
+  else Result := P + 1;
 end;
 {$ENDIF ASM_VERSION}
 
@@ -24511,8 +24380,8 @@ end;
 function PixelsLength( DC: HDC; const Text: KOLString ): Integer;
 var Sz: TSize;
 begin
-  if DC = 0 then
-    Result := Length( Text )
+  if  DC = 0 then
+      Result := Length( Text )
   else
   begin
     {$IFDEF UNICODE_CTRLS}Windows.GetTextExtentPoint32W
@@ -24530,35 +24399,35 @@ begin
  L0 := PixelsLength( DC, Result );
  while L0 > MaxPixels do
  begin
-   Prev := Result;
-   L1 := pos( KOLString('\...\'), Result ); // ambiguous
-   if L1 <= 0 then
-     Result := ExcludeTrailingPathDelimiter( ExtractFilePath( Result ) )
-   else
-     Result := Copy( Result, 1, L1 - 1 );
-   if Result <> '' then
-     Result := IncludeTrailingPathDelimiter( ExtractFilePath( Result ) ) + '...\' + ExtractFileName( Path );
-   if (Result = '') or (Result = Prev) then
-   begin
-     L1 := Length( ExtractFilePath( Result ) );
-     while (PixelsLength( DC, Result ) > MaxPixels) and (L1 > 1) do
+     Prev := Result;
+     L1 := pos( KOLString('\...\'), Result ); // ambiguous
+     if   L1 <= 0 then
+          Result := ExcludeTrailingPathDelimiter( ExtractFilePath( Result ) )
+     else Result := Copy( Result, 1, L1 - 1 );
+     if  Result <> '' then
+         Result := IncludeTrailingPathDelimiter( ExtractFilePath( Result ) ) +
+         '...\' + ExtractFileName( Path );
+     if (Result = '') or (Result = Prev) then
      begin
-       Dec( L1 );
-       Result := Copy( Result, 1, L1 ) + '...\' + ExtractFileName( Result );
+         L1 := Length( ExtractFilePath( Result ) );
+         while (PixelsLength( DC, Result ) > MaxPixels) and (L1 > 1) do
+         begin
+           Dec( L1 );
+           Result := Copy( Result, 1, L1 ) + '...\' + ExtractFileName( Result );
+         end;
+         if PixelsLength( DC, Result ) > MaxPixels then
+         begin
+           L1 := MaxPixels + 1;
+           while ((MaxPixels > 0) and (L1 > 1) or (MaxPixels = 0) and (L1 > 0)) and
+                 (PixelsLength( DC, Result ) > MaxPixels) do
+           begin
+             Dec( L1 );
+             Result := Copy( ExtractFileName( Path ), 1, L1 ) + '...';
+           end;
+         end;
+         break;
      end;
-     if PixelsLength( DC, Result ) > MaxPixels then
-     begin
-       L1 := MaxPixels + 1;
-       while ((MaxPixels > 0) and (L1 > 1) or (MaxPixels = 0) and (L1 > 0)) and
-             (PixelsLength( DC, Result ) > MaxPixels) do
-       begin
-         Dec( L1 );
-         Result := Copy( ExtractFileName( Path ), 1, L1 ) + '...';
-       end;
-     end;
-     break;
-   end;
-   L0 := PixelsLength( DC, Result );
+     L0 := PixelsLength( DC, Result );
  end;
 end;
 {$ENDIF GDI}
@@ -24572,25 +24441,23 @@ begin
     S := ''
   else
   begin
-    if S[1] = '\' then
+    if  S[1] = '\' then
     begin
-      Root := True;
-      Delete(S, 1, 1);
-    end
-    else
-      Root := False;
-    if S[1] = '.' then
-      Delete(S, 1, 4);
-    P := Pos( KOLString('\'), S ); 
-    if P <> 0 then
+        Root := True;
+        Delete(S, 1, 1);
+    end else
+        Root := False;
+    if  S[1] = '.' then
+        Delete(S, 1, 4);
+    P := Pos( KOLString('\'), S );
+    if  P <> 0 then
     begin
-      Delete(S, 1, P);
-      S := '...\' + S;
-    end
-    else
-      S := '';
-    if Root then
-      S := '\' + S;
+        Delete(S, 1, P);
+        S := '...\' + S;
+    end else
+        S := '';
+    if  Root then
+        S := '\' + S;
   end;
 end;
 
@@ -24607,21 +24474,17 @@ begin
   begin
     Drive := Copy(Dir, 1, 2);
     Delete(Dir, 1, 2);
-  end
-  else
-    Drive := '';
+  end else Drive := '';
   while ((Dir <> '') or (Drive <> '')) and (PixelsLength(DC, Result) > MaxPixels) do
   begin
-    if Dir = '\...\' then
-    begin
-      Drive := '';
-      Dir := '...\';
-    end
-    else if Dir = '' then
-      Drive := ''
-    else
-      CutFirstDirectory(Dir);
-    Result := Drive + Dir + Name;
+      if  Dir = '\...\' then
+      begin
+          Drive := '';
+          Dir := '...\';
+      end  else if Dir = '' then
+           Drive := ''
+      else CutFirstDirectory(Dir);
+      Result := Drive + Dir + Name;
   end;
 end;
 {$ENDIF GDI}
@@ -24776,29 +24639,24 @@ begin
   GetVersionEx( POSVersionInfo( @ V )^ ); // bug in Windows.pas !
   Ex := FALSE;
   if V.dwPlatformId = VER_PLATFORM_WIN32_NT then
+      Ex := V.dwMajorVersion >= 4
+  else if V.dwPlatformId = VER_PLATFORM_WIN32_WINDOWS then
   begin
-    Ex := V.dwMajorVersion >= 4;
-  end
-    else
-  if V.dwPlatformId = VER_PLATFORM_WIN32_WINDOWS then
-  begin
-    Ex := V.dwMajorVersion > 4;
-    if not Ex then
-    if V.dwMajorVersion = 4 then
-    begin
-      Ex := V.dwMinorVersion > 0;
+      Ex := V.dwMajorVersion > 4;
       if not Ex then
-        Ex := LoWord( V.dwBuildNumber ) >= $1111;
-    end;
+      if V.dwMajorVersion = 4 then
+      begin
+          Ex := V.dwMinorVersion > 0;
+          if  not Ex then
+              Ex := LoWord( V.dwBuildNumber ) >= $1111;
+      end;
   end;
   if Ex then
   begin
     Kern32 := GetModuleHandle( 'kernel32' );
     GetDFSEx := GetProcAddress( Kern32, 'GetDiskFreeSpaceExA' );
   end;
-  ////////////////////////////
   if Assigned( GetDFSEx ) then
-  ////////////////////////////
      GetDFSEx( PKOLChar( Path ), @ FBA, @ TNB, @Result )
   else
   begin
@@ -25117,20 +24975,16 @@ begin
         continue;
     if F[ 0 ] = '^' then
     begin
-      if StrSatisfy( FileName, PKOLChar(@F[ 1 ]) ) then
-      begin
-         Result := False;
-         Exit;
-      end;
-    end
-      else
+        if StrSatisfy( FileName, PKOLChar(@F[ 1 ]) ) then
+        begin
+           Result := False;
+           Exit;
+        end;
+    end else
     begin
-      HasOnlyNegFilters := FALSE;
-      if StrSatisfy( FileName, F ) then
-      begin
-        //Result := True;
-        Exit;
-      end;
+        HasOnlyNegFilters := FALSE;
+        if  StrSatisfy( FileName, F ) then
+            Exit;
     end;
   end;
 
@@ -25310,10 +25164,9 @@ begin
   if (fFilters = nil) then
   begin
     fFilters := {$IFDEF UNICODE_CTRLS} NewWStrList {$ELSE} NewStrList {$ENDIF};
-    if Filter = '*.*' then
-      fFilters.Add( '*' )
-    else
-      fFilters.Add( Filter );
+    if   Filter = '*.*' then
+         fFilters.Add( '*' )
+    else fFilters.Add( Filter );
   end;
   if  Find_First( PKOLChar( FPath + FindFilter( Filter ) ), FindData ) then
   begin // D[u]fa. fix mem leaks (FList, fFilters)
@@ -25522,8 +25375,7 @@ begin
               end;
               if  Result = 0 then
                   Result := _AnsiCompareStr( Item1.cFileName, Item2.cFileName );
-          end
-            else
+          end else
           {$ENDIF}
           {$ENDIF}
           begin
@@ -25538,13 +25390,12 @@ begin
           if  Result = 0 then
               Result := _AnsiCompareStr( S1, S2 );
           {$ENDIF}
-        end
-        else
-          Result := {$IFDEF UNICODE_CTRLS}
-                      _WStrComp( S1, S2 )
-                    {$ELSE}
-                      _AnsiCompareStrA( S1, S2 )
-                    {$ENDIF};
+        end else
+            Result := {$IFDEF UNICODE_CTRLS}
+                        _WStrComp( S1, S2 )
+                      {$ELSE}
+                        _AnsiCompareStrA( S1, S2 )
+                      {$ENDIF};
       end;
     sdrByExt:
       begin
@@ -25554,13 +25405,12 @@ begin
               {$ELSE} __DelimiterLast( S1, '.' ) {$ENDIF};
         S2 := {$IFDEF UNICODE_CTRLS} @ S2[ DelimiterLast( KOLWideString( S2 ), '.' ) - 1 ]
               {$ELSE} __DelimiterLast( S2, '.' ) {$ENDIF};
-        if not Data.CaseSensitive then
-           Result := {$IFDEF UNICODE_CTRLS}
-                       WStrComp( WAnsiUpperCase( S1 ), WAnsiUpperCase( S2 ) )
-                     {$ELSE} _AnsiCompareStrNoCase( S1, S2 ) {$ENDIF}
-        else
-           Result := {$IFDEF UNICODE_CTRLS} WStrComp( S1, S2 )
-                     {$ELSE} _AnsiCompareStr( S1, S2 ) {$ENDIF};
+        if   not Data.CaseSensitive then
+             Result := {$IFDEF UNICODE_CTRLS}
+                         WStrComp( WAnsiUpperCase( S1 ), WAnsiUpperCase( S2 ) )
+                       {$ELSE} _AnsiCompareStrNoCase( S1, S2 ) {$ENDIF}
+        else Result := {$IFDEF UNICODE_CTRLS} WStrComp( S1, S2 )
+                       {$ELSE} _AnsiCompareStr( S1, S2 ) {$ENDIF};
       end;
     sdrBySize, sdrBySizeDescending:
       begin
@@ -25569,20 +25419,17 @@ begin
         sz2 := MakeInt64( Item2.nFileSizeLow, Item2.nFileSizeHigh );
         Result := Cmp64(sz1, sz2);
         {$ELSE}
-        if Item1.nFileSizeHigh < Item2.nFileSizeHigh then
-           Result := -1
-        else
-        if Item1.nFileSizeHigh > Item2.nFileSizeHigh then
-           Result := 1
-        else
-        if Item1.nFileSizeLow < Item2.nFileSizeLow then
-           Result := -1
-        else
-        if Item1.nFileSizeLow > Item2.nFileSizeLow then
-           Result := 1;
+        if   Item1.nFileSizeHigh < Item2.nFileSizeHigh then
+             Result := -1
+        else if Item1.nFileSizeHigh > Item2.nFileSizeHigh then
+             Result := 1
+        else if Item1.nFileSizeLow < Item2.nFileSizeLow then
+             Result := -1
+        else if Item1.nFileSizeLow > Item2.nFileSizeLow then
+             Result := 1;
         {$ENDIF}
-        if Data.Rules[ I ] = sdrBySizeDescending then
-           Result := -Result;
+        if  Data.Rules[ I ] = sdrBySizeDescending then
+            Result := -Result;
       end;
     sdrByDateCreate:
         Result := CompareFileTime( Item1.ftCreationTime, Item2.ftCreationTime );
@@ -25935,18 +25782,14 @@ begin
   GetMem( Buffer, dwSize * Sizeof( KOLChar ) );
   if Query then
   begin
-   if (dwtype = REG_EXPAND_SZ) {$IFDEF OPTIONAL_REG_EXPAND_SZ} and (ExpandEnvVars) {$ENDIF} then
-    begin
-     Sz := ExpandEnvironmentStrings(Buffer,nil,0);
-     // bug in size detection! sometimes we get
-     // an additional 2 bytes at the end...
-      GetMem(Buffer2,Sz * Sizeof( KOLChar ));                            //
-      ExpandEnvironmentStrings(Buffer, Buffer2, Sz); //
-      Result:=Buffer2;                               //
-      FreeMem(Buffer2);                              //
-    end
-      else
-    Result := Buffer;
+     if (dwtype = REG_EXPAND_SZ) {$IFDEF OPTIONAL_REG_EXPAND_SZ} and (ExpandEnvVars) {$ENDIF} then
+     begin
+        Sz := ExpandEnvironmentStrings(Buffer,nil,0);
+        GetMem(Buffer2,Sz * Sizeof( KOLChar ));                            //
+        ExpandEnvironmentStrings(Buffer, Buffer2, Sz); //
+        Result:=Buffer2;                               //
+        FreeMem(Buffer2);                              //
+     end else Result := Buffer;
   end;
   FreeMem( Buffer );
 end;
@@ -26067,7 +25910,6 @@ nil, nil) = ERROR_SUCCESS then
         begin
           Size := MaxSubKeyLen+1;
           SetLength(KeyName, Size);
-          //FillChar(KeyName[1],Size*Sizeof(KOLChar),#0);
           RegEnumKeyEx(Key, I, @KeyName[1], Size, nil, nil, nil, nil);
           KeyName := Trim(KeyName); // fixed by Jon
           List.Add(KeyName);
@@ -26419,28 +26261,24 @@ begin
    Result := '';
    Flags := 0;
    if DateFormat = nil then
-   if DfltDateFormat = dfShortDate then
-      Flags := DATE_SHORTDATE
-   else
-      Flags := DATE_LONGDATE;
+   if   DfltDateFormat = dfShortDate then
+        Flags := DATE_SHORTDATE
+   else Flags := DATE_LONGDATE;
    while True do
    begin
       if Buf <> nil then
          FreeMem( Buf );
       GetMem( Buf, Sz * Sizeof( KOLChar ) );
       if Buf = nil then Exit;
-      if GetDateFormat( LocaleID, Flags, @SystemTime, DateFormat, Buf, Sz )
-         = 0 then
+      if GetDateFormat( LocaleID, Flags, @SystemTime, DateFormat, Buf, Sz ) = 0 then
       begin
-         if GetLastError = ERROR_INSUFFICIENT_BUFFER then
-            Sz := Sz * 2
-         else
-            break;
-      end
-         else
+           if   GetLastError = ERROR_INSUFFICIENT_BUFFER then
+                Sz := Sz * 2
+           else break;
+      end else
       begin
-         Result := Buf;
-         break;
+           Result := Buf;
+           break;
       end;
    end;
    if Buf <> nil then
@@ -26460,8 +26298,7 @@ begin
    Flg := 0;
    if tffNoMinutes in Flags then
       Flg := TIME_NOMINUTESORSECONDS
-   else
-   if tffNoSeconds in Flags then
+   else if tffNoSeconds in Flags then
       Flg := TIME_NOSECONDS;
    if tffNoMarker in Flags then
       Flg := Flg or TIME_NOTIMEMARKER;
@@ -26476,12 +26313,10 @@ begin
       if GetTimeFormat( LocaleID, Flg, @SystemTime, TimeFormat, Buf, Sz )
          = 0 then
       begin
-         if GetLastError = ERROR_INSUFFICIENT_BUFFER then
-            Sz := Sz * 2
-         else
-            break;
-      end
-         else
+          if   GetLastError = ERROR_INSUFFICIENT_BUFFER then
+               Sz := Sz * 2
+          else break;
+      end else
       begin
          Result := Buf;
          break;
@@ -26529,18 +26364,16 @@ var h12, hAM: Boolean;
 
   function GetNum( var S: PKOLChar; NChars: Integer ): Integer;
   begin
-    Result := 0;
-    while (S^ <> #0) and (NChars <> 0) do
-    begin
-      Dec( NChars );
-      if  (S^ >= '0') and (S^ <= '9') then
+      Result := 0;
+      while (S^ <> #0) and (NChars <> 0) do
       begin
-          Result := Result * 10 + Ord(S^) - Ord('0');
-          Inc( S );
-      end
-      else
-        break;
-    end;
+          Dec( NChars );
+          if  (S^ >= '0') and (S^ <= '9') then
+          begin
+              Result := Result * 10 + Ord(S^) - Ord('0');
+              Inc( S );
+          end else break;
+      end;
   end;
 
   function GetYear( var S: PKOLChar; NChars: Integer ): Integer;
@@ -26622,13 +26455,11 @@ var h12, hAM: Boolean;
 
   function FmtIs1( S: PKOLChar ): Boolean;
   begin
-    if StrIsStartingFrom( FmtStr, S ) then
+    if  StrIsStartingFrom( FmtStr, S ) then
     begin
-      Inc( FmtStr, {$IFDEF UNICODE_CTRLS} WStrLen {$ELSE} StrLen {$ENDIF}( S ) );
-      Result := TRUE;
-    end
-      else
-      Result := FALSE;
+        Inc( FmtStr, {$IFDEF UNICODE_CTRLS} WStrLen {$ELSE} StrLen {$ENDIF}( S ) );
+        Result := TRUE;
+    end else Result := FALSE;
   end;
 
   function FmtIs( S1, S2: PKOLChar ): Boolean;
@@ -26840,12 +26671,10 @@ begin
   Result := FALSE;
   if Msg.message = CM_EXECPROC then
   begin
-    //Global_Synchronized( Pointer( Msg.lParam ), Pointer( Msg.wParam ) );
     Thread := PThread( Msg.lParam );
-    if Msg.wParam <> 0 then
-      Thread.FMethodEx( Thread, Pointer( Msg.wParam ) )
-    else
-      Thread.FMethod( );
+    if   Msg.wParam <> 0 then
+         Thread.FMethodEx( Thread, Pointer( Msg.wParam ) )
+    else Thread.FMethod( );
     Rslt := 0;
   end;
 end;
@@ -26900,22 +26729,21 @@ begin
     Terminate;
     WaitFor;
   end;
-  if (FHandle <> 0) then
-    CloseHandle(FHandle);
+  if  (FHandle <> 0) then
+      CloseHandle(FHandle);
   {$IFDEF PSEUDO_THREADS}
-  if StackBottom <> nil then
-    FreeMem( StackBottom );
+  if  StackBottom <> nil then
+      FreeMem( StackBottom );
   if MainThread = @ Self then
   begin
-    TimeEndPeriod( 10 );
-    AllThreads.Free;
-  end
-    else
+      TimeEndPeriod( 10 );
+      AllThreads.Free;
+  end else
   if MainThread <> nil then
   begin
-    MainThread.AllThreads.Remove( @ Self );
-    if MainThread.AllThreads.Count <= 1 then
-      Free_And_Nil( MainThread );
+      MainThread.AllThreads.Remove( @ Self );
+      if  MainThread.AllThreads.Count <= 1 then
+          Free_And_Nil( MainThread );
   end;
   {$ENDIF}
   inherited;
@@ -26939,6 +26767,7 @@ begin
      {$IFDEF TERMAUTOFREE_THREAD}
      H := FHandle;
      {$ENDIF}
+     CloseHandle( FHandle );
      FHandle := 0;
      Free;
      {$IFDEF TERMAUTOFREE_THREAD}
@@ -26975,8 +26804,7 @@ begin
       FSuspended := False;
       if  (ResumeThread(FHandle) > 1) then
           FSuspended := True
-      else
-      if  Assigned(FOnResume) then
+      else if  Assigned(FOnResume) then
           FOnResume(@Self);
   {$ENDIF}
 end;
@@ -27124,8 +26952,7 @@ begin
   begin
     MainThread.CurrentThread.DoNotWakeUntil := GetTickCount + n;
     MainThread.NextThread;
-  end
-  else
+  end else
     if n > 0 then Windows.Sleep( n );
 end;
 
@@ -27136,10 +26963,9 @@ var i: Integer;
     Ph: PHandle;
     Limit: DWORD;
 begin
-  if dwMilliseconds = INFINITE then
-    Limit := INFINITE
-  else
-    Limit := GetTickCount + dwMilliseconds;
+  if   dwMilliseconds = INFINITE then
+       Limit := INFINITE
+  else Limit := GetTickCount + dwMilliseconds;
   while TRUE do
   begin
     Ph := lpHandles;
@@ -27393,8 +27219,7 @@ begin
     OldSize := Size;
     Size := V;
     Size := OldSize;
-  end
-    else
+  end else
   if fMemory <> nil then
   begin
     {$IFDEF _D4orHigher}
@@ -27466,10 +27291,9 @@ end;
 procedure TStream.Wait;
 begin
   if  ( fData.fThread = nil ) then Exit;
-  if  Assigned( fMethods.fWait ) then
-      fMethods.fWait( @Self )
-  else
-      fData.fThread.WaitFor;
+  if   Assigned( fMethods.fWait ) then
+       fMethods.fWait( @Self )
+  else fData.fThread.WaitFor;
 end;
 
 {$IFDEF ASM_STREAM}
@@ -27491,10 +27315,9 @@ end;
 
 function TStream.WriteStr(S: AnsiString): DWORD;
 begin
-  if S <> '' then
-    Result := fMethods.fWrite( @Self, S[1], Length( S ) )
-  else
-    Result := 0;
+  if   S <> '' then
+       Result := fMethods.fWrite( @Self, S[1], Length( S ) )
+  else Result := 0;
 end;
 
 function TStream.ReadStrZ: AnsiString;
@@ -27538,14 +27361,12 @@ begin
     begin
       if C = #13 then
       begin
-        C := #0;
-        Read( C, 1 );
-        if C <> #10 then Position := Position - 1;
-        C := #13;
-      end
-        else
-      if C = #10 then
-        C := #13;
+          C := #0;
+          Read( C, 1 );
+          if C <> #10 then Position := Position - 1;
+          C := #13;
+      end else if C = #10 then
+          C := #13;
       if C <> #13 then
         Result := Result + C;
     end;
@@ -27568,8 +27389,7 @@ begin
       C := #0;
       Result := Write( C, 1 );
     end
-  else
-    Result := Write( S[ 1 ], Length( S ) + 1 );
+  else Result := Write( S[ 1 ], Length( S ) + 1 );
 end;
 
 {$IFDEF _D3orHigher}
@@ -27581,8 +27401,7 @@ begin
       C := #0;
       Result := Write( C, 2 );
     end
-  else
-    Result := Write( S[ 1 ], (Length( S ) + 1) * 2 );
+  else Result := Write( S[ 1 ], (Length( S ) + 1) * 2 );
 end;
 {$ENDIF _D3orHigher}
 
@@ -27918,12 +27737,9 @@ begin
     begin
       if NewSize <> 0 then
          GetMem( S.fMemory, NewCapacity );
-    end
-      else
-      ReallocMem( S.fMemory, NewCapacity );
+    end else ReallocMem( S.fMemory, NewCapacity );
     S.fData.fCapacity := NewCapacity;
-  end
-    else
+  end else
   if (NewSize = 0) and (S.Size > 0) then
   begin
     if S.fMemory <> nil then
@@ -28156,8 +27972,7 @@ begin
             FreeMem( LastBlkAddr );
             Strm.fData.fBlocks.DeleteRange( i, 2 );
             dec( Strm.fData.fSize, LastBlkUsed );
-        end
-          else
+        end else
         begin
             Strm.fData.fBlocks.fItems[ i+1 ] := Pointer( LastBlkUsed - del );
             dec( Strm.fData.fSize, del );
@@ -28197,8 +28012,7 @@ begin
   begin
     Strm.fData.fStream1.Position := NewPos;
     Strm.fData.fStream2.Position := 0;
-  end
-  else
+  end else
   begin
     Strm.fData.fStream1.Position := Strm.fData.fStream1.Size;
     Strm.fData.fStream2.Position := NewPos - Strm.fData.fStream1.Size;
@@ -28604,8 +28418,7 @@ begin
      Result := Dst.Write( Pointer(DWORD(Src.fMemory)+Src.fData.fPosition)^,
                    C );
      Inc( Src.fData.fPosition, Result );
-  end
-     else
+  end else
   if Dst.fMemory <> nil then
   begin
     if Dst.fData.fPosition + C > Dst.fData.fSize then
@@ -28613,8 +28426,7 @@ begin
     Result := Src.Read( Pointer( DWORD( Dst.fMemory ) + Dst.fData.fPosition )^,
                         C );
     Inc( Dst.fData.fPosition, Result );
-  end
-     else
+  end else
   begin
     GetMem( Buf, C );
     C := Src.Read( Buf^, C );
@@ -28635,21 +28447,21 @@ var
   C: TStrmSize;
 begin
   C := Count;
-  if C=0 then result:=0 else
-  begin
-    result:=0;
-    BufSz := Min( BufSz, C );
-    if BufSz = 0 then BufSz := C;
-    getmem(buf,BufSz);
-    repeat
-      if C<BufSz then rd:=c else rd:=BufSz;
-      rd:=src.read(buf^,rd);
-      wr := dst.write(buf^,rd);
-      inc(result,wr);
-      dec(C, rd);
-    until (rd<>BufSz) or (C=0);
-    freemem(buf);
-  end;
+  if C=0 then result:=0
+  else  begin
+            result:=0;
+            BufSz := Min( BufSz, C );
+            if BufSz = 0 then BufSz := C;
+            getmem(buf,BufSz);
+            repeat
+                if C<BufSz then rd:=c else rd:=BufSz;
+                rd:=src.read(buf^,rd);
+                wr := dst.write(buf^,rd);
+                inc(result,wr);
+                dec(C, rd);
+            until (rd<>BufSz) or (C=0);
+            freemem(buf);
+        end;
 end;
 
 {$IFDEF ASM_UNICODE}
@@ -28742,10 +28554,9 @@ begin
       if P = nil then
       begin
         E := GetLastError;
-        if E = ERROR_INVALID_HANDLE then
-           P := Pointer( G )
-        else
-           Exit;
+        if  E = ERROR_INVALID_HANDLE then
+            P := Pointer( G )
+        else Exit;
       end;
       Result := DestStrm.Write( P^, Sz );
       if P <> Pointer( G ) then
@@ -28810,10 +28621,9 @@ function TIniFile.ValueData(const Key: KOLString; Value: Pointer;
   Count: Integer): Boolean;
 begin
   if fMode = ifmRead then
-     Result := GetPrivateProfileStruct( PKOLChar( fSection ), PKOLChar( Key ),
+       Result := GetPrivateProfileStruct( PKOLChar( fSection ), PKOLChar( Key ),
                Value, Count, PKOLChar( fFileName ) )
-  else
-     Result := WritePrivateProfileStruct( PKOLChar( fSection ), PKOLChar( Key ),
+  else Result := WritePrivateProfileStruct( PKOLChar( fSection ), PKOLChar( Key ),
                Value, Count, PKOLChar( fFileName ) );
 end;
 
@@ -28836,19 +28646,17 @@ var
 begin
   if fMode = ifmRead then
   begin
-    Buffer[ 0 ] := #0;
-    if GetPrivateProfileString(PKOLChar(fSection),
-         PKOLChar(Key), PKOLChar(Value), Buffer, SizeOf(Buffer) div Sizeof(KOLChar),
-         PKOLChar(fFileName)) <> 0 then
-     Result := Buffer
-    else
-     Result := ''; // По причине того, что FPC выдает ошибку при отсутствии Key в INI-файле // MTsv DN
-  end
-    else
+      Buffer[ 0 ] := #0;
+      if   GetPrivateProfileString(PKOLChar(fSection),
+           PKOLChar(Key), PKOLChar(Value), Buffer, SizeOf(Buffer) div Sizeof(KOLChar),
+           PKOLChar(fFileName)) <> 0 then
+           Result := Buffer
+      else Result := ''; //: FPC выдает ошибку при отсутствии Key в INI-файле // MTsv DN
+  end else
   begin
-     Result := Value;
-     WritePrivateProfileString( PKOLChar( fSection ), PKOLChar( Key ),
-               PKOLChar( Value ), PKOLChar( fFileName ) );
+       Result := Value;
+       WritePrivateProfileString( PKOLChar( fSection ), PKOLChar( Key ),
+                 PKOLChar( Value ), PKOLChar( fFileName ) );
   end;
 end;
 
@@ -29168,8 +28976,7 @@ begin
                  M.fByAccel := HiWord( Msg.wParam ) <> 0;
                  if  M1.FRadioGroup <> 0 then
                      M1.RadioCheckItem
-                 else
-                 if  M1.FIsCheckItem then
+                 else if  M1.FIsCheckItem then
                      M1.Checked := not M1.Checked;
                  if  Assigned(M1.FOnMenuItem) then
                      M1.FOnMenuItem( M, Idx )
@@ -29200,8 +29007,7 @@ function WndProcMenu( Sender: PControl; var Msg: TMsg; var Rslt: Integer): Boole
       M.fByAccel := HiWord( Msg.wParam ) <> 0;
       if  M1.FRadioGroup <> 0 then
           M1.RadioCheckItem
-      else
-      if  M1.FIsCheckItem then
+      else if  M1.FIsCheckItem then
           M1.Checked := not M1.Checked;
       if  Assigned(M1.FOnMenuItem) then
       begin
@@ -29209,8 +29015,7 @@ function WndProcMenu( Sender: PControl; var Msg: TMsg; var Rslt: Integer): Boole
               M.fCurCtl := Sender;   // fixed
           {$ENDIF}                 
           M1.FOnMenuItem( M, Idx )
-      end
-      else if Assigned( M.FOnMenuItem ) then
+      end else if Assigned( M.FOnMenuItem ) then
           M.FOnMenuItem( M, Idx );
     end;
   end;
@@ -29227,8 +29032,8 @@ begin
       if (M <> nil) and ProcessMenuItem(M, Id) then begin
         Result := True;
         Rslt := 0;
-      end
-      else begin
+      end else
+      begin
         M := PMenu(Sender.fMenuObj);
         while M <> nil do begin
           if ProcessMenuItem(M, Id) then begin
@@ -29266,9 +29071,8 @@ begin
     if  (AParent <> nil) and (AParent.fMenuObj = nil) and
         {$IFDEF USE_FLAGS} not (G3_IsControl in AParent.fFlagsG3)
         {$ELSE} not AParent.fIsControl {$ENDIF} then
-      Result.FHandle := CreateMenu
-    else
-      Result.FHandle := CreatePopupMenu;
+         Result.FHandle := CreateMenu
+    else Result.FHandle := CreatePopupMenu;
     Result.FillMenuItems( Result.FHandle, 0, Template );
   end;
   if ( AParent <> nil ) then
@@ -29281,8 +29085,7 @@ begin
       while M.fNextMenu <> nil do
         M := M.fNextMenu;
       M.fNextMenu := Result;
-    end
-       else
+    end else
     begin
         if {$IFDEF USE_FLAGS} not(G3_IsControl in AParent.fFlagsG3)
            {$ELSE} not AParent.fIsControl {$ENDIF} then
@@ -29639,10 +29442,9 @@ function TMenu.SetTypeInfo( var MII: TMenuItemInfo ): Boolean;
 begin
   if not FIsSeparator then
   begin
-    if FBmpItem = 0 then
-	  MII.dwTypeData := PKOLChar( FCaption )
-    else
-      MII.dwTypeData := Pointer( FBmpItem );
+    if   FBmpItem = 0 then
+	       MII.dwTypeData := PKOLChar( FCaption )
+    else MII.dwTypeData := Pointer( FBmpItem );
     MII.cch := Length( FCaption )*SizeOfKOLChar;
   end;
   Result := SetInfo( MII );
@@ -29732,18 +29534,17 @@ procedure TMenu.SetState( const Index: Integer; Value: Boolean );
 var MII: TMenuItemInfo;
 begin
   GetState( 0 );
-  if Value xor (Index < 0) then
-    FSavedState := FSavedState or DWORD( Index and $7FFFFFFF )
-  else
-    FSavedState := FSavedState and not DWORD( Index );
+  if   Value xor (Index < 0) then
+       FSavedState := FSavedState or DWORD( Index and $7FFFFFFF )
+  else FSavedState := FSavedState and not DWORD( Index );
   if FVisible then
   begin
-    MII.fMask := MIIM_STATE;
-    if GetInfo( MII ) then
-    begin
-      MII.fState := FSavedState;
-      SetInfo( MII );
-    end;
+      MII.fMask := MIIM_STATE;
+      if GetInfo( MII ) then
+      begin
+        MII.fState := FSavedState;
+        SetInfo( MII );
+      end;
   end;
 end;
 
@@ -29818,8 +29619,7 @@ begin
   begin                                            {AK}
     MII.fMask := $80 {MIIM_BITMAP} ;               {AK}
     MII.hbmpItem:=Value;                           {AK}
-  end                                              {AK}
-  else                                             {AK}
+  end else                                         {AK}
   begin//I haven't possibility to test it in Win95 {AK}
     MII.fType := MFT_BITMAP;
     MII.dwItemData := Value;
@@ -30685,7 +30485,8 @@ begin
   if DC <> 0 then
   begin
     Result.SetHandle( DC );
-    //Result.fIsPaintDC := True; // If Canvas will be destroyed, DC will not be deleted
+    {//} Result.fIsAlienDC := True;
+    // When the Canvas will be destroyed, the DC will not be deleted
   end;
   {$ENDIF GDI}
 end;
@@ -32170,7 +31971,6 @@ asm
         TEST     ECX, ECX
         JZ       @@noOnBitBtnDraw
         {$ENDIF}
-        //JECXZ    @@noOnBitBtnDraw
         MOV      EAX, [EDI].TControl.fCanvas
           PUSH     EAX
         TEST     EAX, EAX
@@ -33531,24 +33331,11 @@ begin
       Bar := Pointer( GetWindowLong( Msg.lParam, GWL_USERDATA ) );
       {$ENDIF}
       if (Bar <> nil) then begin
-        //FillChar(SI, SizeOf(SI), #0);
         ZeroMemory(@SI, SizeOf(SI));
         SI.cbSize := SizeOf(SI);
         SI.fMask := SIF_RANGE or SIF_POS or SIF_TRACKPOS or SIF_PAGE;
         Bar.SBGetScrollInfo(SI);
 
-        {Cmd := Msg.wParam and $0000FFFF;
-        case Cmd of
-          SB_BOTTOM: NewPos := SI.nMax;
-          SB_TOP: NewPos := SI.nMin;
-          SB_LINEDOWN: NewPos := SI.nPos + 1;
-          SB_LINEUP: NewPos := SI.nPos - 1;
-          SB_PAGEDOWN: NewPos := SI.nPos + Integer(SI.nPage);
-          SB_PAGEUP: NewPos := SI.nPos - Integer(SI.nPage);
-          SB_THUMBTRACK: NewPos := SI.nTrackPos;
-          else
-            Exit;
-        end;}
        Cmd := Msg.wParam and $0000FFFF;
        case Cmd of
          SB_BOTTOM: NewPos := SI.nMax;
@@ -34713,17 +34500,6 @@ begin
       Result := TRUE;
       Exit;
     end;
-  {WM_SYSCOMMAND:
-    begin
-      CASE Msg.wParam OF
-      SC_MAXIMIZE:
-          MDIChild.DF.fWindowState := wsMaximized;
-      SC_RESTORE:
-          MDIChild.DF.fWindowState := wsNormal;
-      SC_MINIMIZE:
-          MDIChild.DF.fWindowState := wsMinimized;
-      END;
-    end;}
   end;
   if  MDIChild.fAnchors and MDI_NOT_AVAILABLE <> 0 then
   begin
@@ -35070,8 +34846,7 @@ var
 begin
   CB := PControl(Sender);
   Count := CB.Count;
-  DropDownCount := CB.DropDownCount;
-  //DropDownCount := 8;
+  DropDownCount := CB.DropDownCount; // 8;
   if  (Count > DropDownCount) then
       Count := DropDownCount;
   if  (Count < 1) then
@@ -39360,9 +39135,8 @@ begin
                                             Result := 0;
                                        end
                                        else Default;
-                                   end
+                                   end else
                                    //+++++++++++++++++++++++++++++++++++++++++++++//
-                                   else                                           //
                                    if Msg.wParam = 9 then // prevent system beep  //
                                    begin                                          //
                                           Msg.wParam := 0;                        //
@@ -39633,10 +39407,9 @@ begin
     if (GetCapture = 0) and
        (LOWORD( Msg.lParam ) = HTCLIENT) then
     begin
-      if ScreenCursor <> 0 then                  //YS
-        Cur := ScreenCursor                      //YS
-      else                                       //YS
-        Cur := Self_.fCursor;                    //YS
+      if   ScreenCursor <> 0 then                //YS
+           Cur := ScreenCursor                   //YS
+      else Cur := Self_.fCursor;                 //YS
       if Cur <> 0 then                           //YS
       begin                                      //YS
         Windows.SetCursor( Cur );                //YS
@@ -40006,15 +39779,17 @@ END;
 {$IFDEF ASM_VERSION}{$ELSE ASM_VERSION}
 function TControl.GetVisible: Boolean;
 begin
+   //UpdateWndStyles;
    {$IFDEF USE_FLAGS}
-   if (fHandle <> 0) then
-       Result := IsWindowVisible( fHandle )
-   else
+   {if (fHandle <> 0) then
+       Result := //IsWindowVisible( fHandle ) -- incorrectly is false in OnShow !
+                 GetWindowLong( fHandle, GWL_STYLE ) and WS_VISIBLE <> 0
+   else}
        Result := F3_Visible in fStyle.f3_Style;
    {$ELSE}
-   if (fHandle <> 0) then
+   {if (fHandle <> 0) then
       fVisible := IsWindowVisible( fHandle )
-   else
+   else}
       fVisible := (FStyle.Value and WS_VISIBLE) <> 0;
    Result := fVisible;
    {$ENDIF}
@@ -40469,9 +40244,10 @@ end;
 function TControl.DoSetFocus: Boolean;
 begin
   Result := False;
-  if Enabled and (
-     {$IFDEF USE_FLAGS}{$ELSE} fTabstop or {$ENDIF}
-     (F2_Tabstop in fStyle.f2_Style)) then
+  //if Enabled and (
+  //   {$IFDEF USE_FLAGS}{$ELSE} fTabstop or {$ENDIF}
+  //   (F2_Tabstop in fStyle.f2_Style)) then
+  if  Enabled then
   begin
     Inc( fClickDisabled );
     SetFocus( fHandle );
@@ -41250,7 +41026,6 @@ begin
   ProcessMessages;
 end;
 
-//-
 procedure TControl.ProcessPendingMessages;
 var Msg: TMsg;
 begin
@@ -43055,13 +42830,11 @@ begin
                                 or WS_EX_WINDOWEDGE or WS_EX_CLIENTEDGE);
   end;
   {$IFDEF USE_FLAGS}
-  {$ELSE}
-  //+MTsv DN
+  {$ELSE} //+MTsv DN
   if  fIsControl then
-  if  fTabStop then
-      Style := fStyle.Value or WS_TABSTOP
-  else
-      Style := fStyle.Value {xor} and not WS_TABSTOP;
+  if   fTabStop then
+       Style := fStyle.Value or WS_TABSTOP
+  else Style := fStyle.Value {xor} and not WS_TABSTOP;
   {$ENDIF}
 end;
 {$ENDIF ASM_VERSION}
@@ -43406,7 +43179,6 @@ asm
         JECXZ    @@ret_buf
 
         PUSH     EDX              // save L
-        //MOV      word ptr [EAX], DX
 
         PUSH     EAX
           PUSH     EAX            // push Buf
@@ -43703,8 +43475,7 @@ begin
         if  P.TopLine <> Cur.TopLine then
             Perform( EM_LINESCROLL, 0, P.TopLine - Cur.TopLine );
         Perform( EM_SETSCROLLPOS, 0, Integer( @ P.ScrollPos ) );
-    end
-      else // Edit
+    end else // Edit
     {$ENDIF USE_RICHEDIT}
     begin
       if (P.TopLine <> Cur.TopLine) or
@@ -43727,13 +43498,11 @@ begin
      ) then
   begin
     p.SelStart := p.SelStart + CountInsertDelChars;
-  end
-    else
+  end else
   if FromPos >= p.SelStart + p.SelLength then
   begin
     // nothing to do
-  end
-    else
+  end else
   if CountInsertDelChars < 0 then // deleting
   begin
     if FromPos - CountInsertDelChars > p.SelStart + p.SelLength then
@@ -43745,8 +43514,7 @@ begin
       //inc( CountInsertDelChars, d );
     end;
     inc( p.SelStart, CountInsertDelChars );
-  end
-    else // inserting
+  end else // inserting
   begin
     if (FromPos > p.SelStart) and (FromPos < p.SelStart + p.SelLength) then
       inc( p.SelLength, CountInsertDelChars )
@@ -43944,7 +43712,6 @@ end;
 {$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
 procedure TControl.SetCtl3D(const Value: Boolean);
 begin
-  //fCtl3D := Value;
   fCtl3D_child := fCtl3D_child and not 1 or Integer( Value ) and 1;
   UpdateWndStyles;
   if  Value then
@@ -45298,10 +45065,9 @@ procedure TTrayIcon.SetIcon(const Value: HIcon);
 var Cmd : DWORD;
 begin
   if FIcon = Value then Exit;
-  // Previous icon is not destroying. This is normal for
-  // icons, loaded from resources using LoadIcon. For icons,
-  // created using CreateIconIndirect, You have to call
-  // DestroyIcon manually.
+  // Previous icon is not destroying. This is normal for icons, loaded from
+  // resources using LoadIcon. For icons, created using CreateIconIndirect, You
+  // have to call DestroyIcon manually.
   Cmd := NIM_MODIFY;
   if FIcon = 0 then
      Cmd := NIM_ADD;
@@ -46084,14 +45850,7 @@ begin
       end;
     end;
   end;
-  //Index := L;
   if  C < 0 then Index := -L;
-  {if  L >= Count then
-      Dec( L );
-  Index := L;
-  if  not Result then
-      Result := fCompareStrListFun( PAnsiChar( fList.Items[ L ] ),
-                                    PAnsiChar( S ) ) = 0;}
 end;
 
 function TStrList.FindFirst(const S: AnsiString; var Index: Integer): Boolean;
@@ -46558,7 +46317,7 @@ begin
 end;
 
 //-- code by Dod:
-function TStrList.IndexOfName_old(AName: Ansistring): Integer;
+function TStrList.IndexOfName(AName: Ansistring): Integer;
 var i: Integer;
     L: Integer;
 begin
@@ -46581,7 +46340,7 @@ begin
     end;
 end;
 
-function TStrList.IndexOfName(AName: Ansistring): Integer;
+function TStrList.IndexOfName_NoCase(AName: Ansistring): Integer;
 var i: Integer;
     L: Integer;
     s, p: PAnsiChar;
@@ -48291,8 +48050,6 @@ function _NewStatusbar( AParent: PControl ): PControl;
 var Style: DWORD;
 begin
   Style := WS_CHILD or WS_CLIPSIBLINGS or WS_CLIPCHILDREN or 3 or WS_VISIBLE;
-  {if AParent.CanResize then
-     Style := Style or SBARS_SIZEGRIP;}
   if  {$IFDEF USE_FLAGS} G3_SizeGrip in AParent.fFlagsG3
       {$ELSE} AParent.fSizeGrip {$ENDIF} then
       Style := (Style or SBARS_SIZEGRIP) and not 3;
@@ -48533,8 +48290,7 @@ begin
      Msg := WM_GETTEXTLENGTH;
      I := 0;
   end;
-  L := //SendMessage( fStatusWnd, Msg, I, 0 ) and $FFFF;
-       fStatusCtl.Perform( Msg, I, 0 ) and $FFFF;
+  L := fStatusCtl.Perform( Msg, I, 0 ) and $FFFF;
   if L > 0 then
   begin
     SetLength( Result, L );
@@ -48543,7 +48299,6 @@ begin
         Msg := WM_GETTEXT;
     fStatusCtl.Perform( Msg, I, Integer( @ Result[1] ) );
   end;
-  //Result := fStatusTxt;
 end;
 {$ENDIF ASM_VERSION}
 
@@ -48553,7 +48308,6 @@ var ch: Integer;
 begin
   if fStatusCtl = nil then Exit;
   ch := ClientHeight;
-  //fStatusWnd := 0;
   fStatusCtl.Free;
   fStatusCtl := nil;
   fClientBottom := 0;
@@ -48565,10 +48319,8 @@ end;
 function TControl.StatusPanelCount: Integer;
 begin
   Result := 0;
-  //if fStatusWnd = 0 then Exit;
   if fStatusCtl = nil then Exit;
-  Result := //SendMessage( fStatusWnd, SB_GETPARTS, 0, 0 );
-            fStatusCtl.Perform( SB_GETPARTS, 0, 0 );
+  Result := fStatusCtl.Perform( SB_GETPARTS, 0, 0 );
 end;
 {$ENDIF ASM_VERSION}
 
@@ -48578,10 +48330,8 @@ var Buf: array[0..254] of Integer;
     N : Integer;
 begin
   Result := 0;
-  //if fStatusWnd = 0 then Exit;
   if fStatusCtl = nil then Exit;
-  N := //SendMessage( fStatusWnd, SB_GETPARTS, 255, Integer( @Buf[ 0 ] ) );
-       fStatusCtl.Perform( SB_GETPARTS, 255, Integer( @Buf[ 0 ] ) );
+  N := fStatusCtl.Perform( SB_GETPARTS, 255, Integer( @Buf[ 0 ] ) );
   if N <= Idx then Exit;
   Result := Buf[ Idx ];
 end;
@@ -48592,13 +48342,10 @@ procedure TControl.SetStatusPanelX(Idx: Integer; const Value: Integer);
 var Buf: array[0..254] of Integer;
     N : Integer;
 begin
-  //if fStatusWnd = 0 then Exit;
   if fStatusCtl = nil then Exit;
-  N := //SendMessage( fStatusWnd, SB_GETPARTS, 255, Integer( @Buf[ 0 ] ) );
-       fStatusCtl.Perform( SB_GETPARTS, 255, Integer( @Buf[ 0 ] ) );
+  N := fStatusCtl.Perform( SB_GETPARTS, 255, Integer( @Buf[ 0 ] ) );
   if N <= Idx then Exit;
   Buf[ Idx ] := Value;
-  //SendMessage( fStatusWnd, SB_SETPARTS, N, Integer( @Buf[ 0 ] ) );
   fStatusCtl.Perform( SB_SETPARTS, N, Integer( @Buf[ 0 ] ) );
 end;
 {$ENDIF ASM_VERSION}
@@ -48897,8 +48644,7 @@ begin
   else
   if dsMask in DrawingStyle then
      Result := Result or ILD_MASK
-  {else
-     Result := Result or ILD_NORMAL}; // ILD_NORMAL = 0
+  {else Result := Result or ILD_NORMAL}; // ILD_NORMAL = 0
   Result := Result or WORD(FOverlayIdx shl 8);
 end;
 
@@ -50999,18 +50745,12 @@ function TControl.TBAddInsButtons(Idx: Integer; const Buttons: array of PKOLChar
               inc( Str );
             end;
             {$ENDIF TOOLBAR_DOT_NOAUTOSIZE_BUTTON}
-            if (KOLString(Str) = KOLString( {$IFDEF F_P}''+{$ENDIF} KOLChar( ' ' ) )) or (Str^ = #0) then
-              PAB.iString := -1
-                //Perform( TB_ADDSTRING, 0, Integer( PChar( '' + #0 ) ) )
-                // an experiment: is it possible to remove space right to image
-                // without setting tboTextBottom option (non compatible with FixFlatXP)
-                // answer: seems not possible.
+            if  (KOLString(Str) = KOLString( {$IFDEF F_P}''+{$ENDIF} KOLChar( ' ' ) )) or (Str^ = #0) then
+                PAB.iString := -1
             else
             begin
-              Str0 := KOLString('') + KOLString(Str) + #0;
-              PAB.iString :=
-                Perform( TB_ADDSTRING, 0,
-                    Integer( PKOLChar( Str0 ) ) );
+                Str0 := KOLString('') + KOLString(Str) + #0;
+                PAB.iString := Perform( TB_ADDSTRING, 0, Integer(PKOLChar(Str0)) );
             end;
           end;
 
@@ -51256,7 +50996,6 @@ begin
 end;
 {$ENDIF ASM_VERSION}
 
-//*
 function TControl.TBGetButtonRect(BtnID: Integer): TRect;
 begin
   BtnID := GetTBBtnGoodID( @Self, BtnID );
@@ -51268,7 +51007,6 @@ begin
   Result := Toolbar.TBGetButtonRect(BtnID);
 end;
 
-//*
 function TControl.TBGetRows: Integer;
 begin
     Result := 1;
@@ -51277,7 +51015,6 @@ begin
         Result := Perform( TB_GETROWS, 0, 0 );
 end;
 
-//*
 procedure TControl.TBSetRows(const Value: Integer);
 begin
   Perform( TB_SETROWS, Value, 0 );
@@ -51414,20 +51151,17 @@ begin
   Result := B.fsStyle =  TBSTYLE_SEP;
 end;
 
-//*
 procedure TControl.TBDeleteButton(BtnID: Integer);
 begin
   BtnID := GetTBBtnGoodID( @Self, BtnID );
   Perform( TB_DELETEBUTTON, TBItem2Index( BtnID ), 0 );
 end;
 
-//*
 procedure TControl.TBDeleteBtnByIdx(Idx: Integer);
 begin
   Perform( TB_DELETEBUTTON, Idx, 0 );
 end;
 
-//*
 procedure TControl.TBClear;
 var
   i: Integer;
@@ -51436,7 +51170,6 @@ begin
     TBDeleteBtnByIdx(0);
 end;
 
-//*
 procedure TControl.Clear;
 begin
   fCommandActions.aClear( @Self );
@@ -51872,8 +51605,8 @@ begin
   Applet.DF.fModalForm := @ Self;
   Enabled := TRUE;
 
-  Show;
   ModalResult := 0;
+  Show;
   while not AppletTerminated and (ModalResult = 0) do
   begin
     WaitMessage;
@@ -52311,18 +52044,13 @@ begin
       {$IFDEF SUPPORT_LONG_TIMER}
       if NT.fExpireTotal <= 0 then
       {$ENDIF SUPPORT_LONG_TIMER}
-      begin
-        if NT.fMultimedia and not NT.fPeriodic then
-          NT.Enabled := FALSE; // one-shot timer, disable it now
-        //--------------------------------------------------------------
-        //todo: for not a multimedia timer, post a signal to a window
-        // to synchronize timer handling with the main thread!
-        // (but not for fMultimedia timers)
-        //--------------------------------------------------------------
-        if Assigned( NT.fOnTimer ) then
-          NT.fOnTimer( NT ); // in result of this action, timer NT or any other active
-          // timer can be disabled and dropped from fActiveTimerList and any amount of
-          // previously disbled timers can be added
+      begin if  NT.fMultimedia and not NT.fPeriodic then
+                NT.Enabled := FALSE; // one-shot timer, disable it now
+            if  Assigned( NT.fOnTimer ) then
+                NT.fOnTimer( NT ); // in result of this action, timer NT or any
+                // other active timer can be disabled and dropped from
+                // fActiveTimerList and any amount of previously disabled timers
+                // can be added
       end;
     end;
   FINALLY
@@ -52912,9 +52640,11 @@ begin
   if fCanvas = nil then
   begin
     fApplyBkColor2Canvas := ApplyBitmapBkColor2Canvas;
-    DC := CreateCompatibleDC( 0 );
-    fCanvas := NewCanvas( DC );
-    fCanvas.fIsPaintDC := FALSE;
+    {  DC := CreateCompatibleDC( 0 );
+       fCanvas := NewCanvas( DC );
+       fCanvas.fIsAlienDC := FALSE; // ensure that DC will be destroyed with the canvas!
+       }
+    fCanvas := NewCanvas( 0 );
     fCanvas.OnChange := CanvasChanged;
     if fBkColor <> 0 then
       fCanvas.Brush.Color := fBkColor;
@@ -53768,7 +53498,6 @@ var Pos : DWORD;
         i := Strm.Read( fDIBBits^, Size );
         if i <> Size then
         begin
-          //Exit;
           {$IFDEF FILL_BROKEN_BITMAP}
           ZeroMemory( Pointer( Integer( fDIBBits ) + i ), Size - i );
           {$ENDIF FILL_BROKEN_BITMAP}
@@ -54860,12 +54589,11 @@ end;
 procedure TBitmap.Convert2Mask(TranspColor: TColor);
 var MonoHandle: HBitmap;
     SaveMono, SaveFrom: THandle;
-    MonoDC, {DC0,} DCfrom: HDC;
+    MonoDC, DCfrom: HDC;
     SaveBkColor: TColorRef;
 begin
   if GetHandle = 0 then Exit;
   fDetachCanvas( @Self );
-  ///DC0 := GetDC( 0 );
   MonoHandle := CreateBitmap( fWidth, fHeight, 1, 1, nil );
   ASSERT( MonoHandle <> 0, 'Can not create monochrome bitmap' );
   MonoDC := CreateCompatibleDC( 0 );
@@ -55852,7 +55580,6 @@ begin
         Strm.Write( Mem^, Size );
         Strm.Position := 0;
         LoadFromStreamEx( Strm );
-        ////Strm.SaveToFile( GetStartDir + 'test_paste.bmp', 0, Strm.Size );
         Strm.Free;
         Result := not Empty;
       end;
@@ -56091,7 +55818,7 @@ var DesiredSize : Integer;
          begin
              if  BIH.biCompression = BI_BITFIELDS then  // + by mdw - fix for
                  Stream2Stream(Mem, Strm, 12)           // 16 bit per pixels
-             else                                       
+             else
                  for I := 0 to 2 do
                  begin
                    J := InitColors[ I ];
@@ -58647,8 +58374,7 @@ begin
         end;
         //Rslt := Form.CallDefWndProc( Msg ); // to handle Alt+Space ???
     end;
-  end
-    else
+  end else
   if Msg.message = WM_KEYUP then
   begin
     Rslt := 0;
@@ -58656,17 +58382,14 @@ begin
     if Form <> nil then
     begin
         if Msg.wParam = VK_MENU then
-        begin
             //  if Form.DF.fPressedMnemonic <> 0 then
             //    Form.DF.fPressedMnemonic := Form.DF.fPressedMnemonic or $80000000;
-        end
-          else
-        if AnsiChar( Msg.wParam ) in [ 'A'..'Z', '0'..'9' ] then
+        else if AnsiChar( Msg.wParam ) in [ 'A'..'Z', '0'..'9' ] then
         begin
             if HandleMnemonic( Form ) then
             begin
-              Result := TRUE;
-              Exit;
+                Result := TRUE;
+                Exit;
             end;
         end;
     end;
@@ -58973,7 +58696,6 @@ begin
   REGetParaAttr( 0 );
   DF.fREParaFmtRec.wReserved := Index;
   Idx := Index;
-  //if Idx >= $4000 then Idx := $4000;
   DF.fREParaFmtRec.dwMask := Idx shl 16;
   RE_ParaFmt := {$IFDEF STATIC_RICHEDIT_DATA} DF.fREParaFmtRec
                 {$ELSE} DF.fREParaFmtRec^ {$ENDIF};
@@ -59485,10 +59207,10 @@ end;
 
 function WndProcEdTransparent( Self_: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean;
 begin
-  if (Msg.message = WM_KEYDOWN) or
-     (Msg.message = WM_MOUSEMOVE) and (GetKeyState( VK_LBUTTON ) < 0) or
-     (Msg.message = WM_LBUTTONUP) or (Msg.message = WM_LBUTTONDOWN) then
-    Self_.Invalidate;
+  if  (Msg.message = WM_KEYDOWN) or
+      (Msg.message = WM_MOUSEMOVE) and (GetKeyState( VK_LBUTTON ) < 0) or
+      (Msg.message = WM_LBUTTONUP) or (Msg.message = WM_LBUTTONDOWN) then
+      Self_.Invalidate;
   Result := False; // continue handling of a message anyway
 end;
 
@@ -59502,19 +59224,18 @@ var LastHWnd: HWnd; // + Don
 function WndProcSpeedButton( Self_: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean;
 begin
   Result := False;
-  if Msg.message = WM_SETFOCUS then
+  if  Msg.message = WM_SETFOCUS then
   begin
-    Result := TRUE;
-    Rslt := 0;
-    LastHWnd := Msg.wParam; // + don
-  end
-    else // + Don
-  if (Msg.message = WM_CAPTURECHANGED) and
-     (Msg.lParam = 0) and
-     (LastHwnd <> 0) then
+      Result := TRUE;
+      Rslt := 0;
+      LastHWnd := Msg.wParam; // + don
+  end else // + Don
+  if  (Msg.message = WM_CAPTURECHANGED) and
+      (Msg.lParam = 0) and
+      (LastHwnd <> 0) then
   begin
-    SetFocus(LastHwnd);
-    LastHwnd := 0;
+      SetFocus(LastHwnd);
+      LastHwnd := 0;
   end;
 end;
 
@@ -59579,10 +59300,9 @@ function TControl.TCGetItemImgIDx(Idx: Integer): Integer;
 var TI: TTCItem;
 begin
   TI.mask := TCIF_IMAGE;
-  if Perform( TCM_GETITEM, Idx, Integer( @TI ) ) = 0 then
-    Result := -1
-  else
-    Result := TI.iImage;
+  if   Perform( TCM_GETITEM, Idx, Integer( @TI ) ) = 0 then
+       Result := -1
+  else Result := TI.iImage;
 end;
 
 procedure TControl.TCSetItemImgIdx(Idx: Integer; const Value: Integer);
@@ -59676,7 +59396,6 @@ begin
   Result.BoundsRect := TC_DisplayRect;//+ Galkov
   {$ENDIF}
   Perform(WM_SIZE,0,0); //May be changes of margins for TabControl
-
   {$IFDEF GRAPHCTL_XPSTYLES}
   Attach_WM_THEMECHANGED(Result, XP_Themes_For_TabPanel);
   {$ENDIF}
@@ -59795,13 +59514,11 @@ begin
   Result := -1;
   if Perform( TVM_GETITEM, 0, Integer( @TVI ) ) <> 0 then
   begin
-    if Hiword( Index ) <> 0 then
-      Result := (TVI.state shr Hiword( Index )) and $F
-    else
-    if Loword( Index ) = TVIF_IMAGE then
-      Result := TVI.iImage
-    else
-      Result := TVI.iSelectedImage;
+    if   Hiword( Index ) <> 0 then
+         Result := (TVI.state shr Hiword( Index )) and $F
+    else if Loword( Index ) = TVIF_IMAGE then
+         Result := TVI.iImage
+    else Result := TVI.iSelectedImage;
   end;
 end;
 
@@ -59933,20 +59650,17 @@ var a: Cardinal;
     b: Boolean;
 begin
   b := N = 0;
-  if b then
-  begin
-    N := TVRoot;
-  end;
+  if  b then
+      N := TVRoot;
   while N <> 0 do
-    begin
+  begin
       a := TVItemChild[N];
-      if a > 0 then
-        TVSort(a);
+      if  a > 0 then TVSort(a);
       Perform(TVM_SORTCHILDREN, 0, N);
       N := TVItemNext[N];
-    end;
-  if b then //moved by Tr"]f
-    Perform(TVM_SORTCHILDREN, 0, 0);  //+ by YS
+  end;
+  if  b then //moved by Tr"]f
+      Perform(TVM_SORTCHILDREN, 0, 0);  //+ by YS
 end;
 
 procedure TControl.TVDelete(Item: THandle);
@@ -62366,10 +62080,9 @@ begin                                                                           
              fTransparent := AParent.fTransparent;                                      //
      {$ENDIF}
      fCtl3Dchild := AParent.fCtl3Dchild;                                        //
-     if AParent.fCtl3Dchild then                                                //
-       fCtl3D := ACtl3D                                                         //
-     else                                                                       //
-       fCtl3D := False;                                                         //
+     if   AParent.fCtl3Dchild then                                                //
+          fCtl3D := ACtl3D                                                         //
+     else fCtl3D := False;                                                         //
      fMargin := AParent.fMargin;                                                //
      with fBoundsRect do                                                        //
      begin                                                                      //
@@ -62496,19 +62209,16 @@ begin                                                                           
               W := W div AGlyphCount;                                           //
           end;                                                                  //
         end;                                                                    //
-      if W > 0 then                                                             //
-        if ACaption = '' then                                                   //
-          Right := Left + W                                                     //
-        else                                                                    //
-          Right := Right + W;                                                   //
-      if H > 0 then                                                             //
-        Bottom := Top + H;                                                      //
-      if not ( bboNoBorder in AOptions ) then                                   //
+      if  W > 0 then                                                             //
+          if   ACaption = '' then                                                   //
+               Right := Left + W                                                     //
+          else Right := Right + W;                                                   //
+      if  H > 0 then                                                             //
+          Bottom := Top + H;                                                      //
+      if  not ( bboNoBorder in AOptions ) then                                   //
       begin                                                                     //
-        if W > 0 then                                                           //
-          Inc( Right, 2 );                                                      //
-        if H > 0 then                                                           //
-          Inc( Bottom, 2 );                                                     //
+          if W > 0 then Inc( Right, 2 );                                                      //
+          if H > 0 then Inc( Bottom, 2 );                                                     //
       end;                                                                      //
     end;                                                                        //
     fGlyphWidth := W;                                                           //
@@ -62857,18 +62567,17 @@ constructor TControl.CreateRichEdit(AParent: PControl;                          
   AOptions: TEditOptions);                                                      //
 var OldRichEditClass, OldRichEditLib: PAnsiChar;                                    //
 begin                                                                           //
-  if OleInit then                                                               //
+  if  OleInit then                                                               //
   begin                                                                         //
-    OldRichEditClass := RichEditClass;                                          //
-    OldRichEditLib := RichEditLib;                                              //
-    CreateRichEdit1( AParent, AOptions );                                       //
-    fCharFmtDeltaSz := 24;                                                      //
-    fParaFmtDeltaSz := sizeof( TParaFormat2 ) - sizeof( RichEdit.TParaFormat ); //
-    RichEditClass := OldRichEditClass;                                          //
-    RichEditLib := OldRichEditLib;                                              //
-  end                                                                           //
-     else                                                                       //
-    CreateRichEdit1( AParent, AOptions );                                       //
+      OldRichEditClass := RichEditClass;                                          //
+      OldRichEditLib := RichEditLib;                                              //
+      CreateRichEdit1( AParent, AOptions );                                       //
+      fCharFmtDeltaSz := 24;                                                      //
+      fParaFmtDeltaSz := sizeof( TParaFormat2 ) - sizeof( RichEdit.TParaFormat ); //
+      RichEditClass := OldRichEditClass;                                          //
+      RichEditLib := OldRichEditLib;                                              //
+  end else                                                                       //
+      CreateRichEdit1( AParent, AOptions );                                       //
 end;                                                                            //
                                                                                 //
 constructor TControl.CreateProgressbar(AParent: PControl);                      //
@@ -62991,8 +62700,7 @@ begin                                                                           
     begin                                                                       //
       Bottom := Top + 26;                                                       //
       Right := Left + 1000;                                                     //
-    end                                                                         //
-       else                                                                     //
+    end else                                                                     //
     begin                                                                       //
       Left := 0; Right := 0;                                                    //
       Top := 0; Bottom := 0;                                                    //
@@ -64478,6 +64186,8 @@ function TControl.MakeWordWrap: PControl;
 begin {$IFDEF USE_FLAGS} include( fFlagsG1, G1_WordWrap );
       {$ELSE}            fWordWrap := TRUE; {$ENDIF}
       Style := fStyle.Value and not SS_LEFTNOWORDWRAP;
+      if  IsButton then
+          Style := fStyle.Value or BS_MULTILINE;
       Result := @ Self;
 end;
 {$ENDIF ASM_VERSION}////////////////////////////////////////////////////////////
@@ -65772,6 +65482,9 @@ finalization //.................................................................
 {$ENDIF INIT_FINIT}//-----------------------------------------------------------
 
 end.
+
+
+
 
 
 

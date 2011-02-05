@@ -8228,6 +8228,8 @@ begin
       if  (KF <> nil) and KF.FormCompact then
       begin
           KF.FormAddCtlCommand( Name, 'TControl.SetDefaultBtn' );
+          KF.FormAddNumParameter( 13 );
+          KF.FormAddNumParameter( 1 );
           // param = 1
       end else
       SL.Add( Prefix + AName + '.DefaultBtn := TRUE;' );
@@ -8235,7 +8237,9 @@ begin
   if  fCancelBtn then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'TControl.SetCancelBtn' );
+          KF.FormAddCtlCommand( Name, 'TControl.SetDefaultBtn' );
+          KF.FormAddNumParameter( 27 );
+          KF.FormAddNumParameter( 1 );
           // param = 1
       end else
       SL.Add( Prefix + AName + '.CancelBtn := TRUE;' );
@@ -8247,11 +8251,13 @@ begin
               Integer( AnchorTop ) shl 1 +
               Integer( AnchorRight ) shl 2 +
               Integer( AnchorBottom ) shl 3;
+          if  (i = 1) or (i = 2) or (i = 4) or (i = 8) then
+              KF.FormAddCtlCommand( Name, 'TControl.SetAnchor' );
           CASE i OF
-          1:  KF.FormAddCtlCommand( Name, 'TControl.SetAnchorLeft' );
-          2:  KF.FormAddCtlCommand( Name, 'TControl.SetAnchorTop' );
-          4:  KF.FormAddCtlCommand( Name, 'TControl.SetAnchorRight' );
-          8:  KF.FormAddCtlCommand( Name, 'TControl.SetAnchorBottom' );
+          1:  KF.FormAddNumParameter( ANCHOR_LEFT );
+          2:  KF.FormAddNumParameter( ANCHOR_TOP );
+          4:  KF.FormAddNumParameter( ANCHOR_RIGHT );
+          8:  KF.FormAddNumParameter( ANCHOR_BOTTOM );
           else
               KF.FormAddCtlCommand( Name, 'FormSetAnchor' );
               KF.FormAddNumParameter( i );
