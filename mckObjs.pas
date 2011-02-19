@@ -2371,7 +2371,10 @@ begin
       S := Trim( Copy( S, 2, MaxInt ) );
   end;
 
-  C := StringConstant( 'Title', Title );
+  if  (ParentKOLForm <> nil) and ParentKOLForm.AssignTextToControls then
+      C := StringConstant( 'Title', Title )
+  else
+      C := '''''';
   {$IFDEF _D2009orHigher}
    C2 := '';
    for i := 2 to Length(C) - 1 do C2 := C2 + '#'+IntToStr(ord(C[i]));
@@ -2382,7 +2385,7 @@ begin
           + ', '  + StringConstant( 'InitialDir', InitialDir ) + ', [ ' + S + ' ] );' );
 
   GenerateTag( SL, AName, Prefix );
-  if Filter <> '' then
+  if (Filter <> '') and (ParentKOLForm <> nil) and ParentKOLForm.AssignTextToControls then
     SL.Add( Prefix + '  ' + AName + '.Filter := ' + StringConstant( 'Filter', Filter ) + ';' );
   if not OpenDialog then
     SL.Add( Prefix + '  ' + AName + '.OpenDialog := FALSE;' );
@@ -2718,32 +2721,34 @@ begin
     if S[ 1 ] = ',' then
       S := Trim( Copy( S, 2, MaxInt ) );
   end;
-  if AltDialog then
+  if  AltDialog then
   begin
-  SL.Add( Prefix + AName + ' := NewOpenDirDialogEx;' );
-  if Title <> '' then
-   begin
-    C := StringConstant( 'Title', Title );
-    {$IFDEF _D2009orHigher}
-     C2 := '';
-     for i := 2 to Length(C) - 1 do C2 := C2 + '#'+IntToStr(ord(C[i]));
-     C := C2;
-    {$ENDIF}
-    if C = '' then C := '''''';
-    SL.Add( Prefix + AName + '.Title := ' + C + ';' );
-   end;
-  end
-  else
-   begin
-    C := StringConstant( 'Title', Title );
-    {$IFDEF _D2009orHigher}
-     C2 := '';
-     for i := 2 to Length(C) - 1 do C2 := C2 + '#'+IntToStr(ord(C[i]));
-     C := C2;
-    {$ENDIF}
-    if C = '' then C := '''''';
-    SL.Add( Prefix + AName + ' := NewOpenDirDialog( ' + C + ', [ ' + S + ' ] );' );
-   end;
+      SL.Add( Prefix + AName + ' := NewOpenDirDialogEx;' );
+      if (Title <> '') and (ParentKOLForm <> nil) and ParentKOLForm.AssignTextToControls then
+      begin
+          C := StringConstant( 'Title', Title );
+          {$IFDEF _D2009orHigher}
+           C2 := '';
+           for i := 2 to Length(C) - 1 do C2 := C2 + '#'+IntToStr(ord(C[i]));
+           C := C2;
+          {$ENDIF}
+          if C = '' then C := '''''';
+          SL.Add( Prefix + AName + '.Title := ' + C + ';' );
+      end;
+  end else
+  begin
+      if  (ParentKOLForm <> nil) and ParentKOLForm.AssignTextToControls then
+          C := StringConstant( 'Title', Title )
+      else
+          C := '''''';
+      {$IFDEF _D2009orHigher}
+       C2 := '';
+       for i := 2 to Length(C) - 1 do C2 := C2 + '#'+IntToStr(ord(C[i]));
+       C := C2;
+      {$ENDIF}
+      if C = '' then C := '''''';
+      SL.Add( Prefix + AName + ' := NewOpenDirDialog( ' + C + ', [ ' + S + ' ] );' );
+  end;
 
   GenerateTag( SL, AName, Prefix );
   if InitialPath <> '' then

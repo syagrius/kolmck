@@ -178,6 +178,8 @@ type
        starting at index ToIdx. }
     procedure InstallBits( FromIdx, N: Integer; Value: Boolean );
     {* Sets new Value for all bits in range [ FromIdx, FromIdx+Count-1 ]. }
+    function CountTrueBits: Integer;
+    {* Returns count of bits equal to TRUE. }
   end;
 //[END OF TBits DEFINITION]
 
@@ -1095,6 +1097,45 @@ begin
 end;
 
 //[destructor TBits.Destroy]
+var Counts: array[ 0..255 ] of Integer;
+function TBits.CountTrueBits: Integer;
+var I, j, N: Integer;
+    D: DWORD;
+begin
+  Result := 0;
+  if  Counts[255] = 0 then
+  begin
+      for I := 0 to 255 do
+      begin
+          N := I;
+          j := 0;
+          while N <> 0 do
+          begin
+              if  N and 1 <> 0 then
+                  inc( j );
+              N := N shr 1;
+          end;
+          Counts[I] := j;
+      end;
+  end;
+  for I := 0 to PBitsList( fList ).fCount-1 do
+  begin
+      D := DWORD( PBitsList( fList ).fItems[ I ] );
+      if  D = $FFFFFFFF then
+          inc( Result, 32 )
+      else
+      begin
+          inc( Result, Counts[ D and $FF ] );
+          D := D shr 8;
+          inc( Result, Counts[ D and $FF ] );
+          D := D shr 8;
+          inc( Result, Counts[ D and $FF ] );
+          D := D shr 8;
+          inc( Result, Counts[ D ] );
+      end;
+  end;
+end;
+
 destructor TBits.Destroy;
 begin
   fList.Free;
@@ -1204,6 +1245,7 @@ begin
   end
     else
   begin
+    Result := PBitsList( fList ).fCount * 32;
     for I := 0 to PBitsList( fList ).fCount-1 do
     begin
       D := DWORD( PBitsList( fList ).fItems[ I ] );

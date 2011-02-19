@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
-// KOL_ASM.inc ()to be inlude in KOL.pas)
-// v 3.08
+// KOL_ASM.inc (to inlude in KOL.pas)
+// v 3.1415
 
 function MsgBox( const S: KOLString; Flags: DWORD ): DWORD;
 asm
@@ -677,7 +677,7 @@ asm
   XOR    EAX, EAX
 end;
 
-procedure Run( var AppletWnd: PControl );
+procedure Run( var AppletCtl: PControl );
 asm
         CMP       EAX, 0
         JZ        @@exit
@@ -3301,6 +3301,12 @@ asm
         MOV      [EBX].TControl.PP.fControlClick, offset[ClickRadio]
         TEST     ESI, ESI
         JZ       @@exit
+        {$IFDEF  USE_FLAGS}
+        BTS      DWORD PTR [ESI].TControl.fFlagsG1, 1 shl G1_HasRadio
+        JNZ      @@exit
+        MOV      EAX, EBX
+        CALL     TControl.SetRadioChecked
+        {$ELSE}
         MOV      ECX, [EBX].TControl.fMenu
         PUSH     ECX
         MOV      EDX, offset[RADIO_LAST]
@@ -3318,6 +3324,7 @@ asm
         CALL     TControl.Set_Prop_Int
         MOV      EAX, EBX
         CALL     TControl.SetRadioChecked
+        {$ENDIF}
 @@exit: XCHG     EAX, EBX
         POP      ESI
         POP      EBX
@@ -8601,60 +8608,72 @@ const tk_Tab = 1;
       tk_UD  = 4;
       tk_PuPd= 8;
 asm
+        PUSH     EBX
+        XCHG     EBX, EAX
         PUSH     ESI
         MOV      ESI, offset[@@data]
-        PUSH     EAX
-        MOV      AH, 9
-@@loop:
-        LODSB
-        CMP      DL, AL
-        JE       @@1
-        LODSB
-        CMP      DL, AL
-        JE       @@2
-        ADD      AH, AH
-        JNB      @@loop
-        POP      EAX
-@@exit0:
         XOR      EAX, EAX
-        JMP      @@exit
+@@loop:
+        LODSW
+        TEST     EAX, EAX
+        JZ       @@exit_false
 
-@@data:
-        DB       -1, VK_TAB, VK_LEFT, VK_RIGHT, VK_UP, VK_DOWN, VK_PRIOR, VK_NEXT
+        CMP      AL, DL
+        JNZ      @@loop
 
-@@1:
-        OR       EDX, -1
-        JMP      @@3
-@@2:
-        XOR      EDX, EDX
-        TEST     AH, 1
-        JZ       @@3
-
-          PUSH     ECX
-        PUSH     EAX
-        PUSH     VK_SHIFT
-        CALL     GetKeyState
-        CWDE
-        XCHG EDX, EAX
-        POP      EAX
-          POP      ECX
-@@3:
-        POP      ESI
-        MOV      AL, AH
-        {$IFDEF PARANOIA} DB $24, 1 {$ELSE} AND AL, 1 {$ENDIF}
-        TEST     byte ptr [ESI].TControl.fLookTabKeys, AL
-        JZ       @@exit0
+        TEST     [EBX].TControl.fLookTabKeys, AH
+        JZ       @@exit_false
 
         TEST     CL, CL
-        JNZ      @@exit
+        JNZ      @@exit_true
 
+        MOV      DH, AH
         PUSH     EDX
-        MOV      EAX, ESI
-        CALL     TControl.ParentForm
+            XCHG     EAX, EBX
+            CALL     TControl.ParentForm
+            XCHG     ESI, EAX
+        POP      EAX
+
+        CMP      AL, 9
+        JNZ      @@test_flag
+
+        PUSH     EAX
+            PUSH     VK_SHIFT
+            CALL     GetKeyState
         POP      EDX
+
+        AND      AH, $80
+        OR       AH, DH
+@@test_flag:
+        {XOR      EDX, EDX
+        INC      EDX
+        ADD      AH, AH
+        JNC      @@tabul_1
+        NEG      EDX
+@@tabul_1:}                           //AH<80  //AH>=80
+        ADD      AH, AH               //       //
+        SBB      EDX, EDX             //EDX=0  //EDX=-1
+        ADD      EDX, EDX             //    0  //    -2
+        INC      EDX                  //    1  //    -1
+
+        XCHG     EAX, ESI
         CALL     Tabulate2Next
-@@exit:
+@@exit_true:
+        MOV      AL, 1
         POP      ESI
+        POP      EBX
+        RET
+
+@@data:
+        DB       VK_TAB, tk_Tab, VK_LEFT, tk_LR or $80, VK_RIGHT, tk_LR
+        DB       VK_UP, tk_UD or $80, VK_DOWN, tk_UD
+        DB       VK_PRIOR, tk_PuPd or $80, VK_NEXT, tk_PuPd, 0, 0
+
+@@exit_false:
+        XOR      EAX, EAX
+        POP      ESI
+        POP      EBX
+        RET
 end;
 
 function TControl.Tabulate: PControl;
@@ -8875,30 +8894,21 @@ end;
 
 procedure TControl.SetVerticalAlign(const Value: TVerticalAlign);
 asm
-        PUSH     EBX
-        MOVZX    EBX, DL
-        MOV      [EAX].fVerticalAlign, BL
+        MOVZX    EDX, DL
+        MOV      [EAX].fVerticalAlign, DL
 
         {$IFDEF  COMMANDACTIONS_OBJ}
         MOV      ECX, [EAX].fCommandActions
-        MOV      ECX, dword ptr [ECX].TCommandActionsObj.bVertAlignCenter
+        MOVZX    ECX, byte ptr [ECX+EDX].TCommandActionsObj.bVertAlignTop
         {$ELSE}
-        MOV      ECX, dword ptr [EAX].fCommandActions.bVertAlignCenter
+        MOVZX    ECX, byte ptr [EAX+EDX].fCommandActions.bVertAlignTop
         {$ENDIF}
-        OR       CH, CL
-        SHR      ECX, 8
-        OR       CL, CH
-        NOT      ECX
+        SHL      ECX, 8
+
         MOV      EDX, [EAX].fStyle
-        AND      DH, CL
+        AND      DH, $F3
+        OR       EDX, ECX
 
-        {$IFDEF  COMMANDACTIONS_OBJ}
-        MOV      ECX, [EAX].fCommandActions
-        OR       DH, [ECX+EBX].TCommandActionsObj.bVertAlignCenter
-        {$ELSE}
-        OR       DH, [EAX+EBX].fCommandActions.bVertAlignCenter
-        {$ENDIF}
-        POP      EBX
         CALL     SetStyle
 end;
 
@@ -13928,18 +13938,19 @@ asm
     {$ELSE}
     MOV  [EAX].TControl.fWordWrap, 1
     {$ENDIF}
-    AND  byte ptr[EAX].TControl.fStyle.f0_Style, not SS_LEFTNOWORDWRAP
 
+    MOV  EDX, [EAX].TControl.fStyle
     {$IFDEF USE_FLAGS}
     TEST [EAX].TControl.fFlagsG5, 1 shl G5_IsButton
     {$ELSE}
     CMP  [EAX].TControl.fIsButton, 0
     {$ENDIF}
-    JZ   @@1
-    OR   [EAX].TControl.fStyle.f1_Style, $20 // BS_MULTILINE >> 8
+    JNZ   @@1
+    AND  DL, not SS_LEFTNOWORDWRAP
 @@1:
+    OR   DH, $20 or SS_LEFTNOWORDWRAP // BS_MULTILINE >> 8
+@@2:
     PUSH EAX
-    MOV  EDX, [EAX].TControl.fStyle
     CALL TControl.SetStyle
     POP  EAX
 end;
@@ -14077,9 +14088,8 @@ asm
     CALL TControl.FormGetIntParam
     POP  ECX
     PUSH EAX
-    LEA  ECX, [ECX].TControl.DF.FormCurrentParent
-    MOV  EAX, [ECX]
-    MOV  EDX, [ECX+4]
+    MOV  EAX, [ECX].TControl.DF.FormCurrentParent
+    MOV  EDX, [ECX].TControl.FormString
     POP  ECX
     CALL NewLabelEffect
 end;
@@ -14292,7 +14302,7 @@ procedure FormSetBrushBitmap( Form: PControl );
 asm
     PUSH EDI
     MOV  EDI, EAX
-    CALL TControl.ParentForm
+    CALL TControl.FormParentForm
 
     PUSH EAX
     CALL ParentForm_PCharParam
@@ -14523,7 +14533,7 @@ end;
 procedure FormSetCaption( Form: PControl );
 asm
     PUSH EAX
-    CALL TControl.ParentForm
+    CALL TControl.FormParentForm
     PUSH EAX
     CALL TControl.FormGetStrParam
     POP  EAX
@@ -14686,7 +14696,7 @@ asm
     PUSH ECX
     CALL ParentForm_StrParam
     MOV  EAX, EDI
-    CALL TControl.ParentForm
+    CALL TControl.FormParentForm
     MOV  EDX, [EAX].TControl.FormString
     XOR  ECX, ECX
     MOV  CL, taLeft
@@ -14730,7 +14740,7 @@ end;
 procedure FormSetDateTimeFormat( Form: PControl );
 asm
     PUSH EAX
-    CALL TControl.ParentForm
+    CALL TControl.FormParentForm
     PUSH EAX
     CALL TControl.FormGetStrParam
     POP  EAX
@@ -14782,14 +14792,14 @@ end;
 procedure FormLastCreatedChildAsNewCurrentParent( Form: PControl );
 asm
     PUSH EAX
-    CALL TControl.ParentForm
+    CALL TControl.FormParentForm
     POP  [EAX].TControl.DF.FormCurrentParent
 end;
 
 procedure FormSetTabpageAsParent( Form: PControl );
 asm
     PUSH EAX
-    CALL TControl.ParentForm
+    CALL TControl.FormParentForm
     CALL ParentForm_IntParamAsm
     POP  ECX
     PUSH EAX
@@ -14797,11 +14807,12 @@ asm
     CALL TControl.GetPages
     POP  EDX
     MOV  [EDX].TControl.DF.FormCurrentParent, EAX
+    MOV  [EDX].TControl.DF.FormLastCreatedChild, EAX
 end;
 
 procedure FormSetCurCtl( Form: PControl );
 asm
-    CALL TControl.ParentForm
+    CALL TControl.FormParentForm
     CALL ParentForm_IntParamAsm
     MOV  ECX, [EAX].TControl.DF.FormAddress
     MOV  ECX, [ECX + EDX*4]
@@ -14819,7 +14830,7 @@ asm
     PUSH  EDI
     MOV   EDI, EAX
     PUSH  ESI
-    CALL  TControl.ParentForm
+    CALL  TControl.FormParentForm
     MOV   ESI, EAX
     PUSH  [ESI].TControl.DF.FormObj
     CALL  ParentForm_IntParamAsm
@@ -14837,7 +14848,7 @@ asm
     PUSH  EDI
     MOV   EDI, EAX
     PUSH  ESI
-    CALL  TControl.ParentForm
+    CALL  TControl.FormParentForm
     MOV   ESI, EAX
     PUSH  [ESI].TControl.DF.FormObj
     CALL  ParentForm_IntParamAsm

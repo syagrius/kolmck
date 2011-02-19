@@ -19,7 +19,7 @@ mmmmm      mmmmm     mmmmm     cccccccccccc       kkkkk     kkkkk
   Key Objects Library (C) 1999 by Kladov Vladimir.
   KOL Mirror Classes Kit (C) 2000 by Kladov Vladimir.
 ********************************************************
-* VERSION 3.04
+* VERSION 3.14
 ********************************************************
 }                     
 unit mirror;
@@ -246,6 +246,7 @@ type
     FReportDetailed: Boolean;
     FGeneratePCode: Boolean;
     FDefaultFont: TKOLFont;
+    FFormCompactDisabled: Boolean;
     function GetProjectName: String;
     procedure SetProjectDest(const Value: String);
 
@@ -280,6 +281,7 @@ type
     function getNewIf: Boolean;
     procedure setNewIf(const Value: Boolean);
     procedure SetDefaultFont(const Value: TKOLFont);
+    procedure SetFormCompactDisabled(const Value: Boolean);
   protected
     FLocked: Boolean;
     FNewIF: Boolean;
@@ -383,6 +385,7 @@ type
     property GeneratePCode: Boolean read FGeneratePCode write SetGeneratePCode;
     property NewIF: Boolean read getNewIf write setNewIf;
     property DefaultFont: TKOLFont read FDefaultFont write SetDefaultFont;
+    property FormCompactDisabled: Boolean read FFormCompactDisabled write SetFormCompactDisabled;
   end;
 
   TKOLProjectBuilder = class( TComponentEditor )
@@ -768,6 +771,9 @@ type
     FGenerateCtlNames: Boolean;
     FUnicode: Boolean;
     FOverrideScrollbars: Boolean;
+    fAssignTextToControls: Boolean;
+    FAssignTabOrders: Boolean;
+    fFormCurrentParent: String;
     function GetFormUnit: KOLString;
     procedure SetFormMain(const Value: Boolean);
     procedure SetFormUnit(const Value: KOLString);
@@ -860,6 +866,10 @@ type
     procedure SetUnicode(const Value: Boolean);
     procedure SetOverrideScrollbars(const Value: Boolean);
     procedure Set_Bounds(const Value: TFormBounds);
+    procedure SetAssignTextToControls(const Value: Boolean);
+    procedure SetAssignTabOrders(const Value: Boolean);
+    function GetFormCompact: Boolean;
+    procedure SetFormCurrentParent(const Value: String);
   protected
     fUniqueID: Integer;
     FLocked: Boolean;
@@ -1126,13 +1136,13 @@ type
     FFormCtlParams: TStringList;
   public
     FormCurrentCtlForTransparentCalls: String;
-    FormCurrentParent: String;
     FormCurrentParentCtl: TKOLCustomControl;
     FormIndexFlush: Integer;
     FormFlushedUntil: Integer;
     FormFunArrayIdx: Integer;
     FormControlsList: TStringList;
     IsFormFlushing: Boolean;
+    property FormCurrentParent: String read fFormCurrentParent write SetFormCurrentParent;
     function FormIndexOfControl( const CtlName: String ): Integer;
     function EncodeFormNumParameter( I: Integer ): String;
     function FormAddAlphabet( const funname: String; creates_ctrl, add_call: Boolean ): Integer;
@@ -1145,10 +1155,13 @@ type
     procedure DoFlushFormCompact( Sender: TObject );
     procedure GenerateTransparentInits_Compact; virtual;
   published
-    property FormCompact: Boolean read FFormCompact write SetFormCompact;
+    property FormCompact: Boolean read GetFormCompact write SetFormCompact;
     property GenerateCtlNames: Boolean read FGenerateCtlNames write SetGenerateCtlNames;
     property Unicode: Boolean read FUnicode write SetUnicode;
     property OverrideScrollbars: Boolean read FOverrideScrollbars write SetOverrideScrollbars;
+    property AssignTextToControls: Boolean read fAssignTextToControls
+             write SetAssignTextToControls default TRUE;
+    property AssignTabOrders: Boolean read FAssignTabOrders write SetAssignTabOrders;
   end;
 
 
@@ -1521,7 +1534,7 @@ type
     property SubItems[ Idx: Integer ]: TKOLMenuItem read GetSubItems;
     procedure MoveUp;
     procedure MoveDown;
-    procedure SetupTemplate( SL: TStringList; FirstItem: Boolean );
+    procedure SetupTemplate( SL: TStringList; FirstItem: Boolean; KF: TKOLForm );
     function P_SetupTemplate( SL: TStringList; DoAdd: Boolean ): Integer;
     procedure SetupAttributes( SL: TStringList; const MenuName: String );
     procedure P_SetupAttributes( SL: TStringList; const MenuName: String );
@@ -1938,7 +1951,7 @@ type
     FAnchorRight: Boolean;
     FAnchorBottom: Boolean;
     FpopupMenu: TKOLPopupMenu;
-    procedure SetAlign(const Value: TKOLAlign);
+    procedure SetAlign(const Value: TKOLAlign); virtual;
 
     procedure SetClsStyle(const Value: DWORD);
     procedure SetExStyle(const Value: DWORD);
@@ -2519,6 +2532,7 @@ type
     procedure Generate_SetSize_Compact; virtual;
     procedure GenerateVerticalAlign( SL: TStrings; const AName: String );
     procedure GenerateTextAlign( SL: TStrings; const AName: String );
+    function DefaultBorder: Integer; virtual;
   end;
 
   TKOLControl = class( TKOLCustomControl )
@@ -5397,6 +5411,8 @@ begin
     S := S + '.MouseTransparent';
   if LikeSpeedButton then
     S := S + '.LikeSpeedButton';
+  if  Border <> DefaultBorder then
+      S := S + '.SetBorder( ' + IntToStr( Border ) + ')';
   Result := Trim( S );
 
   LogOK;
@@ -7853,6 +7869,7 @@ end;
 
 procedure TKOLCustomControl.SetupColor(SL: TStrings; const AName: String);
 var KF: TKOLForm;
+    C: DWORD;
 begin
   asm
     jmp @@e_signature
@@ -7874,7 +7891,14 @@ begin
               if  (KF <> nil) and KF.FormCompact then
               begin
                   KF.FormAddCtlCommand( Name, 'FormSetColor' );
-                  KF.FormAddNumParameter( (Color shl 1) or (Color shr 31) );
+                  C := Color;
+                  if  C and $FF000000 = $FF000000 then
+                      C := C and $FFFFFF or $80000000;
+                  C := (C shl 1) or (C shr 31);
+                  RptDetailed( 'Prepare FormSetColor parameter, src color =$' +
+                      Int2Hex( Color, 2 ) + ', coded color =$' +
+                      Int2Hex( C, 2 ), CYAN );
+                  KF.FormAddNumParameter( C );
                   //SL.Add( '//Color = ' + IntToStr( Color ) );
               end else
               SL.Add( '    ' + AName + '.Color := TColor(' + Color2Str( Color ) + ');' );
@@ -7996,7 +8020,10 @@ begin
               KF.FormAddNumParameter( Border );
           end;
       end else
-      SL.Add( Prefix + AName + '.Border := ' + IntToStr( Border ) + ';' );
+      begin
+          //SL.Add( Prefix + AName + '.Border := ' + IntToStr( Border ) + ';' );
+          //--- moved to GenerateTransparentInits
+      end;
 
   if  MarginTop <> DefaultMarginTop then
       if  CompactCode then
@@ -8137,7 +8164,7 @@ begin
       SL.Add( Prefix + AName + '.IgnoreDefault := ' + BoolVals[ IgnoreDefault ] + ';' );
 
   //Rpt( '-------- FHint = ' + FHint );
-  if  (Trim( FHint ) <> '') and (Faction = nil) then
+  if  (Trim( FHint ) <> '') and (Faction = nil) and KF.AssignTextToControls then
   begin
       if  (ParentKOLForm <> nil) and ParentKOLForm.ShowHint then
       begin
@@ -8227,9 +8254,9 @@ begin
   if  fDefaultBtn then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'TControl.SetDefaultBtn' );
+          KF.FormAddCtlCommand( Name, 'FormSetDefaultBtn' );
           KF.FormAddNumParameter( 13 );
-          KF.FormAddNumParameter( 1 );
+          //KF.FormAddNumParameter( 1 );
           // param = 1
       end else
       SL.Add( Prefix + AName + '.DefaultBtn := TRUE;' );
@@ -8237,9 +8264,9 @@ begin
   if  fCancelBtn then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'TControl.SetDefaultBtn' );
+          KF.FormAddCtlCommand( Name, 'FormSetDefaultBtn' );
           KF.FormAddNumParameter( 27 );
-          KF.FormAddNumParameter( 1 );
+          //KF.FormAddNumParameter( 1 );
           // param = 1
       end else
       SL.Add( Prefix + AName + '.CancelBtn := TRUE;' );
@@ -8251,17 +8278,13 @@ begin
               Integer( AnchorTop ) shl 1 +
               Integer( AnchorRight ) shl 2 +
               Integer( AnchorBottom ) shl 3;
-          if  (i = 1) or (i = 2) or (i = 4) or (i = 8) then
-              KF.FormAddCtlCommand( Name, 'TControl.SetAnchor' );
-          CASE i OF
-          1:  KF.FormAddNumParameter( ANCHOR_LEFT );
-          2:  KF.FormAddNumParameter( ANCHOR_TOP );
-          4:  KF.FormAddNumParameter( ANCHOR_RIGHT );
-          8:  KF.FormAddNumParameter( ANCHOR_BOTTOM );
+          if  i = 1 then
+              KF.FormAddCtlCommand( Name, 'TControl.SetAnchor' )
           else
+          begin
               KF.FormAddCtlCommand( Name, 'FormSetAnchor' );
               KF.FormAddNumParameter( i );
-          END;
+          end;
       end else
       SL.Add( Prefix + AName + '.Anchor(' +
           BoolVals[ AnchorLeft ] + ', ' +
@@ -9716,7 +9739,7 @@ begin
       {P}SL.Add( ' C1 AddWord_StoreB ##TControl_.FIgnoreDefault' );
     end;
   //Rpt( '-------- FHint = ' + FHint );
-  if (Trim( FHint ) <> '') and (Faction = nil) then
+  if (Trim( FHint ) <> '') and (Faction = nil)  then
   begin
     if (ParentKOLForm <> nil) and ParentKOLForm.ShowHint then
     begin
@@ -10445,8 +10468,13 @@ begin
     Rpt( 'TabOrder = ' + IntToStr( FTabOrder ) +
          ', Creation order = ' + IntToStr( Integer( fCreationOrder ) ),
          YELLOW );
-    if  TabOrder <> fCreationOrder then
+    if  (TabOrder <> fCreationOrder) and ParentKOLForm.AssignTabOrders then
         SL.Add( '    ' + AName + '.TabOrder := ' + IntToStr( TabOrder ) + ';' );
+end;
+
+function TKOLCustomControl.DefaultBorder: Integer;
+begin
+    Result := 2;
 end;
 
 { TKOLApplet }
@@ -11510,6 +11538,7 @@ begin
   Log( '?13 TKOLForm.Create' );
   if not (csLoading in ComponentState) then
     FRealignTimer.Enabled := TRUE;
+  fAssignTextToControls := TRUE;
   Log( '?14 TKOLForm.Create' );
   LogOK;
   finally
@@ -12014,23 +12043,35 @@ begin
       begin
           if  KC.Parent is TCustomForm then
           begin
-              Rpt( 'searching parent form to set as FormCurrentParent', WHITE );
-              while FormCurrentParentCtl <> nil do
+              if  (FormCurrentParentCtl <> nil) and
+                  ((FormCurrentParentCtl.Parent <> nil)
+                   and not (FormCurrentParentCtl.Parent is TCustomForm))
+              or  FormFlushedCompact then
               begin
-                  FormAddCtlCommand( '', 'FormSetUpperParent' );
-                  if  (FormCurrentParentCtl.Parent is TCustomForm) then
+                  FormAddCtlCommand( '', 'FormSetCurCtl' );
+                  FormAddNumParameter( 0 );
+                  FormAddCtlCommand( '', 'FormLastCreatedChildAsNewCurrentParent' );
+                  FormCurrentParentCtl := nil;
+                  FormCurrentParent := '';
+              end else
+              begin
+                  Rpt( 'searching parent form to set as FormCurrentParent', WHITE );
+                  while FormCurrentParentCtl <> nil do
                   begin
-                      FormCurrentParentCtl := nil;
-                      FormCurrentParent := '';
-                  end
-                    else
-                  begin
-                      FormCurrentParentCtl := (FormCurrentParentCtl.Parent as TKOLControl);
-                      FormCurrentParent := FormCurrentParentCtl.Name;
+                      FormAddCtlCommand( '', 'FormSetUpperParent' );
+                      if  (FormCurrentParentCtl.Parent is TCustomForm) then
+                      begin
+                          FormCurrentParentCtl := nil;
+                          FormCurrentParent := '';
+                      end
+                        else
+                      begin
+                          FormCurrentParentCtl := (FormCurrentParentCtl.Parent as TKOLControl);
+                          FormCurrentParent := FormCurrentParentCtl.Name;
+                      end;
                   end;
               end;
-          end
-            else
+          end else
           if  (KC.Parent is TKOLTabPage) and (KC.Parent.Parent is TKOLTabControl) then
           begin
               if  FormCurrentParent <> KC.Parent.Name then
@@ -12055,12 +12096,19 @@ begin
                   FormCurrentParent := KC.Parent.Name;
                   FormCurrentParentCtl := KC.Parent as TKOLCustomControl;
               end;
-          end
-            else
-          if  KC.Parent <> FormCurrentParentCtl then
+          end else
+          if  (KC.Parent <> FormCurrentParentCtl) or FormFlushedCompact then
           begin
               Rpt( 'searching parent control to set as FormCurrentParent', WHITE );
               Rpt( KC.Parent.Name, WHITE );
+              if  FormFlushedCompact then
+              begin
+                  FormAddCtlCommand( '', 'FormSetCurCtl' );
+                  FormAddNumParameter( FormIndexOfControl( KC.Parent.Name ) );
+                  FormAddCtlCommand( '', 'FormLastCreatedChildAsNewCurrentParent' );
+                  FormCurrentParentCtl := KC.Parent as TKOLCustomControl;
+                  FormCurrentParent := KC.Parent.Name;
+              end else
               while (KC.Parent <> FormCurrentParentCtl) and
                     (FormCurrentParentCtl <> nil) do
               begin
@@ -12748,6 +12796,10 @@ begin
         //    где: alphabet - массив указателей на использованные функции,
         //         commands&parameters - строка с командами и параметрами
         //             для интерпретации в вызовах FormExecuteCommands( ... )
+        if  FFormAlphabet <> nil then
+            RptDetailed( 'FormCompact = ' + Int2Str( Integer( FormCompact ) ) +
+                         ' FormAlphabet.Count = ' + Int2Str( FFormAlphabet.Count ),
+                         WHITE or LIGHT );
         if  FormCompact and (FFormAlphabet.Count > 0) then
         begin
             FA := TStringList.Create;
@@ -15902,7 +15954,10 @@ begin
   try
 
 {$IFDEF _D2009orHigher}
-  C := StringConstant( 'Caption', Caption );
+  if  AssignTextToControls then
+      C := StringConstant( 'Caption', Caption )
+  else
+      C := '''''';
   if C <> '''''' then
    begin
     C2 := '';
@@ -15910,7 +15965,10 @@ begin
     C := C2;
    end;
 {$ELSE}
-  C := StringConstant( 'Caption', Caption );
+  if  AssignTextToControls then
+      C := StringConstant( 'Caption', Caption )
+  else
+      C := '''''';
 {$ENDIF}
   if  FormCompact then
   begin
@@ -18384,77 +18442,72 @@ begin
 end;
 
 function TKOLForm.EncodeFormNumParameter(I: Integer): String;
-var //II: Integer;
-    b: Byte;
-    Buffer: array[ 0..4 ] of Byte;
-    k, j: Integer;
+var b: Byte;
+    Buffer: array[ 0..7 ] of Byte;
+    k, j, II: Integer;
     Sign: Boolean;
 begin
-    //II := I;
-
-    k := 0;
-    if  I = 0 then
-    begin
-        k := 1;
-        Buffer[0] := 0;
-    end
-      else
-    begin
-        Sign := FALSE;
-        if  I < 0 then
+    II := I;
+    TRY
+        k := 0;
+        if  I = 0 then
         begin
-            I := -I;
-            Sign := TRUE;
-        end;
-        while I <> 0 do
+            k := 1;
+            Buffer[0] := 0;
+        end
+          else
         begin
-            if  k = 0 then
+            Sign := FALSE;
+            if  I < 0 then
             begin
-                b := I shl 2;
-                if  Sign then
-                    b := b or 2;
-                I := I shr 6;
-            end
-              else
-            begin
-                b := I shl 1;
-                I := I shr 7;
+                I := -I;
+                Sign := TRUE;
             end;
-            Buffer[k] := b;
-            inc( k );
+            while TRUE do
+            begin
+                if  k = 0 then
+                begin
+                    b := I shl 2;
+                    if  Sign then
+                        b := b or 2;
+                    I := I shr 6;
+                    Buffer[k] := b;
+                    inc( k );
+                    if  I = 0 then break;
+                end else
+                if  I and not $7F = 0 then
+                begin
+                    b := I shl 1;
+                    //I := DWORD( I ) shr 7;
+                    Buffer[k] := b;
+                    inc( k );
+                    break;
+                end else
+                begin
+                    b := I shl 1;
+                    I := DWORD( I ) shr 7;
+                    Buffer[k] := b;
+                    inc( k );
+                    continue;
+                end;
+            end;
         end;
-    end;
 
-    Result := ''; // '+{' + Format( '%03d', [ II ] ) + '}';
-    for j := k-1 downto 0 do
-    begin
-        b := Buffer[j];
-        if  j > 0 then
-            b := b or 1;
-        Result := Result + '#$' + Int2Hex( b, 2 );
-    end;
-
-    {
-    Result := '';
-    if  I < 0 then
-        II := (Int64( -I ) shl 1) or 1
-    else
-    //if  I > 0 then
-        II := Int64( I ) shl 1;
-    if  II = 0 then
-    begin
-        Result := Result + '#$00';
-    end
-      else
-    while II <> 0 do
-    begin
-        b := II and $7F;
-        II := II shr 7;
-        if  II <> 0 then
-            b := b or $80;
-        Result := Result + '#$' + Int2Hex( b, 2 );
-    end;
-    }
+        Result := '';
+        for j := k-1 downto 0 do
+        begin
+            b := Buffer[j];
+            if  j > 0 then
+                b := b or 1;
+            Result := Result + '#$' + Int2Hex( b, 2 );
+        end;
+    EXCEPT on E: Exception do
+           begin
+               RptDetailed( 'exception ' + E.Message + #13#10 +
+               '(in EncodeFormNumParameter I = ' + IntToStr( II ) + ')',
+               RED );
+           end;
+    END;
 end;
 
 function TKOLForm.FormIndexOfControl(const CtlName: String): Integer;
@@ -18496,6 +18549,34 @@ end;
 procedure TKOLForm.SetOverrideScrollbars(const Value: Boolean);
 begin
   FOverrideScrollbars := Value;
+end;
+
+procedure TKOLForm.SetAssignTextToControls(const Value: Boolean);
+begin
+  if  fAssignTextToControls = Value then Exit;
+  fAssignTextToControls := Value;
+  Change( Self );
+end;
+
+procedure TKOLForm.SetAssignTabOrders(const Value: Boolean);
+begin
+  if  FAssignTabOrders = Value then Exit;
+  FAssignTabOrders := Value;
+  Change( Self );
+end;
+
+function TKOLForm.GetFormCompact: Boolean;
+begin
+    Result := FFormCompact;
+    if  (KOLProject <> nil) and KOLProject.FormCompactDisabled then
+        Result := FALSE;
+end;
+
+procedure TKOLForm.SetFormCurrentParent(const Value: String);
+begin
+  Rpt( 'FormCurrentParent set to ' + Value + ' (was: ' + fFormCurrentParent + ')',
+      CYAN );
+  fFormCurrentParent := Value;
 end;
 
 { TKOLProject }
@@ -20358,6 +20439,7 @@ procedure TKOLProject.SetGeneratePCode(const Value: Boolean);
 begin
   FGeneratePCode := Value;
   Change;
+  ChangeAllForms;
 end;
 
 procedure TKOLProject.SetHelpFile(const Value: String);
@@ -20368,6 +20450,7 @@ begin
 
   FHelpFile := Value;
   Change;
+  ChangeAllForms;
 
   LogOK;
   FINALLY
@@ -20622,6 +20705,7 @@ begin
   TRY
   FShowHint := Value;
   Change;
+  ChangeAllForms;
   LogOK;
   FINALLY
     Log( '<-TKOLProject.SetShowHint' );
@@ -20641,6 +20725,7 @@ begin
   TRY
     FSupportAnsiMnemonics := Value;
     Change;
+    ChangeAllForms;
   LogOK;
   FINALLY
     Log( '<-TKOLProject.SetSupportAnsiMnemonics' );
@@ -20828,6 +20913,15 @@ begin
   if FDefaultFont.Equal2( Value ) then Exit;
   FDefaultFont.Assign( Value );
   Change;
+  ChangeAllForms;
+end;
+
+procedure TKOLProject.SetFormCompactDisabled(const Value: Boolean);
+begin
+  if  FFormCompactDisabled = Value then Exit;
+  FFormCompactDisabled := Value;
+  Change;
+  ChangeAllForms;
 end;
 
 { TFormBounds }
@@ -21619,6 +21713,7 @@ begin
   if  KF = nil then Exit;
   if  (Name <> '') and KF.GenerateCtlNames then
   begin
+      RptDetailed( 'KF=' + KF.Name + ' ----- GenerateCtlNames = TRUE', WHITE or LIGHT );
       if  AParent <> 'nil' then
           SL.Add(Format( '%s%s.SetName( Result.Form, ''%s'' ); ', [Prefix, AName, Name]))
       else
@@ -23029,11 +23124,15 @@ begin
   @@e_signature:
   end;
   S := GenerateTransparentInits;
-
   SL.Add( '  Result.Form := NewPanel( AParent, ' + EdgeStyles[ edgeStyle ] + ' )' +
+          '.MarkPanelAsForm' +
           S + ';' );
+  SL.Add( '  Result.Form.DF.FormAddress := @ Result.Form;' );
   if Caption <> '' then
-    SL.Add( '  Result.Form.Caption := ' + StringConstant( 'Caption', Caption ) + ';' );
+     if  AssignTextToControls then
+         SL.Add( '  Result.Form.Caption := ' + StringConstant( 'Caption', Caption ) + ';' );
+  if  FormCompact then
+      SL.Add( '  //--< place to call FormCreateParameters >--//' );
 end;
 
 function TKOLFrame.GenerateTransparentInits: String;
@@ -23884,7 +23983,7 @@ begin
   for I := 0 to FItems.Count - 1 do
    begin
     MI := FItems[ I ];
-    MI.SetupTemplate( SL, I = 0 );
+    MI.SetupTemplate( SL, I = 0, ParentKOLForm );
    end;
   S := ''''' ], ' + OnMenuItemMethodName( FALSE ) + ' );';
   if FItems.Count <> 0 then
@@ -24895,7 +24994,7 @@ begin
   end;
 end;
 
-procedure TKOLMenuItem.SetupTemplate(SL: TStringList; FirstItem: Boolean);
+procedure TKOLMenuItem.SetupTemplate(SL: TStringList; FirstItem: Boolean; KF: TKOLForm);
     procedure Add2SL( const S: TDelphiString );
     begin
       if Length( SL[ SL.Count - 1 ] + S ) > 64 then
@@ -24925,6 +25024,8 @@ begin
   else
   begin
     U := Caption;
+    if  (KF <> nil) and not KF.AssignTextToControls then
+        U := '';
     {$IFDEF _D2009orHigher}
      C2 := '';
      for j := 1 to Length(U) do C2 := C2 + '#'+IntToStr(ord(U[j]));
@@ -24953,7 +25054,8 @@ begin
       S := '+' + S;
   end;
   if Accelerator.Key <> vkNotPresent then
-  if MenuComponent.showshortcuts and (Faction = nil) then
+  if  MenuComponent.showshortcuts and (Faction = nil)
+  and (KF <> nil) and KF.AssignTextToControls then
   {$IFDEF _D2009orHigher}
     U := U + '''' + #9 + Accelerator.AsText + '''';
   {$ELSE}
@@ -25003,7 +25105,7 @@ begin
     for I := 0 to Count - 1 do
     begin
       MI := FSubItems[ I ];
-      MI.SetupTemplate( SL, False );
+      MI.SetupTemplate( SL, False, KF );
     end;
     Add2SL( ', '')''' );
   end;
@@ -26884,6 +26986,7 @@ var RsrcName: String;
     Updated: Boolean;
     KF: TKOLForm;
     i: Integer;
+    C: DWORD;
 begin
   if FOwner = nil then Exit;
   if FOwner is TKOLForm then
@@ -26896,7 +26999,14 @@ begin
                      if  KF.FormCompact then
                      begin
                          KF.FormAddCtlCommand( 'Form', 'FormSetColor' );
-                         KF.FormAddNumParameter( (KF.Color shl 1) or (KF.Color shr 31) );
+                         C := KF.Color;
+                         if  C and $FF000000 = $FF000000 then
+                             C := C and $FFFFFF or $80000000;
+                         C := (C shl 1) or (C shr 31);
+                         RptDetailed( 'Prepare FormSetColor parameter, src color =$' +
+                              Int2Hex( KF.Color, 2 ) + ', coded color =$' +
+                              Int2Hex( C, 2 ), CYAN );
+                         KF.FormAddNumParameter( C );
                      end
                      else
                      SL.Add( '    ' + AName + '.Color := TColor(' + Color2Str( KF.Color ) + ');' );
@@ -26944,7 +27054,14 @@ begin
                    begin
                        KF.FormAddCtlCommand( (FOwner as TKOLCustomControl).Name, 'FormSetColor' );
                        i := (FOwner as TKOLCustomControl).Color;
-                       KF.FormAddNumParameter( (i shl 1) or (i shr 31) );
+                       C := i;
+                       if  C and $FF000000 = $FF000000 then
+                           C := C and $FFFFFF or $80000000;
+                       C := (C shl 1) or (C shr 31);
+                       RptDetailed( 'Prepare FormSetColor parameter, src color =$' +
+                            Int2Hex( i, 2 ) + ', coded color =$' +
+                            Int2Hex( C, 2 ), CYAN );
+                       KF.FormAddNumParameter( C );
                    end
                    else
                    SL.Add( '    ' + AName + '.Color := TColor(' + Color2Str( (FOwner as TKOLCustomControl).Color ) + ');' );
