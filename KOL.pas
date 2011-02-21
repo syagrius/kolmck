@@ -14,7 +14,7 @@
   Key Objects Library (C) 2000 by Kladov Vladimir.
 
 ****************************************************************
-* VERSION 3.1415
+* VERSION 3.14159265
 ****************************************************************
 
   K.O.L. - is a set of objects to create small programs
@@ -293,6 +293,8 @@ unit KOL;
   OLD_REGKEYGETVALUENAMES - to use elder version of RegKeyGetValueNames
                           (newer version is faster).
   USE_CUSTOMEXTENSIONS  - to extend TControl with custom additions.
+  DATE0_0001            - to correct correctly TDateTime to TSystemTime and vice
+                          versa even for dates earlier then 1-Jan-1601.
   UNICODE_CTRLS         - to use Unicode versions of controls (WM_XXXXW messages,
                           etc.)
   SAFE_CODE             - use more safe code in some algorithms (but more slowly
@@ -3791,19 +3793,21 @@ const
     idx_FOnLVStateChange    = 47;
     idx_fOnDeleteLVItem     = 48;
     idx_fOnColumnClick      = 49;
-    idx_FOnTVEndEdit        = 50;
-    idx_FOnTVExpanded       = 51;
-    idx_FOnTVExpanding      = 52;
-    idx_FOnTVSelChanging    = 53;
-    idx_FOnSBBeforeScroll   = 54;
-    idx_FOnSBScroll         = 55;
-    idx_FOnDropDown         = 56;
-    idx_FOnCloseUp          = 57;
-    idx_FOnSplit            = 58;
-    idx_FOnProgress         = 59;
-    idx_FOnBitBtnDraw       = 60;
-    idx_FOnTVBeginDrag      = 61;
-    idx_FOnTVBeginEdit      = 62;
+    idx_FOnSBBeforeScroll   = 50;
+    idx_FOnSBScroll         = 51;
+    idx_FOnDropDown         = 52;
+    idx_FOnCloseUp          = 53;
+    idx_FOnSplit            = 54;
+    idx_FOnProgress         = 55;
+    idx_FOnBitBtnDraw       = 56;
+    idx_FOnTVBeginDrag      = 57;
+    idx_FOnTVBeginEdit      = 58;
+
+    idx_FOnTVEndEdit        = 59;
+    idx_FOnTVExpanding      = 60;
+    idx_FOnTVExpanded       = 61;
+    idx_FOnTVSelChanging    = 62;
+
     idx_FOnTVDelete         = 63;
     idx_FOnDTPUserString    = 64;
     idx_FOnREInsModeChg     = 65;
@@ -4580,11 +4584,6 @@ type
     fOnDeleteLVItem: TOnDeleteLVItem;
     fOnColumnClick: TOnLVColumnClick;
 
-    FOnTVEndEdit: TOnTVEndEdit;
-    FOnTVExpanded: TOnTVExpanded;
-    FOnTVExpanding: TOnTVExpanding;
-    FOnTVSelChanging: TOnTVSelChanging;
-
     FOnSBBeforeScroll: TOnSBBeforeScroll;
     FOnSBScroll: TOnSBScroll;
 
@@ -4599,6 +4598,11 @@ type
 
     FOnTVBeginDrag: TOnTVBeginDrag;
     FOnTVBeginEdit: TOnTVBeginEdit;
+    FOnTVEndEdit: TOnTVEndEdit;
+    FOnTVExpanding: TOnTVExpanding;
+    FOnTVExpanded: TOnTVExpanded;
+    FOnTVSelChanging: TOnTVSelChanging;
+
     FOnTVDelete: TOnTVDelete;
 
     FOnDTPUserString: TDTParseInputEvent;
@@ -11786,6 +11790,20 @@ procedure SupportAnsiMnemonics( LocaleID: Integer );
 }
 {$ENDIF WIN_GDI}
 {$IFDEF WIN_GDI}
+
+{$IFDEF _D2orD3}
+            {$DEFINE DATE0_0001}
+{$ENDIF _D2orD3}
+{$IFnDEF DATE0_0001}
+                    {$DEFINE DATE0_1601}
+{$ENDIF} //Starting from the version 3.1415926, (so called PI-version), datetime
+         //can be correctly handled (by default) from 1-Jan-1601 to 1-Jan-38827.
+         //This made it possible to use short calls to API functions to convert date and time.
+         //If you still want to count time correctly from 1-Jan-1 B.C., or a compatibility
+         //is required for old applications, define symbol DATE0_0001 in your
+         //project options. Actually this does not mean that TDateTime forma changed,
+         //but only restrictions are in converting date to TSystemTime from TDateTime
+         //and vice versa.
 type
   //TDateTime = Double; // well, it is already defined so in System.pas
   {* Basic date and time type. Integer part represents year and days (as is,
@@ -11817,6 +11835,7 @@ const
   MSecsPerDay = SecsPerDay * 1000;
   {* Milliseconds per day. }
 
+  Date1601 = 584389;
   VCLDate0 = 693594;
   {* Value to convert VCL "date 0" to KOL "date 0" and back.
      This value corresponds to 30-Dec-1899, 0:00:00. So,
@@ -15837,10 +15856,6 @@ const InitEventsTable: array[ 0..idx_LastEvent ] of Byte = (
       idummy6,           //idx_FOnLVStateChange                                          = 47;
       idummy123,         //idx_fOnDeleteLVItem                                           = 48;
       idummy123,         //idx_fOnColumnClick                                            = 49;
-      idummy4_TRUE,      //idx_FOnTVEndEdit                                              = 50;
-      idummy4_TRUE,      //idx_FOnTVExpanded                                             = 51;
-      idummy4_0,         //idx_FOnTVExpanding                                            = 52;
-      idummy4_TRUE,      //idx_FOnTVSelChanging                                          = 53;
       idummy6,           //idx_FOnSBBeforeScroll                                         = 54;
       idummy123,         //idx_FOnSBScroll                                               = 55;
       idummy123,         //idx_FOnDropDown                                               = 56;
@@ -15850,6 +15865,12 @@ const InitEventsTable: array[ 0..idx_LastEvent ] of Byte = (
       idummy123_0,       //idx_FOnBitBtnDraw                                             = 60;
       idummy123,         //idx_FOnTVBeginDrag                                            = 61;
       idummy123_TRUE,    //idx_FOnTVBeginEdit                                            = 62;
+
+      idummy4_TRUE,      //idx_FOnTVEndEdit                                              = 50;
+      idummy4_0,         //idx_FOnTVExpanding                                            = 52;
+      idummy4_TRUE,      //idx_FOnTVExpanded                                             = 51;
+      idummy4_TRUE,      //idx_FOnTVSelChanging                                          = 53;
+
       idummy123,         //idx_FOnTVDelete                                               = 63;
       idummy5_TRUE,      //idx_FOnDTPUserString                                          = 64;
       idummy123,         //idx_FOnREInsModeChg                                           = 65;
@@ -19930,7 +19951,8 @@ begin
   while I <= Length( S ) do
   begin
     case S[ I ] of
-    '.': if not Pt then Pt := TRUE else break;
+    '.' {$IFNDEF SMALLEST_CODE}, ','{$ENDIF}
+            : if not Pt then Pt := TRUE else break;
     '0'..'9': if  not Pt then
                   Result := Result * 10 + Integer( S[ I ] ) - Integer( '0' )
               else
@@ -22502,25 +22524,28 @@ end;
 function StrSatisfy( const S, Mask: AnsiString ): Boolean;
 asm
         PUSH     ESI
+        TEST     EAX, EAX
+        JZ       @@exit
+
         XCHG     ESI, EAX
-        PUSH     0
+
         XCHG     EAX, EDX
-        CALL     EAX2PChar
-        MOV      EDX, ESP
+        TEST     EAX, EAX
+        JZ       @@exit
 
-        CMP      byte ptr [EAX], 0
-        JZ       @@0
-        CALL     AnsiLowerCase
-@@0:
-        XCHG     EAX, ESI
+        CALL     EAX2PChar
+
         PUSH     0
-        CALL     EAX2PChar
         MOV      EDX, ESP
-
-        CMP      byte ptr [EAX], 0
-        JZ       @@1
         CALL     AnsiLowerCase
-@@1:
+
+        XCHG     EAX, ESI
+        CALL     EAX2PChar
+
+        PUSH     0
+        MOV      EDX, ESP
+        CALL     AnsiLowerCase
+
         POP      EAX
         POP      EDX
         PUSH     EDX
@@ -22533,11 +22558,14 @@ asm
         CALL     RemoveStr
         XCHG     EAX, ESI
 
+@@exit:
         POP      ESI
 end;
 {$ELSE ASM_VERSION} //Pascal
 function StrSatisfy( const S, Mask: KOLString ): Boolean;
 begin
+  Result := FALSE;
+  if  (S = '') or (Mask = '') then Exit;
   Result := _StrSatisfy( PKOLChar( {$IFDEF UNICODE_CTRLS} WAnsiLowerCase
                                    {$ELSE} AnsiLowerCase {$ENDIF} ( S ) ),
                          PKOLChar( {$IFDEF UNICODE_CTRLS} WAnsiLowerCase
@@ -23152,7 +23180,14 @@ begin
 end;
 {$ENDIF}
 
+{$UNDEF ASM_LOCAL}
+{$IFDEF _D3orHigher}
 {$IFDEF ASM_UNICODE}
+        {$DEFINE ASM_LOCAL}
+{$ENDIF ASM_UNICODE}
+{$ENDIF _D3orHigher}
+
+{$IFDEF ASM_LOCAL}
 function ParamStr( Idx: Integer ): KOLString;
 asm
          PUSH EDI
@@ -23239,7 +23274,7 @@ asm
 end;
 {$ELSE PAS_VERSION}
 function ParamCount: Integer;
-var p: PChar;
+var p: PKOLChar;
 begin
     p := GetCommandLine;
     Result := -1;
@@ -24170,6 +24205,9 @@ end;
 {$IFDEF WIN}
 {$IFDEF ASM_VERSION}{$ELSE ASM_VERSION} //Pascal
 function CompareSystemTime(const D1, D2 : TSystemTime) : Integer;
+{$IFDEF DATE0_1601}
+var ft1, ft2: TFileTime;
+{$ELSE}
 var R: Integer;
    procedure CompareFields(const F1, F2 : Integer);
    begin
@@ -24179,7 +24217,13 @@ var R: Integer;
            R := -1
       else R := 1;
    end;
+{$ENDIF DATE0_0001}
 begin
+   {$IFDEF DATE0_1601}
+   SystemTimeToFileTime( D1, ft1 );
+   SystemTimeToFileTime( D2, ft2 );
+   Result := CompareFileTime( ft1, ft2 );
+   {$ELSE}
    R := 0;
    CompareFields( D1.wYear, D2.wYear );
    CompareFields( D1.wMonth, D2.wMonth );
@@ -24189,6 +24233,7 @@ begin
    CompareFields( D1.wSecond, D2.wSecond );
    CompareFields( D1.wMilliseconds, D2.wMilliseconds );
    Result := R;
+   {$ENDIF DATE0_0001}
 end;
 {$ENDIF ASM_VERSION}
 
@@ -25780,7 +25825,9 @@ var I : Integer;
     W1, W2: KOLWideString;
     {$ENDIF}
     IsDir1, IsDir2 : Boolean;
+    {$IFDEF _D4orHigher}
     sz1, sz2: I64;
+    {$ENDIF}
 begin
   Item1 := Data.Dir.Get( e1 ); // fList.Items[ e1 ];
   Item2 := Data.Dir.Get( e2 ); // fList.Items[ e2 ];
@@ -26559,10 +26606,27 @@ begin
 end;
 
 function SystemTime2DateTime(const SystemTime : TSystemTime; var DateTime : TDateTime ) : Boolean;
+{$IFDEF DATE0_1601}
+type
+    TTimeRec = record
+    CASE Integer OF
+    0: ( ft: TFileTime );
+    1: ( it: I64 );
+    END;
+var TR: TTimeRec;
+{$ELSE}
 var I : Integer;
     _Day : Integer;
     DayTable: PDayTable;
+{$ENDIF}
 begin
+  {$IFDEF DATE0_1601}
+//Result := FALSE;
+//if  (SystemTime.wYear < 1601) or (SystemTime.wYear > 30827) then Exit; {>>>>>}
+  Result := SystemTimeToFileTime( SystemTime, TR.ft );
+  if  Result then
+      DateTime := Int64( TR.it ) / (10000000.0 * 24 * 3600 ) + Date1601;
+  {$ELSE}
   Result := False;
   DateTime := 0.0;
   DayTable := @MonthDays[IsLeapYear(SystemTime.wYear)];
@@ -26584,11 +26648,12 @@ begin
     //--------------- by Vadim Petrov ------++
     if I<0 then i := 0;                     //
     //--------------------------------------++
-    DateTime := I * 365 + I div 4 - I div 100 + I div 400 + _Day
-             + (((wHour * 60 + wMinute) * 60 + wSecond) * 1000 + wMilliSeconds)
+    DateTime := (((wHour * 60 + wMinute) * 60 + wSecond) * 1000 + wMilliSeconds)
              / MSecsPerDay;
+    DateTime := DateTime + I * 365 + I div 4 - I div 100 + I div 400 + _Day;
     Result := True;
   end;
+  {$ENDIF DATE0_0001}
 end;
 
 function DayOfWeek(Date: TDateTime): Integer;
@@ -26596,8 +26661,16 @@ begin
   Result := (Trunc( Date ) + 6) mod 7 + 1;
 end;
 
+{$UNDEF ASM_LOCAL}
 {$IFDEF ASM_VERSION}
+{$IFDEF DATE0_0001}
+                   {$DEFINE ASM_LOCAL}
+{$ENDIF DATE0_0001}
+{$ENDIF ASM_VERSION}
+
+{$IFDEF ASM_LOCAL}
 var _MSecsPerDay: Double = MSecsPerDay;
+//function DateTime2SystemTime_Asm(const DateTime : TDateTime; var SystemTime : TSystemTime ) : Boolean;
 function DateTime2SystemTime(const DateTime : TDateTime; var SystemTime : TSystemTime ) : Boolean;
 const
   D1 = 365;
@@ -26616,7 +26689,7 @@ asm
          FILD  DWORD PTR [ESP]
          POP   ECX
          FSUBR QWORD PTR [DateTime]
-         FMUL  DWORD PTR [_MSecsPerDay]
+         FMUL  QWORD PTR [_MSecsPerDay]
          CALL  System.@ROUND
          XCHG  EBX, EAX                // EBX = MSecs
          XOR   EAX, EAX
@@ -26625,12 +26698,13 @@ asm
 
          DEC   EDI
          INC   EAX // EAX = Y = 1
-@@while1:SUB   EDI, D400
+         MOV   ECX, D400
+@@while1:CMP   EDI, ECX
          JL    @@1end
+         SUB   EDI, ECX
          ADD   EAX, 400
          JMP   @@while1
-@@1end:  ADD   EDI, D400
-         PUSH  EAX
+@@1end:  PUSH  EAX
 
          MOV   EAX, EDI
          XOR   EDX, EDX
@@ -26646,7 +26720,7 @@ asm
          XOR   EDX, EDX
          OR    DL, 100
          MUL   EDX        // EAX = I * 100
-         SUB   ECX, EAX   // ECX = Y - I * 100
+         ADD   ECX, EAX   // ECX = Y + I * 100
          XCHG  [ESP], ECX // ECX = D, [ESP] = Y
 
          XCHG  EAX, ECX
@@ -26723,7 +26797,17 @@ asm
          POP   EBX
 end;
 {$ELSE  PAS_VERSION}
+//function DateTime2SystemTime_Pas(const DateTime : TDateTime; var SystemTime : TSystemTime ) : Boolean;
 function DateTime2SystemTime(const DateTime : TDateTime; var SystemTime : TSystemTime ) : Boolean;
+{$IFDEF DATE0_1601}
+type
+    TTimeRec = record
+    CASE Integer OF
+    0: ( ft: TFileTime );
+    1: ( it: I64 );
+    END;
+var TR: TTimeRec;
+{$ELSE}
 const
   D1 = 365;
   D4 = D1 * 4 + 1;
@@ -26734,10 +26818,16 @@ var Days : Integer;
     MSec : Integer;
     DayTable: PDayTable;
     MinCount, MSecCount: Word;
+{$ENDIF}
 begin
+  {$IFDEF DATE0_1601}
+  TR.it := I64( Trunc( (DateTime - Date1601) * (24.0 * 3600 * 10000000) ) );
+  Result := FileTimeToSystemTime( TR.ft, SystemTime );
+  {$ELSE  DATE0_0001}
   Days := Trunc( DateTime );
   MSec := Round((DateTime - Days) * MSecsPerDay);
   Result := False;
+  if  IsNAN( DateTime ) then Exit;
   with SystemTime do
   if Days > 0 then
   begin
@@ -26782,8 +26872,27 @@ begin
       DivMod(MSecCount, 1000, wSecond, wMilliSeconds);
       Result := True;
   end;
+  {$ENDIF DATE0_0001}
 end;
 {$ENDIF PAS_VERSION}
+
+{function DateTime2SystemTime(const DateTime : TDateTime; var SystemTime : TSystemTime ) : Boolean;
+var ST_Pas, ST_Asm: TSystemTime;
+begin
+    if  IsNAN( DateTime ) then
+    asm
+        nop
+    end;
+    Result := DateTime2SystemTime_Pas( DateTime, ST_Pas );
+    DateTime2SystemTime_Asm( DateTime, ST_Asm );
+    if  Result and not CompareMem( @ ST_Asm, @ST_Pas, Sizeof( TSystemTime ) ) then
+    while TRUE do
+    begin
+        DateTime2SystemTime_Pas( DateTime, ST_Pas );
+        DateTime2SystemTime_Asm( DateTime, ST_Asm );
+    end;
+    Result := DateTime2SystemTime_Pas( DateTime, SystemTime );
+end;}
 
 function DateTime_DiffSysLoc: TDateTime;
 var ST, LT: TSystemTime;
@@ -36095,6 +36204,7 @@ end;
 
 //=====================  Tree view  ========================//
 {$IFDEF ASM_UNICODE}
+{$IFDEF WNDPROCTREEVIEW_OLDASMVERSION}
 function WndProcTreeView( Self_: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean;
 asm     //cmd    //opd
         CMP      word ptr [EDX].TMsg.message, WM_NOTIFY
@@ -36377,6 +36487,149 @@ asm     //cmd    //opd
 @@ret_false:
         XOR      EAX, EAX
 end;
+{$ELSE NEW VERSION OF WndProcTreeView}
+function WndProcTreeView( Self_: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean;
+asm
+         PUSH  ESI
+         PUSH  EDI
+         MOV   EDI, ECX // EDI -> Rslt
+         XOR   ECX, ECX
+         CMP   WORD PTR [EDX].TMsg.message, WM_NOTIFY
+         JNZ   @@ret_false1
+         XCHG  ESI, EAX
+         MOV   EDX, [EDX].TMsg.lParam
+         CMP   WORD PTR [EDX].TNMTreeView.hdr.code, NM_RCLICK
+         JNE   @@chk_TVN_BEGINDRAG
+         PUSH  ECX
+         PUSH  ECX
+         PUSH  ESP
+         CALL  GetCursorPos
+         MOV   EAX, ESI
+         MOV   EDX, ESP
+         MOV   ECX, EDX
+         CALL  TControl.Screen2Client
+         POP   EDX
+         POP   EAX
+         SHLD  EAX, EDX, 16
+         PUSH  EAX
+         CALL  GetShiftState
+         PUSH  EAX
+         PUSH  WM_RBUTTONUP
+         PUSH  ESI
+         CALL  TControl.PostMsg
+         JMP   @@ret_false1
+@@prepareCallEvent:
+         STC
+         MOV   EDX, ESI
+         {$IFDEF EVENTS_DYNAMIC}
+         MOV   ESI, [ESI].TControl.EV
+         LEA   ECX, [ESI+ECX*8].TEvents.fOnTVBeginDrag
+         {$ELSE}
+         LEA   ECX, [ESI+ECX*8].TControl.EV.fOnTVBeginDrag
+         {$ENDIF}
+         MOV   EAX, [ECX].TMethod.Data
+         MOV   ECX, [ECX].TMethod.Code
+         JECXZ @@noEvent
+         MOV   ESI, ECX
+         AND   EAX, EAX
+@@noEvent:
+         RET
+@@chk_TVN_BEGINDRAG: ///////////////////////////////////////////////////////////
+         CMP   WORD PTR [EDX].TNMTreeView.hdr.code, TVN_BEGINDRAG
+         JE    @@beginDrag
+         CMP   WORD PTR [EDX].TNMTreeView.hdr.code, TVN_BEGINRDRAG
+         JNE   @@chk_TVNBEGINLABELEDIT
+@@beginDrag:
+         PUSH  [EDX].TNMTreeView.itemNew.hItem
+         CALL  @@prepareCallEvent
+         POP   ECX
+         JC    @@ret_false1
+@@justEventCall:
+         CALL  ESI
+@@RsltEAX_ResultFalse:
+         MOV   [EDI], EAX
+         XOR   EAX, EAX
+         POP   EDI
+         POP   ESI
+         RET
+@@chk_TVNBEGINLABELEDIT: ///////////////////////////////////////////////////////
+         INC   ECX  // -> FOnTVBeginEdit
+         CMP   WORD PTR [EDX].TNMTreeView.hdr.code, TVN_BEGINLABELEDIT
+         JNE   @@chk_ENDLABELEDIT
+         ///////////////////////////////////////////////////////////////////////
+         XOR   EAX, EAX
+         INC   EAX
+         {$IFDEF USE_FLAGS}
+         TEST  [ESI].TControl.fFlagsG6, 1 shl G6_Dragging
+         {$ELSE}
+         CMP   [ESI].TControl.fDragging, 0
+         {$ENDIF}
+         JNZ   @@rsltEAX_ResultTrue
+         PUSH  [EDX].TTVDispInfo.item.hItem
+         CALL  @@prepareCallEvent
+         POP   ECX
+         JC    @@ret_false1
+         CALL  ESI
+@@rsltEAX_ResultTrue:
+         MOV   [EDI], EAX
+@@ResultTrue:
+         MOV   AL, 1
+         POP   EDI
+         POP   ESI
+         RET
+@@chk_ENDLABELEDIT:
+         INC   ECX //  -> fOnTVEndEdit
+         CMP   WORD PTR [EDX].TNMTreeView.hdr.code, TVN_ENDLABELEDIT
+         JNE   @@chk_ITEMEXPANDING
+         MOV   EAX, [EDX].TTVDispInfo.item.pszText
+         TEST  EAX, EAX
+         JZ    @@ResultTrue
+         PUSH  EAX
+         PUSH  [EDX].TTVDispInfo.item.hItem
+         CALL  @@prepareCallEvent
+         POP   ECX
+         JNC   @@justEventCall
+@@Rslt1_ResultTrue:
+         XOR   EAX, EAX
+         INC   EAX
+         JMP   @@RsltEAX_ResultFalse
+@@chk_ITEMEXPANDING: ///////////////////////////////////////////////////////////
+         INC   ECX //  -> FOnTVExpanding
+         CMP   WORD PTR [EDX].TNMTreeView.hdr.code, TVN_ITEMEXPANDING
+         JNE   @@chk_ITEMEXPANDED
+@@expanding_expanded:
+         CMP   [EDX].TNMTreeView.action, TVE_EXPAND
+         SETZ  AL
+         PUSH  EAX
+         PUSH  [EDX].TNMTreeView.itemNew.hItem
+@@event3:
+         CALL  @@prepareCallEvent
+         POP   ECX
+         JNC   @@justEventCall
+         POP   EAX
+         JMP   @@ret_false1
+@@chk_ITEMEXPANDED: ////////////////////////////////////////////////////////////
+         INC   ECX //  -> FOnTVExpanded
+         CMP   [EDX].TNMTreeView.hdr.code, TVN_ITEMEXPANDED
+         JE    @@expanding_expanded
+         ///////////////////////////////////////////////////////////////////////
+         INC   ECX //  -> FOnTVSelChanging
+         CMP   [EDX].TNMTreeView.hdr.code, TVN_SELCHANGING
+         JNE   @@chk_TVN_SELCHANGED
+         PUSH  [EDX].TNMTreeView.itemNew.hItem
+         PUSH  [EDX].TNMTreeView.itemOld.hItem
+         JMP   @@event3
+@@chk_TVN_SELCHANGED:
+         CMP   [EDX].TNMTreeView.hdr.code, TVN_SELCHANGED
+         JNE   @@ret_false1
+         XCHG  EAX, ESI
+         CALL  TControl.DoSelChange
+@@ret_false1:
+         XOR   EAX, EAX
+         POP   EDI
+         POP   ESI
+end;
+{$ENDIF}
 {$ELSE ASM_VERSION} //Pascal
 function WndProcTreeView( Self_: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean;
 var NM: PNMTreeView;
@@ -36386,83 +36639,83 @@ var NM: PNMTreeView;
 begin
   if Msg.message = WM_NOTIFY then
   begin
-    NM := Pointer( Msg.lParam );
-    case NM.hdr.code of
+      NM := Pointer( Msg.lParam );
+      case NM.hdr.code of
       NM_RCLICK:
-        begin
-          GetCursorPos( P );
-          P := Self_.Screen2Client( P );
-          PostMessage( Self_.fHandle, WM_RBUTTONUP, MK_RBUTTON or GetShiftState,
-                       (P.x and $FFFF) or (P.y shl 16) );
-        end;
+          begin
+            GetCursorPos( P );
+            P := Self_.Screen2Client( P );
+            Self_.PostMsg( WM_RBUTTONUP, MK_RBUTTON or GetShiftState,
+                         (P.x and $FFFF) or (P.y shl 16) );
+          end;
       TVN_BEGINDRAG {$IFDEF TV_DRAG_RBUTTON}, TVN_BEGINRDRAG{$ENDIF}:
-        {$IFDEF NIL_EVENTS}
-        if  Assigned( Self_.EV.fOnTVBeginDrag ) then
-        {$ENDIF}
-            Self_.EV.fOnTVBeginDrag( Self_, NM.itemNew.hItem );
+          {$IFDEF NIL_EVENTS}
+          if  Assigned( Self_.EV.fOnTVBeginDrag ) then
+          {$ENDIF}
+              Self_.EV.fOnTVBeginDrag( Self_, NM.itemNew.hItem );
       TVN_BEGINLABELEDIT:
-      begin
-          if  {$IFDEF USE_FLAGS} G6_Dragging in Self_.fFlagsG6
-              {$ELSE} Self_.fDragging {$ENDIF} then
           begin
-              Rslt := 1; // do not allow edit while dragging
-              Result := TRUE; Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
-          end;
-          DI := Pointer( NM );
-          {$IFDEF NIL_EVENTS}
-          if  Assigned( Self_.EV.fOnTVBeginEdit ) then
-          {$ENDIF}
-          begin
-              Rslt := Integer( not Self_.EV.fOnTVBeginEdit( Self_, DI.item.hItem ) );
-              Result := TRUE; Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>} 
-          end;
-      end;
-      TVN_ENDLABELEDIT:
-      begin
-          DI := Pointer( NM );
-          if  Assigned( Self_.EV.fOnTVEndEdit ) then
-          begin
-              S := DI.item.pszText;
-              if  (DI.item.pszText = nil) then
+              if  {$IFDEF USE_FLAGS} G6_Dragging in Self_.fFlagsG6
+                  {$ELSE} Self_.fDragging {$ENDIF} then
               begin
-                  Result := True; Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
+                  Rslt := 1; // do not allow edit while dragging
+                  Result := TRUE; Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
               end;
-              Rslt := Integer(
-                   Self_.EV.fOnTVEndEdit( Self_, DI.item.hItem, S ) );
-          end
-          else
-              Rslt := 1;
-          Result := True; Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
-      end;
-      TVN_ITEMEXPANDING:
-      begin
-        {$IFDEF NIL_EVENTS}
-        if  Assigned( Self_.EV.fOnTVExpanding ) then
-        {$ENDIF}
-        begin
-            Rslt := Integer( Self_.EV.fOnTVExpanding( Self_, NM.itemNew.hItem,
-                             NM.action = TVE_EXPAND ) );
-            //Result := TRUE; //Exit;
-        end;
-      end;
-      TVN_ITEMEXPANDED:
-        {$IFDEF NIL_EVENTS}
-        if  Assigned( Self_.EV.fOnTVExpanded ) then
-        {$ENDIF}
-            Self_.EV.fOnTVExpanded( Self_, NM.itemNew.hItem, NM.action=TVE_EXPAND );
-      TVN_SELCHANGING:
-        begin //------------------ TVN_SELCHANGING by Sergey Shisminzev
-          {$IFDEF NIL_EVENTS}
-          if  Assigned( Self_.EV.fOnTVSelChanging ) then
-          {$ENDIF}
-          begin
-              Rslt := Integer( not Self_.EV.fOnTVSelChanging( Self_, NM.itemOld.hItem, NM.itemNew.hItem ) );
-              //Result := TRUE; //Exit;
+              DI := Pointer( NM );
+              {$IFDEF NIL_EVENTS}
+              if  Assigned( Self_.EV.fOnTVBeginEdit ) then
+              {$ENDIF}
+              begin
+                  Rslt := Integer( not Self_.EV.fOnTVBeginEdit( Self_, DI.item.hItem ) );
+                  Result := TRUE; Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
+              end;
           end;
-        end;  //----------------------------------------
+      TVN_ENDLABELEDIT:
+          begin
+              DI := Pointer( NM );
+              if  Assigned( Self_.EV.fOnTVEndEdit ) then
+              begin
+                  S := DI.item.pszText;
+                  if  (DI.item.pszText = nil) then
+                  begin
+                      Result := True; Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
+                  end;
+                  Rslt := Integer(
+                       Self_.EV.fOnTVEndEdit( Self_, DI.item.hItem, S ) );
+              end
+              else
+                  Rslt := 1;
+              Result := True; Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
+          end;
+      TVN_ITEMEXPANDING:
+          begin
+            {$IFDEF NIL_EVENTS}
+            if  Assigned( Self_.EV.fOnTVExpanding ) then
+            {$ENDIF}
+            begin
+                Rslt := Integer( Self_.EV.fOnTVExpanding( Self_, NM.itemNew.hItem,
+                                 NM.action = TVE_EXPAND ) );
+                //Result := TRUE; //Exit;
+            end;
+          end;
+      TVN_ITEMEXPANDED:
+          {$IFDEF NIL_EVENTS}
+          if  Assigned( Self_.EV.fOnTVExpanded ) then
+          {$ENDIF}
+              Self_.EV.fOnTVExpanded( Self_, NM.itemNew.hItem, NM.action=TVE_EXPAND );
+      TVN_SELCHANGING:
+          begin //------------------ TVN_SELCHANGING by Sergey Shisminzev
+            {$IFDEF NIL_EVENTS}
+            if  Assigned( Self_.EV.fOnTVSelChanging ) then
+            {$ENDIF}
+            begin
+                Rslt := Integer( not Self_.EV.fOnTVSelChanging( Self_, NM.itemOld.hItem, NM.itemNew.hItem ) );
+                //Result := TRUE; //Exit;
+            end;
+          end;  //----------------------------------------
       TVN_SELCHANGED:
-        Self_.DoSelChange;
-    end;
+          Self_.DoSelChange;
+      end;
   end;
   Result := False;
 end;
@@ -36844,6 +37097,60 @@ end;
 //===================== Tool bar ========================//
 
 {$IFDEF ASM_TLIST} //TTN_NEEDTEXTW  ASM_TLIST!
+{$IFDEF _D3orHigher}
+{$IFDEF ASM_VERSION}
+procedure CopyPChar2WideChars( dest: PWideChar; src: PChar; Len: Integer );
+asm
+          PUSH  ESI
+          PUSH  EDI
+          XCHG  EDI, EAX
+          MOV   ESI, ECX
+          PUSH  0
+          MOV   EAX, ESP
+          CALL  System.@LStrFromPChar
+          MOV   EAX, [ESP]
+          CALL  System.@LStrLen
+          TEST  EAX, EAX
+          JZ    @@exit_copy
+          CMP   ESI, EAX
+          JL    @@1_len
+          XCHG  EAX, ESI
+@@1_len:
+          POP   EDX
+          PUSH  EDX
+          PUSH  0
+          MOV   EAX, ESP
+          CALL  System.@WStrFromLStr
+
+          MOV   ECX, ESI
+          INC   ECX
+          POP   ESI
+          PUSH  ESI
+          REP   MOVSW
+          MOV   EAX, ESP
+          CALL  System.@WStrClr
+          POP   EAX
+@@exit_copy:
+          MOV   EAX, ESP
+          CALL  System.@LStrClr
+          POP   EAX
+          POP   EDI
+          POP   ESI
+end;
+{$ELSE  PAS_VERSION}
+procedure CopyPChar2WideChars( dest: PWideChar; src: PChar; Len: Integer );
+var W: WideString;
+    s: String;
+begin
+    s := src;
+    if  Len > Length(s) then
+        Len := Length(s);
+    W := s;
+    Move( W[1], dest^, (Len+1) * Sizeof( WideChar ) );
+end;
+{$ENDIF PAS_VERSION}
+{$ENDIF _D3orHigher}
+
 function WndProcToolbarCtrl(Self_: PControl; var Msg: TMsg; var Rslt: Integer): Boolean;
 asm
         PUSH     EBX
@@ -36918,11 +37225,11 @@ asm
         XCHG     EAX, ECX
         CALL     TList.IndexOf
 @@idxReady: // EAX = -1 or index of button tooltip
-        TEST     EAX, EAX
         POP      EDX  //<***
         LEA      EDX, [EDX].TTooltipText.szText
-        MOV      byte ptr [EDX], 0
+        AND      word ptr [EDX], 0
         POP      ECX  //<###
+        TEST     EAX, EAX
         JL       @@ret_true1
         MOV      ECX, [ECX].TControl.DF.fTBttTxt
         MOV      ECX, [ECX].TStrList.fList
@@ -36931,10 +37238,51 @@ asm
         XCHG     EAX, EDX
         XOR      ECX, ECX
         MOV      CL, 79
+        {$IFDEF  _D3orHigher}
         CMP      BL, 0
         JZ       @@strlcopy
+        {$IFDEF  UNICODE_CTRLS}
         CALL     WStrLCopy
+        {$ELSE}
+        //CALL     CopyPChar2WideChars (inlined here)
+          PUSH  ESI
+          PUSH  EDI
+          XCHG  EDI, EAX
+          MOV   ESI, ECX
+          PUSH  0
+          MOV   EAX, ESP
+          CALL  System.@LStrFromPChar
+          MOV   EAX, [ESP]
+          CALL  System.@LStrLen
+          TEST  EAX, EAX
+          JZ    @@exit_copy
+          CMP   ESI, EAX
+          JL    @@1_len
+          XCHG  EAX, ESI
+@@1_len:
+          POP   EDX
+          PUSH  EDX
+          PUSH  0
+          MOV   EAX, ESP
+          CALL  System.@WStrFromLStr
+
+          MOV   ECX, ESI
+          INC   ECX
+          POP   ESI
+          PUSH  ESI
+          REP   MOVSW
+          MOV   EAX, ESP
+          CALL  System.@WStrClr
+          POP   EAX
+@@exit_copy:
+          MOV   EAX, ESP
+          CALL  System.@LStrClr
+          POP   EAX
+          POP   EDI
+          POP   ESI
+        {$ENDIF}
         JMP      @@ret_true1
+        {$ENDIF _D3orHigher}
 @@strlcopy:
         CALL     StrLCopy
         JMP      @@ret_true1
@@ -37063,13 +37411,13 @@ begin
             Idx := -1;
             if Self_.DF.fTBttCmd <> nil then
               Idx := Self_.DF.fTBttCmd.IndexOf( Pointer( idBtn ) );
-            //FillChar( lpttt.szText[ 0 ], 160, #0 );
             ZeroMemory( @lpttt.szText[ 0 ], 160 );
             if Idx >= 0 then
             begin
               WStr := KOLWideString(Self_.DF.fTBttTxt.Items[ Idx ]);
               if WStr <> '' then
-                Move( Wstr[ 1 ], lpttt.szText, Min( 158, (Length( WStr ) + 1) * 2 ) );
+                Move( Wstr[ 1 ], lpttt.szText, Min( 158,
+                      (Length( WStr ) + 1) * Sizeof(WideChar) ) );
             end;
             Exit;{>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
           end;
@@ -65332,7 +65680,11 @@ begin C := Form;
 end;
 {$ENDIF USE_NAMES}//////////////////////////////////////////////////////////////
 procedure FormSetTag( Form: PControl );
-begin Form.Tag := ParentForm_IntParamPas(Form); end;
+var tag: DWORD;
+begin
+    tag := ParentForm_IntParamPas(Form);
+    Form.Tag := tag;
+end;
 {$IFDEF UNICODE_CTRLS}
 procedure FormSetUnicode( Form: PControl );
 begin Form.SetUnicode( TRUE ); end;

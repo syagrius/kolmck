@@ -164,7 +164,7 @@ begin
   for I := 0 to Count - 1 do
   begin
     MI := Items[ I ];
-    MI.SetupTemplate( SL, I = 0 );
+    MI.SetupTemplate( SL, I = 0, ParentKOLForm );
   end;
 
   S := ''''' ], ' + OnMenuItemMethodName(False) + ', false );';
@@ -294,7 +294,7 @@ begin
   for I := 0 to Count - 1 do
   begin
     MI := Items[ I ];
-    MI.SetupTemplate( SL, I = 0 );
+    MI.SetupTemplate( SL, I = 0, ParentKOLForm );
   end;
 
   S := ''''' ], ' + OnMenuItemMethodName(False) + ', true );';

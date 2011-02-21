@@ -32,7 +32,7 @@ const
 {$ENDIF}
 
 var
-  Copyright : String = ''; //'Portions Copyright (c) 1999,2003 Avenger by NhT';
+//  Copyright : String = '';//{'Portions Copyright (c) 1999,2003'; //}'Portions Copyright (c) 1999,2003 Avenger by NhT';
 
   ModuleIsLib: Boolean;         { True if this module is a dll (a library or a package) }
   ModuleIsPackage: Boolean;     { True if this module is a package }

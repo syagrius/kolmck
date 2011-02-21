@@ -2307,12 +2307,12 @@ begin
       {$ENDIF}
       then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetButtonIcon' );
+          KF.FormAddCtlCommand( Name, 'FormSetButtonIcon', '' );
           KF.FormAddStrParameter( ImageResourceName );
       end
           else
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetButtonImage' );
+          KF.FormAddCtlCommand( Name, 'FormSetButtonImage', '' );
           {$IFDEF ICON_DIFF_WH}
           KF.FormAddNumParameter( FImageIcon.Width );
           {$ELSE}
@@ -2325,7 +2325,7 @@ begin
     else
   if Assigned( FimageBitmap ) and not FimageBitmap.Empty then
   begin
-      KF.FormAddCtlCommand( Name, 'FormSetButtonBitmap' );
+      KF.FormAddCtlCommand( Name, 'FormSetButtonBitmap', '' );
       KF.FormAddStrParameter( ImageResourceName );
   end;
 end;
@@ -2729,7 +2729,7 @@ begin
     inherited;
     KF := ParentKOLForm;
     if  KF = nil then Exit;
-    KF.FormAddAlphabet( 'FormNewButton', TRUE, TRUE );
+    KF.FormAddAlphabet( 'FormNewButton', TRUE, TRUE, '' );
     C := Caption;
     if  not KF.AssignTextToControls then
         C := '';
@@ -2754,13 +2754,13 @@ begin
       if  Windowed then
           if  (KF <> nil) and KF.FormCompact then
           begin
-              KF.FormAddCtlCommand( Name, 'FormSetStyle' );
+              KF.FormAddCtlCommand( Name, 'FormSetStyle', '' );
               KF.FormAddNumParameter( BS_FLAT );
           end else
           SL.Add( Prefix + AName + '.Style := ' + AName + '.Style or BS_FLAT;' )
   else if  (KF <> nil) and KF.FormCompact then
        begin
-           KF.FormAddCtlCommand( Name, 'TControl.SetFlat' );
+           KF.FormAddCtlCommand( Name, 'TControl.SetFlat', '' );
            // param = 1
        end else
        SL.Add( Prefix + AName + '.Flat := TRUE;' );
@@ -2768,7 +2768,7 @@ begin
   if  WordWrap and Windowed then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetStyle' );
+          KF.FormAddCtlCommand( Name, 'FormSetStyle', '' );
           KF.FormAddNumParameter( BS_MULTILINE );
       end else
       SL.Add( Prefix + AName + '.Style := ' + AName + '.Style or BS_MULTILINE;' );
@@ -3116,7 +3116,7 @@ begin
    inherited;
     KF := ParentKOLForm;
     if  KF = nil then Exit;
-    KF.FormAddAlphabet( 'FormNewLabel', TRUE, TRUE );
+    KF.FormAddAlphabet( 'FormNewLabel', TRUE, TRUE, '' );
     C := Caption;
     if  not KF.AssignTextToControls then
         C := '';
@@ -3138,7 +3138,7 @@ begin
   if  ShowAccelChar then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormResetStyles' );
+          KF.FormAddCtlCommand( Name, 'FormResetStyles', '' );
           KF.FormAddNumParameter( SS_NOPREFIX );
       end else
       SL.Add( Prefix + AName + '.Style := ' + AName + '.Style and not SS_NOPREFIX;' );
@@ -3522,7 +3522,7 @@ begin
     inherited;
     KF := ParentKOLForm;
     if  KF = nil then Exit;
-    KF.FormAddAlphabet( 'FormNewPanel', TRUE, TRUE );
+    KF.FormAddAlphabet( 'FormNewPanel', TRUE, TRUE, '' );
     KF.FormAddNumParameter( Integer( EdgeStyle ) );
 end;
 
@@ -3550,7 +3550,7 @@ begin
   begin
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetCaption' );
+          KF.FormAddCtlCommand( Name, 'FormSetCaption', '' );
           KF.FormAddStrParameter( Caption );
       end
         else
@@ -3568,7 +3568,7 @@ begin
   if  ShowAccelChar then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormResetStyles' );
+          KF.FormAddCtlCommand( Name, 'FormResetStyles', '' );
           KF.FormAddNumParameter( SS_NOPREFIX );
       end else
       SL.Add( Prefix + AName + '.Style := ' + AName + '.Style and not SS_NOPREFIX;' );
@@ -3814,7 +3814,7 @@ begin
   KF := ParentKOLForm;
   if  (KF = nil) or not KF.FormCompact then Exit;
   if  LikeSpeedButton then
-      KF.FormAddCtlCommand( Name, 'TControl.LikeSpeedButton' );
+      KF.FormAddCtlCommand( Name, 'TControl.LikeSpeedButton', '' );
 end;
 
 function TKOLBitBtn.NoDrawFrame: Boolean;
@@ -4276,7 +4276,7 @@ begin
     inherited;
     KF := ParentKOLForm;
     if  KF = nil then Exit;
-    KF.FormAddAlphabet( 'FormNewBitBtn', TRUE, TRUE );
+    KF.FormAddAlphabet( 'FormNewBitBtn', TRUE, TRUE, '' );
     C := Caption;
     if  not KF.AssignTextToControls then
         C := '';
@@ -4334,7 +4334,7 @@ begin
   if  ImageIndex >= 0 then
       if  (KF <> nil) and KF.FormCompact and SupportsFormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetHeight' );
+          KF.FormAddCtlCommand( Name, 'FormSetHeight', '' );
           KF.FormAddNumParameter( Height );
       end else
       SL.Add( Prefix + AName + '.Height := ' + IntToStr( Height ) + ';' );
@@ -4344,7 +4344,7 @@ begin
   if  ImageIndex >= 0 then
       if  (KF <> nil) and KF.FormCompact and SupportsFormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetWidth' );
+          KF.FormAddCtlCommand( Name, 'FormSetWidth', '' );
           KF.FormAddNumParameter( Width );
       end else
       SL.Add( Prefix + AName + '.Width := ' + IntToStr( Width ) + ';' );
@@ -4352,7 +4352,7 @@ begin
   if  RepeatInterval > 0 then
       if  (KF <> nil) and KF.FormCompact and SupportsFormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetRepeatInterval' );
+          KF.FormAddCtlCommand( Name, 'FormSetRepeatInterval', '' );
           KF.FormAddNumParameter( RepeatInterval );
       end else
       SL.Add( Prefix + AName + '.RepeatInterval := ' + IntToStr( RepeatInterval ) + ';' );
@@ -4360,7 +4360,7 @@ begin
   if  Flat then
       if  (KF <> nil) and KF.FormCompact and SupportsFormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'TControl.SetFlat' );
+          KF.FormAddCtlCommand( Name, 'TControl.SetFlat', '' );
           // param = 1
       end else
       SL.Add( Prefix + AName + '.Flat := TRUE;' );
@@ -4368,14 +4368,14 @@ begin
   if  BitBtnDrawMnemonic then
       if  (KF <> nil) and KF.FormCompact and SupportsFormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'TControl.SetBitBtnDrawMnemonic' );
+          KF.FormAddCtlCommand( Name, 'TControl.SetBitBtnDrawMnemonic', '' );
       end else
       SL.Add( Prefix + AName + '.BitBtnDrawMnemonic := TRUE;' );
 
   if  TextShiftX <> 0 then
       if  (KF <> nil) and KF.FormCompact and SupportsFormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetTextShiftX' );
+          KF.FormAddCtlCommand( Name, 'FormSetTextShiftX', '' );
           KF.FormAddNumParameter( TextShiftX );
       end else
       SL.Add( Prefix + AName + '.TextShiftX := ' + IntToStr( TextShiftX ) + ';' );
@@ -4383,7 +4383,7 @@ begin
   if  TextShiftY <> 0 then
       if  (KF <> nil) and KF.FormCompact and SupportsFormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetTextShiftY' );
+          KF.FormAddCtlCommand( Name, 'FormSetTextShiftY', '' );
           KF.FormAddNumParameter( TextShiftY );
       end else
       SL.Add( Prefix + AName + '.TextShiftY := ' + IntToStr( TextShiftY ) + ';' );
@@ -4827,7 +4827,7 @@ begin
     inherited;
     KF := ParentKOLForm;
     if  KF = nil then Exit;
-    KF.FormAddAlphabet( 'FormNew' + TypeName, TRUE, TRUE );
+    KF.FormAddAlphabet( 'FormNew' + TypeName, TRUE, TRUE, '' );
     KF.FormAddNumParameter( Integer( (Color1 shl 1) or (Color1 shr 31) ) );
     KF.FormAddNumParameter( Integer( (Color2 shl 1) or (Color2 shr 31) ) );
     if  TypeName = 'GradientPanelEx' then
@@ -4855,12 +4855,12 @@ begin
           begin
               if  Integer( GradientStyle ) = 1 then
               begin
-                  KF.FormAddCtlCommand( Name, 'TControl.SetGradientStyle' );
+                  KF.FormAddCtlCommand( Name, 'TControl.SetGradientStyle', '' );
                   // Param = 1 
               end
                 else
               begin
-                  KF.FormAddCtlCommand( Name, 'FormSetGradienStyle' );
+                  KF.FormAddCtlCommand( Name, 'FormSetGradienStyle', '' );
                   KF.FormAddNumParameter( Integer( GradientStyle ) );
               end;
           end else
@@ -4869,7 +4869,7 @@ begin
   if  HasBorder then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'TControl.SetHasBorder' );
+          KF.FormAddCtlCommand( Name, 'TControl.SetHasBorder', '' );
           // param = 1
       end else
       SL.Add( Prefix + AName + '.HasBorder := TRUE;' );
@@ -5043,7 +5043,7 @@ begin
     inherited;
     KF := ParentKOLForm;
     if  KF = nil then Exit;
-    KF.FormAddAlphabet( 'FormNewGroupBox', TRUE, TRUE );
+    KF.FormAddAlphabet( 'FormNewGroupBox', TRUE, TRUE, '' );
     C := Caption;
     if  not KF.AssignTextToControls then
         C := '';
@@ -5254,7 +5254,7 @@ begin
     inherited;
     KF := ParentKOLForm;
     if  KF = nil then Exit;
-    KF.FormAddAlphabet( 'FormNewCheckBox', TRUE, TRUE );
+    KF.FormAddAlphabet( 'FormNewCheckBox', TRUE, TRUE, '' );
     C := Caption;
     if  not KF.AssignTextToControls then
         C := '';
@@ -5276,7 +5276,7 @@ begin
   if  Checked and (action = nil) then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'TControl.SetChecked' );
+          KF.FormAddCtlCommand( Name, 'TControl.SetChecked', '' );
       end else
       SL.Add( Prefix + AName + '.Checked := TRUE;' );
 end;
@@ -5467,7 +5467,7 @@ begin
     inherited;
     KF := ParentKOLForm;
     if  KF = nil then Exit;
-    KF.FormAddAlphabet( 'FormNewRadioBox', TRUE, TRUE );
+    KF.FormAddAlphabet( 'FormNewRadioBox', TRUE, TRUE, '' );
     C := Caption;
     if  not KF.AssignTextToControls then
         C := '';
@@ -5484,8 +5484,8 @@ begin
   begin
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'TControl.CreateWindow' ); //'FormCreateWindow' );
-          KF.FormAddCtlCommand( Name, 'TControl.SetRadioChecked' );
+          KF.FormAddCtlCommand( Name, 'TControl.CreateWindow', '' ); //'FormCreateWindow' );
+          KF.FormAddCtlCommand( Name, 'TControl.SetRadioChecked', '' );
       end
         else
       begin
@@ -5800,7 +5800,7 @@ begin
     inherited;
     KF := ParentKOLForm;
     if  KF = nil then Exit;
-    KF.FormAddAlphabet( 'FormNewEditBox', TRUE, TRUE );
+    KF.FormAddAlphabet( 'FormNewEditBox', TRUE, TRUE, '' );
     b := @ Options;
     KF.FormAddNumParameter( b^ );
 end;
@@ -5822,7 +5822,7 @@ begin
   if  (Text <> '') and ((KF = nil) or KF.AssignTextToControls) then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetCaption' );
+          KF.FormAddCtlCommand( Name, 'FormSetCaption', '' );
           KF.FormAddStrParameter( Text );
       end else
       AddLongTextField( SL, Prefix + AName + '.Text := ', Text, ';', ' + ' );
@@ -5830,7 +5830,7 @@ begin
   if  Transparent then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'TControl.EdSetTransparent' );
+          KF.FormAddCtlCommand( Name, 'TControl.EdSetTransparent', '' );
           // param = 1
       end else
       SL.Add( Prefix + AName + '.Ed_Transparent := TRUE;' );
@@ -6180,7 +6180,7 @@ begin
     inherited;
     KF := ParentKOLForm;
     if  KF = nil then Exit;
-    KF.FormAddAlphabet( 'FormNewEditBox', TRUE, TRUE );
+    KF.FormAddAlphabet( 'FormNewEditBox', TRUE, TRUE, '' );
     O := [eoMultiline];
     if  eo_NoHScroll in Options then
         O := O + [KOL.eoNoHScroll];
@@ -6222,7 +6222,7 @@ begin
   begin
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetCaption' );
+          KF.FormAddCtlCommand( Name, 'FormSetCaption', '' );
           KF.FormAddStrParameter( FLines.Text );
       end else
       AddLongTextField( SL, Prefix + AName + '.Text := ', FLines.Text, ';', ' + ' );
@@ -6231,7 +6231,7 @@ begin
   if  Transparent then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'TControl.EdSetTransparent' );
+          KF.FormAddCtlCommand( Name, 'TControl.EdSetTransparent', '' );
           // param = 1
       end else
       SL.Add( Prefix + AName + '.Ed_Transparent := TRUE;' );
@@ -6414,7 +6414,7 @@ begin
   if  KF = nil then Exit;
   if  fLBItemHeight > 0 then
   begin
-      KF.FormAddCtlCommand( Name, 'FormSetLVItemHeight' );
+      KF.FormAddCtlCommand( Name, 'FormSetLVItemHeight', '' );
       KF.FormAddNumParameter( fLBItemHeight );
   end;
 end;
@@ -6604,7 +6604,7 @@ begin
     inherited;
     KF := ParentKOLForm;
     if  KF = nil then Exit;
-    KF.FormAddAlphabet( 'FormNewListBox', TRUE, TRUE );
+    KF.FormAddAlphabet( 'FormNewListBox', TRUE, TRUE, '' );
     W := @ Options;
     KF.FormAddNumParameter( W^ );
 end;
@@ -6633,7 +6633,7 @@ begin
   begin
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetListItems' );
+          KF.FormAddCtlCommand( Name, 'FormSetListItems', '' );
           KF.FormAddNumParameter( FItems.Count );
           for I := 0 to FItems.Count-1 do
               if  (KF <> nil) and KF.AssignTextToControls or AlwaysAssignItems then
@@ -6667,12 +6667,12 @@ begin
       begin
           if  FCurIndex = 1 then
           begin
-              KF.FormAddCtlCommand( Name, 'TControl.SetCurIdx' );
+              KF.FormAddCtlCommand( Name, 'TControl.SetCurIdx', '' );
               // param = 1
           end
             else
           begin
-              KF.FormAddCtlCommand( Name, 'FormSetCurIdx' );
+              KF.FormAddCtlCommand( Name, 'FormSetCurIdx', '' );
               KF.FormAddNumParameter( FCurIndex );
           end;
       end else
@@ -6697,12 +6697,12 @@ begin
       begin
           if  Count = 1 then
           begin
-              KF.FormAddCtlCommand( Name, 'TControl.SetItemsCount' );
+              KF.FormAddCtlCommand( Name, 'TControl.SetItemsCount', '' );
               // param = 1
           end
             else
           begin
-              KF.FormAddCtlCommand( Name, 'FormSetCount' );
+              KF.FormAddCtlCommand( Name, 'FormSetCount', '' );
               KF.FormAddNumParameter( Count );
           end;
       end else
@@ -6879,7 +6879,7 @@ begin
     if  not KF.FormCompact then Exit;
     if  fCBItemHeight > 0 then
     begin
-        KF.FormAddCtlCommand( Name, 'FormSetLVItemHeight' );
+        KF.FormAddCtlCommand( Name, 'FormSetLVItemHeight', '' );
         KF.FormAddNumParameter( fCBItemHeight );
     end;
 end;
@@ -7039,7 +7039,7 @@ begin
     inherited;
     KF := ParentKOLForm;
     if  KF = nil then Exit;
-    KF.FormAddAlphabet( 'FormNewComboBox', TRUE, TRUE );
+    KF.FormAddAlphabet( 'FormNewComboBox', TRUE, TRUE, '' );
     W := @ Options;
     KF.FormAddNumParameter( W^ );
 end;
@@ -7068,7 +7068,7 @@ begin
   begin
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetListItems' );
+          KF.FormAddCtlCommand( Name, 'FormSetListItems', '' );
           KF.FormAddNumParameter( FItems.Count );
           for I := 0 to FItems.Count-1 do
               if  (KF <> nil) and KF.AssignTextToControls or AlwaysAssignItems then
@@ -7103,12 +7103,12 @@ begin
       begin
           if  FCurIndex = 1 then
           begin
-              KF.FormAddCtlCommand( Name, 'TControl.SetCurIdx' );
+              KF.FormAddCtlCommand( Name, 'TControl.SetCurIdx', '' );
               // param = 1
           end
             else
           begin
-              KF.FormAddCtlCommand( Name, 'FormSetCurIdx' );
+              KF.FormAddCtlCommand( Name, 'FormSetCurIdx', '' );
               KF.FormAddNumParameter( FCurIndex );
           end;
       end else
@@ -7117,7 +7117,7 @@ begin
   if  (FDroppedWidth <> Width) and (FDroppedWidth <> 0) then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetDroppedWidth' );
+          KF.FormAddCtlCommand( Name, 'FormSetDroppedWidth', '' );
           KF.FormAddNumParameter( FDroppedWidth );
       end else
       SL.Add( Prefix + AName + '.DroppedWidth := ' + IntToStr( FDroppedWidth ) + ';' );
@@ -7331,7 +7331,7 @@ begin
     inherited;
     KF := ParentKOLForm;
     if  KF = nil then Exit;
-    KF.FormAddAlphabet( 'FormNewSplitter', TRUE, TRUE );
+    KF.FormAddAlphabet( 'FormNewSplitter', TRUE, TRUE, '' );
     KF.FormAddNumParameter( Integer( MinSizePrev ) );
     KF.FormAddNumParameter( Integer( MinSizeNext ) );
 end;
@@ -7426,7 +7426,7 @@ begin
     inherited;
     KF := ParentKOLForm;
     if  KF = nil then Exit;
-    KF.FormAddAlphabet( 'FormNewPaintBox', TRUE, TRUE );
+    KF.FormAddAlphabet( 'FormNewPaintBox', TRUE, TRUE, '' );
 end;
 
 function TKOLPaintBox.SetupParams( const AName, AParent: TDelphiString ): TDelphiString;
@@ -7812,7 +7812,7 @@ begin
   if  (Font.Color <> clWindowText) and (Font.Color <> clNone) and (Font.Color <> clDefault) then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetLVTextColor' );
+          KF.FormAddCtlCommand( Name, 'FormSetLVTextColor', '' );
           KF.FormAddNumParameter( (Font.Color shl 1) or (Font.Color shr 31) );
       end else
       SL.Add( Prefix + AName + '.LVTextColor := ' + Color2Str( Font.Color ) + ';' );
@@ -7820,7 +7820,7 @@ begin
   if  (LVTextBkColor <> clDefault) and (LVTextBkColor <> clNone) and (LVTextBkColor <> clWindow) then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetLVTextBkColor' );
+          KF.FormAddCtlCommand( Name, 'FormSetLVTextBkColor', '' );
           KF.FormAddNumParameter( (LVTextBkColor shl 1) or (LVTextBkColor shr 31) );
       end else
       SL.Add( Prefix + AName + '.LVTextBkColor := ' + Color2Str( LVTextBkColor ) + ';' );
@@ -7828,14 +7828,14 @@ begin
   if  (LVBkColor <> clDefault) and (LVBkColor <> clNone) and (LVBkColor <> clWindow) then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetLVBkColor' );
+          KF.FormAddCtlCommand( Name, 'FormSetLVBkColor', '' );
           KF.FormAddNumParameter( (LVBkColor shl 1) or (LVBkColor shr 31) );
       end else
       SL.Add( Prefix + AName + '.LVBkColor := ' + Color2Str( LVBkColor ) + ';' );
 
     if  (KF <> nil) and KF.FormCompact and (Cols.Count > 0) then
     begin
-        KF.FormAddCtlCommand( Name, 'FormLVColumsAdd' );
+        KF.FormAddCtlCommand( Name, 'FormLVColumsAdd', '' );
         KF.FormAddNumParameter( Cols.Count );
         for I := 0 to Cols.Count-1 do
         begin
@@ -7851,14 +7851,14 @@ begin
             Col := Cols[ I ];
             if  Col.LVColImage >= 0 then
             begin
-                KF.FormAddCtlCommand( Name, 'FormSetLVColImage' );
+                KF.FormAddCtlCommand( Name, 'FormSetLVColImage', '' );
                 KF.FormAddNumParameter( I );
                 KF.FormAddNumParameter( Col.LVColImage );
             end;
             if  Col.LVColOrder >= 0 then
             if  Col.LVColOrder <> I then
             begin
-                KF.FormAddCtlCommand( Name, 'FormSetLVColOrder' );
+                KF.FormAddCtlCommand( Name, 'FormSetLVColOrder', '' );
                 KF.FormAddNumParameter( I );
                 KF.FormAddNumParameter( Col.LVColOrder );
             end;
@@ -7937,7 +7937,7 @@ begin
   if  LVCount > 0 then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetCount' );
+          KF.FormAddCtlCommand( Name, 'FormSetCount', '' );
           KF.FormAddNumParameter( LVCount );
       end else
       SL.Add( Prefix + AName + '.LVCount := ' + IntToStr( LVCount ) + ';' );
@@ -8396,7 +8396,7 @@ begin
     inherited;
     KF := ParentKOLForm;
     if  KF = nil then Exit;
-    KF.FormAddAlphabet( 'FormNewListView', TRUE, TRUE );
+    KF.FormAddAlphabet( 'FormNewListView', TRUE, TRUE, '' );
     KF.FormAddNumParameter( Integer( Style ) );
     KF.FormAddNumParameter( PInteger( @ Options )^ );
 end;
@@ -8662,7 +8662,7 @@ begin
     inherited;
     KF := ParentKOLForm;
     if  KF = nil then Exit;
-    KF.FormAddAlphabet( 'FormNewTreeView', TRUE, TRUE );
+    KF.FormAddAlphabet( 'FormNewTreeView', TRUE, TRUE, '' );
     KF.FormAddNumParameter( PInteger( @ Options )^ );
 end;
 
@@ -8681,7 +8681,7 @@ begin
   if  TVRightClickSelect then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'TKOLControl.SetTVRightClickSelect' );
+          KF.FormAddCtlCommand( Name, 'TKOLControl.SetTVRightClickSelect', '' );
           // param = 1
       end else
       SL.Add( Prefix + AName + '.TVRightClickSelect := TRUE;' );
@@ -8689,7 +8689,7 @@ begin
   if  TVIndent > 0 then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetTVIndent' );
+          KF.FormAddCtlCommand( Name, 'FormSetTVIndent', '' );
           KF.FormAddNumParameter( TVIndent );
       end else
       SL.Add( Prefix + AName + '.TVIndent := ' + IntToStr( TVIndent ) + ';' );
@@ -8935,7 +8935,7 @@ begin
   KF := ParentKOLForm;
   if  KF = nil then Exit;
   if  RE_FmtStandard then
-      KF.FormAddCtlCommand( Name, 'TControl.RE_FmtStandard' );
+      KF.FormAddCtlCommand( Name, 'TControl.RE_FmtStandard', '' );
 end;
 
 function TKOLRichEdit.GetCaption: String;
@@ -9300,7 +9300,7 @@ begin
     inherited;
     KF := ParentKOLForm;
     if  KF = nil then Exit;
-    KF.FormAddAlphabet( 'FormNewRichEdit', TRUE, TRUE );
+    KF.FormAddAlphabet( 'FormNewRichEdit', TRUE, TRUE, '' );
     O := [eoMultiline];
     if  eo_NoHScroll in Options then
         O := O + [KOL.eoNoHScroll];
@@ -9343,7 +9343,7 @@ begin
   if  RE_AutoURLDetect then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'TControl.RESetAutoURLDetect' );
+          KF.FormAddCtlCommand( Name, 'TControl.RESetAutoURLDetect', '' );
           // param = 1
       end else
       SL.Add( Prefix + AName + '.RE_AutoURLDetect := TRUE;' );
@@ -9351,49 +9351,49 @@ begin
   if  not RE_AutoFont then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetRE_AutoFontFalse' );
+          KF.FormAddCtlCommand( Name, 'FormSetRE_AutoFontFalse', '' );
       end else
       SL.Add( Prefix + AName + '.RE_AutoFont := FALSE;' );
 
   if  not RE_AutoFontSizeAdjust then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetRE_AutoFontSizeAdjustFalse' );
+          KF.FormAddCtlCommand( Name, 'FormSetRE_AutoFontSizeAdjustFalse', '' );
       end else
       SL.Add( Prefix + AName + '.RE_AutoFontSizeAdjust := FALSE;' );
 
   if  RE_DualFont then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetRE_DualFontTrue' );
+          KF.FormAddCtlCommand( Name, 'FormSetRE_DualFontTrue', '' );
       end else
       SL.Add( Prefix + AName + '.RE_DualFont := TRUE;' );
 
   if  RE_UIFonts then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetRE_UIFontsTrue' );
+          KF.FormAddCtlCommand( Name, 'FormSetRE_UIFontsTrue', '' );
       end else
       SL.Add( Prefix + AName + '.RE_UIFonts := TRUE;' );
 
   if  RE_IMECancelComplete then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetRE_IMECancelCompleteTrue' );
+          KF.FormAddCtlCommand( Name, 'FormSetRE_IMECancelCompleteTrue', '' );
       end else
       SL.Add( Prefix + AName + '.RE_IMECancelComplete := TRUE;' );
 
   if  RE_IMEAlwaysSendNotify then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetRE_IMEAlwaysSendNotifyTrue' );
+          KF.FormAddCtlCommand( Name, 'FormSetRE_IMEAlwaysSendNotifyTrue', '' );
       end else
       SL.Add( Prefix + AName + '.RE_IMEAlwaysSendNotify := TRUE;' );
 
   if  MaxTextSize <> 32767 then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetMaxTextSize' );
+          KF.FormAddCtlCommand( Name, 'FormSetMaxTextSize', '' );
           KF.FormAddNumParameter( MaxTextSize );
       end else
       if  MaxTextSize > $7FFFffff then
@@ -9405,7 +9405,7 @@ begin
   begin
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetCaption' );
+          KF.FormAddCtlCommand( Name, 'FormSetCaption', '' );
           KF.FormAddStrParameter( FLines.Text );
       end else
       AddLongTextField( SL, Prefix + AName + '.Text := ', FLines.Text, ';', ' + ' );
@@ -9414,21 +9414,21 @@ begin
   if  RE_AutoKeybdSet then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetRE_AutoKeyboardTrue' );
+          KF.FormAddCtlCommand( Name, 'FormSetRE_AutoKeyboardTrue', '' );
       end else
       SL.Add( Prefix + AName + '.RE_AutoKeyboard := ' + BoolVal[ RE_AutoKeyboard ] + ';' );
 
   if  RE_DisableOverwriteChange then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetRE_DisableOverwriteChangeTrue' );
+          KF.FormAddCtlCommand( Name, 'FormSetRE_DisableOverwriteChangeTrue', '' );
       end else
       SL.Add( Prefix + AName + '.RE_DisableOverwriteChange := TRUE;' );
 
   if  RE_Transparent then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'TControl.ReSetTransparent' );
+          KF.FormAddCtlCommand( Name, 'TControl.ReSetTransparent', '' );
           // param = 1
       end else
       SL.Add( Prefix + AName + '.RE_Transparent := TRUE;' );
@@ -9436,7 +9436,7 @@ begin
   if  (FRE_ZoomNumerator <> 0) and (FRE_ZoomDenominator <> 0) then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetRe_Zoom' );
+          KF.FormAddCtlCommand( Name, 'FormSetRe_Zoom' , '');
           KF.FormAddNumParameter( FRE_ZoomNumerator );
           KF.FormAddNumParameter( FRE_ZoomDenominator );
       end else
@@ -9738,10 +9738,10 @@ begin
     if  KF = nil then Exit;
     if  Smooth or Vertical then
     begin
-        KF.FormAddAlphabet( 'FormNewProgressBarEx', TRUE, TRUE );
+        KF.FormAddAlphabet( 'FormNewProgressBarEx', TRUE, TRUE, '' );
         KF.FormAddNumParameter( Integer(Smooth) or Integer(Vertical) shl 1 );
     end else
-        KF.FormAddAlphabet( 'FormNewProgressBar', TRUE, TRUE );
+        KF.FormAddAlphabet( 'FormNewProgressBar', TRUE, TRUE, '' );
 end;
 
 procedure TKOLProgressBar.SetupFirst(SL: TStringList; const AName, AParent,
@@ -9759,7 +9759,7 @@ begin
   if  MaxProgress <> 100 then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetMaxProgress' );
+          KF.FormAddCtlCommand( Name, 'FormSetMaxProgress', '' );
           KF.FormAddNumParameter( MaxProgress );
       end else
       SL.Add( Prefix + AName + '.MaxProgress := ' + IntToStr( MaxProgress ) + ';' );
@@ -9767,7 +9767,7 @@ begin
   if  Progress <> 0 then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetProgress' );
+          KF.FormAddCtlCommand( Name, 'FormSetProgress', '' );
           KF.FormAddNumParameter( Progress );
       end else
       SL.Add( Prefix + AName + '.Progress := ' + IntToStr( Progress ) + ';' );
@@ -9775,7 +9775,7 @@ begin
   if  ProgressColor <> clHighLight then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetProgressColor' );
+          KF.FormAddCtlCommand( Name, 'FormSetProgressColor', '' );
           KF.FormAddNumParameter( (ProgressColor shl 1) or (ProgressColor shr 31) );
       end else
       SL.Add( Prefix + AName + '.ProgressColor := ' + Color2Str( ProgressColor ) + ';' );
@@ -10856,7 +10856,7 @@ begin
     {$IFDEF _D4orHigher}
     KF := ParentKOLForm;
     if  KF = nil then Exit;
-    KF.FormAddAlphabet( 'FormNewTabControl', TRUE, TRUE );
+    KF.FormAddAlphabet( 'FormNewTabControl', TRUE, TRUE, '' );
     KF.FormAddNumParameter( Count );
     for i := 0 to Count-1 do
     begin
@@ -10888,7 +10888,7 @@ begin
   esRaised:
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetStyle' );
+          KF.FormAddCtlCommand( Name, 'FormSetStyle', '' );
           KF.FormAddNumParameter( WS_THICKFRAME );
       end else
       SL.Add( Prefix + AName + '.Style := ' + AName +
@@ -10913,7 +10913,7 @@ begin
   begin
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetCurrentTab' );
+          KF.FormAddCtlCommand( Name, 'FormSetCurrentTab', '' );
           KF.FormAddNumParameter( CurIndex );
       end
         else
@@ -11941,14 +11941,14 @@ begin
       begin
           if  (KF <> nil) and KF.FormCompact then
           begin
-              KF.FormAddCtlCommand( Name, 'FormSetTBBtnImgWidth' );
+              KF.FormAddCtlCommand( Name, 'FormSetTBBtnImgWidth', '' );
               KF.FormAddNumParameter( W );
           end else
           SL.Add( '  ' + Prefix + AName + '.TBBtnImgWidth := ' + IntToStr( W ) + ';' );
 
           if  (KF <> nil) and KF.FormCompact then
           begin
-              KF.FormAddCtlCommand( Name, 'FormTBAddBitmap' );
+              KF.FormAddCtlCommand( Name, 'FormTBAddBitmap', '' );
               KF.FormAddNumParameter( Integer(mapBitmapColors) );
               KF.FormAddStrParameter( RsrcName );
               if  mapBitmapColors then
@@ -11979,7 +11979,7 @@ begin
       begin
           if  (KF <> nil) and KF.FormCompact then
           begin
-              KF.FormAddCtlCommand( Name, 'FormTBAddBitmap' );
+              KF.FormAddCtlCommand( Name, 'FormTBAddBitmap', '' );
               if  StandardImagesLarge then
                   KF.FormAddNumParameter( -2 )
               else
@@ -11998,7 +11998,7 @@ begin
       begin
           if  (KF <> nil) and KF.FormCompact then
           begin
-              KF.FormAddCtlCommand( Name, 'FormTBAddBitmap' );
+              KF.FormAddCtlCommand( Name, 'FormTBAddBitmap', '' );
               if  StandardImagesLarge then
                   KF.FormAddNumParameter( -6 )
               else
@@ -12017,7 +12017,7 @@ begin
       begin
           if  (KF <> nil) and KF.FormCompact then
           begin
-              KF.FormAddCtlCommand( Name, 'FormTBAddBitmap' );
+              KF.FormAddCtlCommand( Name, 'FormTBAddBitmap', '' );
               if  StandardImagesLarge then
                   KF.FormAddNumParameter( -10 )
               else
@@ -12257,7 +12257,7 @@ begin
   if  TBButtonsMinWidth > 0 then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetTBButtonsMinWidth' );
+          KF.FormAddCtlCommand( Name, 'FormSetTBButtonsMinWidth', '' );
           KF.FormAddNumParameter( TBButtonsMinWidth );
       end else
       SL.Add( Prefix + AName + '.TBButtonsMinWidth := ' + IntToStr( TBButtonsMinWidth ) + ';' );
@@ -12265,7 +12265,7 @@ begin
   if  TBButtonsMaxWidth > 0 then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetTBButtonsMaxWidth' );
+          KF.FormAddCtlCommand( Name, 'FormSetTBButtonsMaxWidth', '' );
           KF.FormAddNumParameter( TBButtonsMaxWidth );
       end else
       SL.Add( Prefix + AName + '.TBButtonsMaxWidth := ' + IntToStr( TBButtonsMaxWidth ) + ';' );
@@ -12277,7 +12277,7 @@ begin
       begin
           if  (KF <> nil) and KF.FormCompact then
           begin
-              KF.FormAddCtlCommand( Name, 'FormHideToolbarButton' );
+              KF.FormAddCtlCommand( Name, 'FormHideToolbarButton', '' );
               KF.FormAddNumParameter( I );
           end
             else
@@ -12294,7 +12294,7 @@ begin
       begin
           if  (KF <> nil) and KF.FormCompact then
           begin
-              KF.FormAddCtlCommand( Name, 'FormDisableToolbarButton' );
+              KF.FormAddCtlCommand( Name, 'FormDisableToolbarButton', '' );
               KF.FormAddNumParameter( I );
           end
             else
@@ -12312,7 +12312,7 @@ begin
       (tboCustomErase in Options) OR
       FixFlatXP and (tboFlat in Options) then
       if  (KF <> nil) and KF.FormCompact then
-          KF.FormAddCtlCommand( Name, 'FormFixFlatXPToolbar' )
+          KF.FormAddCtlCommand( Name, 'FormFixFlatXPToolbar', '' )
       else
           SL.Add( Prefix + AName + '.OnTBCustomDraw := nil;' );
 end;
@@ -13820,7 +13820,7 @@ begin
     inherited;
     KF := ParentKOLForm;
     if  KF = nil then Exit;
-    KF.FormAddAlphabet( 'FormNewToolbar', TRUE, TRUE );
+    KF.FormAddAlphabet( 'FormNewToolbar', TRUE, TRUE, '' );
     KF.FormAddNumParameter( Integer( Align ) );
     KF.FormAddNumParameter( PInteger( @ Options )^ );
     if (Bitmap.Width > 0) and (Bitmap.Height > 0) and
@@ -14606,10 +14606,10 @@ begin
     inherited;
     KF := ParentKOLForm;
     if  KF = nil then Exit;
-    KF.FormAddAlphabet( 'FormNewImageShow', TRUE, TRUE );
+    KF.FormAddAlphabet( 'FormNewImageShow', TRUE, TRUE, '' );
     if  CurIndex <> 0 then
     begin
-        KF.FormAddCtlCommand( Name, 'FormSetCurIdx' );
+        KF.FormAddCtlCommand( Name, 'FormSetCurIdx', '' );
         KF.FormAddNumParameter( CurIndex );
     end;
 end;
@@ -14861,7 +14861,7 @@ begin
     if  KF = nil then Exit;
     KF.FormAddCtlParameter( Name );
     KF.FormCurrentCtlForTransparentCalls := Name;
-    KF.FormAddAlphabet( 'FormNewLabelEffect', TRUE, TRUE );
+    KF.FormAddAlphabet( 'FormNewLabelEffect', TRUE, TRUE, '' );
     C := Caption;
     if  not KF.AssignTextToControls then
         C := '';
@@ -14885,7 +14885,7 @@ begin
   if  Color2 <> clNone then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetColor2' );
+          KF.FormAddCtlCommand( Name, 'FormSetColor2', '' );
           C := Color2;
           if  C and $FF000000 = $FF000000 then
               C := C and $FFFFFF or $80000000;
@@ -14900,7 +14900,7 @@ begin
   if  Ctl3D then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'TControl.SetCtl3D' );
+          KF.FormAddCtlCommand( Name, 'TControl.SetCtl3D', '' );
           // param = 1
       end else
       SL.Add( Prefix + AName + '.Ctl3D := TRUE;' );
@@ -14950,7 +14950,7 @@ begin
   if  TextAlign <> taCenter then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetTextAlign' );
+          KF.FormAddCtlCommand( Name, 'FormSetTextAlign', '' );
           KF.FormAddNumParameter( Integer( TextAlign ) );
       end else
       SL.Add( '    ' + AName + '.TextAlign := KOL.' + TextAligns[ TextAlign ] + ';' );
@@ -14958,7 +14958,7 @@ begin
   if  VerticalAlign <> vaTop then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetTextVAlign' );
+          KF.FormAddCtlCommand( Name, 'FormSetTextVAlign', '' );
           KF.FormAddNumParameter( Integer( VerticalAlign ) );
       end else
       SL.Add( '    ' + AName + '.VerticalAlign := KOL.' + VertAligns[ VerticalAlign ] + ';' );
@@ -15101,7 +15101,7 @@ begin
     inherited;
     KF := ParentKOLForm;
     if  KF = nil then Exit;
-    KF.FormAddAlphabet( 'FormNew' + TypeName, TRUE, TRUE );
+    KF.FormAddAlphabet( 'FormNew' + TypeName, TRUE, TRUE, '' );
     KF.FormAddNumParameter( Integer( EdgeStyle ) );
     if  TypeName = 'ScrollBox' then
     begin
@@ -16632,7 +16632,7 @@ begin
     inherited;
     KF := ParentKOLForm;
     if  KF = nil then Exit;
-    KF.FormAddAlphabet( 'FormNewDateTimePicker', TRUE, TRUE );
+    KF.FormAddAlphabet( 'FormNewDateTimePicker', TRUE, TRUE, '' );
     KF.FormAddNumParameter( PByte( @ Options )^ );
 end;
 
@@ -16645,7 +16645,7 @@ begin
   if  Format <> '' then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetDateTimeFormat' );
+          KF.FormAddCtlCommand( Name, 'FormSetDateTimeFormat', '' );
           KF.FormAddStrParameter( Format );
       end else
       SL.Add( Prefix + AName + '.DateTimeFormat := ' +
@@ -16654,7 +16654,7 @@ begin
   if  MonthBkColor <> clNone then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetDateTimeColor' );
+          KF.FormAddCtlCommand( Name, 'FormSetDateTimeColor', '' );
           KF.FormAddNumParameter( (MonthBkColor shl 1) or (MonthBkColor shr 31) );
           KF.FormAddNumParameter( Integer( dtpcBackground ) );
       end else
@@ -16664,7 +16664,7 @@ begin
   if  MonthTxtColor <> clNone then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetDateTimeColor' );
+          KF.FormAddCtlCommand( Name, 'FormSetDateTimeColor', '' );
           KF.FormAddNumParameter( (MonthTxtColor shl 1) or (MonthTxtColor shr 31) );
           KF.FormAddNumParameter( Integer( dtpcText ) );
       end else
@@ -16872,7 +16872,7 @@ begin
     inherited;
     KF := ParentKOLForm;
     if  KF = nil then Exit;
-    KF.FormAddAlphabet( 'FormNewScrollBar', TRUE, TRUE );
+    KF.FormAddAlphabet( 'FormNewScrollBar', TRUE, TRUE, '' );
     KF.FormAddNumParameter( Integer( SBBar ) );
 end;
 
@@ -16891,14 +16891,14 @@ begin
   if  SBMin <> 0 then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetSBMin' );
+          KF.FormAddCtlCommand( Name, 'FormSetSBMin', '' );
           KF.FormAddNumParameter( SBMin );
       end else
       SL.Add( Prefix + AName + '.SBMin := ' + IntToStr( SBMin ) + ';' );
 
   if  (KF <> nil) and KF.FormCompact then
   begin
-      KF.FormAddCtlCommand( Name, 'FormSetSBMax' );
+      KF.FormAddCtlCommand( Name, 'FormSetSBMax', '' );
       KF.FormAddNumParameter( SBMax );
   end else
   SL.Add( Prefix + AName + '.SBMax := ' + IntToStr( SBMax ) + ';' );
@@ -16906,7 +16906,7 @@ begin
   if  SBPosition <> SBMin then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetSBPosition' );
+          KF.FormAddCtlCommand( Name, 'FormSetSBPosition', '' );
           KF.FormAddNumParameter( SBPosition );
       end else
       SL.Add( Prefix + AName + '.SBPosition := ' + IntToStr( SBPosition ) + ';' );
@@ -16914,7 +16914,7 @@ begin
   if  SBPageSize <> 0 then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetSBPageSize' );
+          KF.FormAddCtlCommand( Name, 'FormSetSBPageSize', '' );
           KF.FormAddNumParameter( SBPageSize );
       end else
       SL.Add( Prefix + AName + '.SBPageSize := ' + IntToStr( SBPageSize ) + ';' );

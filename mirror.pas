@@ -19,7 +19,7 @@ mmmmm      mmmmm     mmmmm     cccccccccccc       kkkkk     kkkkk
   Key Objects Library (C) 1999 by Kladov Vladimir.
   KOL Mirror Classes Kit (C) 2000 by Kladov Vladimir.
 ********************************************************
-* VERSION 3.14
+* VERSION 3.1415926
 ********************************************************
 }                     
 unit mirror;
@@ -909,6 +909,7 @@ type
               const OfParentName: String; const Prefix: String;
               var Updated: Boolean );
     procedure GenerateCreateForm( SL: TStringList ); virtual;
+    procedure ClearBeforeGenerateForm( SL: TStringList );
     procedure P_GenerateCreateForm( SL: TStringList ); virtual;
     procedure GenerateDestroyAfterRun( SL: TStringList ); virtual;
     procedure GenerateAdd2AutoFree( SL: TStringList; const AName: String; AControl: Boolean;
@@ -1145,8 +1146,9 @@ type
     property FormCurrentParent: String read fFormCurrentParent write SetFormCurrentParent;
     function FormIndexOfControl( const CtlName: String ): Integer;
     function EncodeFormNumParameter( I: Integer ): String;
-    function FormAddAlphabet( const funname: String; creates_ctrl, add_call: Boolean ): Integer;
-    procedure FormAddCtlCommand( const CtlName, FunName: String );
+    function FormAddAlphabet( const funname: String; creates_ctrl, add_call: Boolean;
+             const Comment: String ): Integer;
+    procedure FormAddCtlCommand( const CtlName, FunName, Comment: String );
     procedure FormAddNumParameter( N: Integer );
     procedure FormAddStrParameter( const S: String );
     procedure FormAddCtlParameter( const S: String );
@@ -4721,7 +4723,7 @@ begin
   end;
   Log( '->TKOLCustomControl.AssignEvents' );
   try
-  Rpt( 'Calling DefineFormEvents', WHITE );
+  RptDetailed( 'Calling DefineFormEvents', WHITE );
   DefineFormEvents(
   // events marked with '^' can be set immediately following control creation:
   // in case of FormCompact = TRUE this gives smaller code since there are less
@@ -4786,7 +4788,7 @@ begin
     'OnTVSelChanging:^TControl.Set_OnTVSelChanging',
     'OnTVDelete:^TControl.SetOnTVDelete'
   ] );
-  Rpt( 'Called DefineFormEvents ---', WHITE );
+  RptDetailed( 'Called DefineFormEvents ---', WHITE );
   DoAssignEvents( SL, AName,
   [ 'OnClick', 'OnMouseDblClk', 'OnMessage', 'OnMouseDown', 'OnMouseMove', 'OnMouseUp', 'OnMouseWheel', 'OnMouseEnter', 'OnMouseLeave' ],
   [ @OnClick, @ OnMouseDblClk,  @OnMessage,  @OnMouseDown,  @OnMouseMove,  @OnMouseUp,  @OnMouseWheel,  @OnMouseEnter,  @OnMouseLeave  ] );
@@ -5285,18 +5287,18 @@ begin
                 ev_setter := Trim( Parse( s, ',' ) );
                 ev_handler := 'T' + KF.formName + '.' +
                     ParentForm.MethodName( EventHandlers[ I ] );
-                N_ev_setter := KF.FormAddAlphabet( ev_setter, FALSE, FALSE );
-                N_ev_handler := KF.FormAddAlphabet( ev_handler, FALSE, FALSE );
+                N_ev_setter := KF.FormAddAlphabet( ev_setter, FALSE, FALSE, ' ' + ev_setter + ':' + EventNames[I] );
+                N_ev_handler := KF.FormAddAlphabet( ev_handler, FALSE, FALSE, ' ' + ev_handler + ':' + EventNames[I] );
                 s := Trim( s );
                 if  s = '' then
                 begin
-                    KF.FormAddCtlCommand( Name, 'FormSetEvent' );
+                    KF.FormAddCtlCommand( Name, 'FormSetEvent', ' ' + EventNames[I] );
                     KF.FormAddNumParameter( N_ev_handler );
                     KF.FormAddNumParameter( N_ev_setter );
                 end
                   else
                 begin
-                    KF.FormAddCtlCommand( Name, 'FormSetIndexedEvent' );
+                    KF.FormAddCtlCommand( Name, 'FormSetIndexedEvent', ' ' + EventNames[I] );
                     KF.FormAddNumParameter( N_ev_handler );
                     KF.FormAddNumParameter( StrToInt( s ) );
                     KF.FormAddNumParameter( N_ev_setter );
@@ -7890,7 +7892,7 @@ begin
               not DefaultKOLParentColor and (Color <> DefaultColor) then
               if  (KF <> nil) and KF.FormCompact then
               begin
-                  KF.FormAddCtlCommand( Name, 'FormSetColor' );
+                  KF.FormAddCtlCommand( Name, 'FormSetColor', '' );
                   C := Color;
                   if  C and $FF000000 = $FF000000 then
                       C := C and $FFFFFF or $80000000;
@@ -7969,7 +7971,7 @@ begin
   begin
       if  CompactCode then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetTag' );
+          KF.FormAddCtlCommand( Name, 'FormSetTag', '' );
           KF.FormAddNumParameter( Tag );
       end
         else
@@ -7983,7 +7985,7 @@ begin
 
   if  not Ctl3D then
       if  CompactCode then
-          KF.FormAddCtlCommand( Name, 'FormResetCtl3D' )
+          KF.FormAddCtlCommand( Name, 'FormResetCtl3D', '' )
       else
           SL.Add( Prefix + AName + '.Ctl3D := False;' );
 
@@ -7992,10 +7994,10 @@ begin
       if  CompactCode then
       begin
           if  HasBorder then
-              KF.FormAddCtlCommand( Name, 'TControl.SetHasBorder' )
+              KF.FormAddCtlCommand( Name, 'TControl.SetHasBorder', '' )
               // param = 1
           else
-              KF.FormAddCtlCommand( Name, 'FormSetHasBorderFalse' );
+              KF.FormAddCtlCommand( Name, 'FormSetHasBorderFalse', '' );
       end else
       SL.Add( Prefix + AName + '.HasBorder := ' + BoolVals[ FHasBorder ] + ';' );
     //ShowMessage( AName + '.HasBorder := ' + BoolVals[ FHasBorder ] );
@@ -8011,12 +8013,12 @@ begin
       begin
           if  Border = 1 then
           begin
-              KF.FormAddCtlCommand( Name, 'TControl.SetBorder' );
+              KF.FormAddCtlCommand( Name, 'TControl.SetBorder', '' );
               // param = 1
           end
             else
           begin
-              KF.FormAddCtlCommand( Name, 'FormSetBorder' );
+              KF.FormAddCtlCommand( Name, 'FormSetBorder', '' );
               KF.FormAddNumParameter( Border );
           end;
       end else
@@ -8028,7 +8030,7 @@ begin
   if  MarginTop <> DefaultMarginTop then
       if  CompactCode then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetMarginTop' );
+          KF.FormAddCtlCommand( Name, 'FormSetMarginTop', '' );
           KF.FormAddNumParameter( MarginTop );
       end else
       SL.Add( Prefix + AName + '.MarginTop := ' + IntToStr( MarginTop ) + ';' );
@@ -8036,7 +8038,7 @@ begin
   if  MarginBottom <> DefaultMarginBottom then
       if  CompactCode then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetMarginBottom' );
+          KF.FormAddCtlCommand( Name, 'FormSetMarginBottom', '' );
           KF.FormAddNumParameter( MarginBottom );
       end else
       SL.Add( Prefix + AName + '.MarginBottom := ' + IntToStr( MarginBottom ) + ';' );
@@ -8044,7 +8046,7 @@ begin
   if  MarginLeft <> DefaultMarginLeft then
       if  CompactCode then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetMarginLeft' );
+          KF.FormAddCtlCommand( Name, 'FormSetMarginLeft', '' );
           KF.FormAddNumParameter( MarginLeft );
       end else
       SL.Add( Prefix + AName + '.MarginLeft := ' + IntToStr( MarginLeft ) + ';' );
@@ -8052,7 +8054,7 @@ begin
   if  MarginRight <> DefaultMarginRight then
       if  CompactCode then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetMarginRight' );
+          KF.FormAddCtlCommand( Name, 'FormSetMarginRight', '' );
           KF.FormAddNumParameter( MarginRight );
       end else
       SL.Add( Prefix + AName + '.MarginRight := ' + IntToStr( MarginRight ) + ';' );
@@ -8061,14 +8063,14 @@ begin
       if  Copy( Cursor_, 1, 4 ) = 'IDC_' then
           if  CompactCode then
           begin
-              KF.FormAddCtlCommand( Name, 'FormCursorLoad_0' );
+              KF.FormAddCtlCommand( Name, 'FormCursorLoad_0', '' );
               KF.FormAddNumParameter( IDC2Number( Cursor_ ) );
           end else
           SL.Add( Prefix + AName + '.Cursor := LoadCursor( 0, ' + Cursor_ + ' );' )
   else
       if  CompactCode then
       begin
-          KF.FormAddCtlCommand( Name, 'FormCursorLoad_hInstance' );
+          KF.FormAddCtlCommand( Name, 'FormCursorLoad_hInstance', '' );
           KF.FormAddStrParameter( Cursor_ );
       end else
       SL.Add( Prefix + AName + '.Cursor := LoadCursor( hInstance, ''' + Trim( Cursor_ ) + ''' );' );
@@ -8076,21 +8078,21 @@ begin
   if  not Visible and (Faction = nil) then
       if  CompactCode then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetVisibleFalse' );
+          KF.FormAddCtlCommand( Name, 'FormSetVisibleFalse', '' );
       end else
       SL.Add( Prefix + AName + '.Visible := False;' );
 
   if  not Enabled and (Faction = nil) then
       if  CompactCode then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetEnabledFalse' );
+          KF.FormAddCtlCommand( Name, 'FormSetEnabledFalse', '' );
       end else
       SL.Add( Prefix + AName + '.Enabled := False;' );
 
   if  DoubleBuffered and not Transparent then
       if  CompactCode then
       begin
-          KF.FormAddCtlCommand( Name, 'TControl.SetDoubleBuffered' );
+          KF.FormAddCtlCommand( Name, 'TControl.SetDoubleBuffered', '' );
           // param = 1
       end else
       SL.Add( Prefix + AName + '.DoubleBuffered := True;' );
@@ -8102,7 +8104,7 @@ begin
   and not ParentKOLForm.Transparent) then
       if  CompactCode then
       begin
-          KF.FormAddCtlCommand( Name, 'TControl.SetTransparent' );
+          KF.FormAddCtlCommand( Name, 'TControl.SetTransparent', '' );
           // param = 1
       end else
       SL.Add( Prefix + AName + '.Transparent := True;' );
@@ -8111,7 +8113,7 @@ begin
   if  Transparent then
       if  CompactCode then
       begin
-          KF.FormAddCtlCommand( Name, 'TControl.SetTransparent' );
+          KF.FormAddCtlCommand( Name, 'TControl.SetTransparent', '' );
           // param = 1
       end else
       SL.Add( Prefix + AName + '.Transparent := TRUE;' );
@@ -8119,14 +8121,14 @@ begin
   if  EraseBackground then
       if  CompactCode then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetEraseBkgndTrue' );
+          KF.FormAddCtlCommand( Name, 'FormSetEraseBkgndTrue', '' );
       end else
       SL.Add( Prefix + AName + '.EraseBackground := TRUE;' );
 
   if  MinWidth > 0 then
       if  CompactCode then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetMinWidth' );
+          KF.FormAddCtlCommand( Name, 'FormSetMinWidth', '' );
           KF.FormAddNumParameter( MinWidth );
       end else
       SL.Add( Prefix + AName + '.MinWidth := ' + IntToStr( MinWidth ) + ';' );
@@ -8134,7 +8136,7 @@ begin
   if  MinHeight > 0 then
       if  CompactCode then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetMinHeight' );
+          KF.FormAddCtlCommand( Name, 'FormSetMinHeight', '' );
           KF.FormAddNumParameter( MinHeight );
       end else
       SL.Add( Prefix + AName + '.MinHeight := ' + IntToStr( MinHeight ) + ';' );
@@ -8142,7 +8144,7 @@ begin
   if  MaxWidth > 0 then
       if  CompactCode then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetMaxWidth' );
+          KF.FormAddCtlCommand( Name, 'FormSetMaxWidth', '' );
           KF.FormAddNumParameter( MaxWidth );
       end else
       SL.Add( Prefix + AName + '.MaxWidth := ' + IntToStr( MaxWidth ) + ';' );
@@ -8150,7 +8152,7 @@ begin
   if  MaxHeight > 0 then
       if  CompactCode then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetMaxHeight' );
+          KF.FormAddCtlCommand( Name, 'FormSetMaxHeight', '' );
           KF.FormAddNumParameter( MaxHeight );
       end else
       SL.Add( Prefix + AName + '.MaxHeight := ' + IntToStr( MaxHeight ) + ';' );
@@ -8158,7 +8160,7 @@ begin
   if  IgnoreDefault <> FDefIgnoreDefault then
       if  CompactCode then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetIgnoreDefault' );
+          KF.FormAddCtlCommand( Name, 'FormSetIgnoreDefault', '' );
           KF.FormAddNumParameter( Integer( not IgnoreDefault ) );
       end else
       SL.Add( Prefix + AName + '.IgnoreDefault := ' + BoolVals[ IgnoreDefault ] + ';' );
@@ -8170,7 +8172,7 @@ begin
       begin
           if  CompactCode then
           begin
-              KF.FormAddCtlCommand( Name, 'FormSetHintText' );
+              KF.FormAddCtlCommand( Name, 'FormSetHintText', '' );
               KF.FormAddStrParameter( Hint );
           end
             else
@@ -8232,7 +8234,7 @@ begin
   try
 
   KF := ParentKOLForm;
-  Rpt( 'Setuplast for ' + AName + ' entered', WHITE );
+  RptDetailed( 'Setuplast for ' + AName + ' entered', WHITE );
 
   if  not SetupColorFirst then
       SetupColor( SL, AName );
@@ -8241,20 +8243,20 @@ begin
       SL.Add( Prefix + AName + '.SetAutoPopupMenu( Result.' + FpopupMenu.Name +
               ' );' );
 
-  Rpt( 'AssignEvents for control calling', WHITE );
+  RptDetailed( 'AssignEvents for control calling', WHITE );
   RptDetailed( Name, YELLOW );
   FAssignOnlyUserEvents := FALSE;
   if  (KF <> nil) and KF.FormCompact then
       FAssignOnlyWinEvents := TRUE;
   AssignEvents( SL, AName );
   FAssignOnlyWinEvents := FALSE;
-  Rpt( 'AssignEvents for control called', WHITE );
+  RptDetailed( 'AssignEvents for control called', WHITE );
   RptDetailed( Name, YELLOW );
 
   if  fDefaultBtn then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetDefaultBtn' );
+          KF.FormAddCtlCommand( Name, 'FormSetDefaultBtn', '' );
           KF.FormAddNumParameter( 13 );
           //KF.FormAddNumParameter( 1 );
           // param = 1
@@ -8264,7 +8266,7 @@ begin
   if  fCancelBtn then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetDefaultBtn' );
+          KF.FormAddCtlCommand( Name, 'FormSetDefaultBtn', '' );
           KF.FormAddNumParameter( 27 );
           //KF.FormAddNumParameter( 1 );
           // param = 1
@@ -8279,10 +8281,10 @@ begin
               Integer( AnchorRight ) shl 2 +
               Integer( AnchorBottom ) shl 3;
           if  i = 1 then
-              KF.FormAddCtlCommand( Name, 'TControl.SetAnchor' )
+              KF.FormAddCtlCommand( Name, 'TControl.SetAnchor', '' )
           else
           begin
-              KF.FormAddCtlCommand( Name, 'FormSetAnchor' );
+              KF.FormAddCtlCommand( Name, 'FormSetAnchor', '' );
               KF.FormAddNumParameter( i );
           end;
       end else
@@ -8296,7 +8298,7 @@ begin
   begin
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Name, 'FormOverrideScrollbars' );
+          KF.FormAddCtlCommand( Name, 'FormOverrideScrollbars', '' );
       end
         else
       begin
@@ -8307,7 +8309,7 @@ begin
   end;
 
   SetupTabOrder( SL, AName );
-  Rpt( 'Setuplast for form finished', WHITE );
+  RptDetailed( 'Setuplast for form finished', WHITE );
 
   //LogOK;
   finally
@@ -8383,14 +8385,14 @@ begin
     if  FResetTabStopByStyle then
         if  (KF <> nil) and KF.FormCompact then
         begin
-            KF.FormAddCtlCommand( Name, 'FormResetStyles' );
+            KF.FormAddCtlCommand( Name, 'FormResetStyles', '' );
             KF.FormAddNumParameter( WS_TABSTOP );
         end else
         SL.Add( '    ' + AName + '.Style := ' + AName + '.Style and not WS_TABSTOP;' )
     else
         if  (KF <> nil) and KF.FormCompact then
         begin
-            KF.FormAddCtlCommand( Name, 'FormSetTabStopFalse' );
+            KF.FormAddCtlCommand( Name, 'FormSetTabStopFalse', '' );
         end else
         SL.Add( '    ' + AName + '.TabStop := FALSE;' );
   end;
@@ -10129,7 +10131,7 @@ begin
       begin
           if  AParent <> 'nil' then
           begin
-              KF.FormAddCtlCommand( Name, 'FormSetName' );
+              KF.FormAddCtlCommand( Name, 'FormSetName', '' );
               KF.FormAddStrParameter( Name );
           end
             else
@@ -10211,7 +10213,7 @@ begin
     if  KF.Unicode then
     begin
         if  KF.FormCompact and SupportsFormCompact then
-            KF.FormAddCtlCommand( Name, 'FormSetUnicode' )
+            KF.FormAddCtlCommand( Name, 'FormSetUnicode', '' )
         else
             SL.Add( '   ' + AName + '.SetUnicode(TRUE);' );
     end;
@@ -10277,18 +10279,18 @@ begin
       if  IsGenerateSize then
       begin
           if  PlaceRight then
-              KF.FormAddCtlCommand( Name, 'TControl.PlaceRight' )
+              KF.FormAddCtlCommand( Name, 'TControl.PlaceRight', '' )
           else
           if  PlaceDown then
-              KF.FormAddCtlCommand( Name, 'TControl.PlaceDown' )
+              KF.FormAddCtlCommand( Name, 'TControl.PlaceDown', '' )
           else
           if  PlaceUnder then
-              KF.FormAddCtlCommand( Name, 'TControl.PlaceUnder' )
+              KF.FormAddCtlCommand( Name, 'TControl.PlaceUnder', '' )
           else
           if not CenterOnParent then
           if (actualLeft <> ParentMargin) or (actualTop <> ParentMargin) then
           begin
-              KF.FormAddCtlCommand( Name, 'FormSetPosition' );
+              KF.FormAddCtlCommand( Name, 'FormSetPosition', '' );
               KF.FormAddNumParameter( actualLeft );
               KF.FormAddNumParameter( actualTop );
           end;
@@ -10298,31 +10300,31 @@ begin
   begin
       if  Integer( Align ) = 1 then
       begin
-          KF.FormAddCtlCommand( Name, 'TControl.Set_Align' );
+          KF.FormAddCtlCommand( Name, 'TControl.Set_Align', '' );
           // param = 1
       end
         else
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetAlign' );
+          KF.FormAddCtlCommand( Name, 'FormSetAlign', '' );
           KF.FormAddNumParameter( Integer( Align ) );
       end;
   end;
   Generate_SetSize_Compact;
   if  CenterOnParent and (Align = caNone) then
-      KF.FormAddCtlCommand( Name, 'TControl.CenterOnParent' );
+      KF.FormAddCtlCommand( Name, 'TControl.CenterOnParent', '' );
   if  KF.zOrderChildren then
-      KF.FormAddCtlCommand( Name, 'TControl.BringToFront' );
+      KF.FormAddCtlCommand( Name, 'TControl.BringToFront', '' );
   if  EditTabChar then
-      KF.FormAddCtlCommand( Name, 'TControl.EditTabChar' );
+      KF.FormAddCtlCommand( Name, 'TControl.EditTabChar', '' );
   if  (HelpContext <> 0) and (Faction = nil) then
   begin
-      KF.FormAddCtlCommand( Name, 'FormAssignHelpContext' );
+      KF.FormAddCtlCommand( Name, 'FormAssignHelpContext', '' );
       KF.FormAddNumParameter( HelpContext );
   end;
   if  MouseTransparent then
-      KF.FormAddCtlCommand( Name, 'TControl.MouseTransparent' );
+      KF.FormAddCtlCommand( Name, 'TControl.MouseTransparent', '' );
   if  LikeSpeedButton then
-      KF.FormAddCtlCommand( Name, 'TControl.LikeSpeedButton' );
+      KF.FormAddCtlCommand( Name, 'TControl.LikeSpeedButton', '' );
 
   LogOK;
   finally
@@ -10370,16 +10372,16 @@ begin
           H := 0;
       if  (W <> 0) or (H <> 0) then
       begin
-          KF.FormAddCtlCommand( Name, 'FormSetSize' );
+          KF.FormAddCtlCommand( Name, 'FormSetSize', '' );
           KF.FormAddNumParameter( W );
           KF.FormAddNumParameter( H );
           SizeWasSet := TRUE;
       end;
   end;
   if  WordWrap then
-      KF.FormAddCtlCommand( Name, 'TControl.MakeWordWrap' ); // param = 1
+      KF.FormAddCtlCommand( Name, 'TControl.MakeWordWrap', '' ); // param = 1
   if  (AutoSize and AutoSizeRunTime) xor DefaultAutoSize then
-      KF.FormAddCtlCommand( Name, 'TControl.AutoSize' ); // param = 1
+      KF.FormAddCtlCommand( Name, 'TControl.AutoSize', '' ); // param = 1
 
   if not SizeWasSet then
     //Result := Result + '{Generate_SetSize W' + IntToStr(W) + 'H' + IntToStr(H) + '} '
@@ -10399,12 +10401,12 @@ begin
     begin
         if  Integer( VerticalAlign ) = 1 then
         begin
-            KF.FormAddCtlCommand( Name, 'TControl.SetVerticalAlign' );
+            KF.FormAddCtlCommand( Name, 'TControl.SetVerticalAlign', '' );
             // param = 1
         end
           else
         begin
-            KF.FormAddCtlCommand( Name, 'FormSetVTextVAlign' );
+            KF.FormAddCtlCommand( Name, 'FormSetVTextVAlign', '' );
             KF.FormAddNumParameter( Integer( VerticalAlign ) );
         end;
     end else
@@ -10420,12 +10422,12 @@ begin
     begin
         if  Integer( TextAlign ) = 1 then
         begin
-            KF.FormAddCtlCommand( Name, 'TControl.SetTextAlign' );
+            KF.FormAddCtlCommand( Name, 'TControl.SetTextAlign', '' );
             // param = 1
         end
           else
         begin
-            KF.FormAddCtlCommand( Name, 'FormSetTextAlign' );
+            KF.FormAddCtlCommand( Name, 'FormSetTextAlign', '' );
             KF.FormAddNumParameter( Integer( TextAlign ) );
         end;
     end else
@@ -10462,7 +10464,7 @@ end;
 procedure TKOLCustomControl.SetupTabOrder(SL: TStringList;
   const AName: String);
 begin
-    Rpt( 'SetupLast for ' + AName + ', TabStop = ' + IntToStr( Integer( TabStop ) ),
+    RptDetailed( 'SetupLast for ' + AName + ', TabStop = ' + IntToStr( Integer( TabStop ) ),
          YELLOW );
     if  not TabStop then Exit;
     Rpt( 'TabOrder = ' + IntToStr( FTabOrder ) +
@@ -10809,18 +10811,18 @@ begin
                 ev_setter := Trim( Parse( s, ',' ) );
                 ev_handler := 'T' + FF.formName + '.' +
                     (Owner as TCustomForm).MethodName( EventHandlers[ I ] );
-                N_ev_setter := FF.FormAddAlphabet( ev_setter, FALSE, FALSE );
-                N_ev_handler := FF.FormAddAlphabet( ev_handler, FALSE, FALSE );
+                N_ev_setter := FF.FormAddAlphabet( ev_setter, FALSE, FALSE, ' ' + ev_setter + ':' + EventNames[I] );
+                N_ev_handler := FF.FormAddAlphabet( ev_handler, FALSE, FALSE, ' ' + ev_handler + ':' + EventNames[I] );
                 s := Trim( s );
                 if  s = '' then
                 begin
-                    FF.FormAddCtlCommand( Name, 'FormSetEvent' );
+                    FF.FormAddCtlCommand( Name, 'FormSetEvent', ' ' + EventNames[I] );
                     FF.FormAddNumParameter( N_ev_handler );
                     FF.FormAddNumParameter( N_ev_setter );
                 end
                   else
                 begin
-                    FF.FormAddCtlCommand( Name, 'FormSetIndexedEvent' );
+                    FF.FormAddCtlCommand( Name, 'FormSetIndexedEvent', ' ' + EventNames[I] );
                     FF.FormAddNumParameter( N_ev_handler );
                     FF.FormAddNumParameter( StrToInt( s ) );
                     FF.FormAddNumParameter( N_ev_setter );
@@ -12036,7 +12038,7 @@ begin
     for I := 0 to L.Count - 1 do
     begin
       KC := L.Items[ I ];
-      Rpt( 'generating code for ' + KC.Name, WHITE );
+      RptDetailed( 'generating code for ' + KC.Name, WHITE );
       //SL.Add( '    // ' + KC.RefName + '.TabOrder = ' + IntToStr( KC.TabOrder ) );
       // обеспечить правильный родительский контрол, если он изменился
       if  FormCompact then
@@ -12048,17 +12050,17 @@ begin
                    and not (FormCurrentParentCtl.Parent is TCustomForm))
               or  FormFlushedCompact then
               begin
-                  FormAddCtlCommand( '', 'FormSetCurCtl' );
+                  FormAddCtlCommand( '', 'FormSetCurCtl', '' );
                   FormAddNumParameter( 0 );
-                  FormAddCtlCommand( '', 'FormLastCreatedChildAsNewCurrentParent' );
+                  FormAddCtlCommand( '', 'FormLastCreatedChildAsNewCurrentParent', '' );
                   FormCurrentParentCtl := nil;
                   FormCurrentParent := '';
               end else
               begin
-                  Rpt( 'searching parent form to set as FormCurrentParent', WHITE );
+                  RptDetailed( 'searching parent form to set as FormCurrentParent', WHITE );
                   while FormCurrentParentCtl <> nil do
                   begin
-                      FormAddCtlCommand( '', 'FormSetUpperParent' );
+                      FormAddCtlCommand( '', 'FormSetUpperParent', '' );
                       if  (FormCurrentParentCtl.Parent is TCustomForm) then
                       begin
                           FormCurrentParentCtl := nil;
@@ -12083,13 +12085,13 @@ begin
                   begin
                       RptDetailed( 'setting up ' + KC.Parent.Parent.Name +
                           ' as current control', WHITE );
-                      FormAddCtlCommand( '', 'FormSetCurCtl' );
+                      FormAddCtlCommand( '', 'FormSetCurCtl', '' );
                       FormAddNumParameter( FormIndexOfControl( KC.Parent.Parent.Name ) );
                       FormCurrentCtlForTransparentCalls := KC.Parent.Parent.Name;
                       RptDetailed( 'successfully set up ' + KC.Parent.Parent.Name +
                           ' as current control', WHITE );
                   end;
-                  FormAddCtlCommand( '', 'FormSetTabpageAsParent' );
+                  FormAddCtlCommand( '', 'FormSetTabpageAsParent', '' );
                   J := (KC.Parent.Parent as TKOLTabControl).IndexOfPage(
                        KC.Parent.Name );
                   FormAddNumParameter( J );
@@ -12099,20 +12101,20 @@ begin
           end else
           if  (KC.Parent <> FormCurrentParentCtl) or FormFlushedCompact then
           begin
-              Rpt( 'searching parent control to set as FormCurrentParent', WHITE );
-              Rpt( KC.Parent.Name, WHITE );
+              RptDetailed( 'searching parent control to set as FormCurrentParent', WHITE );
+              RptDetailed( KC.Parent.Name, WHITE );
               if  FormFlushedCompact then
               begin
-                  FormAddCtlCommand( '', 'FormSetCurCtl' );
+                  FormAddCtlCommand( '', 'FormSetCurCtl', '' );
                   FormAddNumParameter( FormIndexOfControl( KC.Parent.Name ) );
-                  FormAddCtlCommand( '', 'FormLastCreatedChildAsNewCurrentParent' );
+                  FormAddCtlCommand( '', 'FormLastCreatedChildAsNewCurrentParent', '' );
                   FormCurrentParentCtl := KC.Parent as TKOLCustomControl;
                   FormCurrentParent := KC.Parent.Name;
               end else
               while (KC.Parent <> FormCurrentParentCtl) and
                     (FormCurrentParentCtl <> nil) do
               begin
-                  FormAddCtlCommand( '', 'FormSetUpperParent' );
+                  FormAddCtlCommand( '', 'FormSetUpperParent', '' );
                   if  (FormCurrentParentCtl.Parent is TCustomForm) then
                   begin
                       FormCurrentParentCtl := nil;
@@ -12158,13 +12160,13 @@ begin
               if  not (KC is TKOLTabPage)
               and not (KC is TKOLTabControl) then
               begin
-                  FormAddAlphabet( 'FormLastCreatedChildAsNewCurrentParent', FALSE, TRUE );
+                  FormAddAlphabet( 'FormLastCreatedChildAsNewCurrentParent', FALSE, TRUE, '' );
                   FormCurrentParent := KC.Name;
                   FormCurrentParentCtl := KC;
               end;
           end;
           GenerateChildren( SL, KC, S, Prefix + '  ', Updated );
-          Rpt( 'children generated for ' + KC.Name, WHITE );
+          RptDetailed( 'children generated for ' + KC.Name, WHITE );
       end;
       if  KC.fUpdated then
       begin
@@ -12589,7 +12591,7 @@ begin
         RptDetailed( 'endof generating P-code', CYAN );
         END;
 
-        RptDetailed( 'start generating code', CYAN );
+        Rpt( 'start generating code', CYAN );
         SL.Add( 'procedure New' + FormName + '( var Result: P' + FormName +
                 '; AParent: PControl );' );
         SL.Add( 'begin' );
@@ -12600,7 +12602,11 @@ begin
         SL.Add( '  New( Result, Create );' );
         SL.Add( '  {$ENDIF KOL CLASSES/OBJECTS}' );
         // "Держатель формы" готов. Теперь конструируем саму форму.
+
+        Rpt( 'call GenerateCreateForm', CYAN + LIGHT );
         GenerateCreateForm( SL );
+        Rpt( 'after call GenerateCreateForm', CYAN + LIGHT );
+
         Log( 'after GenerateCreateForm, next: GenerateAdd2AutoFree' );
         //-- moved to GenerateCreateForm: GenerateAdd2AutoFree( SL, 'Result', FALSE, '', nil );
         Log( 'after GenerateAdd2AutoFree, next: SetupFirst' );
@@ -12759,7 +12765,7 @@ begin
         RptDetailed( 'start generating children', CYAN );
         GenerateChildren( SL, Self, Result_Form, '    ', Updated );
         RptDetailed( 'endof generating children', CYAN );
-        Rpt( 'children generated for form', WHITE );
+        RptDetailed( 'children generated for form', WHITE );
         //FormFlushCompact( SL );
         Rpt( 'form flushed compact', WHITE );
 
@@ -12784,7 +12790,7 @@ begin
           end;
         end;
         RptDetailed( 'endof generating SetupLast for children', CYAN );
-        Rpt( 'setuplast generated for form', WHITE );
+        RptDetailed( 'setuplast generated for form', WHITE );
         // Не забудем так же вызвать SetupLast для самой формы (можно было бы
         // всунуть код прямо сюда, но так будет легче потом сопровождать):
         SetupLast( SL, Result_Form, 'AParent', '    ' );
@@ -13057,7 +13063,7 @@ begin
       end;
   end;
   {$IFnDEF NOT_CONVERT_TMSG}
-  Rpt( 'Convering tagmsg', RED );
+  Rpt( 'Converting tagmsg', RED );
   for I := 0 to Source.Count- 1 do
   begin
       //--------------- from KOL/MCK 3.04, convert tagMSG -> TMsg:
@@ -14929,7 +14935,7 @@ begin
   // сразу после конструирования объекта формы:
   if  Unicode then
       if  FormCompact then
-          FormAddCtlCommand( 'Form', 'FormSetUnicode' )
+          FormAddCtlCommand( 'Form', 'FormSetUnicode', '' )
       else
           SL.Add( '     Result.Form.SetUnicode(TRUE);' );
   SetupName( SL, AName, AParent, Prefix );
@@ -14937,7 +14943,7 @@ begin
   begin
       if  FormCompact then
       begin
-          FormAddCtlCommand( 'Form', 'FormSetTag' );
+          FormAddCtlCommand( 'Form', 'FormSetTag', '' );
           FormAddNumParameter( Tag );
       end
       else
@@ -14951,7 +14957,7 @@ begin
 
   if  not statusSizeGrip then
       if  FormCompact then
-          FormAddCtlCommand( 'Form', 'FormSizeGripFalse' )
+          FormAddCtlCommand( 'Form', 'FormSizeGripFalse', '' )
       else
           SL.Add( Prefix + AName + '.SizeGrip := FALSE;' );
 
@@ -14969,7 +14975,7 @@ begin
           I := I or WS_EX_CONTEXTHELP;
       if  I <> 0 then
       begin
-          FormAddCtlCommand( 'Form', 'FormSetExStyle' );
+          FormAddCtlCommand( 'Form', 'FormSetExStyle', '' );
           FormAddNumParameter( I );
       end;
   end
@@ -14995,19 +15001,19 @@ begin
 {YS}
   if  not Visible then
       if  FormCompact then
-          FormAddCtlCommand( 'Form', 'FormSetVisibleFalse' )
+          FormAddCtlCommand( 'Form', 'FormSetVisibleFalse', '' )
       else
           SL.Add( Prefix + AName + '.Visible := False;' );
 
   if  not Enabled then
       if  FormCompact then
-          FormAddCtlCommand( 'Form', 'FormSetEnabledFalse' )
+          FormAddCtlCommand( 'Form', 'FormSetEnabledFalse', '' )
       else
           SL.Add( Prefix + AName + '.Enabled := False;' );
 
   if  DoubleBuffered and not Transparent then
       if  FormCompact then
-          FormAddCtlCommand( 'Form', 'FormSetDoubleBufferedTrue' )
+          FormAddCtlCommand( 'Form', 'FormSetDoubleBufferedTrue', '' )
       else
           SL.Add( Prefix + AName + '.DoubleBuffered := True;' );
 {YS}
@@ -15033,7 +15039,7 @@ begin
       END;
       if  I <> 0 then
       begin
-          FormAddCtlCommand( 'Form', 'FormResetStyles' );
+          FormAddCtlCommand( 'Form', 'FormResetStyles', '' );
           FormAddNumParameter( I );
       end;
   end
@@ -15078,7 +15084,7 @@ begin
           if  HasBorder then
               if  FormCompact then
               begin
-                  FormAddCtlCommand( 'Form', 'FormSetClientSize' );
+                  FormAddCtlCommand( 'Form', 'FormSetClientSize', '' );
                   FormAddNumParameter( (Owner as TForm).ClientWidth );
                   FormAddNumParameter( (Owner as TForm).ClientHeight + MainMenuHeight );
               end
@@ -15092,7 +15098,7 @@ begin
         if  HasBorder then
             if  FormCompact then
             begin
-                Form.FormAddCtlCommand( 'Form', 'FormSetClientSize' );
+                Form.FormAddCtlCommand( 'Form', 'FormSetClientSize', '' );
                 Form.FormAddNumParameter( (Owner as TForm).ClientWidth );
                 Form.FormAddNumParameter( (Owner as TForm).ClientHeight-GetSystemMetrics(SM_CYCAPTION) );
             end
@@ -15110,14 +15116,14 @@ begin
 
   if  Transparent then
       if  FormCompact then
-          FormAddCtlCommand( Name, 'TControl.SetTransparent' ) // param = 1
+          FormAddCtlCommand( Name, 'TControl.SetTransparent', '' ) // param = 1
       else
           SL.Add( Prefix + AName + '.Transparent := True;' );
 
   if  (AlphaBlend <> 255) and (AlphaBlend > 0) then
       if  FormCompact then
       begin
-          FormAddCtlCommand( 'Form', 'FormSetAlphaBlend' );
+          FormAddCtlCommand( 'Form', 'FormSetAlphaBlend', '' );
           FormAddNumParameter( AlphaBlend and $FF );
       end
         else
@@ -15127,8 +15133,8 @@ begin
   begin
       if  FormCompact then
       begin
-          FormAddCtlCommand( 'Form', 'FormSetHasBorderFalse' );
-          FormAddCtlCommand( 'Form', 'FormSetClientSize' );
+          FormAddCtlCommand( 'Form', 'FormSetHasBorderFalse', '' );
+          FormAddCtlCommand( 'Form', 'FormSetClientSize', '' );
           FormAddNumParameter( (Owner as TForm).ClientWidth );
           FormAddNumParameter( (Owner as TForm).ClientHeight );
       end
@@ -15144,19 +15150,19 @@ begin
 
   if  not HasCaption and HasBorder then
       if  FormCompact then
-          FormAddCtlCommand( 'Form', 'FormSetHasCaptionFalse' )
+          FormAddCtlCommand( 'Form', 'FormSetHasCaptionFalse', '' )
       else
           SL.Add( Prefix + AName + '.HasCaption := False;' );
 
   if  StayOnTop then
       if  FormCompact then
-          FormAddCtlCommand( 'Form', 'TControl.SetStayOnTop' )
+          FormAddCtlCommand( 'Form', 'TControl.SetStayOnTop', '' )
       else
           SL.Add( Prefix + AName + '.StayOnTop := True;' );
 
   if  not Ctl3D then
       if  FormCompact then
-          FormAddCtlCommand( 'Form', 'FormResetCtl3D' )
+          FormAddCtlCommand( 'Form', 'FormResetCtl3D', '' )
       else
           SL.Add( Prefix + AName + '.Ctl3D := False;' );
 
@@ -15165,7 +15171,7 @@ begin
       if  Copy( Icon, 1, 1 ) = '#' then // +Alexander Pravdin
           if  FormCompact then
           begin
-              FormAddCtlCommand( 'Form', 'FormIconLoad_hInstance' );
+              FormAddCtlCommand( 'Form', 'FormIconLoad_hInstance', '' );
               FormAddNumParameter( StrToInt( Copy( Icon, 2, Length( Icon ) - 1 ) ) )
           end
           else
@@ -15175,7 +15181,7 @@ begin
       if  Copy( Icon, 1, 4 ) = 'IDC_' then
           if  FormCompact then
           begin
-              FormAddCtlCommand( 'Form', 'FormIconLoadCursor_0' );
+              FormAddCtlCommand( 'Form', 'FormIconLoadCursor_0', '' );
               FormAddNumParameter( IDC2Number( Icon ) );
           end
           else
@@ -15184,7 +15190,7 @@ begin
       if  Copy( Icon, 1, 4 ) = 'IDI_' then
           if  FormCompact then
           begin
-              FormAddCtlCommand( 'Form', 'FormIconLoadCursor_0' );
+              FormAddCtlCommand( 'Form', 'FormIconLoadCursor_0', '' );
               FormAddNumParameter( IDI2Number( Icon ) );
           end
           else
@@ -15192,13 +15198,13 @@ begin
       else
       if  Icon = '-1' then
           if  FormCompact then
-              FormAddCtlCommand( 'Form', 'FormSetIconNeg1' )
+              FormAddCtlCommand( 'Form', 'FormSetIconNeg1', '' )
           else
               SL.Add( Prefix + AName + '.Icon := THandle(-1);' )
       else
           if  FormCompact then
           begin
-              FormAddCtlCommand( 'Form', 'FormIconLoad_hInstance_str' );
+              FormAddCtlCommand( 'Form', 'FormIconLoad_hInstance_str', '' );
               FormAddStrParameter( Icon )
           end
           else
@@ -15210,12 +15216,12 @@ begin
       begin
           if  Integer( WindowState ) = 1 then
           begin
-              FormAddCtlCommand( 'Form', 'TControl.SetWindowState' );
+              FormAddCtlCommand( 'Form', 'TControl.SetWindowState', '' );
               // param = 1
           end
             else
           begin
-              FormAddCtlCommand( 'Form', 'FormSetWindowState' );
+              FormAddCtlCommand( 'Form', 'FormSetWindowState', '' );
               FormAddNumParameter( Integer( WindowState ) );
           end;
       end
@@ -15228,7 +15234,7 @@ begin
       if  Copy( Cursor, 1, 4 ) = 'IDC_' then
           if  FormCompact then
           begin
-              FormAddCtlCommand( 'Form', 'FormCursorLoad_0' );
+              FormAddCtlCommand( 'Form', 'FormCursorLoad_0', '' );
               FormAddNumParameter( IDC2Number( Cursor ) );
           end
           else
@@ -15236,7 +15242,7 @@ begin
       else
           if  FormCompact then
           begin
-              FormAddCtlCommand( 'Form', 'FormCursorLoad_hInstance' );
+              FormAddCtlCommand( 'Form', 'FormCursorLoad_hInstance', '' );
               FormAddStrParameter( Trim( Cursor ) );
           end
           else
@@ -15269,12 +15275,12 @@ begin
       begin
           if  Border = 1 then
           begin
-              FormAddCtlCommand( 'Form', 'TControl.SetBorder' );
+              FormAddCtlCommand( 'Form', 'TControl.SetBorder', '' );
               // param = 1
           end
             else
           begin
-              FormAddCtlCommand( 'Form', 'FormSetBorder' );
+              FormAddCtlCommand( 'Form', 'FormSetBorder', '' );
               FormAddNumParameter( Border );
           end;
       end else
@@ -15283,7 +15289,7 @@ begin
   if  MarginTop <> 0 then
       if  FormCompact then
       begin
-          FormAddCtlCommand( 'Form', 'FormSetMarginTop' );
+          FormAddCtlCommand( 'Form', 'FormSetMarginTop', '' );
           FormAddNumParameter( MarginTop );
       end else
       SL.Add( Prefix + AName + '.MarginTop := ' + IntToStr( MarginTop ) + ';' );
@@ -15291,7 +15297,7 @@ begin
   if  MarginBottom <> 0 then
       if  FormCompact then
       begin
-          FormAddCtlCommand( 'Form', 'FormSetMarginBottom' );
+          FormAddCtlCommand( 'Form', 'FormSetMarginBottom', '' );
           FormAddNumParameter( MarginBottom );
       end else
       SL.Add( Prefix + AName + '.MarginBottom := ' + IntToStr( MarginBottom ) + ';' );
@@ -15299,7 +15305,7 @@ begin
   if  MarginLeft <> 0 then
       if  FormCompact then
       begin
-          FormAddCtlCommand( 'Form', 'FormSetMarginLeft' );
+          FormAddCtlCommand( 'Form', 'FormSetMarginLeft', '' );
           FormAddNumParameter( MarginLeft );
       end else
       SL.Add( Prefix + AName + '.MarginLeft := ' + IntToStr( MarginLeft ) + ';' );
@@ -15307,7 +15313,7 @@ begin
   if  MarginRight <> 0 then
       if  FormCompact then
       begin
-          FormAddCtlCommand( 'Form', 'FormSetMarginRight' );
+          FormAddCtlCommand( 'Form', 'FormSetMarginRight', '' );
           FormAddNumParameter( MarginRight );
       end else
       SL.Add( Prefix + AName + '.MarginRight := ' + IntToStr( MarginRight ) + ';' );
@@ -15320,7 +15326,7 @@ begin
     begin
         if  FormCompact then
         begin
-            FormAddCtlCommand( 'Form', 'FormSetSimpleStatusText' );
+            FormAddCtlCommand( 'Form', 'FormSetSimpleStatusText', '' );
             FormAddStrParameter( FStatusText[ 0 ] );
         end else
         begin
@@ -15341,7 +15347,7 @@ begin
         begin
             if  FormCompact then
             begin
-                FormAddCtlCommand( 'Form', 'FormSetStatusText' );
+                FormAddCtlCommand( 'Form', 'FormSetStatusText', '' );
                 FormAddNumParameter( I );
                 FormAddStrParameter( FStatusText[ I ] );
             end else
@@ -15364,7 +15370,7 @@ begin
   if  not CloseIcon then
   begin
       if  FormCompact then
-          FormAddCtlCommand( 'Form', 'FormRemoveCloseIcon' )
+          FormAddCtlCommand( 'Form', 'FormRemoveCloseIcon', '' )
       else
           SL.Add( Prefix + 'DeleteMenu( GetSystemMenu( Result.Form.GetWindowHandle, ' +
             'False ), SC_CLOSE, MF_BYCOMMAND );' );
@@ -15372,14 +15378,14 @@ begin
 
   if  EraseBackground then
       if  FormCompact then
-          FormAddCtlCommand( 'Form', 'FormSetEraseBkgndTrue' )
+          FormAddCtlCommand( 'Form', 'FormSetEraseBkgndTrue', '' )
       else
           SL.Add( Prefix + AName + '.EraseBackground := TRUE;' );
 
   if  MinWidth > 0 then
       if  FormCompact then
       begin
-          FormAddCtlCommand( 'Form', 'FormSetMinWidth' );
+          FormAddCtlCommand( 'Form', 'FormSetMinWidth', '' );
           FormAddNumParameter( MinWidth );
       end else
       SL.Add( Prefix + AName + '.MinWidth := ' + IntToStr( MinWidth ) + ';' );
@@ -15387,7 +15393,7 @@ begin
   if  MinHeight > 0 then
       if  FormCompact then
       begin
-          FormAddCtlCommand( 'Form', 'FormSetMinHeight' );
+          FormAddCtlCommand( 'Form', 'FormSetMinHeight', '' );
           FormAddNumParameter( MinHeight );
       end else
       SL.Add( Prefix + AName + '.MinHeight := ' + IntToStr( MinHeight ) + ';' );
@@ -15395,7 +15401,7 @@ begin
   if  MaxWidth > 0 then
       if  FormCompact then
       begin
-          FormAddCtlCommand( 'Form', 'FormSetMaxWidth' );
+          FormAddCtlCommand( 'Form', 'FormSetMaxWidth', '' );
           FormAddNumParameter( MaxWidth );
       end else
       SL.Add( Prefix + AName + '.MaxWidth := ' + IntToStr( MaxWidth ) + ';' );
@@ -15403,7 +15409,7 @@ begin
   if  MaxHeight > 0 then
       if  FormCompact then
       begin
-          FormAddCtlCommand( 'Form', 'FormSetMaxHeight' );
+          FormAddCtlCommand( 'Form', 'FormSetMaxHeight', '' );
           FormAddNumParameter( MaxHeight );
       end else
       SL.Add( Prefix + AName + '.MaxHeight := ' + IntToStr( MaxHeight ) + ';' );
@@ -15411,7 +15417,7 @@ begin
   if  KeyPreview then
       if  FormCompact then
       begin
-          FormAddCtlCommand( 'Form', 'FormSetKeyPreviewTrue' );
+          FormAddCtlCommand( 'Form', 'FormSetKeyPreviewTrue', '' );
       end else
       SL.Add( Prefix + AName + '.KeyPreview := TRUE;' );
 
@@ -15421,7 +15427,7 @@ begin
       begin
           if  FormCompact then
           begin
-              FormAddCtlCommand( 'Form', 'TControl.AllBtnReturnClick' );
+              FormAddCtlCommand( 'Form', 'TControl.AllBtnReturnClick', '' );
           end else
           SL.Add( Prefix + AName + '.AllBtnReturnClick;' );
       end;
@@ -15459,7 +15465,7 @@ begin
       if  CenterOnScreen then
           if  FormCompact then
           begin
-              FormAddCtlCommand( 'Form', 'TControl.CenterOnParent' );
+              FormAddCtlCommand( 'Form', 'TControl.CenterOnParent', '' );
           end else
           S := Prefix + AName + '.CenterOnParent';
 
@@ -15467,7 +15473,7 @@ begin
       begin
           if  FormCompact then
           begin
-              FormAddCtlCommand( 'Form', 'FormSetCanResizeFalse' );
+              FormAddCtlCommand( 'Form', 'FormSetCanResizeFalse', '' );
           end
             else
           begin
@@ -15482,19 +15488,19 @@ begin
       if  not CanResize or not MinimizeIcon or not MaximizeIcon then
           if  FormCompact then
           begin
-              FormAddCtlCommand( 'Form', 'FormInitMenu' );
+              FormAddCtlCommand( 'Form', 'FormInitMenu', '' );
           end else
           SL.Add( Prefix + AName + '.Perform( WM_INITMENU, 0, 0 );' );
 
       if  MinimizeNormalAnimated then
           if  FormCompact then
-              FormAddCtlCommand( 'Form', 'TControl.MinimizeNormalAnimated' )
+              FormAddCtlCommand( 'Form', 'TControl.MinimizeNormalAnimated', '' )
           else
               SL.Add( Prefix + AName + '.MinimizeNormalAnimated;' )
       else
       if  RestoreNormalMaximized then
           if  FormCompact then
-              FormAddCtlCommand( 'Form', 'TControl.RestoreNormalMaximized' )
+              FormAddCtlCommand( 'Form', 'TControl.RestoreNormalMaximized', '' )
           else
               SL.Add( Prefix + AName + '.RestoreNormalMaximized;' );
 
@@ -15509,7 +15515,7 @@ begin
     {YS}
       if  FborderStyle = fbsDialog then
           if  FormCompact then
-              FormAddCtlCommand( 'Form', 'FormSetIconNeg1' )
+              FormAddCtlCommand( 'Form', 'FormSetIconNeg1', '' )
           else
               SL.Add( Prefix + AName + '.Icon := THandle(-1);' );
     {YS}
@@ -15953,6 +15959,8 @@ begin
   Log( '->TKOLForm.GenerateCreateForm' );
   try
 
+  Rpt( 'GenerateCreateForm ' + FormName, CYAN + LIGHT );
+
 {$IFDEF _D2009orHigher}
   if  AssignTextToControls then
       C := StringConstant( 'Caption', Caption )
@@ -15970,6 +15978,7 @@ begin
   else
       C := '''''';
 {$ENDIF}
+  S := '';
   if  FormCompact then
   begin
       SL.Add( '  Result.Form := NewForm( AParent, ' + C +
@@ -15985,19 +15994,7 @@ begin
       if  FormMain and AppletOnForm and (Applet <> nil) then
           Applet.AssignEvents( SL, 'Applet' );
 
-      SL.Add( '  //--< place to call FormCreateParameters >--//' );
-      FreeAndNil( FFormAlphabet );
-      FreeAndNil( FFormCtlParams );
-      FFormAlphabet := TStringList.Create;
-      FFormCtlParams := TStringList.Create;
-      FFormCommandsAndParams := '';
-      FormCurrentParent := '';
-      FormCurrentParentCtl := nil;
-      FormCurrentCtlForTransparentCalls := 'Form';
-      GenerateTransparentInits_Compact;
-      FormFlushedUntil := 0;
-      FormIndexFlush := 0;
-      FreeAndNil( FormControlsList );
+      ClearBeforeGenerateForm( SL );
   end
     else
   begin
@@ -18015,7 +18012,7 @@ begin
   begin
       if  FormCompact and (AName <> 'nil') then
       begin
-          FormAddCtlCommand( 'Form', 'FormSetName' );
+          FormAddCtlCommand( 'Form', 'FormSetName', '' );
           FormAddStrParameter( Owner.Name );
       end
       else
@@ -18110,7 +18107,8 @@ begin
   Change( Self );
 end;
 
-function TKOLForm.FormAddAlphabet(const funname: String; creates_ctrl, add_call: Boolean): Integer;
+function TKOLForm.FormAddAlphabet(const funname: String; creates_ctrl, add_call: Boolean;
+         const Comment: String): Integer;
 begin
     if  FFormAlphabet = nil then
         FFormAlphabet := TStringList.Create;
@@ -18125,12 +18123,12 @@ begin
         if  creates_ctrl then
         begin
             FFormCommandsAndParams := FFormCommandsAndParams + #13#10 +
-                '    +{' + funname + '}'#9 + EncodeFormNumParameter( -Result-1 );
+                '    +{' + funname + Comment + '}'#9 + EncodeFormNumParameter( -Result-1 );
         end
           else
         begin
             FFormCommandsAndParams := FFormCommandsAndParams + #13#10 +
-                '    +{' + funname + '}'#9 + EncodeFormNumParameter( Result+1 );
+                '    +{' + funname + Comment + '}'#9 + EncodeFormNumParameter( Result+1 );
         end;
     end;
 end;
@@ -18184,7 +18182,7 @@ begin
         FFormCommandsAndParams := FFormCommandsAndParams + '''';
 end;
 
-procedure TKOLForm.FormAddCtlCommand(const CtlName, FunName: String);
+procedure TKOLForm.FormAddCtlCommand(const CtlName, FunName, Comment: String);
 var i: Integer;
     C: TComponent;
 begin
@@ -18197,11 +18195,11 @@ begin
         if  (C <> nil) and (C is TKOLTabPage)
         and ((C as TKOLTabPage).Parent is TKOLTabControl) then
         begin
-            FormAddAlphabet( 'FormSetCurCtl', FALSE, TRUE );
+            FormAddAlphabet( 'FormSetCurCtl', FALSE, TRUE, ' ' + CtlName );
             i := FormIndexOfControl( (C as TKOLTabPage).Parent.Name );
             FormAddNumParameter( i );
             FormCurrentCtlForTransparentCalls := (C as TKOLTabPage).Parent.Name;
-            FormAddAlphabet( 'FormSetTabpageAsParent', FALSE, TRUE );
+            FormAddAlphabet( 'FormSetTabpageAsParent', FALSE, TRUE, ' ' + CtlName );
             i := ((C as TKOLTabPage).Parent as TKOLTabControl).IndexOfPage( CtlName );
             FormAddNumParameter( i );
             FormCurrentParent := CtlName;
@@ -18209,13 +18207,13 @@ begin
         end
           else
         begin
-            FormAddAlphabet( 'FormSetCurCtl', FALSE, TRUE );
+            FormAddAlphabet( 'FormSetCurCtl', FALSE, TRUE, ' ' + CtlName );
             i := FormIndexOfControl( CtlName );
             FormAddNumParameter( i );
             FormCurrentCtlForTransparentCalls := CtlName;
         end;
     end;
-    FormAddAlphabet( FunName, FALSE, TRUE );
+    FormAddAlphabet( FunName, FALSE, TRUE, Comment );
 end;
 
 procedure TKOLForm.FormFlushCompact(SL: TFormStringList);
@@ -18391,7 +18389,7 @@ begin
       begin
         if  FBounds <> nil then
         begin
-            FormAddCtlCommand( 'Form', 'FormSetPosition' );
+            FormAddCtlCommand( 'Form', 'FormSetPosition', '' );
             FormAddNumParameter( Bounds.Left );
             FormAddNumParameter( Bounds.Top );
         end;
@@ -18404,33 +18402,33 @@ begin
       if (Owner = nil) or not(Owner is TForm) then
         if HasCaption then
         begin
-             FormAddCtlCommand( 'Form', 'FormSetSize' );
+             FormAddCtlCommand( 'Form', 'FormSetSize', '' );
              FormAddNumParameter( Bounds.Width );
              FormAddNumParameter( Bounds.Height );
         end
         else
         begin
-             FormAddCtlCommand( 'Form', 'FormSetSize' );
+             FormAddCtlCommand( 'Form', 'FormSetSize', '' );
              FormAddNumParameter( Bounds.Width );
              FormAddNumParameter( Bounds.Height - GetSystemMetrics(SM_CYCAPTION) );
         end;
     end;
 
     if  Tabulate then
-        FormAddCtlCommand( 'Form', 'TControl.Tabulate' )
+        FormAddCtlCommand( 'Form', 'TControl.Tabulate', '' )
     else
     if  TabulateEx then
-        FormAddCtlCommand( 'Form', 'TControl.TabulateEx' );
+        FormAddCtlCommand( 'Form', 'TControl.TabulateEx', '' );
 
     if  PreventResizeFlicks then
-        FormAddCtlCommand( 'Form', 'TControl.PreventResizeFlicks' );
+        FormAddCtlCommand( 'Form', 'TControl.PreventResizeFlicks', '' );
 
     if  supportMnemonics then
-        FormAddCtlCommand( 'Form', 'TControl.SupportMnemonics' );
+        FormAddCtlCommand( 'Form', 'TControl.SupportMnemonics' , '');
 
     if  HelpContext <> 0 then
     begin
-        FormAddCtlCommand( 'Form', 'FormAssignHelpContext' );
+        FormAddCtlCommand( 'Form', 'FormAssignHelpContext', '' );
         FormAddNumParameter( HelpContext );
     end;
   end;
@@ -18574,9 +18572,28 @@ end;
 
 procedure TKOLForm.SetFormCurrentParent(const Value: String);
 begin
-  Rpt( 'FormCurrentParent set to ' + Value + ' (was: ' + fFormCurrentParent + ')',
+  RptDetailed( 'FormCurrentParent set to ' + Value + ' (was: ' + fFormCurrentParent + ')',
       CYAN );
   fFormCurrentParent := Value;
+end;
+
+procedure TKOLForm.ClearBeforeGenerateForm(SL: TStringList);
+begin
+    if  not FormCompact then Exit;
+    SL.Add( '  //--< place to call FormCreateParameters >--//' );
+    FreeAndNil( FFormAlphabet );
+    FreeAndNil( FFormCtlParams );
+    FFormAlphabet := TStringList.Create;
+    FFormCtlParams := TStringList.Create;
+    Rpt( 'Clear before GenerateCreateForm (FormCompact', WHITE + LIGHT );
+    FFormCommandsAndParams := '';
+    FormCurrentParent := '';
+    FormCurrentParentCtl := nil;
+    FormCurrentCtlForTransparentCalls := 'Form';
+    GenerateTransparentInits_Compact;
+    FormFlushedUntil := 0;
+    FormIndexFlush := 0;
+    FreeAndNil( FormControlsList );
 end;
 
 { TKOLProject }
@@ -18655,7 +18672,7 @@ begin
         end
            else
         begin
-          Rpt( 'Calling TimerTick directly', WHITE );
+          RptDetailed( 'Calling TimerTick directly', WHITE );
           //Rpt_Stack;
           fTimer.Enabled := FALSE;
           TimerTick( fTimer );
@@ -18771,7 +18788,7 @@ begin
             ProjectDest + '.exe"';
         I := ShellExecute( 0, nil, PChar( CallPCompiler ),
           PChar(tmp), PChar( ProjectSourcePath ), SW_HIDE );
-        Rpt( 'Called pcompiler: ' + IntToStr( I ), GREEN );
+        RptDetailed( 'Called pcompiler: ' + IntToStr( I ), GREEN );
       end;
     end
     else
@@ -22007,7 +22024,7 @@ begin
   if  Color <> BFont.Color then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Ctl_Name, 'FormSetFontColor' );
+          KF.FormAddCtlCommand( Ctl_Name, 'FormSetFontColor', '' );
           KF.FormAddNumParameter( (Color shl 1) or (Color shr 31) );
       end
       else
@@ -22018,7 +22035,7 @@ begin
       if  (KF <> nil) and KF.FormCompact then
       begin
           fs := FontStyle;
-          KF.FormAddCtlCommand( Ctl_Name, 'FormSetFontStyles' );
+          KF.FormAddCtlCommand( Ctl_Name, 'FormSetFontStyles', '' );
           KF.FormAddNumParameter( PByte( @fs )^ );
       end
         else
@@ -22041,7 +22058,7 @@ begin
   if  FontHeight <> BFont.FontHeight then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Ctl_Name, 'FormSetFontHeight' );
+          KF.FormAddCtlCommand( Ctl_Name, 'FormSetFontHeight', '' );
           KF.FormAddNumParameter( FontHeight );
       end else
       AddLine( 'FontHeight := ' + IntToStr( FontHeight ) );
@@ -22049,7 +22066,7 @@ begin
   if  FontWidth <> BFont.FontWidth then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Ctl_Name, 'FormSetFontWidth' );
+          KF.FormAddCtlCommand( Ctl_Name, 'FormSetFontWidth', '' );
           KF.FormAddNumParameter( FontWidth );
       end else
       AddLine( 'FontWidth := ' + IntToStr( FontWidth ) );
@@ -22057,7 +22074,7 @@ begin
   if  FontName <> BFont.FontName then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Ctl_Name, 'FormSetFontName' );
+          KF.FormAddCtlCommand( Ctl_Name, 'FormSetFontName', '' );
           KF.FormAddStrParameter( FontName );
       end else
       AddLine( 'FontName := ''' + FontName + '''' );
@@ -22065,7 +22082,7 @@ begin
   if  FontOrientation <> BFont.FontOrientation then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Ctl_Name, 'FormSetFontOrientation' );
+          KF.FormAddCtlCommand( Ctl_Name, 'FormSetFontOrientation', '' );
           KF.FormAddNumParameter( FontOrientation );
       end else
       AddLine( 'FontOrientation := ' + IntToStr( FontOrientation ) );
@@ -22073,7 +22090,7 @@ begin
   if  FontCharset <> BFont.FontCharset then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Ctl_Name, 'FormSetFontCharset' );
+          KF.FormAddCtlCommand( Ctl_Name, 'FormSetFontCharset', '' );
           KF.FormAddNumParameter( FontCharset );
       end else
       AddLine( 'FontCharset := ' + IntToStr( FontCharset ) );
@@ -22081,7 +22098,7 @@ begin
   if  FontPitch <> BFont.FontPitch then
       if  (KF <> nil) and KF.FormCompact then
       begin
-          KF.FormAddCtlCommand( Ctl_Name, 'FormSetFontPitch' );
+          KF.FormAddCtlCommand( Ctl_Name, 'FormSetFontPitch', '' );
           KF.FormAddNumParameter( Integer( FontPitch ) );
       end else
       AddLine( 'FontPitch := ' + FontPitches[ FontPitch ] );
@@ -23128,11 +23145,14 @@ begin
           '.MarkPanelAsForm' +
           S + ';' );
   SL.Add( '  Result.Form.DF.FormAddress := @ Result.Form;' );
+  SL.Add( '  Result.Form.DF.FormObj := Result;' );
   if Caption <> '' then
      if  AssignTextToControls then
          SL.Add( '  Result.Form.Caption := ' + StringConstant( 'Caption', Caption ) + ';' );
   if  FormCompact then
       SL.Add( '  //--< place to call FormCreateParameters >--//' );
+  if  FormCompact then
+      ClearBeforeGenerateForm( SL );
 end;
 
 function TKOLFrame.GenerateTransparentInits: String;
@@ -26998,7 +27018,7 @@ begin
         bsSolid: if  KF.Color <> clBtnFace then
                      if  KF.FormCompact then
                      begin
-                         KF.FormAddCtlCommand( 'Form', 'FormSetColor' );
+                         KF.FormAddCtlCommand( 'Form', 'FormSetColor', '' );
                          C := KF.Color;
                          if  C and $FF000000 = $FF000000 then
                              C := C and $FFFFFF or $80000000;
@@ -27012,7 +27032,7 @@ begin
                      SL.Add( '    ' + AName + '.Color := TColor(' + Color2Str( KF.Color ) + ');' );
         else  if  KF.FormCompact then
               begin
-                  KF.FormAddCtlCommand( 'Form', 'FormSetBrushStyle' );
+                  KF.FormAddCtlCommand( 'Form', 'FormSetBrushStyle', '' );
                   KF.FormAddNumParameter( Integer( BrushStyle ) );
               end
               else
@@ -27030,7 +27050,7 @@ begin
             (SL as TFormStringList).OnAdd := nil;
             SL.Add( '    {$R ' + RsrcName + '.res}' );
             (SL as TFormStringList).OnAdd := KF.DoFlushFormCompact;
-            KF.FormAddCtlCommand( 'Form', 'FormSetBrushBitmap' );
+            KF.FormAddCtlCommand( 'Form', 'FormSetBrushBitmap', '' );
             KF.FormAddStrParameter( UpperCase( RsrcName ) );
         end
           else
@@ -27052,7 +27072,7 @@ begin
       bsSolid: if  not (FOwner as TKOLCustomControl).ParentColor then
                    if  (KF <> nil) and KF.FormCompact then
                    begin
-                       KF.FormAddCtlCommand( (FOwner as TKOLCustomControl).Name, 'FormSetColor' );
+                       KF.FormAddCtlCommand( (FOwner as TKOLCustomControl).Name, 'FormSetColor', '' );
                        i := (FOwner as TKOLCustomControl).Color;
                        C := i;
                        if  C and $FF000000 = $FF000000 then
@@ -27067,7 +27087,7 @@ begin
                    SL.Add( '    ' + AName + '.Color := TColor(' + Color2Str( (FOwner as TKOLCustomControl).Color ) + ');' );
       else  if  (KF <> nil) and KF.FormCompact then
             begin
-                KF.FormAddCtlCommand( (FOwner as TKOLCustomControl).Name, 'FormSetBrushStyle' );
+                KF.FormAddCtlCommand( (FOwner as TKOLCustomControl).Name, 'FormSetBrushStyle', '' );
                 KF.FormAddNumParameter( Integer( BrushStyle ) );
             end
             else
@@ -27085,7 +27105,7 @@ begin
           (SL as TFormStringList).OnAdd := nil;
           SL.Add( '    {$R ' + RsrcName + '.res}' );
           (SL as TFormStringList).OnAdd := KF.DoFlushFormCompact;
-          KF.FormAddCtlCommand( (FOwner as TKOLCustomControl).Name, 'FormSetBrushBitmap' );
+          KF.FormAddCtlCommand( (FOwner as TKOLCustomControl).Name, 'FormSetBrushBitmap', '' );
           KF.FormAddStrParameter( UpperCase( RsrcName ) );
       end
         else
