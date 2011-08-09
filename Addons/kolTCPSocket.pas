@@ -597,7 +597,9 @@ end;
 
 function TTCPClient.ReceiveLength: Integer;
 begin
-  ioctlsocket(fhandle,FIONREAD,result);
+  if fhandle<>SOCKET_ERROR then
+  ioctlsocket(fhandle,FIONREAD,result)
+  else result:=0;
 end;
 
 function TTCPClient.Send(var Buf; const Count: Integer): Integer;

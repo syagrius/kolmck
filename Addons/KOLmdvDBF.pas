@@ -34,7 +34,7 @@ const
     DBF_FoxBASE_            = $FB;
     DBF_dBaseIIIplus        = $03;
     DBF_dBaseIIIplusMemo    = $83;
-    DBF_dBaseIV             = $04;
+    DBF_dBaseIV             = $03;
     DBF_dBaseIVSQLtable     = $43;
     DBF_dBaseIVSQLsystem    = $63;
     DBF_dBaseIVSQLtableMemo = $CB;
@@ -325,6 +325,8 @@ type
 function NewmdvDBF(AFileName: String; AutoUpdate: Boolean; ReadOnly: Boolean = False): TKOLmdvDBF;
 
 implementation
+
+{$RANGECHECKS OFF}
 
 function NewmdvDBF(AFileName: String; AutoUpdate: Boolean; ReadOnly: Boolean = False): TKOLmdvDBF;
 begin
@@ -1015,6 +1017,7 @@ end;
 
 procedure TmdvDBF.PackDBF;
 var ReadPos, WritePos, Rec, RecCount: DWord;
+S:string;
 begin
   if FReadOnly then Exit;
   Post;
@@ -1038,7 +1041,9 @@ begin
   FDBFHeader.RecordCount := RecCount;
   FDBFStream.Seek(0, spBegin);
   FDBFStream.Write(FDBFHeader, SizeOf(TDBFHeader));
-
+  FDBFStream.Seek(0, spEnd);
+  S:= #$1A;
+  FDBFStream.Write(S[1], 1);
   CurrentRecord:= 0;
 end;
 
@@ -1265,13 +1270,12 @@ begin
           NextFree:= 512  div _BlockSize + Ord(512 mod _BlockSize > 0);
           BlockSize:= _BlockSize;
         end;
+		  Stream:= NewWriteFileStream(ChangeFileExt(AFileName, '.dbt'));
+		  Stream.Size:= 0;
+		  Stream.Write(_DBTHeader , SizeOf(_DBTHeader));
+		  Stream.Size:= _DBTHeader.NextFree*_DBTHeader.BlockSize;
+		  Stream.Free;
       end;
-      Stream:= NewWriteFileStream(ChangeFileExt(AFileName, '.dbt'));
-      Stream.Size:= 0;
-      Stream.Write(_DBTHeader , SizeOf(_DBTHeader));
-      Stream.Size:= _DBTHeader.NextFree*_DBTHeader.BlockSize;
-      Stream.Free;
-
     finally
       FreeMem(_DBFFields);
     end;

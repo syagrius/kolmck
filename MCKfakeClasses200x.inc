@@ -43,7 +43,7 @@ type
   TKOLMainMenu = PMenu;
   TKOLPopupMenu = PMenu;
   TKOLOpenSaveDialog = POpenSaveDialog;
-  //TKOLOpenDirDialog = POpenDirDialog;
+  TKOLOpenDirDialog = POpenDirDialog;
   TKOLTrayIcon = PTrayIcon;
   TKOLColorDialog = PColorDialog;
   //TKOLActionList = PActionList;

@@ -19,7 +19,7 @@ mmmmm      mmmmm     mmmmm     cccccccccccc       kkkkk     kkkkk
   Key Objects Library (C) 1999 by Kladov Vladimir.
   KOL Mirror Classes Kit (C) 2000 by Kladov Vladimir.
 ********************************************************
-* VERSION 3.1415926
+* VERSION 3.1415926535897
 ********************************************************
 }                     
 unit mirror;
@@ -13073,11 +13073,17 @@ begin
           RptDetailed( 'tagmsg found in line ' + Int2Str(I+1), CYAN );
           for J := Length(S)-5 downto 1 do
           begin
-              if  StrLComp_NoCase( PChar(@S[J]), 'tagmsg', 6 ) = 0 then
+              if  AnsiCompareText( Copy(S, J, 6), 'tagmsg' ) = 0 then
               begin
+                  {$IFDEF _D2009orHigher}
+                  if  ( (J = 1) or not CharInSet(S[J-1], ['A'..'Z','a'..'z','_']) )
+                  and ( (J = Length(S)-5) or not CharInSet(S[J+6],
+                      ['0'..'9','A'..'Z','a'..'z','_']) ) then
+                  {$ELSE}
                   if  ( (J = 1) or not(S[J-1] in ['A'..'Z','a'..'z','_']) )
                   and ( (J = Length(S)-5) or not(S[J+6] in
                       ['0'..'9','A'..'Z','a'..'z','_']) ) then
+                  {$ENDIF}
                   begin
                        RptDetailed( 'tagmsg replaced with TMsg in line ' + Int2Str(I+1), CYAN );
                        S := Copy( S, 1, J-1 ) + 'TMsg' + Copy( S, J+6, MaxInt );
@@ -18277,6 +18283,9 @@ begin
                     end;}
 
                     inc( FormFunArrayIdx );
+                    Rpt( 'Adding Result.Form.FormExecuteCommands( @ Result.Form, ' +
+                        '@ FormControlsArray' + IntToStr( FormFunArrayIdx ) + '[0]);' +
+                        '// flush: ' + IntToStr( FormIndexFlush ), RED );
                     SL.Add( '    Result.Form.FormExecuteCommands( @ Result.Form, ' +
                         '@ FormControlsArray' + IntToStr( FormFunArrayIdx ) + '[0]);' +
                         '// flush: ' + IntToStr( FormIndexFlush ) );
@@ -18311,6 +18320,9 @@ begin
                         AL.Free;
                     END;
 
+                end else
+                begin
+                    Rpt( 'not FileExists: ' + s, RED );
                 end;
 
                 {if  CL.Count = 0 then
