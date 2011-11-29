@@ -517,6 +517,7 @@ end;
 function ExceptionErrorMessage(ExceptObject: TObject; ExceptAddr: Pointer;
   Buffer: PKOLChar; Size: Integer): Integer;
 var
+  ex: Exception;
   MsgPtr: PKOLChar;
   //MsgEnd: PChar;
   //MsgLen: Integer;
@@ -543,7 +544,8 @@ begin
   //MsgEnd := '';
   if ExceptObject is Exception then
   begin
-    MsgPtr := PKOLChar(Exception(ExceptObject).Message);
+    ex := Exception(ExceptObject);
+    MsgPtr := PKOLChar(ex.Message);
     //MsgLen := StrLen(MsgPtr);
     //if (MsgLen <> 0) and (MsgPtr[MsgLen - 1] <> '.') then MsgEnd := '.';
     {-} // Isn't it too beautiful - devote ~40 bytes of code just to decide,
