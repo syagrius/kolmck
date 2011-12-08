@@ -7916,7 +7916,7 @@ begin
     if (lvoEditLabel in Options) and not Assigned( OnEndEditLVItem ) then
     begin
         (SL as TFormStringList).OnAdd := nil;
-        SL.Add( Prefix + AName + '.OnEndEditLVItem := nil;' );
+//dufa        SL.Add( Prefix + AName + '.OnEndEditLVItem := nil;' );
         if  KF <> nil then
             (SL as TFormStringList).OnAdd := KF.DoFlushFormCompact;
     end;
