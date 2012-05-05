@@ -4337,7 +4337,7 @@ var
   i: longword;
   userkey: array[0..31] of byte;
 begin
-burn;
+  burn;
 
   Size:= Size div 8;
 

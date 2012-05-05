@@ -210,7 +210,7 @@ by Thaddy de Koning:
 FPC version 2.1.1 is very compatible with Delphi and kol now.
 You can simply use the $(DELPHI)\source\rtl\win\*.pas files from Delphi 4/5 instead of the prepared files that were needed for 
 FPC1.X
- 
+
 That is all to have full compatibility.
 ------------------------------------}
 {$DEFINE PAS_VERSION}

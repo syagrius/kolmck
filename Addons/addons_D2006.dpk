@@ -1,5 +1,6 @@
 package addons_D2006;
 
+{$R 'MCKMonthCalendar.res'}
 {$R 'addons.res'}
 {$R 'mckCCtrls.dcr'}
 {$R 'mckHTTPDownload.dcr'}
@@ -88,6 +89,8 @@ contains
   mckDHTML in 'mckDHTML.pas',
   KolZLibBzip in 'KolZLibBzip.pas',
   KOLMHIPEdit in 'KOLMHIPEdit.pas',
-  MCKMHIPEdit in 'MCKMHIPEdit.pas';
+  MCKMHIPEdit in 'MCKMHIPEdit.pas',
+  MCKMonthCalendar in 'MCKMonthCalendar.pas',
+  KOLMonthCalendar in 'KOLMonthCalendar.pas';
 
 end.

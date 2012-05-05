@@ -111,7 +111,9 @@ type
     procedure CreateDialogForm;
     property _FindFirstFileEx: TFindFirstFileEx read GetFindFirstFileEx;
     function _FindFirstFileExW: Boolean;
+{$IFDEF DIRDLGEX_LINKSPANEL}
     procedure SelChanged( Sender: PObj );
+{$ENDIF}
     procedure DeleteNode( node: Integer );
     procedure DestroyingForm( Sender: PObj );
   public
@@ -485,7 +487,9 @@ begin
      DirTree.OnMouseDblClk := DoubleClick;
      {$ENDIF}
      MsgPanel.OnMessage := DoMsg;
+{$IFDEF DIRDLGEX_LINKSPANEL}
      DirTree.OnSelChange := SelChanged;
+{$ENDIF}
      DlgClient := DTSubPanel; // !!!
      s := CancelCaption; if s = '' then s := 'Cancel';
      BtCancel := NewButton( BtnPanel, s );
