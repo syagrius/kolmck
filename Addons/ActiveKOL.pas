@@ -5,7 +5,7 @@ unit ActiveKOL;
 interface
 
 uses
-  windows, messages, KOL, ActiveX, KOLComObj, err;
+  Windows, Messages, KOL, ActiveX, KOLComObj, err;
 
 {$I KOLDEF.INC}
 {$IFDEF _D6orHigher}
