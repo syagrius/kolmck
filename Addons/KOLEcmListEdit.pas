@@ -192,10 +192,10 @@ type
     function LVDrawItem(Sender: PObj; DC: HDC; const Rect: TRect; ItemIdx: Integer; DrawAction: TDrawAction; ItemState: TDrawState): Boolean;
     procedure ComboBox_CloseUp(Sender: PObj);
   public
-    fInPlaceEd: PControl;
-    bComboEditor: Boolean;
-    ComboOptions: TComboOptions;
-    ComboText: KOLString;
+    fInPlaceEd:     PControl;
+    IsComboEditor:  Boolean;
+    ComboOptions:   TComboOptions;
+    ComboText:      KOLString;
     destructor Destroy; virtual; // Do not call this destructor. Use Free method instead.
     procedure SetCurLVPos(ALine, AIdx: Integer);
     procedure StartEdit;
@@ -609,9 +609,9 @@ begin
     S := fOwner.LVItems[LVCurItem, fCurIdx];
     if Assigned(fOnGetText) then
       fOnGetText(fOwner, fCurIdx, LVCurItem, S);
-    if bComboEditor then begin
+    if IsComboEditor then begin
+      IsComboEditor       := False; //
       fInPlaceEd.CurIndex := fInPlaceEd.IndexOf(S);
-      bComboEditor        := False; //
       //fInPlaceEd.DroppedDown := True;
     end else begin //if fEmbedEd then begin
       if (fInPlaceEd.SubClassName = 'obj_COMBOBOX') then
@@ -710,12 +710,12 @@ begin
   if not RO then begin
     fEmbedEd := not Assigned(Result);
     if fEmbedEd then begin
-      if bComboEditor then begin
+      if IsComboEditor then begin
         Result := NewCombobox(fOwner, ComboOptions);
         Result.OnCloseUp := ComboBox_CloseUp;
         repeat
           Result.Add(Parse(ComboText, ';'));
-        until (Length(ComboText) = 0);
+        until (ComboText = '');
       end else
         Result := NewEditBox(fOwner, Options);
       Result.Font.Assign(fOwner.Font);
@@ -754,7 +754,7 @@ begin
       P := LVItemPos[i];
       if (i = 0) then begin
         R.Right := R.Left + LVColWidth[0];
-        fShift := P.X - R.Left + 2;
+        fShift  := P.X - R.Left + 1; // dufa. 9.05.13, раньше было 2. с 1 копия ListView + LVSCW_AUTOSIZE работает как надо;
       end;
       if (Perform(LVM_GETEXTENDEDLISTVIEWSTYLE, 0, 0) and LVS_EX_GRIDLINES) <> 0 then begin
         Inc(R.Left);
