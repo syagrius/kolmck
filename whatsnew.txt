@@ -1,4 +1,58 @@
 -------------------------------------------------------------------
+3.12.14
+-------------------------------------------------------------------
+Merge with unofficial 3.22 version compatible with fpc 2.6.4 and 2.7.1 i386 and x64 compilers by "Dmitri K dmiko@mail333.com (dmiko)" principal work 
+and "Thaddy de Koning thaddy@thaddy.com" (merge 3.22)
+
+KOL:
+* a LOT of declarations\fixes for x64\FPC support (by dmiko and Thaddy)
++ TList.SortEx - for custom sorting Items
++ TStrList.IndexOfName_NoCaseFast, TStrList.IndexOfName_Fast, TStrList.Values_NocaseFast[], TStrList.Values_Fast[] - faster than TStrList.IndexOfName\Values\etc..
++ TStrList.Remove\RemoveByName - Removes first entry of a Value\LineName in the list
++ TStrList.IsEmpty - check list empty 
++ TStrList.Add2\Insert2\Delete2\Items2[Idx, Col]\Swap2\IndexOf2\Count2\ColsCount - work with TStrList like with table[Idx, Col]
++ TStrListEx.SortEx - for custom sorting Items with Objects
+* SVN_BUG#1: TStrListEx.SortEx - breaks objects association fixed (thanks to tacituseu)
+* SVN_BUG#2: TControl.FreeCharFormatRec - fixed STATIC_RICHEDIT_DATA define (by tacituseu)
+* TControl.LVColInsert - return inserted col index
++ TControl.LVGetHeader - Gets the handle to the header control used by the list-view control
++ TControl.LVSubItemAtPos - Return index of subitem at the given position
++ TControl.LVIndexOfEx - Returns first list view item index with subitem ACol matching S
++ TControl.TVItemInsert - extended version of TVInsert: can set images and set ItemData
+* NewReadWriteFileStream - smaller code by use winapi flag ofOpenAlways instead FileExists function
+* TMenu.Destroy\RemoveSubMenu - fixed memory leak on destroy (by dotnet20)
+* CallDefFrameProc - fixed crash when use MDI
+- ASM: TStrList.AddStrings\LoadFromStream\MergeFromFile\SaveToFile - switched off because maybe can get crash (need tests)
+* PAS: TStrList.LoadFromStream\SaveToFile - fixed
+* TStrList.IndexOfName - small speedup
+* TStrList.IndexOfName_NoCase - this code "while (p^ <> #0) and (p^ <= ' ') do inc( p );" is deleted, because sometimes get deadlock (wtf code doing!?)
+* ASM: WndProcTreeView - fixed TV_DRAG_RBUTTON define
++ TFastStrListEx.NameDelimiter - like in TStrList
++ TFastStrListEx.SetValue - like in TStrList
+
+MCK:
+* updated to MCK v3.23 (with some fixes)
+* MCKAppExpert200x wizard - fixed unit name 
+* TKOLListView.SetupLast - fixed crash 
++ TKOLListView.OnLVCustomDraw - added event assign
++ TKOLMemo.Paint\WYSIWIGPaintImplemented - add visual style for memo in designer mode
++ !!!ALPHA VERSION!!!: ux visual style mode for some controls in designer mode (PaintType: ptWYSIWIG) (WinXP minimum req.)
+
+err.pas:
+* moved from addons to kolmck folder 
+* fixed exception.message in IDE
+* source code formating
+
+common:
+* cleaning...
+* updated readmes
+* dpk packages replaced and renamed (KOLMCKXXXX.dpk)
+
+maybe forgot something...
+
+KOLAddons package will be updated later..
+
+-------------------------------------------------------------------
 24.03.10
 -------------------------------------------------------------------
 * пакет смешан с 2.89 версией
