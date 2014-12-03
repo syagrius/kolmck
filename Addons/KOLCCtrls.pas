@@ -1,7 +1,8 @@
 unit KOLCCtrls;
-{$UNDEF UNICODE}
 
 interface
+
+{$I KOLDEF.INC}
 
 uses
   Windows, Messages, ShellAPI, KOL;
@@ -87,12 +88,12 @@ const
 
 type
   PTrackbar = ^TTrackbar;
-  TTrackbarOption = (trbAutoTicks, trbEnableSelRange, trbFixedLength,
-    trbNoThumb, trbNoTicks, trbTooltips, trbTopLeftMarks,
-    trbVertical, trbNoBorder);
-  TTrackbarOptions = set of TTrackbarOption;
+  TTrackbarOption = ( trbAutoTicks, trbEnableSelRange, trbFixedLength,
+                   trbNoThumb, trbNoTicks, trbTooltips, trbTopLeftMarks,
+                   trbVertical, trbNoBorder );
+  TTrackbarOptions = Set Of TTrackbarOption;
 
-  TOnScroll = procedure(Sender: PTrackbar; Code: Integer) of object;
+  TOnScroll = procedure( Sender: PTrackbar; Code: Integer ) of object;
   {* Code:
   |<pre>
   TB_THUMBTRACK    Slider movement (the user dragged the slider)
@@ -107,25 +108,34 @@ type
   |</pre>
   }
 
-  TTrackbar = object(TControl)
+  TTrackbar = object( TControl )
   private
     function GetOnScroll: TOnScroll;
     procedure SetOnScroll(const Value: TOnScroll);
-    function GetVal(const Index: Integer): Integer;
+    function GetVal( const Index: Integer ): Integer;
     procedure SetVal(const Index, Value: Integer);
     procedure SetThumbLen(const Index, Value: Integer);
+    procedure SetTickFreq(const Value: Integer);
+    procedure SetNumTicks(const Index, Value: Integer);
   protected
   public
     property OnScroll: TOnScroll read GetOnScroll write SetOnScroll;
     property RangeMin: Integer index $80010007 read GetVal write SetVal;
     property RangeMax: Integer index $80020008 read GetVal write SetVal;
     property PageSize: Integer index $00160015 read GetVal write SetVal;
+    {* to scroll with PgUp/PgDn }
     property LineSize: Integer index $00180017 read GetVal write SetVal;
+    {* to scroll with arrow keys }
     property Position: Integer index $80000005 read GetVal write SetVal;
-    property NumTicks: Integer index $00100000 read GetVal;
+    property NumTicks: Integer index $00100000 read GetVal write SetNumTicks;
+    {* set approximately via TickFreq, returns actual tick mark count }
+    property TickFreq: Integer                             write SetTickFreq;
+    {* 2 means that one tick will be drawn for 2 tick marks }
     property SelStart: Integer index $0011000B read GetVal write SetVal;
-    property SelEnd: Integer index $0012000C read GetVal write SetVal;
+    property SelEnd  : Integer index $0012000C read GetVal write SetVal;
     property ThumbLen: Integer index $001B0000 read GetVal write SetThumbLen;
+    {* trbFixedLength should be on to have effect }
+    function ChannelRect: TRect;
   end;
 
   PTrackbarData = ^TTrackbarData;
@@ -469,7 +479,6 @@ type
   TSPCStatus = object(TControl)
   private
     { Private declarations }
-    fControl: PControl;
     function GetTop: Integer;
     procedure SetTop(Value: Integer);
     function GetLeft: Integer;
@@ -483,6 +492,7 @@ type
   protected
     { Protected declarations }
   public
+    fControl: PControl;
     destructor Destroy; virtual;
     function SetAlign(Value: TControlAlign): PSPCStatus; overload;
     function SetPosition(X, Y: integer): PSPCStatus; overload;
@@ -512,73 +522,81 @@ function NewTSPCStatusBar(AOwner: PControl): PSPCStatus;
 
 implementation
 
-function WndProcTrackbarParent(Sender: PControl; var Msg: TMsg; var Rslt: Integer): Boolean;
-var
-  D                 : PTrackbarData;
-  Trackbar          : PTrackbar;
+function WndProcTrackbarParent( Sender: PControl; var Msg: TMsg; var Rslt: LRESULT ): Boolean;
+var D: PTrackbarData;
+    Trackbar: PTrackbar;
 begin
-  Result := False;
+  Result := FALSE;
   if (Msg.message = WM_HSCROLL) or (Msg.message = WM_VSCROLL) then
-    if (Msg.lParam <> 0) then begin
-      Trackbar := Pointer({$IFDEF USE_PROP}
-        GetProp(Msg.lParam, ID_SELF)
-{$ELSE}
-        GetWindowLong(Msg.lParam, GWL_USERDATA)
-{$ENDIF});
-      if Assigned(Trackbar) then begin
-        D := Trackbar.CustomData;
-        if Assigned(D.FOnScroll) then
-          D.FOnScroll(Trackbar, Msg.wParam);
-      end;
+  if (Msg.lParam <> 0) then
+  begin
+    {$IFDEF USE_PROP}
+    Trackbar := Pointer( GetProp( Msg.lParam, ID_SELF ) );
+    {$ELSE}
+    Trackbar := Pointer( GetWindowLongPtr( Msg.lParam, GWLP_USERDATA ) );
+    {$ENDIF}
+    if Trackbar <> nil then
+    begin
+      D := Trackbar.CustomData;
+      if Assigned( D.FOnScroll ) then
+        D.FOnScroll( Trackbar, Msg.wParam );
     end;
+  end;
 end;
 
-function NewTrackbar(AParent: PControl; Options: TTrackbarOptions; OnScroll: TOnScroll): PTrackbar;
-const
-  TrackbarOptions   : array[TTrackbarOption] of Integer = (TBS_AUTOTICKS,
-    TBS_ENABLESELRANGE, TBS_FIXEDLENGTH, TBS_NOTHUMB, TBS_NOTICKS, TBS_TOOLTIPS,
-    TBS_TOP, TBS_VERT, 0);
-var
-  aStyle            : DWORD;
-  D                 : PTrackbarData;
-  W, H              : Integer;
+function NewTrackbar( AParent: PControl; Options: TTrackbarOptions; OnScroll: TOnScroll ): PTrackbar;
+const TrackbarOptions: array[ TTrackbarOption ] of Integer = ( TBS_AUTOTICKS,
+      TBS_ENABLESELRANGE, TBS_FIXEDLENGTH, TBS_NOTHUMB, TBS_NOTICKS, TBS_TOOLTIPS,
+      TBS_TOP, TBS_VERT, 0 );
+var aStyle: DWORD;
+    D: PTrackbarData;
+    W, H: Integer;
 begin
-  DoInitCommonControls(ICC_BAR_CLASSES);
-  aStyle := MakeFlags(@Options, TrackbarOptions) or WS_CHILD or WS_VISIBLE;
-  Result := PTrackbar(_NewCommonControl(AParent, TRACKBAR_CLASS, aStyle,
-    not (trbNoBorder in Options), nil));
+  DoInitCommonControls( ICC_BAR_CLASSES );
+  aStyle := MakeFlags( @Options, TrackbarOptions ) or WS_CHILD or WS_VISIBLE;
+  Result := PTrackbar( _NewCommonControl( AParent, TRACKBAR_CLASS, aStyle,
+            not (trbNoBorder in Options), nil ) );
   W := 200;
   H := 40;
-  if (trbVertical in Options) then begin
+  if trbVertical in Options then
+  begin
     H := W;
     W := 40;
   end;
   Result.Width := W;
   Result.Height := H;
-  GetMem(D, Sizeof(D^));
+  GetMem( D, Sizeof( D^ ) );
   Result.CustomData := D;
   D.FOnScroll := OnScroll;
-  AParent.AttachProc(WndProcTrackbarParent);
+  AParent.AttachProc( WndProcTrackbarParent );
 end;
 
 { TTrackbar }
 
+function TTrackbar.ChannelRect: TRect;
+begin
+  Perform( TBM_GETCHANNELRECT, 0, LPARAM( @ Result ) );
+end;
+
 function TTrackbar.GetOnScroll: TOnScroll;
-var
-  D                 : PTrackbarData;
+var D: PTrackbarData;
 begin
   D := CustomData;
   Result := D.FOnScroll;
 end;
 
-function TTrackbar.GetVal(const Index: Integer): Integer;
+function TTrackbar.GetVal( const Index: Integer ): Integer;
 begin
-  Result := Perform(WM_USER + (HiWord(Index) and $7FFF), 0, 0);
+  Result := Perform( WM_USER + ( HiWord( Index ) and $7FFF ), 0, 0 );
+end;
+
+procedure TTrackbar.SetNumTicks(const Index, Value: Integer);
+begin
+  TickFreq := (RangeMax - RangeMin) div Value;
 end;
 
 procedure TTrackbar.SetOnScroll(const Value: TOnScroll);
-var
-  D                 : PTrackbarData;
+var D: PTrackbarData;
 begin
   D := CustomData;
   D.FOnScroll := Value;
@@ -586,12 +604,17 @@ end;
 
 procedure TTrackbar.SetThumbLen(const Index, Value: Integer);
 begin
-  Perform(TBM_SETTHUMBLENGTH, Value, 0);
+  Perform( TBM_SETTHUMBLENGTH, Value, 0 );
+end;
+
+procedure TTrackbar.SetTickFreq(const Value: Integer);
+begin
+  Perform( TBM_SETTICFREQ, Value, 0 );
 end;
 
 procedure TTrackbar.SetVal(const Index, Value: Integer);
 begin
-  Perform(WM_USER + LoWord(Index), Index shr 31, Value);
+  Perform( WM_USER + LoWord( Index ), Index shr 31, Value );
 end;
 
 { TSPCDirectoryEdit }
@@ -1770,4 +1793,3 @@ begin
 end;
 
 end.
-
