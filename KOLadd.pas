@@ -197,9 +197,10 @@ type
   TFastStrListEx = object( TObj )
   private
     function GetItemLen(Idx: Integer): Integer;
-    function GetObject(Idx: Integer): DWORD;
-    procedure SetObject(Idx: Integer; const Value: DWORD);
+    function GetObject(Idx: Integer): PtrUInt;
+    procedure SetObject(Idx: Integer; const Value: PtrUInt);
     function GetValues(AName: PAnsiChar): PAnsiChar;
+    procedure SetValue(AName, Value: PAnsiChar);
   protected
     procedure Init; virtual;
   protected
@@ -209,6 +210,7 @@ type
     fTextBuf: PAnsiChar;
     fTextSiz: DWORD;
     fUsedSiz: DWORD;
+    fNameDelim: AnsiChar;
   protected
     procedure ProvideSpace( AddSize: DWORD );
     function Get(Idx: integer): AnsiString;
@@ -220,7 +222,7 @@ type
   public
     function AddAnsi( const S: AnsiString ): Integer;
     {* Adds Ansi AnsiString to a list. }
-    function AddAnsiObject( const S: AnsiString; Obj: DWORD ): Integer;
+    function AddAnsiObject( const S: AnsiString; Obj: PtrUInt ): Integer;
     {* Adds Ansi AnsiString and correspondent object to a list. }
     function Add(S: PAnsiChar): integer;
     {* Adds an AnsiString to list. }
@@ -248,7 +250,7 @@ type
        and the result is FALSE. }
     procedure InsertAnsi(Idx: integer; const S: AnsiString);
     {* Inserts ANSI AnsiString before one with given index. }
-    procedure InsertAnsiObject(Idx: integer; const S: AnsiString; Obj: DWORD);
+    procedure InsertAnsiObject(Idx: integer; const S: AnsiString; Obj: PtrUInt);
     {* Inserts ANSI AnsiString before one with given index. }
     procedure Insert(Idx: integer; S: PAnsiChar);
     {* Inserts AnsiString before one with given index. }
@@ -295,17 +297,17 @@ type
     procedure Sort( CaseSensitive: Boolean );
     {* Call it to sort AnsiString list. }
   public
-    function AddObject( S: PAnsiChar; Obj: DWORD ): Integer;
+    function AddObject( S: PAnsiChar; Obj: PtrUInt ): Integer;
     {* Adds AnsiString S (null-terminated) with associated object Obj. }
-    function AddObjectLen( S: PAnsiChar; Len: Integer; Obj: DWORD ): Integer;
+    function AddObjectLen( S: PAnsiChar; Len: Integer; Obj: PtrUInt ): Integer;
     {* Adds AnsiString S of length Len with associated object Obj. }
-    procedure InsertObject( Idx: Integer; S: PAnsiChar; Obj: DWORD );
+    procedure InsertObject( Idx: Integer; S: PAnsiChar; Obj: PtrUInt );
     {* Inserts AnsiString S (null-terminated) at position Idx in the list,
        associating it with object Obj. }
-    procedure InsertObjectLen( Idx: Integer; S: PAnsiChar; Len: Integer; Obj: DWORD );
+    procedure InsertObjectLen( Idx: Integer; S: PAnsiChar; Len: Integer; Obj: PtrUInt );
     {* Inserts AnsiString S of length Len at position Idx in the list,
        associating it with object Obj. }
-    property Objects[ Idx: Integer ]: DWORD read GetObject write SetObject;
+    property Objects[ Idx: Integer ]: PtrUInt read GetObject write SetObject;
     {* Access to objects associated with strings in the list. }
   public
     procedure Append( S: PAnsiChar );
@@ -316,11 +318,13 @@ type
     {* Converts N to hexadecimal and appends resulting AnsiString to the last
        AnsiString, very fast. }
   public
-    property Values[ Name: PAnsiChar ]: PAnsiChar read GetValues;
+    property Values[ Name: PAnsiChar ]: PAnsiChar read GetValues write SetValue;
     {* Returns a value correspondent to the Name an ini-file-like AnsiString list
        (having Name1=Value1 Name2=Value2 etc. in each AnsiString). }
     function IndexOfName( AName: PAnsiChar ): Integer;
     {* Searches AnsiString starting from 'AName=' in AnsiString list like ini-file. }
+    property NameDelimiter: AnsiChar read fNameDelim write fNameDelim;
+    {* }
   end;
 
 function NewFastStrListEx: PFastStrListEx;
@@ -445,7 +449,7 @@ type
     FWatchSubtree: Boolean;
     FDestroying: Boolean;
     FFlags: DWORD;
-    function Execute( Sender: PThread ): Integer;
+    function Execute( Sender: PThread ): PtrInt;
     procedure Changed;
   protected
     destructor Destroy; virtual;
@@ -1432,7 +1436,7 @@ begin
   Result := AddObjectLen( PAnsiChar( S ), Length( S ), 0 );
 end;
 
-function TFastStrListEx.AddAnsiObject(const S: AnsiString; Obj: DWORD): Integer;
+function TFastStrListEx.AddAnsiObject(const S: AnsiString; Obj: PtrUInt): Integer;
 begin
   Result := AddObjectLen( PAnsiChar( S ), Length( S ), Obj );
 end;
@@ -1447,28 +1451,28 @@ begin
   Result := AddObjectLen( S, Len, 0 )
 end;
 
-function TFastStrListEx.AddObject(S: PAnsiChar; Obj: DWORD): Integer;
+function TFastStrListEx.AddObject(S: PAnsiChar; Obj: PtrUInt): Integer;
 begin
   Result := AddObjectLen( S, StrLen( S ), Obj )
 end;
 
-function TFastStrListEx.AddObjectLen(S: PAnsiChar; Len: Integer; Obj: DWORD): Integer;
+function TFastStrListEx.AddObjectLen(S: PAnsiChar; Len: Integer; Obj: PtrUInt): Integer;
 var Dest: PAnsiChar;
 begin
-  ProvideSpace( Len + 9 );
-  Dest := PAnsiChar( DWORD( fTextBuf ) + fUsedSiz );
+  ProvideSpace( Len + SizeOf(Len) + SizeOf(Obj) + 1 );
+  Dest := PAnsiChar( PtrUInt( fTextBuf ) + fUsedSiz );
   Result := fCount;
   Inc( fCount );
-  fList.Add( Pointer( DWORD(Dest)-DWORD(fTextBuf) ) );
-  PDWORD( Dest )^ := Obj;
-  Inc( Dest, 4 );
+  fList.Add( Pointer( PtrUInt(Dest)-PtrUInt(fTextBuf) ) );
+  PPtrUInt( Dest )^ := Obj;
+  Inc( Dest, SizeOf(PtrUInt) );
   PDWORD( Dest )^ := Len;
   Inc( Dest, 4 );
   if S <> nil then
     System.Move( S^, Dest^, Len );
   Inc( Dest, Len );
   Dest^ := #0;
-  Inc( fUsedSiz, Len+9 );
+  Inc( fUsedSiz, Len+SizeOf(Len) + SizeOf(Obj) + 1 );
 end;
 
 function TFastStrListEx.AppendToFile(const FileName: AnsiString): Boolean;
@@ -1508,7 +1512,7 @@ procedure TFastStrListEx.Delete(Idx: integer);
 begin
   if (Idx < 0) or (Idx >= Count) then Exit;
   if Idx = Count-1 then
-    Dec( fUsedSiz, ItemLen[ Idx ]+9 );
+    Dec( fUsedSiz, ItemLen[ Idx ]+SizeOf(PtrUInt) + 5 );
   fList.Delete( Idx );
   Dec( fCount );
 end;
@@ -1538,7 +1542,7 @@ end;
 function TFastStrListEx.Get(Idx: integer): AnsiString;
 begin
   if (Idx >= 0) and (Idx <= Count) then
-    SetString( Result, PAnsiChar( DWORD( fTextBuf ) + DWORD( fList.Items[ Idx ] ) + 8 ),
+    SetString( Result, PAnsiChar( PtrUInt( fTextBuf ) + PtrUInt( fList.Items[ Idx ] ) + SizeOf(PtrUInt)+4 ),
                ItemLen[ Idx ] )
   else
     Result := '';
@@ -1549,18 +1553,18 @@ var Src: PDWORD;
 begin
   if (Idx >= 0) and (Idx <= Count) then
   begin
-    Src := PDWORD( DWORD( fTextBuf ) + DWORD( fList.Items[ Idx ] ) + 4 );
+    Src := PDWORD( PtrUInt( fTextBuf ) + PtrUInt( fList.Items[ Idx ] ) + SizeOf(PtrUInt) );
     Result := Src^
   end
     else Result := 0;
 end;
 
-function TFastStrListEx.GetObject(Idx: Integer): DWORD;
-var Src: PDWORD;
+function TFastStrListEx.GetObject(Idx: Integer): PtrUInt;
+var Src: PPtrUInt;
 begin
   if (Idx >= 0) and (Idx <= Count) then
   begin
-    Src := PDWORD( DWORD( fTextBuf ) + DWORD( fList.Items[ Idx ] ) );
+    Src := PPtrUInt( PtrUInt( fTextBuf ) + PtrUInt( fList.Items[ Idx ] ) );
     Result := Src^
   end
     else Result := 0;
@@ -1569,7 +1573,7 @@ end;
 function TFastStrListEx.GetPChars(Idx: Integer): PAnsiChar;
 begin
   if (Idx >= 0) and (Idx <= Count) then
-    Result := PAnsiChar( DWORD( fTextBuf ) + DWORD( fList.Items[ Idx ] ) + 8 )
+    Result := PAnsiChar( PtrUInt( fTextBuf ) + PtrUInt( fList.Items[ Idx ] ) + SizeOf(PtrUInt)+4 )
   else Result := nil;
 end;
 
@@ -1623,6 +1627,7 @@ procedure TFastStrListEx.Init;
 begin
   fList := NewList;
   FastClear := TRUE;
+  fNameDelim := DefaultNameDelimiter;
 end;
 
 procedure TFastStrListEx.InsertAnsi(Idx: integer; const S: AnsiString);
@@ -1631,7 +1636,7 @@ begin
 end;
 
 procedure TFastStrListEx.InsertAnsiObject(Idx: integer; const S: AnsiString;
-  Obj: DWORD);
+  Obj: PtrUInt);
 begin
   InsertObjectLen( Idx, PAnsiChar( S ), Length( S ), Obj );
 end;
@@ -1646,27 +1651,27 @@ begin
   InsertObjectLen( Idx, S, Len, 0 )
 end;
 
-procedure TFastStrListEx.InsertObject(Idx: Integer; S: PAnsiChar; Obj: DWORD);
+procedure TFastStrListEx.InsertObject(Idx: Integer; S: PAnsiChar; Obj: PtrUInt);
 begin
   InsertObjectLen( Idx, S, StrLen( S ), Obj );
 end;
 
 procedure TFastStrListEx.InsertObjectLen(Idx: Integer; S: PAnsiChar;
-  Len: Integer; Obj: DWORD);
+  Len: Integer; Obj: PtrUInt);
 var Dest: PAnsiChar;
 begin
   ProvideSpace( Len+9 );
-  Dest := PAnsiChar( DWORD( fTextBuf ) + fUsedSiz );
-  fList.Insert( Idx, Pointer( DWORD(Dest)-DWORD(fTextBuf) ) );
-  PDWORD( Dest )^ := Obj;
-  Inc( Dest, 4 );
+  Dest := PAnsiChar( PtrUInt( fTextBuf ) + fUsedSiz );
+  fList.Insert( Idx, Pointer( PtrUInt(Dest)-PtrUInt(fTextBuf) ) );
+  PPtrUInt( Dest )^ := Obj;
+  Inc( Dest, SizeOf(PtrUInt) );
   PDWORD( Dest )^ := Len;
   Inc( Dest, 4 );
   if S <> nil then
     System.Move( S^, Dest^, Len );
   Inc( Dest, Len );
   Dest^ := #0;
-  Inc( fUsedSiz, Len+9 );
+  Inc( fUsedSiz, Len+SizeOf(PtrUInt)+5 );
   Inc( fCount );
 end;
 
@@ -1742,12 +1747,12 @@ end;
 procedure TFastStrListEx.Put(Idx: integer; const Value: AnsiString);
 var Dest: PAnsiChar;
     OldLen: Integer;
-    OldObj: DWORD;
+    OldObj: PtrUInt;
 begin
   OldLen := ItemLen[ Idx ];
   if Length( Value ) <= OldLen then
   begin
-    Dest := PAnsiChar( DWORD( fTextBuf ) + DWORD( fList.Items[ Idx ] ) + 4 );
+    Dest := PAnsiChar( PtrUInt( fTextBuf ) + PtrUInt( fList.Items[ Idx ] ) + SizeOf(PtrUInt) );
     PDWORD( Dest )^ := Length( Value );
     Inc( Dest, 4 );
     if Value <> '' then
@@ -1771,17 +1776,17 @@ begin
       AddObjectLen( PAnsiChar( Value ), Length( Value ), OldObj )
     else
     begin
-      ProvideSpace( Length( Value ) + 9 );
-      Dest := PAnsiChar( DWORD( fTextBuf ) + fUsedSiz );
-      fList.Items[ Idx ] := Pointer( DWORD(Dest)-DWORD(fTextBuf) );
-      Inc( Dest, 4 );
+      ProvideSpace( Length( Value ) + SizeOf(PtrUInt)+5 );
+      Dest := PAnsiChar( PtrUInt( fTextBuf ) + fUsedSiz );
+      fList.Items[ Idx ] := Pointer( PtrUInt(Dest)-PtrUInt(fTextBuf) );
+      Inc( Dest, SizeOf(PtrUInt) );
       PDWORD( Dest )^ := Length( Value );
       Inc( Dest, 4 );
       if Value <> '' then
         System.Move( Value[ 1 ], Dest^, Length( Value ) );
       Inc( Dest, Length( Value ) );
       Dest^ := #0;
-      Inc( fUsedSiz, Length( Value )+9 );
+      Inc( fUsedSiz, Length( Value )+SizeOf(PtrUInt)+5 );
     end;
   end;
 end;
@@ -1806,13 +1811,13 @@ begin
   Stream.Write( PAnsiChar( Txt )^, Length( Txt ) );
 end;
 
-procedure TFastStrListEx.SetObject(Idx: Integer; const Value: DWORD);
-var Dest: PDWORD;
+procedure TFastStrListEx.SetObject(Idx: Integer; const Value: PtrUInt);
+var Dest: PPtrUInt;
 begin
   if Idx < 0 then Exit;
   while Idx >= Count do
     AddObjectLen( nil, 0, 0 );
-  Dest := PDWORD( DWORD( fTextBuf ) + DWORD( fList.Items[ Idx ] ) );
+  Dest := PPtrUInt( PtrUInt( fTextBuf ) + PtrUInt( fList.Items[ Idx ] ) );
   Dest^ := Value;
 end;
 
@@ -1832,7 +1837,7 @@ begin
     if p^ = #13 then
     begin
       Inc( NLines );
-      Inc( Len2Add, 9 + DWORD(p)-DWORD(p0) );
+      Inc( Len2Add, SizeOf(PtrUInt)+5 + PtrUInt(p)-PtrUInt(p0) );
       REPEAT Inc( p ); Dec( L );
       UNTIL  (p^ <> #10) or (L = 0);
       p0 := p;
@@ -1842,14 +1847,14 @@ begin
       Inc( p ); Dec( L );
     end;
   end;
-  if DWORD(p) > DWORD(p0) then
+  if PtrUInt(p) > PtrUInt(p0) then
   begin
     Inc( NLines );
-    Inc( Len2Add, 9 + DWORD(p)-DWORD(p0) );
+    Inc( Len2Add, SizeOf(PtrUInt)+5 + PtrUInt(p)-PtrUInt(p0) );
   end;
   if Len2Add = 0 then Exit;
   // добавление
-  ProvideSpace( Len2Add - 9 );
+  ProvideSpace( Len2Add - SizeOf(PtrUInt)+5 );
   if fList.Capacity <= fList.Count + NLines then
     fList.Capacity := Max( (fList.Count + NLines) * 2, 100 );
   p := PAnsiChar( S );
@@ -1859,7 +1864,7 @@ begin
   begin
     if p^ = #13 then
     begin
-      AddObjectLen( p0, DWORD(p)-DWORD(p0), 0 );
+      AddObjectLen( p0, PtrUInt(p)-PtrUInt(p0), 0 );
       REPEAT Inc( p ); Dec( L );
       UNTIL  (p^ <> #10) or (L = 0);
       p0 := p;
@@ -1869,8 +1874,8 @@ begin
       Inc( p ); Dec( L );
     end;
   end;
-  if DWORD(p) > DWORD(p0) then
-    AddObjectLen( p0, DWORD(p)-DWORD(p0), 0 );
+  if PtrUInt(p) > PtrUInt(p0) then
+    AddObjectLen( p0, PtrUInt(p)-PtrUInt(p0), 0 );
 end;
 
 procedure TFastStrListEx.SetTextStr(const Value: AnsiString);
@@ -1928,12 +1933,12 @@ begin
   begin
     s := ItemPtrs[ i ];
     n := AName;
-    while (Upper[ s^ ] = Upper[ n^ ]) and (s^ <> '=') and (s^ <> #0) and (n^ <> #0) do
+    while (Upper[ s^ ] = Upper[ n^ ]) and (s^ <> fNameDelim) and (s^ <> #0) and (n^ <> #0) do
     begin
       Inc( s );
       Inc( n );
     end;
-    if (s^ = '=') and (n^ = #0) then
+    if (s^ = fNameDelim) and (n^ = #0) then
     begin
       Result := s;
       Inc( Result );
@@ -1941,6 +1946,17 @@ begin
     end;
   end;
   Result := nil;
+end;
+
+procedure TFastStrListEx.SetValue(AName, Value: PAnsiChar);
+var
+  I: Integer;
+begin
+  I := IndexOfName(AName);
+  if (i = -1) then
+    AddAnsi(AName + fNameDelim + Value)
+  else
+    Items[i] := AName + fNameDelim + Value;
 end;
 
 function TFastStrListEx.IndexOfName(AName: PAnsiChar): Integer;
@@ -1953,12 +1969,12 @@ begin
   begin
     s := ItemPtrs[ i ];
     n := AName;
-    while (Upper[ s^ ] = Upper[ n^ ]) and (s^ <> '=') and (s^ <> #0) and (n^ <> #0) do
+    while (Upper[ s^ ] = Upper[ n^ ]) and (s^ <> fNameDelim) and (s^ <> #0) and (n^ <> #0) do
     begin
       Inc( s );
       Inc( n );
     end;
-    if (s^ = '=') and (n^ = #0) then
+    if (s^ = fNameDelim) and (n^ = #0) then
     begin
       Result := i;
       Exit;
@@ -2018,13 +2034,13 @@ begin
   else
   begin
     ProvideSpace( Len );
-    Dest := PAnsiChar( DWORD( fTextBuf ) + fUsedSiz - 1 );
+    Dest := PAnsiChar( PtrUInt( fTextBuf ) + fUsedSiz - 1 );
     System.Move( S^, Dest^, Len );
     Inc( Dest, Len );
     Dest^ := #0;
     Inc( fUsedSiz, Len );
-    Dest := PAnsiChar( DWORD( fTextBuf ) + DWORD( fList.Items[ Count-1 ] ) );
-    Inc( Dest, 4 );
+    Dest := PAnsiChar( PtrUInt( fTextBuf ) + PtrUInt( fList.Items[ Count-1 ] ) );
+    Inc( Dest, SizeOf(PtrUInt) );
     PDWORD( Dest )^ := PDWORD( Dest )^ + DWORD( Len );
   end;
 end;
@@ -2059,7 +2075,7 @@ const
   SPFILENOTIFY_NEEDNEWCABINET = $12;
 
 type
-  PSP_FILE_CALLBACK = function( Context: Pointer; Notification, Param1, Param2: DWORD ): DWORD;
+  PSP_FILE_CALLBACK = function( Context: Pointer; Notification: DWORD; Param1, Param2: PtrUInt ): DWORD;
   stdcall;
 
   TSetupIterateCabinet = function ( CabinetFile: PKOLChar; Reserved: DWORD;
@@ -2102,7 +2118,7 @@ type
   PFileInCabinetInfo = ^TFileInCabinetInfo;
 
 //[function CABCallback]
-function CABCallback( Context: Pointer; Notification, Param1, Param2: DWORD ): DWORD;
+function CABCallback( Context: Pointer; Notification: DWORD; Param1, Param2: PtrUInt ): DWORD;
 stdcall;
 var CAB: PCABFile;
     CABPath, OldPath: KOLString;
@@ -2446,7 +2462,7 @@ asm
         XOR      EAX, EAX
 end;
 {$ELSE ASM_VERSION} //Pascal
-function TDirChange.Execute(Sender: PThread): Integer;
+function TDirChange.Execute(Sender: PThread): PtrInt;
 var Handles: array[ 0..1 ] of THandle;
     //i: Integer;
 begin
@@ -2558,10 +2574,10 @@ begin
   Result := 0;
   pW := @WMF;
   pEnd := @WMF.CheckSum;
-  while Longint(pW) < Longint(pEnd) do
+  while PtrUInt(pW) < PtrUInt(pEnd) do
   begin
     Result := Result xor pW^;
-    Inc(Longint(pW), SizeOf(Word));
+    Inc(PtrUInt(pW), SizeOf(Word));
   end;
 end;
 
@@ -3197,8 +3213,8 @@ var List: PList;
 begin
   List := Data;
   {$IFDEF TREE_NONAME}
-  Result := DWORD( PTree( List.Items[ e1 ] ).fData ) -
-            DWORD( PTree( List.Items[ e2 ] ).fData );
+  Result := PtrUInt( PTree( List.Items[ e1 ] ).fData ) -
+            PtrUInt( PTree( List.Items[ e2 ] ).fData );
   {$ELSE}
   Result := AnsiCompareStr( KOLString(PTree( List.Items[ e1 ] ).fNodeName),
                             KOLString(PTree( List.Items[ e2 ] ).fNodeName) );
@@ -3618,7 +3634,7 @@ begin
     if SystemParametersInfo( SPI_GETSNAPTODEFBUTTON, 0, @ SnapMouse, 0 ) then
     if SnapMouse <> 0 then
     begin
-      Dialog.Tag := DWORD( Buttons.Items[ 0 ] );
+      Dialog.Tag := PtrUInt( Buttons.Items[ 0 ] );
       Dialog.AttachProc( WndProcDlg );
     end;
     {$ENDIF}
