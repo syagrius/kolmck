@@ -54,12 +54,12 @@ end;
 
 function TMHToolTip.GetMargin: TRect;
 begin
-  SendMessage(fHandle, TTM_GETMARGIN, 0, DWord(@Result));
+  SendMessage(fHandle, TTM_GETMARGIN, 0, LPARAM(@Result));
 end;
 
 procedure TMHToolTip.SetMargin(const Value: TRect);
 begin
-  SendMessage(fHandle, TTM_SETMARGIN, 0, DWord(@Value));
+  SendMessage(fHandle, TTM_SETMARGIN, 0, LPARAM(@Value));
 end;
 
 function TMHToolTip.GetActivate: Boolean;
@@ -169,10 +169,10 @@ begin
     lpszText := @TextL[0];
   end;
 
-  SendMessage(ToolTip.handle, TTM_GETTOOLINFO, 0, DWord(@TI));
-  SendMessage(ToolTip.handle, TTM_DELTOOL, 0, DWORD(@TI));
+  SendMessage(ToolTip.handle, TTM_GETTOOLINFO, 0, LPARAM(@TI));
+  SendMessage(ToolTip.handle, TTM_DELTOOL, 0, LPARAM(@TI));
   ToolTip.Count := ToolTip.Count - 1;
-  SendMessage(T1.handle, TTM_ADDTOOL, 0, DWORD(@TI));
+  SendMessage(T1.handle, TTM_ADDTOOL, 0, LPARAM(@TI));
   T1.Count := T1.Count - 1;
 
   HasTool := True;
@@ -251,7 +251,7 @@ begin
   if HasTool then
   begin
     TI.lpszText := PKOLChar(Value);
-    SendMessage(ToolTip.handle, TTM_SETTOOLINFO, 0, DWord(@TI));
+    SendMessage(ToolTip.handle, TTM_SETTOOLINFO, 0, LPARAM(@TI));
   end;
 
 end;
@@ -323,7 +323,7 @@ var
 begin
   if not HasTool then
   begin
-    SendMessage(ToolTip.handle, TTM_ADDTOOL, 0, DWORD(@TI));
+    SendMessage(ToolTip.handle, TTM_ADDTOOL, 0, LPARAM(@TI));
     HasTool := True;
     ToolTip.Count := ToolTip.Count + 1;
   end
@@ -333,7 +333,7 @@ begin
     begin
       lpszText := @TextLine[0];
     end;
-    SendMessage(ToolTip.handle, TTM_SETTOOLINFO, 0, DWord(@TI));
+    SendMessage(ToolTip.handle, TTM_SETTOOLINFO, 0, LPARAM(@TI));
   end;
 end;
 
@@ -377,7 +377,7 @@ begin
     uId := Parent.GetWindowHandle;
   end;
 
-  SendMessage(ToolTip.handle, TTM_DELTOOL, 0, DWORD(@TI));
+  SendMessage(ToolTip.handle, TTM_DELTOOL, 0, LPARAM(@TI));
   ToolTip.Count := ToolTip.Count - 1;
   if ToolTip.Count <= 0 then begin
     i:=Length(Manager.TTT);
@@ -423,7 +423,7 @@ begin
       uId := Parent.GetWindowHandle;
       lpszText := @TextL[0];
     end;
-    SendMessage(ToolTip.handle, TTM_GETTOOLINFO, 0, DWord(@TI));
+    SendMessage(ToolTip.handle, TTM_GETTOOLINFO, 0, LPARAM(@TI));
     Result := TextL; //TI.lpszText;// := PChar(Value);
   end;
 end;
