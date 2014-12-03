@@ -29,7 +29,7 @@
 *  (C) GMax 2004. email: gmax@loving.ru                                      *
 *****************************************************************************}
 
-unit KolZLibBzip;
+unit KOLZLibBzip;
 
 interface
 
@@ -143,9 +143,9 @@ type
 function gZipCompressStream(inStream, outStream: PStream; var gzHdr: TgzipHeader; level: TZCompressionLevel = zcDefault; strategy: TZCompressionStrategy = zcsDefault): Integer; overload;
 function gZipCompressStream(inStream, outStream: PStream; level: TZCompressionLevel = zcDefault; strategy: TZCompressionStrategy = zcsDefault): Integer; overload;
 function gZipDecompressStreamHeader(inStream: PStream; var gzHdr: TgzipHeader): Integer;
-function gZipDecompressStreamBody(inStream, outStream: PStream): Integer;
+function gZipDecompressStreamBody(inStream, outStream: PStream; const aCheckCRC: Boolean = True): Integer;
 function gZipDecompressStream(inStream, outStream: PStream; var gzHdr: TgzipHeader): Integer;
-function gZipDecompressString(const S: String): String;
+function gZipDecompressString(const S: String; const useheaders: Boolean = True; const aCheckCRC: Boolean = True): String;
 
 {*******************************************************}
 {                                                       }
@@ -1191,7 +1191,9 @@ var
 begin
   iBuffer := nil;
   oBuffer := nil;
+{$IFDEF USE_EXCEPTIONS}
   Result := Z_MEM_ERROR;
+{$ENDIF}
   try
     GetMem(iBuffer, gzBufferSize);
     GetMem(oBuffer, gzBufferSize);
@@ -1486,7 +1488,7 @@ begin
   end;
 end;
 
-function gZipDecompressStreamBody(inStream, outStream: PStream): Integer;
+function gZipDecompressStreamBody(inStream, outStream: PStream; const aCheckCRC: Boolean = True): Integer;
 var
   iBuffer,
     oBuffer         : PChar; //Array [0..gzBufferSize-1] of Char;
@@ -1529,7 +1531,9 @@ var
 begin
   iBuffer := nil;
   oBuffer := nil;
+{$IFDEF USE_EXCEPTIONS}
   Result := Z_MEM_ERROR;
+{$ENDIF}
   try
     GetMem(iBuffer, gzBufferSize);
     GetMem(oBuffer, gzBufferSize);
@@ -1551,7 +1555,7 @@ begin
       // gzread()
   //    DoProgressEvent;
       startCRC := PChar(oBuffer);
-      zStream.next_out := PChar(oBuffer);
+      zStream.next_out  := PChar(oBuffer);
       zStream.avail_out := gzBufferSize;
 //      rSize := 0;
       Result := Z_OK;
@@ -1565,85 +1569,99 @@ begin
         Result := inflate(zStream, Z_NO_FLUSH);
         if (Result = Z_STREAM_END) then begin
           { Check CRC and original size }
-          fCrc := crc32(fCrc, PChar(StartCRC), (zStream.next_out - startCRC));
+          fCrc     := crc32(fCrc, PChar(StartCRC), (zStream.next_out - startCRC));
           startCRC := zStream.next_out;
 
-          fileCRC := gz_getLong;
+          fileCRC  := gz_getLong;
           fileSize := gz_getLong;
-          if (fCrc <> fileCRC) then
-{$IFDEF USE_EXCEPTIONS}
+          if aCheckCRC and (fCrc <> fileCRC) then
+            {$IFDEF USE_EXCEPTIONS}
             ZDecompressCheck(Z_CRC_ERROR)
-{$ELSE}
+            {$ELSE}
             Result := Z_CRC_ERROR
-{$ENDIF}
-          else
-            if (Cardinal(zStream.total_out) <> fileSize) then
-{$IFDEF USE_EXCEPTIONS}
-              ZDecompressCheck(Z_SIZE_ERROR)
-{$ELSE}
-              Result := Z_SIZE_ERROR
-{$ENDIF}
-            else begin
-              if zStream.avail_in > 0 then inStream.Seek(-zStream.avail_in, spCurrent);
-              fEOF := True;
-            end;
+            {$ENDIF}
+          else if aCheckCRC and (Cardinal(zStream.total_out) <> fileSize) then
+            {$IFDEF USE_EXCEPTIONS}
+            ZDecompressCheck(Z_SIZE_ERROR)
+            {$ELSE}
+            Result := Z_SIZE_ERROR
+            {$ENDIF}
+          else begin
+            if (zStream.avail_in > 0) then
+              inStream.Seek(-zStream.avail_in, spCurrent);
+            fEOF := True;
+          end;
         end;
-        if (Result <> Z_OK) or (fEOF) then break;
+        if (Result <> Z_OK) or (fEOF) then
+          break;
       end;                // while zStream.avail_out<>0
       // end of gzread()
 
-{$IFDEF USE_EXCEPTIONS}
-      ZDecompressCheck(Result);
-{$ELSE}
-      if Result < 0 then Exit;
-{$ENDIF}
+      {$IFDEF USE_EXCEPTIONS}
+        DecompressCheck(Result);
+      {$ELSE}
+      if (Result < 0) then
+        Exit;
+      {$ENDIF}
       fCrc := crc32(fCrc, PChar(oBuffer), (zStream.next_out - startCRC));
       rSize := gzBufferSize - zStream.avail_out;
 
-{$IFDEF USE_EXCEPTIONS}
-      if rSize < 0 then ZDecompressCheck(rSize);
-{$ELSE}
-      if rSize <= 0 then break;
-{$ENDIF}
+      {$IFDEF USE_EXCEPTIONS}
+      if (rSize < 0) then
+        ZDecompressCheck(rSize);
+      {$ELSE}
+      if (rSize <= 0) then
+        break;
+      {$ENDIF}
+
       wSize := outStream.Write(oBuffer^, rSize);
-{$IFDEF USE_EXCEPTIONS}
-      if (rSize <> wSize) then ZDecompressCheck(Z_WRITE_ERROR);
-{$ELSE}
+      {$IFDEF USE_EXCEPTIONS}
+      if (rSize <> wSize) then
+        ZDecompressCheck(Z_WRITE_ERROR);
+      {$ELSE}
       if (rSize <> wSize) then begin
         Result := Z_WRITE_ERROR;
         Exit;
       end;
-{$ENDIF}
+      {$ENDIF}
     end;
-    if Result = Z_STREAM_END then Result := Z_OK;
+    if (Result = Z_STREAM_END) then
+      Result := Z_OK;
   finally
     inflateEnd(zStream);
-    if Assigned(iBuffer) then FreeMem(iBuffer);
-    if Assigned(oBuffer) then FreeMem(oBuffer);
+    if Assigned(iBuffer) then
+      FreeMem(iBuffer);
+    if Assigned(oBuffer) then
+      FreeMem(oBuffer);
   end;
 end;
 
 function gZipDecompressStream(inStream, outStream: PStream; var gzHdr: TgzipHeader): Integer;
 begin
   Result := gZipDecompressStreamHeader(inStream, gzHdr);
-  if (Result >= 0) then
+  if (Result >= Z_OK) then
     Result := gZipDecompressStreamBody(inStream, outStream);
 end;
 
-function gZipDecompressString(const S: String): String;
+function gZipDecompressString(const S: String; const useheaders: Boolean = True; const aCheckCRC: Boolean = True): String;
 var
   Rslt:      Integer;
   gzHdr:     TgzipHeader;
   inStream:  PStream;
   outStream: PStream;
 begin
-  Result := '';
+  Result   := '';
   inStream := NewExMemoryStream(@S[1], Length(S));
-  Rslt := gZipDecompressStreamHeader(inStream, gzHdr);
-  if (Rslt >= 0) then begin
+  // unpack head
+  if useheaders then
+    Rslt := gZipDecompressStreamHeader(inStream, gzHdr)
+  else
+    Rslt := Z_OK;
+  // unpack body
+  if (Rslt >= Z_OK) then begin
     outStream := NewMemoryStream;
-    Rslt := gZipDecompressStreamBody(inStream, outStream);
-    if (Rslt >= 0) then begin
+    Rslt      := gZipDecompressStreamBody(inStream, outStream, aCheckCRC);
+    if not useheaders or (Rslt >= Z_OK) then begin
       outStream.Position := 0;
       Result := outStream.ReadStrLen(outStream.Size);
     end;
@@ -1744,7 +1762,9 @@ begin
   strm.bzalloc := bzip2AllocMem;
   strm.bzfree := bzip2FreeMem;
   BufInc := (InBytes + 255) and not 255;
+{$IFDEF USE_EXCEPTIONS}
   Result := BZ_OK;
+{$ENDIF}
   if OutEstimate = 0 then
     OutBytes := BufInc
   else
