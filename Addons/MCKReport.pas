@@ -37,10 +37,10 @@ type
   protected
     function SetupParams( const AName, AParent: String ): String; override;
     function AdditionalUnits: String; override;
-    function NoDrawFrame: Boolean; override;
     procedure Set_VA(const Value: TVerticalAlign); override;
   public
     constructor Create( AOwner: TComponent ); override;
+    function NoDrawFrame: Boolean; override;
     procedure Paint; override;
   published
     property Frames: TFrames read FFrames write SetFrames;
@@ -51,13 +51,13 @@ type
     FFrames: TFrames;
     procedure SetFrames(const Value: TFrames);
   protected
-    function SetupParams( const AName, AParent: String ): String; override;
     function AdditionalUnits: String; override;
+  public
+    constructor Create( AOwner: TComponent ); override;
     function TypeName: String; override;
     function NoDrawFrame: Boolean; override;
     function AdjustVerticalAlign( Value: TVerticalAlign ): TVerticalAlign; override;
-  public
-    constructor Create( AOwner: TComponent ); override;
+    function SetupParams( const AName, AParent: String ): String; override;
     procedure Paint; override;
     function BorderNeeded: Boolean; override;
   published
