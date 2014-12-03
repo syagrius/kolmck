@@ -46,7 +46,7 @@ type
     procedure SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
     procedure SetupLast( SL: TStringList; const AName, AParent, Prefix: String ); override;
     procedure AssignEvents( SL: TStringList; const AName: String ); override;
-    function  SetupParams( const AName, AParent: String ): String; override;
+    function  SetupParams( const AName, AParent: TDelphiString ): TDelphiString; override;
    function  GetCaption: string;
     function  GetStyle: TKOLListViewStyle;
     function  GetOptions: TKOLListViewOptions;
@@ -207,7 +207,7 @@ begin
   end;
 end;
 
-function TKOLEcmListEdit.SetupParams(const AName, AParent: String): String;
+function TKOLEcmListEdit.SetupParams(const AName, AParent: TDelphiString): TDelphiString;
 begin
   Result := inherited SetupParams(AName,AParent)
 end;

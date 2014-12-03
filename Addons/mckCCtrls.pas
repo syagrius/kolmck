@@ -35,7 +35,7 @@ type
     function AdditionalUnits: string; override;
     function TabStopByDefault: Boolean; override;
     procedure SetupFirst(SL: TStringList; const AName, AParent, Prefix: string); override;
-    function SetupParams(const AName, AParent: string): string; override;
+    function SetupParams(const AName, AParent: TDelphiString): TDelphiString; override;
     procedure SetupConstruct(SL: TStringList; const AName, AParent, Prefix: string); override;
   public
     constructor Create(AOwner: TComponent); override;
@@ -502,7 +502,7 @@ begin
     SL.Add(Prefix + AName + '.SelEnd := ' + IntToStr(SelEnd) + ';');
 end;
 
-function TKOLTrackBar.SetupParams(const AName, AParent: string): string;
+function TKOLTrackBar.SetupParams(const AName, AParent: TDelphiString): TDelphiString;
 var
   S                 : string;
 begin

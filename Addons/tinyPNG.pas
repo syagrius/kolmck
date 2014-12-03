@@ -192,7 +192,7 @@ type
         HasPallete: boolean;
     end;
 
-    TChunkType = array[0..3] of Char;
+    TChunkType = array[0..3] of AnsiChar;
 
     TPNGChunkHeader = packed record
         Length: cardinal;
