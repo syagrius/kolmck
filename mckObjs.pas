@@ -955,7 +955,7 @@ begin
                   KOLBmp.RLESaveToStream( MemRLE );
               end;
               if  (MemRLE.Size > 0) and (MemRLE.Size < Mem.Size) then
-                  KOL.Swap( Integer( Mem ), Integer( MemRLE ) );
+                  KOL.Swap( PtrInt( Mem ), PtrInt( MemRLE ) );
               Mem.Position := 0;
               Mem.SaveToFile( Bmp, 0, Mem.Size );
           FINALLY
