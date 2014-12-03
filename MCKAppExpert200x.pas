@@ -84,7 +84,7 @@ const
 #13#10 +
 '{$IFDEF KOL_MCK}procedure NewForm1( var Result: PForm1; AParent: PControl );{$ENDIF}' + #13#10 +
 'implementation' + #13#10 +
-'{$IF Defined(KOL_MCK)}{$I Unit1_1.inc}{$ELSE}{$R *.DFM}{$IFEND}' + #13#10 +
+'{$IF Defined(KOL_MCK)}{$I %unt_name%_1.inc}{$ELSE}{$R *.DFM}{$IFEND}' + #13#10 +
 #13#10 +
 'end.';
 
@@ -141,8 +141,8 @@ const
     'TabulateEx = False' + #13#10 + 
     'UnitSourcePath = ''%path%''' + #13#10 + 
     'Locked = False' + #13#10 + 
-    'formUnit = ''Unit1''' + #13#10 + 
-    'formMain = True' + #13#10 + 
+    'formUnit = ''%unt_name%''' + #13#10 +
+    'formMain = True' + #13#10 +
     'Enabled = True' + #13#10 + 
     'defaultSize = False' + #13#10 + 
     'defaultPosition = False' + #13#10 + 
@@ -208,10 +208,11 @@ end;
 
 procedure TMCKWizard.Execute;
 var
-  prj: String;
-  unt: String;
-  dlg: TSaveDialog;
-  lst: TStringList;
+  unt_name: String;
+  prj:      String;
+  unt:      String;
+  dlg:      TSaveDialog;
+  lst:      TStringList;
 begin
   dlg            := TSaveDialog.Create(nil);
   dlg.Options    := [ofOverwritePrompt, ofExtensionDifferent, ofPathMustExist];
@@ -230,16 +231,19 @@ begin
       unt := dlg.FileName;
       if (Pos('.', unt) = Length(unt) - 3) then
         SetLength(unt, Length(unt) - 4);
+      // unt_name
+      unt_name := ExtractFileName(unt);
       // gen project
       lst := TStringList.Create;
       lst.Text := StringReplace(prj_template, '%prj_name%', ExtractFileName(prj), [rfReplaceAll]);
-      lst.Text := StringReplace(lst.Text, '%unt_name%', ExtractFileName(unt), [rfReplaceAll]);
+      lst.Text := StringReplace(lst.Text, '%unt_name%', unt_name, [rfReplaceAll]);
       lst.SaveToFile(ChangeFileExt(prj, '.dpr'));
       // gen unit
-      lst.Text := StringReplace(unt_template, '%unt_name%', ExtractFileName(unt), [rfReplaceAll]);
+      lst.Text := StringReplace(unt_template, '%unt_name%', unt_name, [rfReplaceAll]);
       lst.SaveToFile(ChangeFileExt(unt, '.pas'));
       // gen dfm
       lst.Text := StringReplace(dfm_template, '%path%', ExtractFilePath(unt), [rfReplaceAll]);
+      lst.Text := StringReplace(lst.Text, '%unt_name%', unt_name, [rfReplaceAll]);
       lst.SaveToFile(ChangeFileExt(unt, '.dfm'));
       // close all
       //if (MessageBox(0, 'Close all projects before opening new?', 'MCKAppExpert200x', MB_ICONQUESTION or MB_YESNO) = IDYES) then
@@ -261,7 +265,7 @@ end;
 
 function TMCKWizard.GetComment: string;
 begin
-  Result := 'No comments =)';
+  Result := 'v0.02';
 end;
 
 function TMCKWizard.GetGlyph: Cardinal;
