@@ -43,7 +43,6 @@ type
     procedure SetFilledSideColor2(C: TColor);
   protected
     { Protected declarations }
-    procedure Paint;
     procedure WMPaint(var Msg: TMessage); message WM_PAINT;
     procedure WMSize(var Msg: TMessage); message WM_SIZE;
     procedure WMActiv(var Msg: TMessage); message WM_SHOWWINDOW;
@@ -52,6 +51,7 @@ type
   public
     { Public declarations }
     constructor Create(Owner: TComponent); override;
+    procedure Paint; override;
   published
     { Published declarations }
     property Position: integer read FPosition write SetPos;

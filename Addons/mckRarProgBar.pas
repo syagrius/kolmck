@@ -53,7 +53,6 @@ type
     procedure SetShadowColor(C: TColor);
   protected
     { Protected declarations }
-    procedure Paint;
     procedure WMPaint(var Msg: TMessage); message WM_PAINT;
     procedure WMSize(var Msg: TMessage); message WM_SIZE;
     procedure WMActiv(var Msg: TMessage); message WM_SHOWWINDOW;
@@ -62,6 +61,7 @@ type
   public
     { Public declarations }
     constructor Create(Owner: TComponent); override;
+    procedure Paint; override;
   published
     { Published declarations }
     property Position1: integer read FPosition1 write SetPos1;
