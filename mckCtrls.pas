@@ -782,6 +782,9 @@ type
   public
     constructor Create( AOwner: TComponent ); override;
     destructor Destroy; override;
+    //dufa
+    procedure Paint; override;
+    function WYSIWIGPaintImplemented: Boolean; override;
     function TypeName: String; override;
     procedure WantTabs( Want: Boolean ); override;
     function Pcode_Generate: Boolean; override;
@@ -1312,6 +1315,7 @@ type
     //FOnDeleteLVItem: TOnDeleteLVItem;
     FGenerateColIdxConst: Boolean;
     FOnLVCustomDraw: TOnLVCustomDraw;
+    FOnLVSubitemDraw: TOnLVSubitemDraw;
     {$IFNDEF _D2}
     //FOnLVDataW: TOnLVDataW;
     {$ENDIF _D2}
@@ -1331,6 +1335,7 @@ type
     procedure SetColumns(const Value: String);
     procedure SetGenerateColIdxConst(const Value: Boolean);
     procedure SetOnLVCustomDraw(const Value: TOnLVCustomDraw);
+    procedure SetOnLVSubitemDraw(const Value: TOnLVSubitemDraw);
     procedure UpdateColumns;
     {$IFNDEF _D2}
     //procedure SetOnLVDataW(const Value: TOnLVDataW); {YS}
@@ -1401,6 +1406,7 @@ type
     property OnLVStateChange;
     property OnDrawItem;
     property OnLVCustomDraw: TOnLVCustomDraw read FOnLVCustomDraw write SetOnLVCustomDraw;
+    property OnLVSubitemDraw: TOnLVSubitemDraw read FOnLVSubitemDraw write SetOnLVSubitemDraw;
     property OnEnter;
     property OnLeave;
     property popupMenu;
@@ -2425,8 +2431,11 @@ end;
 
 procedure TKOLButton.Paint;
 begin
-  if not (Assigned(FKOLCtrl) and (PaintType in [ptWYSIWIG, ptWYSIWIGFrames])) then begin
+  if not (Assigned(FKOLCtrl) and (PaintType in [ptWYSIWIG, ptWYSIWIGFrames])) then
+  begin
     PrepareCanvasFontForWYSIWIGPaint( Canvas );
+    Canvas.Font.Color := clBtnText;
+    Canvas.Brush.Color := clBtnFace;
     DrawButton( Self, Canvas );
   end;
   inherited;
@@ -5627,10 +5636,10 @@ begin
 end;
 
 procedure TKOLEditBox.Paint;
-var
+{var
   R:TRect;
   Flag:DWord;
-  Delta: Integer;
+  Delta: Integer;}
 begin
   asm
     jmp @@e_signature
@@ -5638,8 +5647,12 @@ begin
     DB 'TKOLEditBox.Paint', 0
   @@e_signature:
   end;
-
-  PrepareCanvasFontForWYSIWIGPaint( Canvas );
+  //dufa
+  if not (Assigned(FKOLCtrl) and (PaintType in [ptWYSIWIG, ptWYSIWIGFrames])) then begin
+    PrepareCanvasFontForWYSIWIGPaint(Canvas);
+    DrawEditbox(Self, Canvas);
+  end;
+  {PrepareCanvasFontForWYSIWIGPaint( Canvas );
 
   R.Left:=0;
   R.Top:=0;
@@ -5674,7 +5687,7 @@ begin
   end;
 
   Canvas.Brush.Color := Color;
-  DrawText(Canvas.Handle,PChar(Caption),Length(Caption),R,Flag);
+  DrawText(Canvas.Handle,PChar(Caption),Length(Caption),R,Flag);}
 
   inherited;
 
@@ -6044,6 +6057,20 @@ end;
 function TKOLMemo.NoDrawFrame: Boolean;
 begin
   Result := HasBorder;
+end;
+
+//dufa
+function TKOLMemo.WYSIWIGPaintImplemented: Boolean;
+begin
+  Result := True;
+end;
+procedure TKOLMemo.Paint;
+begin
+  if not (Assigned(FKOLCtrl) and (PaintType in [ptWYSIWIG, ptWYSIWIGFrames])) then begin
+    PrepareCanvasFontForWYSIWIGPaint(Canvas);
+    DrawMemo(Self, Canvas);
+  end;
+  inherited;
 end;
 
 function TKOLMemo.Pcode_Generate: Boolean;
@@ -7450,9 +7477,9 @@ end;
 procedure TKOLListView.AssignEvents(SL: TStringList; const AName: String);
 begin
   inherited;
-  DoAssignEvents( SL, AName, [ 'OnDeleteLVItem', 'OnLVCustomDraw'
+  DoAssignEvents( SL, AName, [ 'OnDeleteLVItem', 'OnLVCustomDraw', 'OnLVSubitemDraw'
                   (*{$IFNDEF _D2}, 'OnLVDataW' {$ENDIF _D2}*) ],
-                             [ @ OnDeleteLVItem, @ OnLVCustomDraw
+                             [ @ OnDeleteLVItem, @ OnLVCustomDraw, @ OnLVSubitemDraw
                   (*{$IFNDEF _D2}, @ OnLVDataW {$ENDIF _D2}*) ] );
 end;
 
@@ -7734,6 +7761,12 @@ begin
   Change;
 end;
 
+procedure TKOLListView.SetOnLVSubitemDraw(const Value: TOnLVSubitemDraw);
+begin
+  FOnLVSubitemDraw := Value;
+  Change;
+end;
+
 {procedure TKOLListView.SetOnLVDelete(const Value: TOnDeleteLVItem);
 begin
   FOnDeleteLVItem := Value;
@@ -7913,13 +7946,6 @@ begin
         end;
         //+++++++++++++++++++++++++++++ 2.93
     end;
-    if (lvoEditLabel in Options) and not Assigned( OnEndEditLVItem ) then
-    begin
-        (SL as TFormStringList).OnAdd := nil;
-//dufa        SL.Add( Prefix + AName + '.OnEndEditLVItem := nil;' );
-        if  KF <> nil then
-            (SL as TFormStringList).OnAdd := KF.DoFlushFormCompact;
-    end;
 end;
 
 procedure TKOLListView.SetupLast(SL: TStringList; const AName, AParent,
@@ -7952,6 +7978,13 @@ begin
       if  ImageListState <> nil then
           SL.Add( '    Result.' + Name + '.ImageListState := ' +
                   'Result.' + ImageListState.Name + ';' );
+  end;
+  if (lvoEditLabel in Options) and (TMethod(fOnEndEditLVItem).Code = nil) then
+  begin
+      //(SL as TFormStringList).OnAdd := nil;
+      SL.Add( Prefix + AName + '.OnEndEditLVItem := nil;' );
+      //if  KF <> nil then
+      //    (SL as TFormStringList).OnAdd := KF.DoFlushFormCompact;
   end;
 end;
 
@@ -8377,11 +8410,11 @@ begin
   Result := inherited P_AssignEvents( SL, AName, CheckOnly );
   if Result and CheckOnly then Exit;
   Result := Result or
-  P_DoAssignEvents( SL, AName, [ 'OnDeleteLVItem', 'OnLVCustomDraw'
+  P_DoAssignEvents( SL, AName, [ 'OnDeleteLVItem', 'OnLVCustomDraw', 'OnLVSubitemDraw'
                   (*{$IFNDEF _D2}, 'OnLVDataW' {$ENDIF _D2}*) ],
-                             [ @ OnDeleteLVItem, @ OnLVCustomDraw
+                             [ @ OnDeleteLVItem, @ OnLVCustomDraw, @ OnLVSubitemDraw
                   (*{$IFNDEF _D2}, @ OnLVDataW {$ENDIF _D2}*) ],
-                  [ TRUE, TRUE ], CheckOnly );
+                  [ TRUE, TRUE, TRUE ], CheckOnly );
 end;
 
 procedure TKOLListView.GenerateTransparentInits_Compact;
@@ -14398,7 +14431,7 @@ end;
 
 procedure TKOLImageShow.Paint;
 var
-  R:TRect;
+  R, RDest:TRect;
   EdgeFlag:DWord;
   //Flag:DWord;
   Delta:DWord;
@@ -14449,7 +14482,9 @@ begin
     TMP:=TBitMap.Create;
     TMP.Width:=ImageListNormal.ImgWidth;
     TMP.Height:=ImageListNormal.ImgHeight;
-    TMP.Canvas.CopyRect( Rect(0,0,ImageListNormal.ImgWidth,ImageListNormal.ImgHeight),
+    RDest := Rect(0,0,ImageListNormal.ImgWidth,ImageListNormal.ImgHeight);
+    TMP.Canvas.FillRect(RDest);
+    TMP.Canvas.CopyRect( RDest,
                          ImageListNormal.Bitmap.Canvas,
                          Rect( ImageListNormal.ImgWidth*(CurIndex),0,
                                ImageListNormal.ImgWidth*(CurIndex+1),
@@ -14458,7 +14493,9 @@ begin
     TMP.Transparent:=True;
     TMP.TransparentColor:=ImageListNormal.TransparentColor;
     {$ENDIF}
-    Canvas.Draw(Delta,Delta,TMP);
+    Canvas.Draw((Width - ImageListNormal.ImgWidth) div 2,
+                (Height - ImageListNormal.ImgHeight) div 2,
+                TMP);
     TMP.Free;
   end;
 
