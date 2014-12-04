@@ -1,0 +1,61 @@
+package KOLAddons2010;
+
+{$R *.res}
+{$R 'mckCCtrls.dcr'}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $25400000}
+{$DESCRIPTION 'KOLAddons2010'}
+{$DESIGNONLY}
+{$IMPLICITBUILD OFF}
+{$DEFINE INPACKAGE}
+{$DEFINE UNICODE_CTRLS}
+
+requires
+  KOLMCK2010,
+  rtl,
+  vcl,
+  designide,
+  xmlrtl,
+  vclactnband,
+  vclx;
+
+contains
+  KOLCCtrls in 'KOLCCtrls.pas',
+  mckCCtrls in 'mckCCtrls.pas',
+  KOLHashs in 'KOLHashs.PAS',
+  mckHashs in 'mckHashs.pas',
+  KOLFontEditor in 'KOLFontEditor.pas',
+  KOLmhxp in 'KOLmhxp.pas',
+  MCKMHXP in 'MCKMHXP.pas',
+  mckEcmListEdit in 'mckEcmListEdit.pas',
+  KOLEcmListEdit in 'KOLEcmListEdit.pas',
+  mckBlockCipher in 'mckBlockCipher.pas',
+  KOLBlockCipher in 'KOLBlockCipher.pas',
+  mckXPMenus in 'mckXPMenus.pas',
+  XPMenus in 'XPMenus.pas',
+  tinyPNG in 'tinyPNG.pas',
+  tinyJPGGIFBMP in 'tinyJPGGIFBMP.pas',
+  mckWebBrowser in 'mckWebBrowser.pas',
+  mckDHTML in 'mckDHTML.pas',
+  KolZLibBzip in 'KolZLibBzip.pas';
+
+end.
