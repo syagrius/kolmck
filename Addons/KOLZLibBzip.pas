@@ -145,7 +145,7 @@ function gZipCompressStream(inStream, outStream: PStream; level: TZCompressionLe
 function gZipDecompressStreamHeader(inStream: PStream; var gzHdr: TgzipHeader): Integer;
 function gZipDecompressStreamBody(inStream, outStream: PStream; const aCheckCRC: Boolean = True): Integer;
 function gZipDecompressStream(inStream, outStream: PStream; var gzHdr: TgzipHeader): Integer;
-function gZipDecompressString(const S: String; const useheaders: Boolean = True; const aCheckCRC: Boolean = True): String;
+function gZipDecompressString(const S: AnsiString; const useheaders: Boolean = True; const aCheckCRC: Boolean = True): AnsiString;
 
 {*******************************************************}
 {                                                       }
@@ -1643,7 +1643,7 @@ begin
     Result := gZipDecompressStreamBody(inStream, outStream);
 end;
 
-function gZipDecompressString(const S: String; const useheaders: Boolean = True; const aCheckCRC: Boolean = True): String;
+function gZipDecompressString(const S: AnsiString; const useheaders: Boolean = True; const aCheckCRC: Boolean = True): AnsiString;
 var
   Rslt:      Integer;
   gzHdr:     TgzipHeader;

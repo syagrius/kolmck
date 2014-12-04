@@ -403,7 +403,7 @@ type
     fDescription: string;
     fFilter: string;
   public
-  published
+  //published
     property Full: string read fFull write fFull;
     property Description: string read fDescription write fDescription;
     property Filter: string read fFilter write fFilter;

@@ -1,11 +1,7 @@
 package KOLAddons2006;
 
 {$R *.res}
-{$R 'MCKMonthCalendar.res'}
 {$R 'mckCCtrls.dcr'}
-{$R 'mckHTTPDownload.dcr'}
-{$R 'mckQProgBar.dcr'}
-{$R 'MCKMHIPEdit.dcr'}
 {$ALIGN 8}
 {$ASSERTIONS ON}
 {$BOOLEVAL OFF}
@@ -49,36 +45,16 @@ contains
   KOLFontEditor in 'KOLFontEditor.pas',
   KOLmhxp in 'KOLmhxp.pas',
   MCKMHXP in 'MCKMHXP.pas',
-  mckTCPSocket in 'mckTCPSocket.pas',
-  mckListEdit in 'mckListEdit.pas',
-  kolTCPSocket in 'kolTCPSocket.pas',
-  mckCProgBar in 'mckCProgBar.pas',
-  mckRarInfoBar in 'mckRarInfoBar.pas',
-  mckRarProgBar in 'mckRarProgBar.pas',
   mckEcmListEdit in 'mckEcmListEdit.pas',
   KOLEcmListEdit in 'KOLEcmListEdit.pas',
   mckBlockCipher in 'mckBlockCipher.pas',
   KOLBlockCipher in 'KOLBlockCipher.pas',
-  MCKPrintDialogs in 'MCKPrintDialogs.pas',
-  MCKPageSetup in 'MCKPageSetup.pas',
-  KOLReport in 'KOLReport.pas',
-  MCKReport in 'MCKReport.pas',
-  KOLHTTPDownload in 'KOLHTTPDownload.pas',
-  mckHTTPDownload in 'mckHTTPDownload.pas',
-  KOLPageSetupDialog in 'KOLPageSetupDialog.pas',
-  KOLPrintCommon in 'KOLPrintCommon.pas',
-  KOLPrintDialogs in 'KOLPrintDialogs.pas',
-  KOLPrinters in 'KOLPrinters.pas',
   mckXPMenus in 'mckXPMenus.pas',
   XPMenus in 'XPMenus.pas',
   tinyPNG in 'tinyPNG.pas',
   tinyJPGGIFBMP in 'tinyJPGGIFBMP.pas',
   mckWebBrowser in 'mckWebBrowser.pas',
   mckDHTML in 'mckDHTML.pas',
-  KolZLibBzip in 'KolZLibBzip.pas',
-  KOLMHIPEdit in 'KOLMHIPEdit.pas',
-  MCKMHIPEdit in 'MCKMHIPEdit.pas',
-  MCKMonthCalendar in 'MCKMonthCalendar.pas',
-  KOLMonthCalendar in 'KOLMonthCalendar.pas';
+  KolZLibBzip in 'KolZLibBzip.pas';
 
 end.
