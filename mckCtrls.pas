@@ -2431,12 +2431,13 @@ end;
 
 procedure TKOLButton.Paint;
 begin
-  if not (Assigned(FKOLCtrl) and (PaintType in [ptWYSIWIG, ptWYSIWIGFrames])) then
-  begin
+  if not (Assigned(FKOLCtrl) and (PaintType in [ptWYSIWIG, ptWYSIWIGFrames])) then begin
     PrepareCanvasFontForWYSIWIGPaint( Canvas );
     Canvas.Font.Color := clBtnText;
     Canvas.Brush.Color := clBtnFace;
-    DrawButton( Self, Canvas );
+    //dufa
+    DrawButton(Canvas.Handle, ClientRect, Enabled, DefaultBtn,
+      TextHFlags[KOL.TTextAlign(TextAlign)] or TextVFlags[KOL.TVerticalAlign(VerticalAlign)], Caption);
   end;
   inherited;
 end;
@@ -5176,7 +5177,8 @@ procedure TKOLCheckBox.Paint;
 begin
   if not (Assigned(FKOLCtrl) and (PaintType in [ptWYSIWIG, ptWYSIWIGFrames])) then begin
     PrepareCanvasFontForWYSIWIGPaint( Canvas );
-    DrawCheckBox( Self, Canvas );
+    //dufa
+    DrawCheckBox(Canvas.Handle, ClientRect, Enabled, Checked, HasBorder, Caption);
   end;  
   inherited;
 end;
@@ -5387,7 +5389,7 @@ end;
 procedure TKOLRadioBox.Paint;
 begin
   PrepareCanvasFontForWYSIWIGPaint( Canvas );
-  DrawRadioBox( Self, Canvas );
+  DrawRadioBox(Canvas.Handle, ClientRect, Enabled, Checked, HasBorder, Caption);
   inherited;
 end;
 
@@ -5649,8 +5651,8 @@ begin
   end;
   //dufa
   if not (Assigned(FKOLCtrl) and (PaintType in [ptWYSIWIG, ptWYSIWIGFrames])) then begin
-    PrepareCanvasFontForWYSIWIGPaint(Canvas);
-    DrawEditbox(Self, Canvas);
+    PrepareCanvasFontForWYSIWIGPaint(Canvas);                                       
+    DrawEditbox(Canvas.Handle, ClientRect, Enabled, (eoPassword in Options), TextHFlags[KOL.TTextAlign(TextAlign)], Caption);
   end;
   {PrepareCanvasFontForWYSIWIGPaint( Canvas );
 
@@ -6068,7 +6070,7 @@ procedure TKOLMemo.Paint;
 begin
   if not (Assigned(FKOLCtrl) and (PaintType in [ptWYSIWIG, ptWYSIWIGFrames])) then begin
     PrepareCanvasFontForWYSIWIGPaint(Canvas);
-    DrawMemo(Self, Canvas);
+    DrawMemo(Canvas.Handle, ClientRect, Enabled, TextHFlags[KOL.TTextAlign(TextAlign)], Text.Text);
   end;
   inherited;
 end;
@@ -6917,10 +6919,16 @@ begin
 end;
 
 procedure TKOLComboBox.Paint;
+var
+  s: String;
 begin
   if not (Assigned(FKOLCtrl) and (PaintType in [ptWYSIWIG, ptWYSIWIGFrames])) then begin
     PrepareCanvasFontForWYSIWIGPaint( Canvas );
-    DrawCombobox( Self, Canvas );
+    if (CurIndex > -1) then
+      s := Items.Strings[CurIndex]
+    else
+      s := '';
+    DrawCombobox(Canvas.Handle, ClientRect, Enabled, s);
   end;  
   inherited;
 end;
@@ -14058,14 +14066,15 @@ begin
            B := ' '
         else
         begin
-           {$IFDEF _D2009orHigher}
+          {$IFDEF _D2009orHigher}
             C2 := '';
-            C := Bt.Fcaption;
-            for Z := 1 to Length(C) do C2 := C2 + '#'+int2str(ord(C[Z]));
-            B := C2;
-           {$ELSE}
+            C  := Bt.Fcaption;
+            for Z := 1 to Length(C) do
+              C2 := C2 + '#' + Int2Str(ord(C[Z]));
+            B := C2 + '#0'; //dufa
+          {$ELSE}
             B := Bt.Fcaption;
-           {$ENDIF}
+          {$ENDIF}
         end;
         S := '';
         if Bt.radioGroup <> 0 then

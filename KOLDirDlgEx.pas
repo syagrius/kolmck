@@ -1027,7 +1027,7 @@ var p, s: KOLString;
     F: THandle;
     {$ENDIF}
     SL: PStrListEx;
-    disk: Char;
+    disk: AnsiChar;
     //test: String;
 begin
   if AppletTerminated or not AppletRunning then Exit;
@@ -1045,13 +1045,13 @@ begin
       begin
         for disk := 'A' to 'Z' do
         begin
-          case GetDriveTypeA( PChar( disk + ':\' ) ) of
+          case GetDriveTypeA( PAnsiChar( disk + AnsiString(':\') ) ) of
           DRIVE_FIXED, DRIVE_RAMDISK:   ii := 0;
           DRIVE_REMOVABLE, DRIVE_CDROM: ii := 1;
           DRIVE_REMOTE:                 ii := 2;
           else ii := -1;
           end;
-          if ii >= 0 then SL.AddObject( disk + ':', ii );
+          if ii >= 0 then SL.AddObject( disk + AnsiString(':'), ii );
         end;
       end else
       {$IFnDEF DONTTRY_FINDFILEEXW}

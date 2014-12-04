@@ -1,37 +1,11 @@
-//by Roman Vorobets
-//
-// В mckCtrls y TKOLButton,TKOLLabel,TEditbox,TCheckBox и TRadioBox нyжно добавить метод
-//
-//TKOL#####=class(TKOLControl)
-//...
-//protected
-//  procedure Paint;override;
-//...
-//end;
-//
-//...
-//
-//procedure TKOL#####.Paint;
-//begin
-//  Draw#####(self,canvas);
-//end;
+// ux themed
 //dufa
 unit mckCtrlDraw;
 
 interface
 
-uses
-  Windows, Graphics, mirror, mckCtrls, ExtCtrls, Classes, Themes;
-
-procedure DrawButton(Sender: TKOLButton; aCanvas: TCanvas);
-procedure DrawEditBox(Sender: TKOLEditBox; aCanvas: TCanvas);
-procedure DrawMemo(Sender: TKOLMemo; aCanvas: TCanvas);
-procedure DrawCheckbox(Sender: TKOLCheckbox; aCanvas: TCanvas);
-procedure DrawRadiobox(_Radiobox: TKOLRadiobox; Canvas: TCanvas);
-procedure DrawCombobox(_Combobox: TKOLCombobox; Canvas: TCanvas);
-procedure DrawLabel(_Label: TKOLLabel; Canvas: TCanvas);
-
-implementation
+uses 
+  Windows, Types, KOL, Themes;
 
 const
   TextHFlags: array[TTextAlign] of DWORD     = (DT_LEFT, DT_RIGHT,   DT_CENTER);
@@ -39,234 +13,202 @@ const
   WordWrapFlags: array[Boolean] of DWORD     = (DT_SINGLELINE, 0);//!
   CheckFlags: array[Boolean] of DWORD        = (0, DFCS_CHECKED);
 
-procedure DrawButton(Sender: TKOLButton; aCanvas: TCanvas);
+procedure DrawButton(DC: HDC; R: TRect; aEnabled, aDefBtn: Boolean; dwTextFlags: DWORD; aText: WideString);
+procedure DrawEditBox(DC: HDC; R: TRect; aEnabled, aIsPwd: Boolean; dwTextFlags: DWORD; aText: WideString);
+procedure DrawMemo(DC: HDC; R: TRect; aEnabled: Boolean; dwTextFlags: DWORD; aText: WideString);
+procedure DrawCombobox(DC: HDC; R: TRect; aEnabled: Boolean; aText: WideString);
+procedure DrawLabel(DC: HDC; R: TRect; dwTextFlags: DWORD; aText: WideString);
+procedure DrawCheckbox(DC: HDC; R: TRect; aEnabled, aChecked, aHasBorder: Boolean; aText: WideString);
+procedure DrawRadiobox(DC: HDC; R: TRect; aEnabled, aChecked, aHasBorder: Boolean; aText: WideString);
+procedure DrawListBox(DC: HDC; R: TRect; aEnabled: Boolean; dwTextFlags: DWORD; aText: WideString);
+
+implementation
+
+procedure DrawButton(DC: HDC; R: TRect; aEnabled, aDefBtn: Boolean; dwTextFlags: DWORD; aText: WideString);
+const                   //enb      defbtn
+  arrTThemedButton: array[Boolean, Boolean] of TThemedButton =
+    ((tbPushButtonDisabled, tbPushButtonDisabled), (tbPushButtonNormal, tbPushButtonDefaulted));
+
 var
-  e: TThemedButton;
   d: TThemedElementDetails;
 begin
-  // states
-  if Sender.Enabled then begin
-    if Sender.DefaultBtn then
-      e := tbPushButtonDefaulted
-    else
-      e := tbPushButtonNormal
-  end else
-    e := tbPushButtonDisabled;
   // get element
-  d := ThemeServices.GetElementDetails(e);
-  // draw element, text
-  ThemeServices.DrawElement(aCanvas.Handle, d, Sender.ClientRect, nil);
-  ThemeServices.DrawText(aCanvas.Handle, d, Sender.Caption, Sender.ClientRect,
-    TextHFlags[Sender.TextAlign] or TextVFlags[Sender.VerticalAlign] or DT_SINGLELINE, 0);
+  d := ThemeServices.GetElementDetails(arrTThemedButton[aEnabled, aDefBtn]);
+  // draw element
+  ThemeServices.DrawElement(DC, d, R, nil);
+  // text
+  ThemeServices.DrawText(DC, d, aText, R, dwTextFlags or DT_SINGLELINE, 0);
 end;
 
-procedure DrawEditBox(Sender: TKOLEditBox; aCanvas: TCanvas);
+procedure DrawEditBox(DC: HDC; R: TRect; aEnabled, aIsPwd: Boolean; dwTextFlags: DWORD; aText: WideString);
+const
+  arrThemedEdit: array[Boolean] of TThemedEdit = (teEditTextDisabled, teEditTextNormal);
+
 var
-  e:  TThemedEdit;
   d:  TThemedElementDetails;
-  r:  TRect;
-  DC: HDC;
-  dw: DWORD;
-  ss: AnsiString;
+//  ss: WideString;
 begin
-  // states
-  if Sender.Enabled then
-    e := teEditTextNormal
-  else
-    e := teEditTextDisabled;
   // get element
-  d := ThemeServices.GetElementDetails(e);
+  d := ThemeServices.GetElementDetails(arrThemedEdit[aEnabled]);
   // draw element
-  r  := aCanvas.ClipRect;
-  DC := aCanvas.Handle;
   ThemeServices.DrawElement(DC, d, r, nil);
+  // password text style
+//  ss := aText;
+//  if (Length(ss) > 0) and aIsPwd then
+//    ss := StrRepeat('*', Length(ss));
   // draw text
-  Inc(r.Left, 3);
+  Inc(r.Left, 6);
   Inc(r.Top, 3);
   Dec(r.Right, 3);
   Dec(r.Bottom, 3);
-  ss := Sender.Caption;
-  dw := Length(ss);
-  if (dw > 0) and (eoPassword in Sender.Options) then
-    FillChar(ss[1], dw, '*');
-  dw := TextHFlags[Sender.TextAlign] or DT_SINGLELINE;
-  ThemeServices.DrawText(DC, d, ss, r, dw, 0);
+  ThemeServices.DrawText(DC, d, {ss}aText, r, dwTextFlags or DT_SINGLELINE, 0);
 end;
 
-procedure DrawMemo(Sender: TKOLMemo; aCanvas: TCanvas);
+procedure DrawMemo(DC: HDC; R: TRect; aEnabled: Boolean; dwTextFlags: DWORD; aText: WideString);
+const
+  arrThemedEdit: array[Boolean] of TThemedEdit = (teEditTextDisabled, teEditTextNormal);
+
 var
-  e:  TThemedEdit;
-  d:  TThemedElementDetails;
-  r:  TRect;
-  DC: HDC;
-  ws: WideString;
+  d: TThemedElementDetails;
 begin
-  // states
-  if Sender.Enabled then
-    e := teEditTextNormal
-  else
-    e := teEditTextDisabled;
   // get element
-  d := ThemeServices.GetElementDetails(e);
+  d := ThemeServices.GetElementDetails(arrThemedEdit[aEnabled]);
   // draw element
-  r  := aCanvas.ClipRect;
-  DC := aCanvas.Handle;
+  ThemeServices.DrawElement(DC, d, r, nil);
+  // get element v-track
+  d := ThemeServices.GetElementDetails(tsLowerTrackVertDisabled);
+  // draw element
+  ThemeServices.DrawElement(DC, d, Rect(r.Right - 20, 1, r.Right - 1, r.Bottom - 1), nil);
+  // get element btn-up
+  d := ThemeServices.GetElementDetails(tsArrowBtnUpDisabled);
+  // draw element
+  ThemeServices.DrawElement(DC, d, Rect(r.Right - 20, 1, r.Right - 1, 20), nil);
+  // get element btn-dn
+  d := ThemeServices.GetElementDetails(tsArrowBtnDownDisabled);
+  // draw element
+  ThemeServices.DrawElement(DC, d, Rect(r.Right - 20, r.Bottom - 40, r.Right - 1, r.Bottom - 20), nil);
+
+  // get element h-track
+  d := ThemeServices.GetElementDetails(tsLowerTrackHorzDisabled);
+  // draw element
+  ThemeServices.DrawElement(DC, d, Rect(1, r.Bottom - 20, r.Right - 20, r.Bottom - 1), nil);
+  // get element btn-left
+  d := ThemeServices.GetElementDetails(tsArrowBtnLeftDisabled);
+  // draw element
+  ThemeServices.DrawElement(DC, d, Rect(1, r.Bottom - 20, 20, r.Bottom - 1), nil);
+  // get element btn-right
+  d := ThemeServices.GetElementDetails(tsArrowBtnRightDisabled);
+  // draw element
+  ThemeServices.DrawElement(DC, d, Rect(r.Right - 40, r.Bottom - 20, r.Right - 20, r.Bottom - 1), nil);
+
+  // draw text
+  Inc(r.Left, 6);
+  Inc(r.Top, 3);
+  Dec(r.Right, 23);
+  Dec(r.Bottom, 23);
+  ThemeServices.DrawText(DC, d, aText, r, dwTextFlags, 0);
+end;
+
+procedure DrawCombobox(DC: HDC; R: TRect; aEnabled: Boolean; aText: WideString);
+const
+  arrThemedComboBox: array[Boolean] of TThemedComboBox = (tcDropDownButtonDisabled, tcDropDownButtonNormal);
+
+var
+  d: TThemedElementDetails;
+begin
+  // get element
+  d := ThemeServices.GetElementDetails(tcComboBoxRoot);
+  // draw element
+  ThemeServices.DrawElement(DC, d, r, nil);
+  // get element
+  d := ThemeServices.GetElementDetails(arrThemedComboBox[aEnabled]);
+  // draw element
+  r.Left := r.Right - 18;
+  Inc(r.Top, 1);
+  Dec(r.Right, 1);
+  Dec(r.Bottom, 1);
   ThemeServices.DrawElement(DC, d, r, nil);
   // draw text
-  Inc(r.Left, 3);
-  Inc(r.Top, 3);
-  Dec(r.Right, 3);
-  Dec(r.Bottom, 3);
-  ws := Sender.Caption;
-  ThemeServices.DrawText(DC, d, ws, r, TextHFlags[Sender.TextAlign], 0);
+  r.Left := 6;
+  Inc(r.Top, 2);
+  Dec(r.Right, 18);
+  Inc(r.Bottom, 1);
+  ThemeServices.DrawText(DC, d, aText, r, DT_LEFT or DT_SINGLELINE, 0);
 end;
 
-procedure DrawLabel(_Label: TKOLLabel; Canvas: TCanvas);
-var
-  r: trect;
-  s: string;
+//TextHFlags[Sender.TextAlign] or TextVFlags[Sender.VerticalAlign] or WordWrapFlags[Sender.WordWrap]
+procedure DrawLabel(DC: HDC; R: TRect; dwTextFlags: DWORD; aText: WideString);
 begin
-  with _Label, Canvas do begin
-    r := clientrect;
-    s := caption;
-    brush.color := clbtnshadow;
-    framerect(r);
-    setbkmode(handle, windows.TRANSPARENT);
-    drawtext(handle, pchar(s), length(s), r, TextHFlags[textalign] or TextVFlags[verticalalign] or WordWrapFlags[wordwrap]);
-  end;
+  // draw
+  FillRect(DC, r, HBRUSH(COLOR_BTNFACE + 1));
+  SetBkMode(DC, TRANSPARENT);
+  DrawTextW(DC, PWideChar(aText), Length(aText), r, dwTextFlags);
 end;
 
-procedure DrawCheckbox(Sender: TKOLCheckbox; aCanvas: TCanvas);
+procedure DrawCheckbox(DC: HDC; R: TRect; aEnabled, aChecked, aHasBorder: Boolean; aText: WideString);
+const                   //enb      chk
+  arrTThemedButton: array[Boolean, Boolean] of TThemedButton =
+    ((tbCheckBoxUncheckedDisabled, tbCheckBoxCheckedDisabled), (tbCheckBoxUncheckedNormal, tbCheckBoxCheckedNormal));
+
 var
-  e:  TThemedButton;
   d:  TThemedElementDetails;
-  r:  TRect;
   rr: TRect;
-  DC: HDC;
-  ws: WideString;
 begin
-  // states
-  if Sender.Enabled then begin
-    if Sender.Checked then
-      e := tbCheckBoxCheckedNormal
-    else
-      e := tbCheckBoxUncheckedNormal
-  end else begin
-    if Sender.Checked then
-      e := tbCheckBoxCheckedDisabled
-    else
-      e := tbCheckBoxUncheckedDisabled
-  end;
   // get element
-  d  := ThemeServices.GetElementDetails(e);
-  r  := aCanvas.ClipRect;
-  DC := aCanvas.Handle;
-  // draw edge
-  aCanvas.FillRect(r);
-  if Sender.HasBorder then
-    ThemeServices.DrawEdge(DC, d, r, EDGE_RAISED, BF_RECT or BF_MIDDLE);
+  d  := ThemeServices.GetElementDetails(arrTThemedButton[aEnabled, aChecked]);
+  // draw back
+  FillRect(DC, r, HBRUSH(COLOR_BTNFACE + 1));
+  // draw border
+  if aHasBorder then
+    ThemeServices.DrawEdge(DC, d, r, EDGE_BUMP, BF_RECT or BF_MIDDLE);
   // draw element
   rr := Bounds(-3, -3, 22, 22);
   ThemeServices.DrawElement(DC, d, rr);
   // draw text
   Inc(r.Left, 18);
-  ws := Sender.Caption;
-  ThemeServices.DrawText(DC, d, ws, r, DT_LEFT, 0);
+  ThemeServices.DrawText(DC, d, aText, r, DT_LEFT, 0);
 end;
 
-procedure DrawRadiobox(_Radiobox: TKOLRadiobox; Canvas: TCanvas);
+procedure DrawRadiobox(DC: HDC; R: TRect; aEnabled, aChecked, aHasBorder: Boolean; aText: WideString);
+const                   //enb      chk
+  arrFlags: array[Boolean, Boolean] of DWORD =
+    ((DFCS_INACTIVE, DFCS_CHECKED or DFCS_INACTIVE), (0, DFCS_CHECKED));
+
 var
-  r, rr: trect;
-  s: string;
+  rr: TRect;
 begin
-  with _Radiobox, Canvas do begin
-    r := clientrect;
-    s := caption;
-
-    {brush.color:=clbtnshadow;
-    framerect(r);}
-    if _Radiobox.hasborder then
-      DrawEdge(Canvas.handle, r, EDGE_RAISED, BF_RECT or BF_MIDDLE);
-
-    rr := bounds(r.left + 2, (r.bottom + r.top - 13) div 2, 13, 13);
-    drawframecontrol(handle, rr, DFC_BUTTON,
-      DFCS_BUTTONRADIO or CheckFlags[checked]);
-    Inc(r.left, 17);
-    setbkmode(handle, windows.TRANSPARENT);
-    drawtext(handle, pchar(s), length(s), r, DT_VCENTER or DT_SINGLELINE);
-  end;
+  // draw back
+  FillRect(DC, r, HBRUSH(COLOR_BTNFACE + 1));
+  // draw border
+  if aHasBorder then
+    DrawEdge(DC, r, EDGE_RAISED, BF_RECT or BF_MIDDLE);
+  // draw element
+  rr := Bounds(r.Left + 2, (r.Bottom + r.Top - 13) div 2, 13, 13);
+  DrawFrameControl(DC, rr, DFC_BUTTON, DFCS_BUTTONRADIO or arrFlags[aEnabled, aChecked]);
+  // draw text
+  Inc(r.left, 17);
+  SetBkMode(DC, TRANSPARENT);
+  DrawTextW(DC, PWideChar(aText), Length(aText), r, DT_VCENTER or DT_SINGLELINE);
 end;
 
-procedure DrawCombobox1(aCombobox: TKOLCombobox; aCanvas: TCanvas; r: trect);
+procedure DrawListBox(DC: HDC; R: TRect; aEnabled: Boolean; dwTextFlags: DWORD; aText: WideString);
+const
+  arrThemedEdit: array[Boolean] of TThemedListview = (tlListItemDisabled, tlListItemDisabled);
+
 var
-  w:  Integer;
-  s:  string;
-  dw: DWORD;
+  d: TThemedElementDetails;
 begin
-  if (aCombobox.curindex >= 0) and (aCombobox.curindex < aCombobox.items.count) then
-    s := aCombobox.items[aCombobox.curindex]
-  else
-    s := '';
-  if aCombobox.hasborder then begin
-    frame3d(aCanvas, r, clbtnshadow, clbtnhighlight, 1);
-    frame3d(aCanvas, r, clblack, cl3dlight, 1);
-  end;
-  if not (coSimple in aCombobox.Options) then begin
-    w := getsystemmetrics(SM_CXVSCROLL);
-    dw := DFCS_SCROLLCOMBOBOX;
-    if not aCombobox.Enabled then
-      dw := dw or DFCS_INACTIVE;
-    DrawFrameControl(aCanvas.Handle, rect(r.right - w, r.top, r.right, r.bottom), DFC_SCROLL, dw);
-    Dec(r.right, w);
-  end;
-  setbkmode(aCanvas.Handle, windows.TRANSPARENT);
-  if (s <> '') then begin
-    if aCombobox.Enabled then
-      aCanvas.Font.Color := clWindowText
-    else
-      aCanvas.Font.Color := clGrayText;
-    drawtext(aCanvas.Handle, pchar(s), length(s), r, DT_VCENTER or DT_SINGLELINE);
-  end;
+  // get element
+  d := ThemeServices.GetElementDetails(arrThemedEdit[aEnabled]);
+  // draw element
+  ThemeServices.DrawElement(DC, d, r, nil);
+  // draw text
+  Inc(r.Left, 6);
+  Inc(r.Top, 3);
+  Dec(r.Right, 3);
+  Dec(r.Bottom, 3);
+  ThemeServices.DrawText(DC, d, aText, r, dwTextFlags, 0);
 end;
 
-procedure DrawCombobox(_Combobox: TKOLCombobox; Canvas: TCanvas);
-var
-  r, R1: trect;
-  Bot: Integer;
-  I: Integer;
-  s: string;
-begin
-  if coSimple in _Combobox.Options then begin
-    r := _Combobox.clientrect;
-    Bot := r.bottom;
-    r.bottom := r.top + Canvas.TextHeight('A') + 8;
-    DrawCombobox1(_Combobox, Canvas, r);
-    r.top := r.bottom;
-    r.bottom := Bot;
-    frame3d(Canvas, r, clbtnshadow, clbtnhighlight, 1);
-    frame3d(Canvas, r, clblack, cl3dlight, 1);
-    Inc(r.left, 2);
-    setbkmode(Canvas.handle, windows.TRANSPARENT);
-    R1 := r;
-    for I := 0 to _Combobox.items.count - 1 do begin
-      s := _Combobox.items[I];
-      R1.bottom := R1.top + Canvas.TextHeight('A') + 4;
-      if R1.bottom > r.bottom then
-        R1.bottom := r.bottom;
-      drawtext(Canvas.handle, pchar(s), length(s), R1,
-        {DT_VCENTER or}DT_SINGLELINE);
-      R1.top := R1.bottom;
-      if R1.top >= r.bottom then begin
-        r.left := r.right - getsystemmetrics(SM_CXVSCROLL);
-        //DrawScrollBar_Vertical( Canvas.Handle, R );
-        Break;
-      end;
-    end;
-  end
-  else begin
-    DrawCombobox1(_Combobox, Canvas, _Combobox.clientrect);
-  end;
-end;
 
 end.
-
