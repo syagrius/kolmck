@@ -199,6 +199,8 @@ const
   'end' + #13#10 + 
 'end';
 
+  res_template = #0#0#0#0#32#0#0#0#255#255#0#0#255#255#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0;
+
 implementation
 
 procedure Register;
@@ -213,6 +215,7 @@ var
   unt:      String;
   dlg:      TSaveDialog;
   lst:      TStringList;
+  resfile:  Integer;
 begin
   dlg            := TSaveDialog.Create(nil);
   dlg.Options    := [ofOverwritePrompt, ofExtensionDifferent, ofPathMustExist];
@@ -245,6 +248,12 @@ begin
       lst.Text := StringReplace(dfm_template, '%path%', ExtractFilePath(unt), [rfReplaceAll]);
       lst.Text := StringReplace(lst.Text, '%unt_name%', unt_name, [rfReplaceAll]);
       lst.SaveToFile(ChangeFileExt(unt, '.dfm'));
+      // gen dummy res file
+      resfile := FileCreate(ChangeFileExt(prj, '.res'));
+      if (resfile <> -1) then begin
+        FileWrite(resfile, res_template, Length(res_template));
+        FileClose(resfile);
+      end;
       // close all
       //if (MessageBox(0, 'Close all projects before opening new?', 'MCKAppExpert200x', MB_ICONQUESTION or MB_YESNO) = IDYES) then
       //  (BorlandIDEServices as IOTAModuleServices).CloseAll;
@@ -265,7 +274,7 @@ end;
 
 function TMCKWizard.GetComment: string;
 begin
-  Result := 'v0.02';
+  Result := 'v0.03';
 end;
 
 function TMCKWizard.GetGlyph: Cardinal;
