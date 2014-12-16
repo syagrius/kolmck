@@ -539,6 +539,9 @@ type
     function SupportsFormCompact: Boolean; override;
     procedure SetupConstruct_Compact; override;
   public
+    //dufa
+    function WYSIWIGPaintImplemented: Boolean; override;
+    procedure Paint; override;
     constructor Create( AOwner: TComponent ); override;
     function Pcode_Generate: Boolean; override;
   published
@@ -895,6 +898,9 @@ type
     function SupportsFormCompact: Boolean; override;
     procedure SetupConstruct_Compact; override;
   public
+    //dufa
+    function WYSIWIGPaintImplemented: Boolean; override;
+    procedure Paint; override;
     constructor Create( AOwner: TComponent ); override;
     destructor Destroy; override;
     function Pcode_Generate: Boolean; override;
@@ -993,6 +999,9 @@ type
     function SupportsFormCompact: Boolean; override;
     procedure SetupConstruct_Compact; override;
   public
+    //dufa
+    procedure Paint; override;
+    function WYSIWIGPaintImplemented: Boolean; override;
     constructor Create( AOwner: TComponent ); override;
     destructor Destroy; override;
     function Pcode_Generate: Boolean; override;
@@ -1215,6 +1224,9 @@ type
     procedure KOLControlRecreated; override;
     function NoDrawFrame: Boolean; override;
   public
+    //dufa
+    procedure Paint; override;
+    function WYSIWIGPaintImplemented: Boolean; override;
     constructor Create( AOwner: TComponent ); override;
     function Pcode_Generate: Boolean; override;
     function SupportsFormCompact: Boolean; override;
@@ -1360,6 +1372,9 @@ type
     procedure SaveColCount( Writer: TWriter );
     procedure DoGenerateConstants( SL: TStringList ); override;
   public
+    //dufa
+    procedure Paint; override;
+    function WYSIWIGPaintImplemented: Boolean; override;
     procedure Loaded; override; {YS}
     function NoDrawFrame: Boolean; override;
     procedure CreateKOLControl(Recreating: boolean); override;
@@ -1478,6 +1493,9 @@ type
     procedure CreateKOLControl(Recreating: boolean); override;
     function NoDrawFrame: Boolean; override;
   public
+    //dufa
+    procedure Paint; override;
+    function WYSIWIGPaintImplemented: Boolean; override;
     constructor Create( AOwner: TComponent ); override;
     procedure NotifyLinkedComponent( Sender: TObject; Operation: TNotifyOperation ); override;
     destructor Destroy; override;
@@ -2436,7 +2454,7 @@ begin
     Canvas.Font.Color := clBtnText;
     Canvas.Brush.Color := clBtnFace;
     //dufa
-    DrawButton(Canvas.Handle, ClientRect, Enabled, DefaultBtn,
+    DrawButton(True, Canvas.Handle, ClientRect, Enabled, DefaultBtn,
       TextHFlags[KOL.TTextAlign(TextAlign)] or TextVFlags[KOL.TVerticalAlign(VerticalAlign)], Caption);
   end;
   inherited;
@@ -5003,6 +5021,15 @@ begin
   inherited;
 end;
 
+procedure TKOLGroupBox.Paint;
+begin
+  if not (Assigned(FKOLCtrl) and (PaintType in [ptWYSIWIG, ptWYSIWIGFrames])) then begin
+    PrepareCanvasFontForWYSIWIGPaint(Canvas);
+    DrawGroupBox(True, Canvas.Handle, ClientRect, Caption);
+  end;
+  inherited;
+end;
+
 function TKOLGroupBox.Pcode_Generate: Boolean;
 begin
   Result := TRUE;
@@ -5126,6 +5153,11 @@ begin
   @@e_signature:
   end;
   Result := TRUE;
+end;
+
+function TKOLGroupBox.WYSIWIGPaintImplemented: Boolean;
+begin
+  Result := True;
 end;
 
 { TKOLCheckBox }
@@ -5389,7 +5421,7 @@ end;
 procedure TKOLRadioBox.Paint;
 begin
   PrepareCanvasFontForWYSIWIGPaint( Canvas );
-  DrawRadioBox(Canvas.Handle, ClientRect, Enabled, Checked, HasBorder, Caption);
+  DrawRadioBox(True, Canvas.Handle, ClientRect, Enabled, Checked, HasBorder, Caption);
   inherited;
 end;
 
@@ -5652,7 +5684,7 @@ begin
   //dufa
   if not (Assigned(FKOLCtrl) and (PaintType in [ptWYSIWIG, ptWYSIWIGFrames])) then begin
     PrepareCanvasFontForWYSIWIGPaint(Canvas);                                       
-    DrawEditbox(Canvas.Handle, ClientRect, Enabled, (eoPassword in Options), TextHFlags[KOL.TTextAlign(TextAlign)], Caption);
+    DrawEditbox(True, Canvas.Handle, ClientRect, Enabled, (eoPassword in Options), TextHFlags[KOL.TTextAlign(TextAlign)], Caption);
   end;
   {PrepareCanvasFontForWYSIWIGPaint( Canvas );
 
@@ -6070,7 +6102,7 @@ procedure TKOLMemo.Paint;
 begin
   if not (Assigned(FKOLCtrl) and (PaintType in [ptWYSIWIG, ptWYSIWIGFrames])) then begin
     PrepareCanvasFontForWYSIWIGPaint(Canvas);
-    DrawMemo(Canvas.Handle, ClientRect, Enabled, TextHFlags[KOL.TTextAlign(TextAlign)], Text.Text);
+    DrawMemo(True, Canvas.Handle, ClientRect, Enabled, True, True, TextHFlags[KOL.TTextAlign(TextAlign)], Text.Text);
   end;
   inherited;
 end;
@@ -6476,6 +6508,15 @@ begin
   Result:=HasBorder;
 end;
 
+procedure TKOLListBox.Paint;
+begin
+  if not (Assigned(FKOLCtrl) and (PaintType in [ptWYSIWIG, ptWYSIWIGFrames])) then begin
+    PrepareCanvasFontForWYSIWIGPaint(Canvas);
+    DrawListBox(True, Canvas.Handle, ClientRect, Enabled, Items.Text);
+  end;
+  inherited;
+end;
+
 function TKOLListBox.Pcode_Generate: Boolean;
 begin
   Result := TRUE;
@@ -6810,6 +6851,11 @@ begin
       FKOLCtrl.EndUpdate;
     end;
   end;
+end;
+
+function TKOLListBox.WYSIWIGPaintImplemented: Boolean;
+begin
+  Result := True;
 end;
 
 { TKOLComboBox }
@@ -8133,6 +8179,11 @@ begin
   {$ENDIF}
 end;
 
+function TKOLListView.WYSIWIGPaintImplemented: Boolean;
+begin
+  Result := True;
+end;
+
 procedure TKOLListView.CreateKOLControl(Recreating: boolean);
 var
   Opts: kol.TListViewOptions;
@@ -8407,6 +8458,25 @@ begin
   Result := Result + inherited P_GenerateTransparentInits();
 end;
 
+procedure TKOLListView.Paint;
+var
+  I: Integer;
+  w: WideString;
+begin
+  if not (Assigned(FKOLCtrl) and (PaintType in [ptWYSIWIG, ptWYSIWIGFrames])) then begin
+    PrepareCanvasFontForWYSIWIGPaint(Canvas);
+    // cols
+    w := '';
+    if (Style = lvsDetail) then begin
+      for I := 0 to Pred(Cols.Count) do
+        w := w + Trim(TKOLListViewColumn(Cols[I]).Caption) + #13;
+    end;
+    // draw
+    DrawListView(True, Canvas.Handle, ClientRect, Enabled, w);
+  end;
+  inherited;
+end;
+
 function TKOLListView.Pcode_Generate: Boolean;
 begin
   Result := TRUE;
@@ -8512,6 +8582,15 @@ begin
     if Sender = FImageListState then
       ImageListState := nil;
   end;
+end;
+
+procedure TKOLTreeView.Paint;
+begin
+  if not (Assigned(FKOLCtrl) and (PaintType in [ptWYSIWIG, ptWYSIWIGFrames])) then begin
+    PrepareCanvasFontForWYSIWIGPaint(Canvas);
+    DrawTreeView(True, Canvas.Handle, ClientRect, Enabled, Name);
+  end;
+  inherited;
 end;
 
 function TKOLTreeView.Pcode_Generate: Boolean;
@@ -8829,6 +8908,11 @@ begin
   Result := TRUE;
 end;
 
+function TKOLTreeView.WYSIWIGPaintImplemented: Boolean;
+begin
+  Result := True;
+end;
+
 { TKOLRichEdit }
 
 function TKOLRichEdit.AdditionalUnits: String;
@@ -9018,6 +9102,15 @@ end;
 function TKOLRichEdit.NoDrawFrame: Boolean;
 begin
   Result:=HasBorder;
+end;
+
+procedure TKOLRichEdit.Paint;
+begin
+  if not (Assigned(FKOLCtrl) and (PaintType in [ptWYSIWIG, ptWYSIWIGFrames])) then begin
+    PrepareCanvasFontForWYSIWIGPaint(Canvas);
+    DrawMemo(True, Canvas.Handle, ClientRect, Enabled, False, False, TextHFlags[KOL.TTextAlign(TextAlign)], Text.Text);
+  end;
+  inherited;
 end;
 
 function TKOLRichEdit.Pcode_Generate: Boolean;
@@ -9578,6 +9671,11 @@ begin
     Options := Options - [ eo_WantTab ];
 end;
 
+function TKOLRichEdit.WYSIWIGPaintImplemented: Boolean;
+begin
+  Result := True;
+end;
+
 { TKOLProgressBar }
 
 constructor TKOLProgressBar.Create(AOwner: TComponent);
@@ -9631,6 +9729,15 @@ end;
 function TKOLProgressBar.NoDrawFrame: Boolean;
 begin
   Result:=True;
+end;
+
+procedure TKOLProgressBar.Paint;
+begin
+  if not (Assigned(FKOLCtrl) and (PaintType in [ptWYSIWIG, ptWYSIWIGFrames])) then begin
+    PrepareCanvasFontForWYSIWIGPaint(Canvas);
+    DrawProgressBar(Canvas.Handle, ClientRect, Vertical, Progress, MaxProgress);
+  end;
+  inherited;
 end;
 
 function TKOLProgressBar.Pcode_Generate: Boolean;
@@ -9876,6 +9983,11 @@ begin
   Result := inherited TypeName;
   if Smooth or Vertical then
     Result := 'ProgressBarEx';
+end;
+
+function TKOLProgressBar.WYSIWIGPaintImplemented: Boolean;
+begin
+  Result := True;
 end;
 
 { TKOLTabControl }
