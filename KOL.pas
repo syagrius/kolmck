@@ -8230,15 +8230,15 @@ type
        TVHT_ABOVE              Above the client area
        TVHT_BELOW              Below the client area
        TVHT_NOWHERE            In the client area, but below the last item
-       TVHT_ONITEM	       On the bitmap or label associated with an item
+       TVHT_ONITEM             On the bitmap or label associated with an item
        TVHT_ONITEMBUTTON       On the button associated with an item
-       TVHT_ONITEMICON	       On the bitmap associated with an item
+       TVHT_ONITEMICON         On the bitmap associated with an item
        TVHT_ONITEMINDENT       In the indentation associated with an item
-       TVHT_ONITEMLABEL	       On the label (string) associated with an item
-       TVHT_ONITEMRIGHT	       In the area to the right of an item
+       TVHT_ONITEMLABEL        On the label (string) associated with an item
+       TVHT_ONITEMRIGHT        In the area to the right of an item
        TVHT_ONITEMSTATEICON    On the state icon for a tree-view item that is in a user-defined state
-       TVHT_TOLEFT	       To the right of the client area
-       TVHT_TORIGHT	       To the left of the client area
+       TVHT_TOLEFT             To the right of the client area
+       TVHT_TORIGHT            To the left of the client area
        |</pre> }
 
     property TVRightClickSelect: Boolean read DF.fTVRightClickSelect write SetTVRightClickSelect;
@@ -8286,6 +8286,11 @@ type
     {* |<#treeview>
        By Alex Mokrov. Sorts treeview. If N = 0, entire treeview is sorted.
        Otherwise, children of the given node only.
+    }
+    function TVSortChildrenCB(hParent: THandle; const aSort: TCompareEvent; recurse: Integer): BOOL;
+    {* |<#treeview>
+      Sorts tree-view items using an application-defined callback function that compares the items
+      dufa.
     }
 
     property TVItemImage[ Item: THandle ]: Integer index TVIF_IMAGE read TVGetItemImage write TVSetItemImage;
@@ -56994,6 +56999,44 @@ begin
   end;
   if  b then //moved by Tr"]f
       Perform(TVM_SORTCHILDREN, 0, 0);  //+ by YS
+end;
+
+//dufa
+type
+  PFNTVCOMPARE = function(lParam1, lParam2, lParamSort: LPARAM): Integer; stdcall;
+  TTVCompare = PFNTVCOMPARE;
+
+  tagTVSORTCB = packed record
+    hParent:      THandle;//HTreeItem;
+    lpfnCompare:  TTVCompare;
+    lParam:       LPARAM;
+  end;
+  _TV_SORTCB = tagTVSORTCB;
+  TTVSortCB = tagTVSORTCB;
+  TV_SORTCB = tagTVSORTCB;
+
+function TVCOMPARE(lParam1, lParam2, lParamSort: LPARAM): Integer; stdcall;
+var
+  m: PMethod;
+begin
+  m := PMethod(lParamSort);
+  if Assigned(m) and Assigned(m.Code) then
+    Result := TCompareEvent(m.Code)(m.Data, lParam1, lParam2)
+  else
+    Result := 0;
+end;
+
+function TControl.TVSortChildrenCB(hParent: THandle; const aSort: TCompareEvent; recurse: Integer): BOOL;
+var
+  a: TTVSortCB;
+  m: TMethod;
+begin
+  m.Code        := @aSort;
+  m.Data        := @Self;
+  a.hParent     := hParent;
+  a.lpfnCompare := TVCOMPARE;
+  a.lParam      := LPARAM(@m);
+  Result := BOOL(Perform(TVM_SORTCHILDRENCB, recurse, LPARAM(@a)));
 end;
 
 procedure TControl.TVDelete(Item: THandle);

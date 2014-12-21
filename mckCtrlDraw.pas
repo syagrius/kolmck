@@ -21,7 +21,7 @@ procedure DrawCheckbox(DC: HDC; R: TRect; aEnabled, aChecked, aHasBorder: Boolea
 procedure DrawRadiobox(aUX: Boolean; DC: HDC; R: TRect; aEnabled, aChecked, aHasBorder: Boolean; aText: WideString);
 procedure DrawListBox(aUX: Boolean; DC: HDC; R: TRect; aEnabled: Boolean; aText: WideString);
 procedure DrawTreeView(aUX: Boolean; DC: HDC; R: TRect; aEnabled: Boolean; aText: WideString);
-procedure DrawListView(aUX: Boolean; DC: HDC; R: TRect; aEnabled: Boolean; aColumns: WideString);
+procedure DrawListView(aUX: Boolean; DC: HDC; R: TRect; aEnabled: Boolean; aColumns: KOLWideString);
 procedure DrawProgressBar(DC: HDC; R: TRect; aVertical: Boolean; aProgress, aMaxProgress: Integer);
 procedure DrawTrackBar(DC: HDC; R: TRect; aVertical: Boolean; aProgress, aMaxProgress: Integer);
 procedure DrawGroupBox(aUX: Boolean; DC: HDC; R: TRect; aText: WideString);
@@ -291,7 +291,7 @@ begin
   DrawListBox(aUX, DC, R, aEnabled, aText);
 end;
 
-procedure DrawListView(aUX: Boolean; DC: HDC; R: TRect; aEnabled: Boolean; aColumns: WideString);
+procedure DrawListView(aUX: Boolean; DC: HDC; R: TRect; aEnabled: Boolean; aColumns: KOLWideString);
 var
   w: WideString;
   d: TThemedElementDetails;

@@ -1,0 +1,57 @@
+package KOLMCKXE7;
+
+{$R *.res}
+{$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $13400000}
+{$DESCRIPTION 'KOLMCKXE7'}
+{$DEFINE UNICODE_CTRLS}
+{$DEFINE PAS_ONLY}
+{$DEFINE PAS_VERSION}
+{$ENDIF IMPLICITBUILDING}
+{$DESIGNONLY}
+{$IMPLICITBUILD OFF}
+{$DEFINE INPACKAGE}
+
+requires
+  rtl,
+  vcl,
+  designide,
+  xmlrtl,
+  vclx;
+
+contains
+  KOL in 'KOL.pas',
+  KOLadd in 'KOLadd.pas',
+  mirror in 'mirror.pas',
+  mckObjs in 'mckObjs.pas',
+  mckCtrls in 'mckCtrls.pas',
+  mckCtrlDraw in 'mckCtrlDraw.pas',
+  mckMenuEditor in 'mckMenuEditor.pas',
+  mckToolbarEditor in 'mckToolbarEditor.pas',
+  mckAccEditor in 'mckAccEditor.pas',
+  mckActionListEditor in 'mckActionListEditor.pas',
+  mckFileFilterEditor in 'mckFileFilterEditor.pas',
+  mckLVColumnsEditor in 'mckLVColumnsEditor.pas',
+  MCKAppExpert200x in 'MCKAppExpert200x.pas';
+
+end.
