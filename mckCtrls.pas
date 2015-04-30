@@ -2014,6 +2014,9 @@ type
     function Pcode_Generate: Boolean; override;
     function SupportsFormCompact: Boolean; override;
     procedure SetupConstruct_Compact; override;
+    //dufa
+    procedure Paint; override;
+    function WYSIWIGPaintImplemented: Boolean; override;
   published
     constructor Create( AOwner: TComponent ); override;
     property ScrollBars: TScrollBars read FScrollBars write SetScrollBars;
@@ -2065,6 +2068,9 @@ type
     constructor Create( AOwner: TComponent ); override;
     function SupportsFormCompact: Boolean; override;
     procedure SetupConstruct_Compact; override;
+    //dufa
+    procedure Paint; override;
+    function WYSIWIGPaintImplemented: Boolean; override;
   published
     property popupMenu;
     property SBMin: Integer read FSBMin write SetSBMin;
@@ -6098,11 +6104,23 @@ function TKOLMemo.WYSIWIGPaintImplemented: Boolean;
 begin
   Result := True;
 end;
+
+function KOLMemoOptions2ScrollStyle(aOptions: TKOLMemoOptions): TScrollStyle;
+begin
+  Result := mckCtrlDraw.ssBoth;
+  if (eo_NoHScroll in aOptions) and (eo_NoVScroll in aOptions) then
+    Result := mckCtrlDraw.ssNone
+  else if (eo_NoHScroll in aOptions) then
+    Result := mckCtrlDraw.ssVert
+  else if (eo_NoVScroll in aOptions) then
+    Result := mckCtrlDraw.ssHorz;
+end;
+
 procedure TKOLMemo.Paint;
 begin
   if not (Assigned(FKOLCtrl) and (PaintType in [ptWYSIWIG, ptWYSIWIGFrames])) then begin
     PrepareCanvasFontForWYSIWIGPaint(Canvas);
-    DrawMemo(True, Canvas.Handle, ClientRect, Enabled, True, True, TextHFlags[KOL.TTextAlign(TextAlign)], Text.Text);
+    DrawMemo(True, Canvas.Handle, ClientRect, Color, Enabled, KOLMemoOptions2ScrollStyle(Options), TextHFlags[KOL.TTextAlign(TextAlign)], Text.Text);
   end;
   inherited;
 end;
@@ -6198,6 +6216,8 @@ begin
   if Assigned(FKOLCtrl) then
     RecreateWnd;
   Change;
+  //dufa
+  Invalidate;
 end;
 
 procedure TKOLMemo.SetText(const Value: TStrings);
@@ -6970,7 +6990,7 @@ var
 begin
   if not (Assigned(FKOLCtrl) and (PaintType in [ptWYSIWIG, ptWYSIWIGFrames])) then begin
     PrepareCanvasFontForWYSIWIGPaint( Canvas );
-    if (CurIndex > -1) then
+    if (CurIndex > -1) and (Items.Count > 0) then
       s := Items.Strings[CurIndex]
     else
       s := '';
@@ -9108,7 +9128,7 @@ procedure TKOLRichEdit.Paint;
 begin
   if not (Assigned(FKOLCtrl) and (PaintType in [ptWYSIWIG, ptWYSIWIGFrames])) then begin
     PrepareCanvasFontForWYSIWIGPaint(Canvas);
-    DrawMemo(True, Canvas.Handle, ClientRect, Enabled, False, False, TextHFlags[KOL.TTextAlign(TextAlign)], Text.Text);
+    DrawMemo(True, Canvas.Handle, ClientRect, Color, Enabled, KOLMemoOptions2ScrollStyle(Options), TextHFlags[KOL.TTextAlign(TextAlign)], Text.Text);
   end;
   inherited;
 end;
@@ -9278,6 +9298,8 @@ begin
   if Assigned(FKOLCtrl) then 
     RecreateWnd;
   Change;
+  //dufa
+  Invalidate;
 end;
 
 procedure TKOLRichEdit.SetRE_AutoFont(const Value: Boolean);
@@ -15178,6 +15200,15 @@ begin
   end;
 end;
 
+procedure TKOLScrollBox.Paint;
+begin
+  if not (Assigned(FKOLCtrl) and (PaintType in [ptWYSIWIG, ptWYSIWIGFrames])) then begin
+    PrepareCanvasFontForWYSIWIGPaint(Canvas);
+    DrawScrollBox(True, Canvas.Handle, ClientRect, TScrollStyle(ScrollBars));
+  end;
+  inherited;
+end;
+
 function TKOLScrollBox.Pcode_Generate: Boolean;
 begin
   Result := TRUE;
@@ -15250,6 +15281,8 @@ begin
   end;
   FScrollBars := Value;
   Change;
+  //dufa
+  Invalidate;
 end;
 
 procedure TKOLScrollBox.SetupConstruct_Compact;
@@ -15313,6 +15346,11 @@ begin
   Result := inherited TypeName;
   if  IsControlContainer then
       Result := 'ScrollBoxEx';
+end;
+
+function TKOLScrollBox.WYSIWIGPaintImplemented: Boolean;
+begin
+  Result := True;
 end;
 
 { TKOLMDIClient }
@@ -16874,6 +16912,15 @@ begin
   Width := DefaultWidth;
 end;
 
+procedure TKOLScrollBar.Paint;
+begin
+  if not (Assigned(FKOLCtrl) and (PaintType in [ptWYSIWIG, ptWYSIWIGFrames])) then begin
+    PrepareCanvasFontForWYSIWIGPaint( Canvas );
+    DrawScrollBar(True, Canvas.Handle, ClientRect, Enabled, (SBbar = KOL.sbVertical), SBPosition, SBMin, SBMax);
+  end;  
+  inherited;
+end;
+
 function TKOLScrollBar.Pcode_Generate: Boolean;
 begin
   Result := TRUE;
@@ -17094,6 +17141,11 @@ end;
 function TKOLScrollBar.SupportsFormCompact: Boolean;
 begin
     Result := TRUE;
+end;
+
+function TKOLScrollBar.WYSIWIGPaintImplemented: Boolean;
+begin
+  Result := True;
 end;
 
 { TKOLTabPage }

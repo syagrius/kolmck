@@ -8528,6 +8528,8 @@ begin
     else
       inherited Enabled := Faction.Enabled;
     Change;
+    //dufa
+    Invalidate;
   end;
   LogOK;
   finally

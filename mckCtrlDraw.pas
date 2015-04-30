@@ -6,6 +6,9 @@ interface
 uses 
   Windows, Types, KOL, Themes;
 
+type
+  TScrollStyle = (ssNone, ssHorz, ssVert, ssBoth);
+
 const
   TextHFlags: array[TTextAlign] of DWORD     = (DT_LEFT, DT_RIGHT,   DT_CENTER);
   TextVFlags: array[TVerticalAlign] of DWORD = (DT_TOP,  DT_VCENTER, DT_BOTTOM);
@@ -14,7 +17,7 @@ const
 
 procedure DrawButton(aUX: Boolean; DC: HDC; R: TRect; aEnabled, aDefBtn: Boolean; dwTextFlags: DWORD; aText: WideString);
 procedure DrawEditBox(aUX: Boolean; DC: HDC; R: TRect; aEnabled, aIsPwd: Boolean; dwTextFlags: DWORD; aText: WideString);
-procedure DrawMemo(aUX: Boolean; DC: HDC; R: TRect; aEnabled, aScrollH, aScrollV: Boolean; dwTextFlags: DWORD; aText: WideString);
+procedure DrawMemo(aUX: Boolean; DC: HDC; R: TRect; aColor: Integer; aEnabled: Boolean; aScrollStyle: TScrollStyle; dwTextFlags: DWORD; aText: WideString);
 procedure DrawCombobox(DC: HDC; R: TRect; aEnabled: Boolean; aText: WideString);
 procedure DrawLabel(DC: HDC; R: TRect; dwTextFlags: DWORD; aText: WideString);
 procedure DrawCheckbox(DC: HDC; R: TRect; aEnabled, aChecked, aHasBorder: Boolean; aText: WideString);
@@ -25,11 +28,69 @@ procedure DrawListView(aUX: Boolean; DC: HDC; R: TRect; aEnabled: Boolean; aColu
 procedure DrawProgressBar(DC: HDC; R: TRect; aVertical: Boolean; aProgress, aMaxProgress: Integer);
 procedure DrawTrackBar(DC: HDC; R: TRect; aVertical: Boolean; aProgress, aMaxProgress: Integer);
 procedure DrawGroupBox(aUX: Boolean; DC: HDC; R: TRect; aText: WideString);
+procedure DrawScrollBar(aUX: Boolean; DC: HDC; R: TRect; aEnabled, aVertical: Boolean; aPos, aMin, aMax: Integer);
+procedure DrawScrollBox(aUX: Boolean; DC: HDC; R: TRect; aScrollStyle: TScrollStyle);
+// not yet
+procedure DrawToolbar(aUX: Boolean; DC: HDC; R: TRect; aEnabled: Boolean; aText: WideString);
 
 implementation
 
 const
   arrThemedEdit: array[Boolean] of TThemedEdit = (teEditTextDisabled, teEditTextNormal);
+
+function pos2pix(aPos, aMin, aMax, aPixelMax, aPixelX: Integer): Integer;
+begin
+  Result := aPixelX + Round((aPos + Abs(aMin)) / (aMax + Abs(aMin)) * (aPixelMax - aPixelX * 3));
+end;
+
+procedure DrawScrollBar(aUX: Boolean; DC: HDC; R: TRect; aEnabled, aVertical: Boolean; aPos, aMin, aMax: Integer);
+const                  //enb    btn
+  arrThemedSBLU: array[Boolean, Boolean] of TThemedScrollBar = (
+    (tsArrowBtnLeftDisabled, tsArrowBtnUpDisabled), (tsArrowBtnLeftNormal, tsArrowBtnUpNormal));
+  arrThemedSBRD: array[Boolean, Boolean] of TThemedScrollBar = (
+    (tsArrowBtnRightDisabled, tsArrowBtnDownDisabled), (tsArrowBtnRightNormal, tsArrowBtnDownNormal));
+  arrThemedSBTH: array[Boolean] of TThemedScrollBar = (tsThumbBtnHorzNormal,  tsThumbBtnVertNormal);
+  arrSBLU: array[Boolean, Boolean] of DWORD = (
+    (DFCS_SCROLLLEFT or DFCS_INACTIVE,DFCS_SCROLLUP or DFCS_INACTIVE), (DFCS_SCROLLLEFT,  DFCS_SCROLLUP));
+  arrSBRD: array[Boolean, Boolean] of DWORD = (
+    (DFCS_SCROLLRIGHT or DFCS_INACTIVE, DFCS_SCROLLDOWN or DFCS_INACTIVE), (DFCS_SCROLLRIGHT, DFCS_SCROLLDOWN));
+
+var
+  w:  Integer;
+  h:  Integer;
+  rr: TRect;
+begin
+  // get btn size
+  w := GetSystemMetrics(SM_CXVSCROLL);
+  h := GetSystemMetrics(SM_CYVSCROLL);
+  // pos2pix
+  if aVertical then
+    rr := Bounds(R.Left, pos2pix(aPos, aMin, aMax, R.Bottom, h), R.Right - R.Left, GetSystemMetrics(SM_CYVTHUMB))
+  else
+    rr := Bounds(pos2pix(aPos, aMin, aMax, R.Right, w), R.Top, GetSystemMetrics(SM_CXHTHUMB), R.Bottom - R.Top);
+  // ux
+  if ThemeServices.ThemesAvailable and aUX then begin
+    // draw track
+    ThemeServices.DrawElement(DC, ThemeServices.GetElementDetails(tsLowerTrackVertNormal), R, nil);
+    // draw btn-left/up
+    ThemeServices.DrawElement(DC, ThemeServices.GetElementDetails(arrThemedSBLU[aEnabled, aVertical]), Bounds(R.Left, R.Top, w, h), nil);
+    // draw btn-right/down
+    ThemeServices.DrawElement(DC, ThemeServices.GetElementDetails(arrThemedSBRD[aEnabled, aVertical]), Rect(R.Right - w, R.Bottom - h, R.Right, R.Bottom), nil);
+    // draw thumb
+    if aEnabled then
+      ThemeServices.DrawElement(DC, ThemeServices.GetElementDetails(arrThemedSBTH[aVertical]), rr, nil);
+  end else begin
+    // draw track
+    FillRect(DC, R, GetSysColorBrush(COLOR_SCROLLBAR));
+    // draw btn-left/up
+    DrawFrameControl(DC, Bounds(R.Left, R.Top, w, h), DFC_SCROLL, arrSBLU[aEnabled, aVertical]);
+    // draw btn-right/down
+    DrawFrameControl(DC, Rect(R.Right - w, R.Bottom - h, R.Right, R.Bottom), DFC_SCROLL, arrSBRD[aEnabled, aVertical]);
+    // draw thumb
+    if aEnabled then
+      DrawFrameControl(DC, rr, DFC_BUTTON, DFCS_BUTTONPUSH);
+  end;
+end;
 
 procedure DrawButton(aUX: Boolean; DC: HDC; R: TRect; aEnabled, aDefBtn: Boolean; dwTextFlags: DWORD; aText: WideString);
 const                   //enb      defbtn
@@ -87,78 +148,57 @@ begin
   end;
 end;
 
-procedure DrawMemo(aUX: Boolean; DC: HDC; R: TRect; aEnabled, aScrollH, aScrollV: Boolean; dwTextFlags: DWORD; aText: WideString);
+procedure DrawMemo(aUX: Boolean; DC: HDC; R: TRect; aColor: Integer; aEnabled: Boolean; aScrollStyle: TScrollStyle; dwTextFlags: DWORD; aText: WideString);
 var
-  d: TThemedElementDetails;
   w: Integer;
   h: Integer;
+  b: HBRUSH;
 begin
+  // get btn size
+  w := GetSystemMetrics(SM_CXVSCROLL);
+  h := GetSystemMetrics(SM_CYVSCROLL);
   if ThemeServices.ThemesAvailable and aUX then begin
-    // draw element
-    ThemeServices.DrawElement(DC, ThemeServices.GetElementDetails(arrThemedEdit[True]), r, nil);
-    // v
-    if aScrollV then begin
-      // get element v-track
-      d := ThemeServices.GetElementDetails(tsLowerTrackVertDisabled);
-      // draw element
-      ThemeServices.DrawElement(DC, d, Rect(r.Right - 20, 1, r.Right - 1, r.Bottom - 1), nil);
-      // get element btn-up
-      d := ThemeServices.GetElementDetails(tsArrowBtnUpDisabled);
-      // draw element
-      ThemeServices.DrawElement(DC, d, Rect(r.Right - 20, 1, r.Right - 1, 20), nil);
-      // get element btn-dn
-      d := ThemeServices.GetElementDetails(tsArrowBtnDownDisabled);
-      // draw element
-      ThemeServices.DrawElement(DC, d, Rect(r.Right - 20, r.Bottom - 40, r.Right - 1, r.Bottom - 20), nil);
-    end;
-    // h
-    if aScrollH then begin
-      // get element h-track
-      d := ThemeServices.GetElementDetails(tsLowerTrackHorzDisabled);
-      // draw element
-      ThemeServices.DrawElement(DC, d, Rect(1, r.Bottom - 20, r.Right - 20, r.Bottom - 1), nil);
-      // get element btn-left
-      d := ThemeServices.GetElementDetails(tsArrowBtnLeftDisabled);
-      // draw element
-      ThemeServices.DrawElement(DC, d, Rect(1, r.Bottom - 20, 20, r.Bottom - 1), nil);
-      // get element btn-right
-      d := ThemeServices.GetElementDetails(tsArrowBtnRightDisabled);
-      // draw element
-      ThemeServices.DrawElement(DC, d, Rect(r.Right - 40, r.Bottom - 20, r.Right - 20, r.Bottom - 1), nil);
+    // draw border
+    ThemeServices.DrawElement(DC, ThemeServices.GetElementDetails(arrThemedEdit[True]), R, nil);
+    InflateRect(R, -1, -1);
+    // draw back
+    b := CreateSolidBrush(Color2RGB(aColor));
+    FillRect(DC, R, b);
+    DeleteObject(b);
+    InflateRect(R, -1, -1);
+    // draw scrolls
+    case aScrollStyle of
+      ssHorz: DrawScrollBar(aUX, DC, Rect(R.Left, R.Bottom - h, R.Right, R.Bottom), False, False, 2, 0, 100);
+      ssVert: DrawScrollBar(aUX, DC, Rect(R.Right - w, R.Top, R.Right, R.Bottom), False, True, 2, 0, 100);
+      ssBoth:
+      begin
+        ThemeServices.DrawElement(DC, ThemeServices.GetElementDetails(tsLowerTrackVertNormal), Rect(R.Left, R.Bottom - h, R.Right, R.Bottom), nil);
+        DrawScrollBar(aUX, DC, Rect(R.Left, R.Bottom - h, R.Right - w, R.Bottom), False, False, 2, 0, 100);
+        DrawScrollBar(aUX, DC, Rect(R.Right - w, R.Top, R.Right, R.Bottom - h), False, True, 2, 0, 100);
+      end;
     end;
     // draw text
-    Inc(r.Left, 6);
-    Inc(r.Top, 3);
-    Dec(r.Right, 23);
-    Dec(r.Bottom, 23);
-    ThemeServices.DrawText(DC, ThemeServices.GetElementDetails(arrThemedEdit[aEnabled]), aText, r, dwTextFlags, 0);
+    Inc(R.Left, 4);
+    Inc(R.Top, 1);
+    Dec(R.Right, 21);
+    Dec(R.Bottom, 21);
+    ThemeServices.DrawText(DC, ThemeServices.GetElementDetails(arrThemedEdit[aEnabled]), aText, R, dwTextFlags, 0);
   end else begin
     // draw back
-    FillRect(DC, R, GetSysColorBrush(COLOR_WINDOW));
+    b := CreateSolidBrush(Color2RGB(aColor));
+    FillRect(DC, R, b);
     DrawEdge(DC, R, EDGE_SUNKEN, BF_RECT or BF_ADJUST);
-    // v
-    if aScrollV then begin
-      // get btn size
-      w := GetSystemMetrics(SM_CXVSCROLL);
-      h := GetSystemMetrics(SM_CYVSCROLL);
-      // draw element v-track
-      FillRect(DC, Rect(R.Right - w, R.Top, R.Right, R.Bottom), GetSysColorBrush(COLOR_SCROLLBAR));
-      // draw element btn-up
-      DrawFrameControl(DC, Bounds(R.Right - w, R.Top, w, h), DFC_SCROLL, DFCS_SCROLLUP or DFCS_INACTIVE);
-      // get element btn-dn
-      DrawFrameControl(DC, Bounds(R.Right - w, R.Bottom - h * 2, w, h), DFC_SCROLL, DFCS_SCROLLDOWN or DFCS_INACTIVE);
-    end;
-    // h
-    if aScrollH then begin
-      // get btn size
-      w := GetSystemMetrics(SM_CXHSCROLL);
-      h := GetSystemMetrics(SM_CYHSCROLL);
-      // draw element v-track
-      FillRect(DC, Rect(R.Left, R.Bottom - h, R.Right - w, R.Bottom), GetSysColorBrush(COLOR_SCROLLBAR));
-      // draw element btn-left
-      DrawFrameControl(DC, Bounds(R.Left, R.Bottom - h, w, h), DFC_SCROLL, DFCS_SCROLLLEFT or DFCS_INACTIVE);
-      // get element btn-right
-      DrawFrameControl(DC, Bounds(R.Right - w * 2, R.Bottom - h, w, h), DFC_SCROLL, DFCS_SCROLLRIGHT or DFCS_INACTIVE);
+    DeleteObject(b);
+    // draw scrolls
+    case aScrollStyle of
+      ssHorz: DrawScrollBar(aUX, DC, Rect(R.Left, R.Bottom - h, R.Right, R.Bottom), False, False, 2, 0, 100);
+      ssVert: DrawScrollBar(aUX, DC, Rect(R.Right - w, R.Top, R.Right, R.Bottom), False, True, 2, 0, 100);
+      ssBoth:
+      begin
+        FillRect(DC, Rect(R.Left, R.Bottom - h, R.Right, R.Bottom), GetSysColorBrush(COLOR_BTNFACE));
+        DrawScrollBar(aUX, DC, Rect(R.Left, R.Bottom - h, R.Right - w, R.Bottom), False, False, 2, 0, 100);
+        DrawScrollBar(aUX, DC, Rect(R.Right - w, R.Top, R.Right, R.Bottom - h), False, True, 2, 0, 100);
+      end;
     end;
     // draw text
     InflateRect(R, -4, -1);
@@ -338,14 +378,19 @@ begin
 end;
 
 procedure DrawTrackBar(DC: HDC; R: TRect; aVertical: Boolean; aProgress, aMaxProgress: Integer);
+var
+  a: TRect;
+  x: Integer;
 begin
   // draw root
   ThemeServices.DrawElement(DC, ThemeServices.GetElementDetails(ttbTrackBarRoot), R, nil);
   // draw bar
-  ThemeServices.DrawElement(DC, ThemeServices.GetElementDetails(ttbTrack), Bounds(8, 14, R.Right - 16, 4), nil);
+  a := Bounds(8, 14, R.Right - 16, 4);
+  x := GetSystemMetrics(SM_CXHTHUMB);
+  ThemeServices.DrawElement(DC, ThemeServices.GetElementDetails(ttbTrack), a, nil);
   // draw progress
-  R := Bounds(4 + Trunc(aProgress / aMaxProgress * R.Right), 0, GetSystemMetrics(SM_CXHTHUMB), R.Bottom);
-  ThemeServices.DrawElement(DC, ThemeServices.GetElementDetails(ttbThumbBottomNormal), R, nil);
+  a := Bounds(5 + Trunc(aProgress / aMaxProgress * (a.Right - 19)), 0, x, R.Bottom);
+  ThemeServices.DrawElement(DC, ThemeServices.GetElementDetails(ttbThumbBottomNormal), a, nil);
 end;
 
 procedure DrawGroupBox(aUX: Boolean; DC: HDC; R: TRect; aText: WideString);
@@ -367,6 +412,50 @@ begin
   SetBkColor(DC, GetSysColor(COLOR_BTNFACE));
   SetBkMode(DC, OPAQUE);
   DrawTextW(DC, PWideChar(aText), Length(aText), R, DT_LEFT);
+end;
+
+procedure DrawScrollBox(aUX: Boolean; DC: HDC; R: TRect; aScrollStyle: TScrollStyle);
+var
+  w: Integer;
+  h: Integer;
+begin
+  // get btn size
+  w := GetSystemMetrics(SM_CXVSCROLL);
+  h := GetSystemMetrics(SM_CYVSCROLL);
+  // draw back
+  FillRect(DC, R, GetSysColorBrush(COLOR_BTNFACE));
+  DrawEdge(DC, R, EDGE_SUNKEN, BF_RECT or BF_ADJUST);
+  case aScrollStyle of
+    ssHorz: DrawScrollBar(aUX, DC, Rect(R.Left, R.Bottom - h, R.Right, R.Bottom), True, False, 2, 0, 100);
+    ssVert: DrawScrollBar(aUX, DC, Rect(R.Right - w, R.Top, R.Right, R.Bottom), True, True, 2, 0, 100);
+    ssBoth:
+    begin
+      DrawScrollBar(aUX, DC, Rect(R.Left, R.Bottom - h, R.Right - w, R.Bottom), True, False, 2, 0, 100);
+      DrawScrollBar(aUX, DC, Rect(R.Right - w, R.Top, R.Right, R.Bottom - h), True, True, 2, 0, 100);
+    end;
+  end;
+end;
+
+// not yet
+procedure DrawToolbar(aUX: Boolean; DC: HDC; R: TRect; aEnabled: Boolean; aText: WideString);
+var
+  d: TThemedElementDetails;
+begin
+  if ThemeServices.ThemesAvailable and aUX then begin
+    // get element
+    d := ThemeServices.GetElementDetails(ttbToolBarRoot);
+    // draw element
+    ThemeServices.DrawElement(DC, d, R, nil);
+
+    // get element
+    d := ThemeServices.GetElementDetails(ttbSplitButtonNormal);
+    // draw element
+    ThemeServices.DrawElement(DC, d, R, nil);
+    // text
+    ThemeServices.DrawText(DC, d, aText, R, 0, 0);
+  end else begin
+
+  end;
 end;
 
 

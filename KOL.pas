@@ -1,8 +1,4 @@
 //[START OF KOL.pas]
-
-// This is an unofficial version compatible with fpc 2.6.4 and 2.7.1 i386 and x64 compilers
-// Dmitri K dmiko@mail333.com  principal work
-// Thaddy de Koning thaddy@thaddy.com (merge 3.22)
 {****************************************************************
 
         KKKKK    KKKKK    OOOOOOOOO    LLLLL
@@ -18,7 +14,7 @@
   Key Objects Library (C) 2000 by Vladimir Kladov.
 
 ****************************************************************
-* VERSION 3.22.svn
+* VERSION 3.23.svn
 ****************************************************************
 
   K.O.L. - is a set of objects and functions to create small programs
@@ -38,6 +34,9 @@
   See also Mirror Classes Kit (M.C.K.) which allows
   to create KOL programs visually.
 
+  Compatible with fpc 2.6.4, 2.7.1 i386 and x64 compilers:
+    Dmitri K         - dmiko@mail333.com (principal work)
+    Thaddy de Koning - thaddy@thaddy.com (merge 3.22)
 ****************************************************************}
 
 {$I KOLDEF.inc}
@@ -3464,8 +3463,10 @@ type
     {* It is possible to use Canvas.CopyRect for such purpose, but if You
        do not want use TCanvas, it is possible to copy rectangle from one
        bitmap to another using this function. }
+    function CopyToClipboardAsDIB: Boolean;
+    {* Copies bitmap to clipboard, converting it to DIB format first. }
     function CopyToClipboard: Boolean;
-    {* Copies bitmap to clipboard. }
+    {* Copies bitmap to clipboard. When Handle = 0, CLIPBOARD is emptied!!! }
     function PasteFromClipboard: Boolean;
     {* Takes CF_DIB format bitmap from clipboard and assigns it to the
        TBitmap object. }
@@ -4192,16 +4193,16 @@ type
 
   TCreateWndParams = {packed} Record
     ExStyle: DWORD;
-	WinClassName: PKOLChar;
-	Caption: PKOLChar;
+    WinClassName: PKOLChar;
+    Caption: PKOLChar;
     Style: DWORD;
     X, Y, Width, Height: Integer;
     WndParent: HWnd;
     Menu: HMenu;
     Inst: HINST;
     Param: Pointer;
-	WinClsNamBuf: array[ 0..63 ] of KOLChar;
-	WindowClass: TWndClass;
+    WinClsNamBuf: array[ 0..63 ] of KOLChar;
+    WindowClass: TWndClass;
   end;
 
   PCommandActions = ^TCommandActions;
@@ -11706,7 +11707,7 @@ function _WStrLComp(S1, S2: PWideChar; Len: Integer): Integer;
 function WStrScan(Str: PWideChar; Chr: WideChar): PWideChar;
 {* Fast search of given character in a string. Pointer to found character
    (or nil) is returned. }
-function WStrRScan(const Str: PWideChar; Chr: WideChar): PWideChar;
+function WStrRScan(Str: PWideChar; Chr: WideChar): PWideChar;
 {* StrRScan returns a pointer to the last occurrence of Chr in Str. If Chr
   does not occur in Str, StrRScan returns NIL. The null terminator is
   considered to be part of the string. }
@@ -21760,14 +21761,17 @@ begin
   Result := Str;
 end;
 
-function WStrRScan(const Str: PWideChar; Chr: WideChar): PWideChar;
+function WStrRScan(Str: PWideChar; Chr: WideChar): PWideChar;
 begin
-  Result := Str;
-  while Result^ <> #0 do inc( Result );
-  while (PtrUInt( Result ) >= PtrUInt( Str )) and
-        (Result^ <> Chr) do dec( Result );
-  if (PtrUInt( Result ) < PtrUInt( Str )) then
     Result := nil;
+    while Str^ <> #0 do
+    begin
+        if Str^ = Chr then
+           Result := Str;
+        inc(Str);
+    end;
+    if Result = nil then
+       Result := Str;
 end;
 {$ENDIF WIN}
 {$ENDIF _FPC}
@@ -53112,13 +53116,10 @@ begin
 end;
 {$ENDIF PAS_VERSION}
 
-function TBitmap.CopyToClipboard: Boolean;
+function TBitmap.CopyToClipboardAsDIB: Boolean;
 var DibMem: PAnsiChar;
     HdrSize: Integer;
     Gbl: HGlobal;
-    //Mem: PStream;
-    //Sz: Integer;
-    //Pt: Pointer;
     Restore_Compression: Integer;
 begin
   Result := FALSE;
@@ -53167,6 +53168,18 @@ begin
     END;
 
   end;
+  CloseClipboard;
+end;
+
+function TBitmap.CopyToClipboard: Boolean;
+begin
+  Result := FALSE;
+  if Applet = nil then Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
+  if not OpenClipboard( Applet.GetWindowHandle ) then Exit; {>>>>>>>>>>>>>>>>>>}
+  if EmptyClipboard then
+     if  Handle <> 0 then // When Handle = 0, CLIPBOARD is emptied!!!
+         Result := 0 <> SetClipboardData( CF_BITMAP,
+                                     CopyImage(Handle, IMAGE_BITMAP, 0, 0, 0) );
   CloseClipboard;
 end;
 
@@ -57110,13 +57123,7 @@ end;
 
 function ClipboardHasText: Boolean;
 begin
-  Result := false;
-  if OpenClipboard( 0 ) then
-  begin
-    if IsClipboardFormatAvailable( CF_TEXT ) then
-      Result := TRUE;
-    CloseClipboard;
-  end;
+  Result := IsClipboardFormatAvailable( CF_TEXT );
 end;
 
 function Clipboard2Text: AnsiString;
