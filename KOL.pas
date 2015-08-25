@@ -13656,7 +13656,7 @@ function WindowsLogoff( Force : Boolean ) : Boolean;
 
 type
   TWindowsVersion = ( wv31, wv95, wv98, wvME, wvNT, wvY2K, wvXP, wvServer2003,
-                  wvVista, wvSeven );
+                  wvVista, wvSeven, wvEight, wvEight_1, wvTen);
   {* Windows versions constants. }
   TWindowsVersions = Set of TWindowsVersion;
   {* Set of Windows version (e.g. to define a range of versions supported by the
@@ -58350,53 +58350,47 @@ begin
   Result := ExitWindowsEx( Flags, 0 );
 end;
 
-var SaveWinVer: Byte = $FF;
+//var SaveWinVer: Byte = $FF;
 
-{$IFDEF ASM_VERSION}{$ELSE PAS_VERSION} // asm version by MTsv DN  (v 2.90)
-function WinVer : TWindowsVersion;
-var MajorVersion, MinorVersion: Byte;
-    dwVersion: Integer;
+{$IFDEF off__ASM_VERSION}{$ELSE PAS_VERSION} // asm version by MTsv DN  (v 2.90)
+function WinVer: TWindowsVersion;       //dufa
+var
+  dwVersion:    Integer;
+  MajorVersion: Byte;
+  MinorVersion: Byte;
 begin
-  if SaveWinVer <> $FF then Result := TWindowsVersion( SaveWinVer )
-  else
-  begin
-    dwVersion := GetVersion;
-    MajorVersion := LoByte( dwVersion );
-    MinorVersion := HiByte( LoWord( dwVersion ) );
-    if dwVersion >= 0 then
-    begin
-      Result := wvNT;
-      if (MajorVersion >= 6) then begin
-        if (MinorVersion >= 1) then
-          Result := wvSeven
-        else
-          Result := wvVista;
-      end else begin
-             if MajorVersion >= 5 then
-                if MinorVersion >= 1 then
-                begin
-                     Result := wvXP;
-                     if MinorVersion >= 2 then
-                       Result := wvServer2003;
-                end
-                else Result := wvY2K;
-           end;
-    end
-      else
-    begin
-      Result := wv95;
-      if (MajorVersion > 4) or
-         (MajorVersion = 4) and (MinorVersion >= 10)  then
+  dwVersion    := GetVersion;
+  MajorVersion := LoByte(LoWord(dwVersion));
+  MinorVersion := HiByte(LoWord(dwVersion));
+  if (dwVersion >= 0) then begin
+    Result := wvNT;
+    case MajorVersion of
+      5: // xp, 2000, 2003
       begin
-        Result := wv98;
-        if (MajorVersion = 4) and (MinorVersion >= $5A) then
-          Result := wvME;
-      end
-        else
-      if MajorVersion <= 3 then
-        Result := wv31;
+        case MinorVersion of
+          0: Result := wvY2K;
+          1: Result := wvXP;
+          2: Result := wvServer2003;
+        end;
+      end;
+      6: // vista, 7, 8, 8.1
+      begin
+        case MinorVersion of
+          0: Result := wvVista;
+          1: Result := wvSeven;
+          2: Result := wvEight;
+          3: Result := wvEight_1;
+        end;
+      end;
     end;
-    SaveWinVer := Ord( Result );
+  end else begin
+    Result := wv95;
+    if (MajorVersion > 4) or (MajorVersion = 4) and (MinorVersion >= 10) then begin
+      Result := wv98;
+      if (MajorVersion = 4) and (MinorVersion >= $5A) then
+        Result := wvME;
+    end else if (MajorVersion <= 3) then
+      Result := wv31;
   end;
 end;
 {$ENDIF PAS_VERSION}
@@ -58776,7 +58770,7 @@ var NMCustDraw: PNMLVCustomDraw;
     ItemIdx, SubItemIdx: Integer;
     S: TListViewItemState;
     ItemState: TDrawState;
-    was_clrText, was_clrTextBk: DWORD;
+    //was_clrText, was_clrTextBk: DWORD;
     R: TRect;
 begin
   Result := FALSE;
@@ -58814,10 +58808,14 @@ begin
           if  lvisHighlight in S then
               include( ItemState, odsMarked );
       end;
-      was_clrText := NMCustDraw.clrText;
-      was_clrTextBk := NMCustDraw.clrTextBk;
-      for SubItemIdx := 0 to Sender.LVColCount-1 do
-      begin
+      if LongBool(NMCustDraw.nmcd.dwDrawStage and CDDS_SUBITEM) then
+        SubItemIdx := NMCustDraw.iSubItem
+      else
+        SubItemIdx := -1;
+      //was_clrText := NMCustDraw.clrText;
+      //was_clrTextBk := NMCustDraw.clrTextBk;
+      //for SubItemIdx := 0 to Sender.LVColCount-1 do
+      //begin
           R := Sender.LVSubItemRect( ItemIdx, SubItemIdx );
           if   0 = Sender.EV.FOnLVCustomDraw( Sender, NMCustDraw.nmcd.hdc, 0,
                ItemIdx, SubItemIdx, R,
@@ -58825,16 +58823,16 @@ begin
              then
           begin
               Rslt := CDRF_DODEFAULT; { вернули FALSE - не хот€т рисовать, тогда по умолчанию }
-              break;
-          end
-             else
-          if  (was_clrText <> NMCustDraw.clrText) or
-              (was_clrTextBk <> NMCustDraw.clrTextBk) then
-          begin
-              Rslt := CDRF_NEWFONT; { помен€ли цвет текста или фона - рисование по умолчанию, но с новыми цветами }
-              break;
+              //break;
           end;
-      end;
+          //   else
+          //if  (was_clrText <> NMCustDraw.clrText) or
+          //    (was_clrTextBk <> NMCustDraw.clrTextBk) then
+          //begin
+              //Rslt := CDRF_NEWFONT; { помен€ли цвет текста или фона - рисование по умолчанию, но с новыми цветами }
+              //break;
+          //end;
+      //end;
       Result := TRUE;
     end;
   end;

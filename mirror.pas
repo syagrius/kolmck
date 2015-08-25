@@ -26281,7 +26281,7 @@ begin
   end;
 end;
 
-var CommonOldWndProc: Pointer;
+//dufa var CommonOldWndProc: Pointer; dufa
 function WndProcDesignMenu( Wnd: HWnd; uMsg: DWORD; wParam, lParam: Integer ): Integer;
          stdcall;
 var Id: Integer;
@@ -26356,7 +26356,8 @@ begin
       DestroyMenu( M );
     end;
   end;
-  Result := CallWindowProc( CommonOldWndProc, Wnd, uMsg, wParam, lParam );
+  Result := CallWindowProc( Pointer(GetWindowLong(Wnd, GWL_USERDATA)), Wnd, uMsg, wParam, lParam ); //dufa
+  //dufa Result := CallWindowProc( CommonOldWndProc, Wnd, uMsg, wParam, lParam );
 end;
 
 destructor TKOLMainMenu.Destroy;
@@ -26538,6 +26539,13 @@ begin
     end;
     //F.Menu := M;
     SetMenu( F.Handle, M );
+
+//  h := CreateMenu;
+//  InsertMenu(h, 0, 0, 0, 'test');
+//  SetMenu(GetParent(F.Handle), h);
+//  getlasterror;
+//  DrawMenuBar(GetParent(F.Handle));
+
     if oldM <> 0 then
       DestroyMenu( oldM );
     Integer(oldWndProc) := GetWindowLong( F.Handle, GWL_WNDPROC );
@@ -26545,8 +26553,9 @@ begin
     begin
       Rpt( 'Reset WndProc (old: ' + IntToStr( Integer(oldWndProc) ) + ' )',
         WHITE );
-      CommonOldWndProc := oldWndProc;
+      //dufa CommonOldWndProc := oldWndProc;
       FoldWndProc := oldWndProc;
+      SetWindowLong( F.Handle, GWL_USERDATA, Integer( oldWndProc ) ); //dufa
       SetWindowLong( F.Handle, GWL_WNDPROC, Integer( @WndProcDesignMenu ) );
     end;
 
@@ -26591,7 +26600,8 @@ begin
   Integer(CurWndProc) := GetWindowLong( Wnd, GWL_WNDPROC );
   if CurWndProc = @WndProcDesignMenu then
   begin
-    SetWindowLong( Wnd, GWL_WNDPROC, Integer( CommonOldWndProc ) );
+    //dufa SetWindowLong( Wnd, GWL_WNDPROC, Integer( CommonOldWndProc ) );
+    SetWindowLong( Wnd, GWL_WNDPROC, Integer( FOldWndProc ) ); //dufa
   end;
 end;
 

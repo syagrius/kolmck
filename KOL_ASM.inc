@@ -15013,59 +15013,60 @@ asm
     XCHG    EAX, EDX
 end;
 
-// by MTsv DN - v2.90  --  chg by VK
-function WinVer : TWindowsVersion;
-asm
- MOVSX EAX, byte ptr [SaveWinVer]
- INC   AH     // если <> 0 после инкремента, то AL содержит вычисленную версию
- JNZ   @@exit
- CALL  GetVersion // EAX < 0 для платформы 9х, иначе NT; AL=MajorVersion; AH=MinorVersion
- XCHG  EDX, EAX
- XOR   EAX, EAX
- TEST  EDX, EDX
- XCHG  DL, DH    // DH=MajorVersion; DL=MinorVersion
-
- JL    @@platform_9x
- MOV   AL, wvNT
- CMP   DX, $0400
- JZ    @@save_exit
-
- INC   AL // wvY2K
- SUB   DX, $0500
- JZ    @@save_exit
-
- INC   AL // wvXP
- //CMP   DX, $0501
- DEC   DX
- JZ    @@save_exit
-
- INC   AL // wvWin2003Server
- //CMP   DX, $0502
- DEC   DX
- JZ    @@save_exit
-
- INC   AL // wvVista
- CMP   DX, $0600 - $0502
- JZ    @@save_exit
-
- INC   AL // wvSeven
- //CMP   DX, $0601
- //DEC   DX
- JMP   @@save_exit
-@@platform_9x:
- CMP   DH, 4
- JB    @@save_exit // wv31
- INC   AL // wv95
- CMP   DX, $040A
- JB    @@save_exit
- INC   AL // wv98
- CMP   DX, $045A
- JB    @@save_exit
- INC   AL // wvME
-@@save_exit:
- MOV   byte ptr [SaveWinVer], AL
-@@exit:
-end;
+//dufa
+//// by MTsv DN - v2.90  --  chg by VK
+//function WinVer : TWindowsVersion;
+//asm
+// MOVSX EAX, byte ptr [SaveWinVer]
+// INC   AH     // если <> 0 после инкремента, то AL содержит вычисленную версию
+// JNZ   @@exit
+// CALL  GetVersion // EAX < 0 для платформы 9х, иначе NT; AL=MajorVersion; AH=MinorVersion
+// XCHG  EDX, EAX
+// XOR   EAX, EAX
+// TEST  EDX, EDX
+// XCHG  DL, DH    // DH=MajorVersion; DL=MinorVersion
+//
+// JL    @@platform_9x
+// MOV   AL, wvNT
+// CMP   DX, $0400
+// JZ    @@save_exit
+//
+// INC   AL // wvY2K
+// SUB   DX, $0500
+// JZ    @@save_exit
+//
+// INC   AL // wvXP
+// //CMP   DX, $0501
+// DEC   DX
+// JZ    @@save_exit
+//
+// INC   AL // wvWin2003Server
+// //CMP   DX, $0502
+// DEC   DX
+// JZ    @@save_exit
+//
+// INC   AL // wvVista
+// CMP   DX, $0600 - $0502
+// JZ    @@save_exit
+//
+// INC   AL // wvSeven
+// //CMP   DX, $0601
+// //DEC   DX
+// JMP   @@save_exit
+//@@platform_9x:
+// CMP   DH, 4
+// JB    @@save_exit // wv31
+// INC   AL // wv95
+// CMP   DX, $040A
+// JB    @@save_exit
+// INC   AL // wv98
+// CMP   DX, $045A
+// JB    @@save_exit
+// INC   AL // wvME
+//@@save_exit:
+// MOV   byte ptr [SaveWinVer], AL
+//@@exit:
+//end;
 
 {$IFDEF USE_CONSTRUCTORS}
 constructor TControl.CreateGradientPanel(AParent: PControl; AColor1,            //
