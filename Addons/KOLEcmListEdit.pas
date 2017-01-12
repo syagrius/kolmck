@@ -161,7 +161,7 @@ type
 |</p>
 }
   private
-    fOnCreateEd: TOnCreateEdit;
+    FOnCreateEdit: TOnCreateEdit;
     FOnDrawCell: TOnDrawCell;
     procedure EditOnKeyDown(Sender: PControl; var Key: Longint; Shift: DWORD);
     procedure EditOnChar(Sender: PControl; var Key: KOLChar; Shift: DWORD);
@@ -181,7 +181,7 @@ type
     fShift: Integer;
     fEmbedEd: Boolean;
     fAutoHide: Boolean;
-    function NewInPlaceEd(Options: TEditOptions; Align: TTextAlign): PControl;
+    function NewInPlaceEdit(Options: TEditOptions; Align: TTextAlign): PControl;
     procedure DestroyInPlaceEditor;
     procedure SetEditPos;
     procedure LoadEditValues;
@@ -255,7 +255,7 @@ type
     Устанавливает фокус на указанный столбец.
 |</p>
 }
-    property OnCreateEdit: TOnCreateEdit read fOnCreateEd write fOnCreateEd;
+    property OnCreateEdit: TOnCreateEdit read FOnCreateEdit write FOnCreateEdit;
     {* Вызывается при создании редактора ячейки. Может использоваться для
     перекрытия встроенного EditBox-а другими компонентами. }
 
@@ -366,9 +366,7 @@ begin
         SetEditPos();
       end;
 
-//      WM_ERASEBKGND: begin
-//        Result := True;
-//      end;
+//      WM_ERASEBKGND: Result := True;
 
       // Какая-то бяка с прорисовкой сетки в режиме lvoGridLines при использовании
       // темы XP - при прокрутке ScrollBar(только кнопками "вверх","вниз") происходит
@@ -600,27 +598,71 @@ end;
 
 procedure TEcmListEdit.LoadEditValues;
 var
-  S: string;
+  z: Integer;
+  S: String;
 begin
 {$IFDEF _LE_DEBUG_}
   AddLog(Self.fOwner, 'LoadEditValues');
 {$ENDIF}
-  with fOwner^ do begin
-    S := fOwner.LVItems[LVCurItem, fCurIdx];
-    if Assigned(fOnGetText) then
-      fOnGetText(fOwner, fCurIdx, LVCurItem, S);
-    if IsComboEditor then begin
-      IsComboEditor       := False; //
-      fInPlaceEd.CurIndex := fInPlaceEd.IndexOf(S);
-      //fInPlaceEd.DroppedDown := True;
-    end else begin //if fEmbedEd then begin
-      if (fInPlaceEd.SubClassName = 'obj_COMBOBOX') then
-        fInPlaceEd.CurIndex := fInPlaceEd.IndexOf(S)
-      else begin // 'obj_EDIT'
-        fInPlaceEd.Text := S;
-        fInPlaceEd.SelectAll;
-      end;
+  S := fOwner.LVItems[fOwner.LVCurItem, fCurIdx];
+  if Assigned(fOnGetText) then
+    fOnGetText(fOwner, fCurIdx, fOwner.LVCurItem, S);
+
+  if IsComboEditor then begin
+    IsComboEditor       := False; //
+    fInPlaceEd.CurIndex := fInPlaceEd.IndexOf(S);
+    //fInPlaceEd.DroppedDown := True;
+  end else begin //if fEmbedEd then begin
+    if (fInPlaceEd.SubClassName = 'obj_COMBOBOX') then begin
+      z := fInPlaceEd.IndexOf(S);
+      if (z = -1) then
+        fInPlaceEd.Text := S
+      else
+        fInPlaceEd.CurIndex := z;
+    end else begin // 'obj_EDIT'
+      fInPlaceEd.Text := S;
+      fInPlaceEd.SelectAll;
     end;
+  end;
+end;
+
+function TEcmListEdit.NewInPlaceEdit(Options: TEditOptions; Align: TTextAlign): PControl;
+var
+  RO: Boolean; // readonly
+  AH: Boolean; // autohide
+begin
+  Result := nil;
+  RO     := False;
+  AH     := True;
+  if Assigned(FOnCreateEdit) then
+    FOnCreateEdit(fOwner, fCurIdx, Result, RO, AH);
+
+  if not RO then begin
+    fEmbedEd := not Assigned(Result);
+    if fEmbedEd then begin
+      if IsComboEditor then begin
+        Result           := NewCombobox(fOwner, ComboOptions);
+        Result.OnCloseUp := ComboBox_CloseUp;
+        repeat
+          Result.Add(Parse(ComboText, ';'));
+        until (ComboText = '');
+      end else
+        Result := NewEditBox(fOwner, Options);
+      Result.Font.Assign(fOwner.Font);
+      Result.Color     := fOwner.LVTextBkColor;
+      Result.ExStyle   := Result.ExStyle and not (WS_EX_DLGMODALFRAME or WS_EX_WINDOWEDGE or WS_EX_CLIENTEDGE);
+      Result.OnKeyDown := EditOnKeyDown;
+      Result.AttachProc(WndProcInPlaceEd); //by Matveev Dmitry
+    end else begin
+      Result.Parent := fOwner;
+      //Result.Focused := True;
+      Result.Visible := True;
+    end;
+    //Result.Tabstop          := True;
+    fAutoHide        := AH;
+    Result.OnChar    := EditOnChar;
+    Result.TabOrder  := fOwner.TabOrder;
+    Result.TextAlign := Align;
   end;
 end;
 
@@ -642,7 +684,7 @@ begin
     DestroyInPlaceEditor;
     if (fOwner.LVColCount > 0) then begin
       pEO := fColOptions.Items[fCurIdx];
-      fInPlaceEd := NewInPlaceEd(pEO.Options, pEO.TextAlign);
+      fInPlaceEd := NewInPlaceEdit(pEO.Options, pEO.TextAlign);
     end;
   end;
   if Assigned(fInPlaceEd) then begin
@@ -694,45 +736,6 @@ begin
     else
       fOnEditChar(fInPlaceEd, fCurIdx, fOwner.LVCurItem, Key, Shift);
     end;
-  end;
-end;
-
-function TEcmListEdit.NewInPlaceEd(Options: TEditOptions; Align: TTextAlign): PControl;
-var
-  RO: Boolean;
-  AH: Boolean;
-begin
-  Result := nil;
-  RO := False;
-  AH := True;
-  if Assigned(fOnCreateEd) then
-    fOnCreateEd(fOwner, fCurIdx, Result, RO, AH);
-  if not RO then begin
-    fEmbedEd := not Assigned(Result);
-    if fEmbedEd then begin
-      if IsComboEditor then begin
-        Result := NewCombobox(fOwner, ComboOptions);
-        Result.OnCloseUp := ComboBox_CloseUp;
-        repeat
-          Result.Add(Parse(ComboText, ';'));
-        until (ComboText = '');
-      end else
-        Result := NewEditBox(fOwner, Options);
-      Result.Font.Assign(fOwner.Font);
-      Result.Color := fOwner.LVTextBkColor;
-      Result.ExStyle := Result.ExStyle and not (WS_EX_DLGMODALFRAME or WS_EX_WINDOWEDGE or WS_EX_CLIENTEDGE);
-      Result.OnKeyDown := EditOnKeyDown;
-      Result.AttachProc(WndProcInPlaceEd); //by Matveev Dmitry
-    end else begin
-      Result.Parent := fOwner;
-      //Result.Focused := True;
-      Result.Visible := True;
-    end;
-    //Result.Tabstop          := True;
-    fAutoHide        := AH;
-    Result.OnChar    := EditOnChar;
-    Result.TabOrder  := fOwner.TabOrder;
-    Result.TextAlign := Align;
   end;
 end;
 
@@ -892,17 +895,15 @@ begin
 {$ENDIF}
     fCellChanged := False;
     if Store then begin
-      with fOwner^ do begin
-        if (fOwner.LVItems[LVCurItem, fCurIdx] <> fInPlaceEd.Text) then begin
-          S := fInPlaceEd.Text;
-          if Assigned(fOnPutText) then
-            fOnPutText(fOwner, fCurIdx, LVCurItem, S);
-          if (S <> fOwner.LVItems[LVCurItem, fCurIdx]) then begin
-            fCellChanged := True;
-            fOwner.LVItems[LVCurItem, fCurIdx] := S;
-          end;
-          fInPlaceEd.Text := S;
+      if (fOwner.LVItems[fOwner.LVCurItem, fCurIdx] <> fInPlaceEd.Text) then begin
+        S := fInPlaceEd.Text;
+        if Assigned(fOnPutText) then
+          fOnPutText(fOwner, fCurIdx, fOwner.LVCurItem, S);
+        if (S <> fOwner.LVItems[fOwner.LVCurItem, fCurIdx]) then begin
+          fCellChanged := True;
+          fOwner.LVItems[fOwner.LVCurItem, fCurIdx] := S;
         end;
+        fInPlaceEd.Text := S;
       end;
     end;
     fStarted := False;
@@ -954,5 +955,5 @@ begin
   InvalidateRect(fOwner.Handle, @R, False);
 end;
 
-end.
 
+end.
