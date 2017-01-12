@@ -1003,6 +1003,9 @@ type
     procedure Release;
     {* Especially for lists of pointers to dynamically allocated memory.
        Releases all pointed memory blocks and destroys object itself. }
+    procedure ReleaseItems; //dufa
+    {* Especially for lists of pointers to dynamically allocated memory.
+       Releases all pointed memory blocks only. }
     procedure ReleaseObjects;
     {* Especially for a list of objects derived from TObj.
        Calls Free for every of the object in the list, and then calls
@@ -1703,8 +1706,9 @@ type
     {* Makes string list empty. }
     procedure Delete(Idx: integer);
     {* Deletes string with given index (it *must* exist). }
-    //dufa
-    procedure Remove(Value: Ansistring);
+    procedure Remove(Value: AnsiString);//dufa
+    {* Removes first entry of a Value in the list. }
+    procedure RemoveNoCase(Value: AnsiString);//dufa
     {* Removes first entry of a Value in the list. }
     procedure RemoveByName(AName: Ansistring);
     {* Removes first entry of a line starting like "AName=" in the list. }
@@ -1815,7 +1819,9 @@ type
     function IndexOf2(const S2: array of AnsiString): Integer;
     {* }
     function IsEmpty: Boolean;
-    {* Is list empty? }
+    {* Is list empty? dufa}
+    function GetRandomItem: String;
+    {* Get random item. dufa}
   end;
 
 var DefaultNameDelimiter: AnsiChar = '=';
@@ -9697,6 +9703,8 @@ type
 var EmptyEvents: TEvents;
 {$ENDIF}
 
+//dufa
+function WndProcEndLabelEdit( Self_: PControl; var Msg: TMsg; var Rslt: LRESULT ): Boolean;
 function  DummyProc123_TRUE( Dummy: Pointer; Sender: PControl; param3: PtrInt ): Boolean;
 function  DummyProc123_0( Dummy: Pointer; Sender: PObj; param3: PtrInt ): PtrInt;
 function  DummyProc4_TRUE( Dummy: Pointer; Sender: PControl; p3: PtrInt; p4: PtrInt ): Boolean;
@@ -13034,7 +13042,8 @@ type
     {* Read/write current section content to/from string list. (Depending on
        current Mode value). }
     ///////////////
-
+    function GetSectionNamesStr: KOLString; //dufa
+    {* like GetSectionNames, but return string }
   end;
 
 function OpenIniFile( const FileName: KOLString ): PIniFile;
@@ -16693,6 +16702,18 @@ begin
   Free;
 end;
 {$ENDIF PAS_VERSION}
+
+procedure TList.ReleaseItems; //dufa
+var
+  I: Integer;
+begin
+  if (@Self = nil) then Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
+  for I := 0 to fCount - 1 do begin
+    if {$IFDEF TLIST_FAST} Items {$ELSE} fItems {$ENDIF}[ I ] <> nil then
+      FreeMem( {$IFDEF TLIST_FAST} Items {$ELSE} fItems {$ENDIF}[ I ] );
+  end;
+  Clear;
+end;
 
 procedure TList.ReleaseObjects;
 var I: Integer;
@@ -28552,6 +28573,16 @@ begin
   FreeMem(Buffer);
 end;
 {$ENDIF PAS_VERSION}
+
+function TIniFile.GetSectionNamesStr: KOLString; //dufa
+var
+  Names: PKOLStrList;
+begin
+  Names := NewStrList;
+  GetSectionNames(Names);
+  Result := Names.Join(',');
+  Names.Free;
+end;
 
 /////////////////////////////////////////////////////////////////////////
 //                                M  E  N  U
@@ -43674,6 +43705,16 @@ begin
 end;
 
 //dufa
+procedure TStrList.RemoveNoCase(Value: Ansistring);
+var
+  I: Integer;
+begin
+  I := IndexOf_NoCase(Value);
+  if (I >= 0) then
+    Delete(I);
+end;
+
+//dufa
 procedure TStrList.RemoveByName(AName: Ansistring);
 var
   I: Integer;
@@ -43709,6 +43750,7 @@ function TStrList.GetPChars(Idx: Integer): PAnsiChar;
 begin
   Result := PAnsiChar( fList.{$IFDEF TLIST_FAST}Items{$ELSE}fItems{$ENDIF}[ Idx ] )
 end;
+
 {$ENDIF PAS_VERSION}
 
 {$IFDEF ASM_TLIST}
@@ -43751,7 +43793,7 @@ asm
           JECXZ    @@exit
           MOV      EDI, [EDI]
 @@loo2: PUSH     ECX
-        LODSD
+        LODSD                 // на этом месте бывают падения AV, при вызове из StrSaveTo...
         PUSH     EAX
         CALL     StrLen
         XCHG     ECX, EAX
@@ -44482,14 +44524,14 @@ end;
 procedure TStrList.SetValueNoCaseFast(const AName, Value: AnsiString);
 var
   I: Integer;
-  s: AnsiString;
+  S: AnsiString;
 begin
-  s := AName + fNameDelim + Value;
+  S := AName + fNameDelim + Value;
   I := IndexOfName_NoCaseFast(AName);
   if (I = -1) then
-    Add(s)
+    Add(S)
   else
-    Items[I] := s;
+    Items[I] := S;
 end;
 
 //dufa
@@ -44808,6 +44850,11 @@ end;
 function TStrList.IsEmpty: Boolean;
 begin
   Result := (Count = 0);
+end;
+
+function TStrList.GetRandomItem: String;
+begin
+  Result := Items[Random(Count)];
 end;
 
 procedure TStrList.Delete2(Idx: integer);
@@ -48963,7 +49010,7 @@ begin
   ;
 end;
 {$ENDIF PAS_VERSION}
-
+      
 // by TR"]F
 function WndProcFixModal( Self_: PControl; var Msg: TMsg; var Rslt:
 LRESULT ): Boolean;
@@ -51716,6 +51763,7 @@ var BFH : TBitmapFileHeader;
               MS.Write( Buffer^, Width );
           end;
           MS.WriteVal( 0, 2 );
+          FreeMem(Buffer);  // Dimaxx fix memory leak
       end;
       if   fDIBHeader.bmiHeader.biBitCount = 8 then
            BIH.biCompression := BI_RLE8

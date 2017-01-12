@@ -11341,43 +11341,37 @@ begin
     DB 'TKOLForm.Change', 0
   @@e_signature:
   end;
+
   Log( '->TKOLForm.Change' );
   try
-  if Sender=nil then
-  begin
-    RptDetailed( 'Sender = nil!', YELLOW );
-  end
-  else
-    RptDetailed( 'Sender class=' + Sender.ClassName + ' name=' + Sender.Name, YELLOW );
-  try
-    Rpt_Stack;
-  except on E: exception do
-    RptDetailed( 'exception while reporting stack: ' + E.Message, YELLOW );
-  end;
+    if not Assigned(Sender) then
+      RptDetailed( 'Sender = nil!', YELLOW )
+    else
+      RptDetailed( 'Sender class=' + Sender.ClassName + ' name=' + Sender.Name, YELLOW );
 
-  if not FLocked and not ( csLoading in ComponentState ) and not FIsDestroying and
-     (Owner <> nil) and not(csDestroying in Owner.ComponentState) then
-  begin
-    //if Creating_DoNotGenerateCode then Exit;
-    if AllowRealign then
-    if FRealigning = 0 then
-    if FRealignTimer <> nil then
-    begin
-      FRealignTimer.Enabled := FALSE;
-      FRealignTimer.Enabled := TRUE;
+    try
+      Rpt_Stack;
+    except on E: exception do
+      RptDetailed( 'exception while reporting stack: ' + E.Message, YELLOW );
     end;
-    if FChangeTimer <> nil then
-    begin
-      FChangeTimer.Enabled := FALSE;
-      FChangeTimer.Enabled := TRUE;
-    end
-      else
-    if not (csLoading in Sender.ComponentState) then
-      DoChangeNow;
-  end;
-  LogOK;
+
+    if not FLocked and not (csLoading in ComponentState) and not FIsDestroying and
+    (Owner <> nil) and not (csDestroying in Owner.ComponentState) then begin
+      //if Creating_DoNotGenerateCode then Exit;
+      if AllowRealign and (FRealigning = 0) and Assigned(FRealignTimer) then begin
+        FRealignTimer.Enabled := FALSE;
+        FRealignTimer.Enabled := TRUE;
+      end;
+
+      if Assigned(FChangeTimer) then begin
+        FChangeTimer.Enabled := FALSE;
+        FChangeTimer.Enabled := TRUE;
+      end else if not (csLoading in Sender.ComponentState) then
+        DoChangeNow;
+    end;
+    LogOK;
   finally
-  Log( '<-TKOLForm.Change' );
+    Log( '<-TKOLForm.Change' );
   end;
 end;
 
@@ -11544,7 +11538,7 @@ begin
         break;
       end;
     end;
-    Log( '?08 TKOLForm.Create' );
+    Log('?08 TKOLForm.Create');
   end;
   if FormsList = nil then
     FormsList := TList.Create;
@@ -17149,76 +17143,84 @@ procedure TKOLForm.DoChangeNow;
 var I: Integer;
     Success: Boolean;
     S: String;
+    MM: TComponent;
 begin
   Log( '->TKOLForm.DoChangeNow' );
   try
-
-  if Name='' then
-  begin
-    LogOk;
-    Exit;
-  end;
-  Success:=false;
-
-  RptDetailed( 'DoChangeNow called for ' + Name, LIGHT + CYAN );
-  try
-    Success := FALSE;
-    if not Assigned( KOLProject ) then
+    if Name='' then
     begin
-      RptDetailed( 'KOLProject=nil', YELLOW );
-      if ToolServices=nil then
+      LogOk;
+      Exit;
+    end;
+    //dufa
+    for I := 0 to Pred(Owner.ComponentCount) do begin
+      MM := Owner.Components[I];
+      if (MM is TKOLMainMenu) then
+        TKOLMainMenu(MM).Change;
+    end;
+    //dufa
+
+    Success := false;
+
+    RptDetailed( 'DoChangeNow called for ' + Name, LIGHT + CYAN );
+    try
+      Success := FALSE;
+      if not Assigned( KOLProject ) then
       begin
-        RptDetailed( 'ToolServices = nil, will create', YELLOW );
-        //ToolServices := TIToolServices.Create;
-      end;
-      if ToolServices <> nil then
-      begin
-        RptDetailed( 'ToolServices <> nil', YELLOW );
-        for I := 0 to ToolServices.GetUnitCount - 1 do
+        RptDetailed( 'KOLProject=nil', YELLOW );
+        if ToolServices=nil then
         begin
-          S := ToolServices.GetUnitName( I );
-          if LowerCase( ExtractFileName( S ) ) = LowerCase( FormUnit + '.pas' ) then
-          begin
-            S := Copy( ExtractFileName( S ), 1, Length( S ) - 4 );
-            if fSourcePath <> '' then
-              S := IncludeTrailingPathDelimiter( fSourcePath ) + S;
-            //ShowMessage( 'Generating w/o KOLProject: ' + S {+#13#10 +
-            //  'csLoading:' + IntToStr( Integer( csLoading in ComponentState ) )} );
-            RptDetailed( 'BeforeGenerateUnit1' + S, YELLOW );
-            Success := GenerateUnit( S );
-            RptDetailed( 'AfterGenerateUnit1' + S, YELLOW );
-          end;
-          if Success then break;
+          RptDetailed( 'ToolServices = nil, will create', YELLOW );
+          //ToolServices := TIToolServices.Create;
         end;
-        if not Success then
+        if ToolServices <> nil then
         begin
-          S := ToolServices.GetCurrentFile;
-          if S <> '' then
+          RptDetailed( 'ToolServices <> nil', YELLOW );
+          for I := 0 to ToolServices.GetUnitCount - 1 do
           begin
-            RptDetailed( 'DoChangeNow: S=' + S, YELLOW );
+            S := ToolServices.GetUnitName( I );
             if LowerCase( ExtractFileName( S ) ) = LowerCase( FormUnit + '.pas' ) then
             begin
               S := Copy( ExtractFileName( S ), 1, Length( S ) - 4 );
               if fSourcePath <> '' then
                 S := IncludeTrailingPathDelimiter( fSourcePath ) + S;
-              RptDetailed( 'BeforeGenerateUnit2' + S, YELLOW );
-              //ShowMessage( 'Generating w/o KOLProject: ' + S );
+              //ShowMessage( 'Generating w/o KOLProject: ' + S {+#13#10 +
+              //  'csLoading:' + IntToStr( Integer( csLoading in ComponentState ) )} );
+              RptDetailed( 'BeforeGenerateUnit1' + S, YELLOW );
               Success := GenerateUnit( S );
-              RptDetailed( 'AfterGenerateUnit2' + S, YELLOW );
+              RptDetailed( 'AfterGenerateUnit1' + S, YELLOW );
+            end;
+            if Success then break;
+          end;
+          if not Success then
+          begin
+            S := ToolServices.GetCurrentFile;
+            if S <> '' then
+            begin
+              RptDetailed( 'DoChangeNow: S=' + S, YELLOW );
+              if LowerCase( ExtractFileName( S ) ) = LowerCase( FormUnit + '.pas' ) then
+              begin
+                S := Copy( ExtractFileName( S ), 1, Length( S ) - 4 );
+                if fSourcePath <> '' then
+                  S := IncludeTrailingPathDelimiter( fSourcePath ) + S;
+                RptDetailed( 'BeforeGenerateUnit2' + S, YELLOW );
+                //ShowMessage( 'Generating w/o KOLProject: ' + S );
+                Success := GenerateUnit( S );
+                RptDetailed( 'AfterGenerateUnit2' + S, YELLOW );
+              end;
             end;
           end;
         end;
       end;
+    except on E: Exception do
+           begin
+             RptDetailed( 'Exception ' + E.Message, RED );
+           end;
     end;
-  except on E: Exception do
-         begin
-           RptDetailed( 'Exception ' + E.Message, RED );
-         end;
-  end;
-  if not Success then
-    inherited Change( Self );
+    if not Success then
+      inherited Change( Self );
 
-  LogOK;
+    LogOK;
   finally
   Log( '<-TKOLForm.DoChangeNow' );
   end;
@@ -21486,8 +21488,7 @@ begin
   Result := not NeedFree;
 end;
 
-procedure TKOLObj.NotifyLinkedComponent(Sender: TObject;
-  Operation: TNotifyOperation);
+procedure TKOLObj.NotifyLinkedComponent(Sender: TObject; Operation: TNotifyOperation);
 begin
   asm
     jmp @@e_signature
@@ -21509,13 +21510,13 @@ begin
     DB 'TKOLObj.ParentForm', 0
   @@e_signature:
   end;
-  C := Owner;
-  while (C <> nil) and not(C is TForm) do
-    C := C.Owner;
+
   Result := nil;
-  if C <> nil then
-  if C is TForm then
-    Result := C as TForm;
+  C := Owner;
+  while Assigned(C) and not (C is TForm) do
+    C := C.Owner;
+  if Assigned(C) and (C is TForm) then
+    Result := (C as TForm);
 end;
 
 function TKOLObj.ParentKOLForm: TKOLForm;
@@ -26247,8 +26248,15 @@ begin
     DB 'TKOLMainMenu.Change', 0
   @@e_signature:
   end;
-  inherited;
-  RebuildMenubar;
+
+  Log( '->TKOLMainMenu.Change' );    //dufa
+  try                                //dufa
+    inherited;
+    RebuildMenubar;
+    LogOK;                           //dufa
+  finally                            //dufa
+    Log( '<-TKOLMainMenu.Change' );  //dufa
+  end;
 end;
 
 constructor TKOLMainMenu.Create(AOwner: TComponent);
@@ -26262,28 +26270,34 @@ begin
     DB 'TKOLMainMenu.Create', 0
   @@e_signature:
   end;
-  inherited;
-  F := ParentForm;
-  if F = nil then Exit;
-  for I := 0 to F.ComponentCount - 1 do
-  begin
-    C := F.Components[ I ];
-    if C = Self then continue;
-    if C is TKOLMainMenu then
+
+  Log('->TKOLMainMenu.Create');     //dufa
+  try                               //dufa
+    inherited;
+    F := ParentForm;
+    if F = nil then Exit;
+    for I := 0 to F.ComponentCount - 1 do
     begin
-      ShowMessage(  'Another TKOLMainMenu component is already found on form ' +
-                    F.Name + ' ( ' + C.Name + ' ). ' +
-                    'Remember, please, that only one instance of TKOLMainMenu ' +
-                    'should be placed on a form. Otherwise, code will be ' +
-                    'generated only for one of those.' );
-      Exit;
+      C := F.Components[ I ];
+      if C = Self then continue;
+      if C is TKOLMainMenu then
+      begin
+        ShowMessage(  'Another TKOLMainMenu component is already found on form ' +
+                      F.Name + ' ( ' + C.Name + ' ). ' +
+                      'Remember, please, that only one instance of TKOLMainMenu ' +
+                      'should be placed on a form. Otherwise, code will be ' +
+                      'generated only for one of those.' );
+        Exit;
+      end;
     end;
-  end;
+    LogOK;                          //dufa
+  finally                           //dufa
+    Log('<-TKOLMainMenu.Create');   //dufa
+  end;                              //dufa
 end;
 
 //dufa var CommonOldWndProc: Pointer; dufa
-function WndProcDesignMenu( Wnd: HWnd; uMsg: DWORD; wParam, lParam: Integer ): Integer;
-         stdcall;
+function WndProcDesignMenu( Wnd: HWnd; uMsg: DWORD; wParam, lParam: Integer ): Integer; stdcall;
 var Id: Integer;
     M: HMenu;
     MII: TMenuItemInfo;
@@ -26291,6 +26305,7 @@ var Id: Integer;
     C: TControl;
     F: TForm;
     I: Integer;
+    KMM: TKOLMainMenu; //dufa
 begin
   asm
     jmp @@e_signature
@@ -26298,65 +26313,64 @@ begin
     DB 'WndProcDesignMenu', 0
   @@e_signature:
   end;
-  if (uMsg = WM_COMMAND)  then
-  begin
-    if (lParam = 0) and (HIWORD( wParam ) <= 1) then
+  case uMsg of
+    WM_COMMAND:
     begin
-      Id := LoWord( wParam );
-      M := GetMenu( Wnd );
-      if M <> 0 then
+      if (lParam = 0) and (HIWORD( wParam ) <= 1) then
       begin
-        Fillchar( MII, 44, 0 );
-        MII.cbsize := 44;
-        MII.fMask := MIIM_DATA;
-        if GetMenuItemInfo( M, Id, False, MII ) then
+        Id := LoWord( wParam );
+        M := GetMenu( Wnd );
+        if M <> 0 then
         begin
-          KMI := Pointer( MII.dwItemData );
-          if KMI <> nil then
+          Fillchar( MII, 44, 0 );
+          MII.cbsize := 44;
+          MII.fMask := MIIM_DATA;
+          if GetMenuItemInfo( M, Id, False, MII ) then
           begin
-            try
-              if KMI is TKOLMenuItem then
-              begin
-                //Rpt( 'Click on ' + KMI.Caption );
-                KMI.DesignTimeClick;
-                Result := 0;
-                Exit;
-              end;
-            except
-              on E: Exception do
-              begin
-                ShowMessage( 'Design-time click failed, exception: ' + E.Message );
+            KMI := Pointer( MII.dwItemData );
+            if KMI <> nil then
+            begin
+              try
+                if KMI is TKOLMenuItem then
+                begin
+                  //Rpt( 'Click on ' + KMI.Caption );
+                  KMI.DesignTimeClick;
+                  Result := 0;
+                  Exit;
+                end;
+              except
+                on E: Exception do
+                begin
+                  ShowMessage( 'Design-time click failed, exception: ' + E.Message );
+                end;
               end;
             end;
           end;
         end;
       end;
     end;
-  end
-    else
-  if (uMsg = WM_DESTROY) then
-  begin
-    M := GetMenu( Wnd );
-    SetMenu( Wnd, 0 );
-    if M <> 0 then
+    WM_DESTROY:
     begin
-      C := FindControl( Wnd );
-      if (C <> nil) and (C is TForm) then
-      begin
-        F := C as TForm;
-        for I := 0 to F.ComponentCount-1 do
-          if F.Components[ I ] is TKOLMainMenu then
-          begin
-            DestroyMenu( M );
-            (F.Components[ I ] as TKOLMainMenu).RestoreWndProc( Wnd );
-            break;
+      M := GetMenu(Wnd);
+      SetMenu(Wnd, 0);
+      if (M <> 0) then begin
+        C := FindControl(Wnd);
+        if Assigned(C) and (C is TForm) then begin
+          F := (C as TForm);
+          for I := 0 to F.ComponentCount - 1 do begin
+            if (F.Components[I] is TKOLMainMenu) then begin
+              DestroyMenu(M);
+              KMM := (F.Components[I] as TKOLMainMenu);
+              KMM.RestoreWndProc(Wnd);
+              break;
+            end;
           end;
-      end
-        else
-      DestroyMenu( M );
+        end else
+          DestroyMenu(M);
+      end;
     end;
   end;
-  Result := CallWindowProc( Pointer(GetWindowLong(Wnd, GWL_USERDATA)), Wnd, uMsg, wParam, lParam ); //dufa
+  Result := CallWindowProc(Pointer(GetWindowLong(Wnd, GWL_USERDATA)), Wnd, uMsg, wParam, lParam); //dufa
   //dufa Result := CallWindowProc( CommonOldWndProc, Wnd, uMsg, wParam, lParam );
 end;
 
@@ -26371,28 +26385,36 @@ begin
     DB 'TKOLMainMenu.Destroy', 0
   @@e_signature:
   end;
-  F := ParentForm;
-  KF := nil;
-  if F <> nil then
-  begin
-    KF := ParentKOLForm;
-  end;
-  if F <> nil then
-  begin
-    M := 0;
-    if F.HandleAllocated then
-    if F.Handle <> 0 then
+
+  Log('->TKOLMainMenu.Destroy');   //dufa
+  try                              //dufa
+    F := ParentForm;
+    KF := nil;
+    if F <> nil then
     begin
-      M := GetMenu( F.Handle );
-      RestoreWndProc( F.Handle );
-      SetMenu( F.Handle, 0 );
+      KF := ParentKOLForm;
     end;
-    if M <> 0 then
-      DestroyMenu( M );
-  end;
-  inherited;
-  if KF <> nil then
-    KF.AlignChildren( nil, FALSE );
+    if F <> nil then
+    begin
+      M := 0;
+      if F.HandleAllocated then
+      if F.Handle <> 0 then
+      begin
+        M := GetMenu( F.Handle );
+        RestoreWndProc( F.Handle );
+        SetMenu( F.Handle, 0 );
+      end;
+      if M <> 0 then
+        DestroyMenu( M );
+    end;
+    inherited;
+    if KF <> nil then
+      KF.AlignChildren( nil, FALSE );
+
+    LogOK;                          //dufa
+  finally                           //dufa
+    Log('<-TKOLMainMenu.Destroy');  //dufa
+  end;                              //dufa
 end;
 
 procedure TKOLMainMenu.Loaded;
@@ -26404,16 +26426,23 @@ begin
     DB 'TKOLMainMenu.Loaded', 0
   @@e_signature:
   end;
-  inherited;
-  {KF := ParentKOLForm;
-  if KF <> nil then
-  begin
-    KF.AllowRealign := TRUE;
-    if not (csLoading in KF.ComponentState) then
-      KF.AlignChildren( nil );
-  end;}
-  //UpdateDesign;
-  RebuildMenubar;
+
+  Log( '->TKOLMainMenu.Loaded' );    //dufa
+  try                                //dufa
+    inherited;
+    {KF := ParentKOLForm;
+    if KF <> nil then
+    begin
+      KF.AllowRealign := TRUE;
+      if not (csLoading in KF.ComponentState) then
+        KF.AlignChildren( nil );
+    end;}
+    //UpdateDesign;
+    RebuildMenubar;
+    LogOK;                           //dufa
+  finally                            //dufa
+    Log( '<-TKOLMainMenu.Loaded' );  //dufa
+  end;
 end;
 
 procedure TKOLMainMenu.RebuildMenubar;
@@ -26538,13 +26567,12 @@ begin
       BuildMenuItem( M, KMI );
     end;
     //F.Menu := M;
+  //
+  Log('suka: ' + IntToStr(F.Handle) + ' | ' + IntToHex(Integer(Self), 8)); //dufa 
+  i := GetWindowLong(F.Handle, GWL_STYLE) and not WS_CHILD; //dufa
+  SetWindowLong(F.Handle, GWL_STYLE, i);                    //dufa
+  //
     SetMenu( F.Handle, M );
-
-//  h := CreateMenu;
-//  InsertMenu(h, 0, 0, 0, 'test');
-//  SetMenu(GetParent(F.Handle), h);
-//  getlasterror;
-//  DrawMenuBar(GetParent(F.Handle));
 
     if oldM <> 0 then
       DestroyMenu( oldM );
@@ -26597,12 +26625,19 @@ begin
     DB 'TKOLMainMenu.RestoreWndProc', 0
   @@e_signature:
   end;
-  Integer(CurWndProc) := GetWindowLong( Wnd, GWL_WNDPROC );
-  if CurWndProc = @WndProcDesignMenu then
-  begin
-    //dufa SetWindowLong( Wnd, GWL_WNDPROC, Integer( CommonOldWndProc ) );
-    SetWindowLong( Wnd, GWL_WNDPROC, Integer( FOldWndProc ) ); //dufa
-  end;
+
+  Log('->TKOLMainMenu.RestoreWndProc');    //dufa
+  try                                      //dufa
+    Integer(CurWndProc) := GetWindowLong( Wnd, GWL_WNDPROC );
+    if CurWndProc = @WndProcDesignMenu then
+    begin
+      //dufa SetWindowLong( Wnd, GWL_WNDPROC, Integer( CommonOldWndProc ) );
+      SetWindowLong( Wnd, GWL_WNDPROC, Integer( FOldWndProc ) ); //dufa
+    end;
+    LogOK;                                 //dufa
+  finally                                  //dufa
+    Log('<-TKOLMainMenu.RestoreWndProc');  //dufa
+  end;                                     //dufa
 end;
 
 procedure TKOLMainMenu.UpdateMenu;
@@ -26613,6 +26648,7 @@ begin
     DB 'TKOLMainMenu.UpdateMenu', 0
   @@e_signature:
   end;
+
   inherited;
   RebuildMenubar;
 end;
@@ -26627,13 +26663,12 @@ begin
     DB 'TKOLPopupMenu.AssignEvents', 0
   @@e_signature:
   end;
+
   inherited;
-  DoAssignEvents( SL, AName, [ 'OnPopup' ],
-                             [ @ OnPopup ] );
+  DoAssignEvents( SL, AName, [ 'OnPopup' ], [ @ OnPopup ] );
 end;
 
-function TKOLPopupMenu.P_AssignEvents(SL: TStringList; const AName: String;
-  CheckOnly: Boolean): Boolean;
+function TKOLPopupMenu.P_AssignEvents(SL: TStringList; const AName: String; CheckOnly: Boolean): Boolean;
 begin
   asm
     jmp @@e_signature
@@ -26641,13 +26676,11 @@ begin
     DB 'TKOLPopupMenu.P_AssignEvents', 0
   @@e_signature:
   end;
+
   Result := TRUE;
-
-  if P_DoAssignEvents( SL, AName, [ 'OnPopup' ],
-                             [ @ OnPopup ], [ FALSE ],
-  CheckOnly ) and CheckOnly then Exit;
+  if P_DoAssignEvents( SL, AName, [ 'OnPopup' ], [ @ OnPopup ], [ FALSE ], CheckOnly ) and CheckOnly then
+    Exit;
   Result := FALSE;
-
 end;
 
 procedure TKOLPopupMenu.P_DoProvideFakeType(SL: TStringList);
@@ -26656,8 +26689,7 @@ begin
   P_ProvideFakeType( SL, 'type TPopupMenu_ = object(KOL.TMenu) end;' );
 end;
 
-procedure TKOLPopupMenu.P_SetupFirst(SL: TStringList; const AName, AParent,
-  Prefix: String);
+procedure TKOLPopupMenu.P_SetupFirst(SL: TStringList; const AName, AParent, Prefix: String);
 var Flg: DWORD;
 begin
   inherited;

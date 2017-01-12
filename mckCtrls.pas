@@ -8053,10 +8053,12 @@ begin
           SL.Add( '    Result.' + Name + '.ImageListState := ' +
                   'Result.' + ImageListState.Name + ';' );
   end;
+
   if (lvoEditLabel in Options) and (TMethod(fOnEndEditLVItem).Code = nil) then
   begin
       //(SL as TFormStringList).OnAdd := nil;
-      SL.Add( Prefix + AName + '.OnEndEditLVItem := nil;' );
+      //SL.Add( Prefix + AName + '.OnEndEditLVItem := nil;' );      //dufa fix crash
+      SL.Add(Prefix + AName + '.AttachProc(WndProcEndLabelEdit);'); //dufa fix crash
       //if  KF <> nil then
       //    (SL as TFormStringList).OnAdd := KF.DoFlushFormCompact;
   end;
