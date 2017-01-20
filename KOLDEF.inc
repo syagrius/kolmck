@@ -360,6 +360,8 @@
 {$ENDIF}
 
 {$IFDEF FPC}
+  {$MODE DELPHI}
+  {$ASMMODE INTEL}
   {$DEFINE PAS_ONLY}
   {$DEFINE USE_OLD_FLAGS} //size of set type in fpc is 4 bytes
   {------------------------------------
@@ -449,24 +451,26 @@
 
 //{$DEFINE TEST_VERSION}
 {$IFNDEF _D6orHigher}
- {$DEFINE PARANOIA} //seems not needed from D6 !!! Inprise fixed this, finally...
+  {$DEFINE PARANOIA} //seems not needed from D6 !!! Inprise fixed this, finally...
 {$ENDIF}
 
 
 {$IFNDEF USE_OLD_FLAGS}
-         {$DEFINE USE_FLAGS}
-{$ELSE}  {$UNDEF  USE_FLAGS}
+  {$DEFINE USE_FLAGS}
+{$ELSE}
+  {$UNDEF  USE_FLAGS}
 {$ENDIF}
 
 {$IFnDEF EVENTS_STATIC}
-         {$DEFINE EVENTS_DYNAMIC}
+  {$DEFINE EVENTS_DYNAMIC}
 {$ENDIF}
+
 {$IFnDEF CMDACTIONS_RECORD}
-         {$DEFINE COMMANDACTIONS_OBJ}
-         {$DEFINE PACK_COMMANDACTIONS}
-         {$IFDEF  NOT_PACK_COMMANDACTIONS}
-                  {$UNDEF PACK_COMMANDACTIONS}
-         {$ENDIF}
+  {$DEFINE COMMANDACTIONS_OBJ}
+  {$DEFINE PACK_COMMANDACTIONS}
+  {$IFDEF  NOT_PACK_COMMANDACTIONS}
+    {$UNDEF PACK_COMMANDACTIONS}
+  {$ENDIF}
 {$ENDIF}
 
 {$DEFINE KOL3XX}
