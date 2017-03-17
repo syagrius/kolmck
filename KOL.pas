@@ -26530,6 +26530,7 @@ begin
       Rslt := Thread.FMethodEx(Thread, Pointer(Msg.wParam))
     else
       Rslt := Thread.FMethod();
+    Result := True;
   end;
 end;
 
