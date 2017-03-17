@@ -133,6 +133,9 @@ interface
 uses
   Windows, Messages, KOL;
 
+const
+  INPLACE_ITEMS_SEP = ';';
+
 type
   PEditorOptions = ^TEditorOptions;
   TEditorOptions = packed record
@@ -224,23 +227,21 @@ type
 |</p>
     }
     procedure SelectCell(ACol, ARow: Integer);
-    {* Подсвечивает текущую ячейку   }
+    //* Подсвечивает текущую ячейку   }
     procedure UpdateRow(ARow: Integer);
-    {* Перерисовка (Invalidate) указанной строки    }
+    //* Перерисовка (Invalidate) указанной строки    }
     property Editing: Boolean read fStarted;
-    {* True - встроенный редактор активен. }
+    //* True - встроенный редактор активен. }
     property OnGetEditText: TOnEditText read fOnGetText write fOnGetText;
-    {* Вызывается при загрузке текста во встроенный редактор. (Отдельно
-    для кажого столбца). }
+    //* Вызывается при загрузке текста во встроенный редактор. (Отдельно для кажого столбца).
     property OnPutEditText: TOnEditText read fOnPutText write fOnPutText;
-    {* Вызывается при выгрузке текста из встроенного редактора. (Отдельно
-    для кажого столбца). }
+    //* Вызывается при выгрузке текста из встроенного редактора. (Отдельно для кажого столбца).
     property OnStopEdit: TOnEndEdit read fOnEndEdit write fOnEndEdit;
-    {* Вызывается при смене строки редактирования и при выполнении StopEdit. }
+    //* Вызывается при смене строки редактирования и при выполнении StopEdit. }
     property OnEditChar: TOnEditChar read fOnEditChar write fOnEditChar;
-    {* Вызывается при получении встроенным редактором событий WM_CHAR. Может
-    использоваться для фильрации ввода}
-//---------------------------------------------------------------------------
+    //* Вызывается при получении встроенным редактором событий WM_CHAR. Может
+    // пользоваться для фильрации ввода
+    //---------------------------------------------------------------------------
     property OnColAdjust: TOnColAdjust read FOnColAdjust write fOnColAdjust;
     {*
 |<p>
@@ -555,51 +556,56 @@ begin
 {$IFDEF _LE_DEBUG_}
   AddLog(Self.fOwner, 'SetEditPos');
 {$ENDIF}
-  with fOwner^ do begin
-    R := LVSubItemRect(LVCurItem, fCurIdx);
-    cw := LVColWidth[fCurIdx];
-    R.Right := R.Left + cw;
-    if Assigned(fInPlaceEd) then begin
-      Header := Perform(LVM_GETHEADER, 0, 0);
-      GetWindowRect(Header, Re);
-      HeaderHeight := Re.Bottom - Re.Top;
-      if R.Top >= HeaderHeight then begin
-        if fEmbedEd and (fInPlaceEd.Perform(EM_GETRECT, 0, Integer(@Re)) > 0) then begin
-          if (R.Bottom - R.Top) > (Re.Bottom - Re.Top) then begin
-            cw := ((R.Bottom - R.Top) - (Re.Bottom - Re.Top)) div 2;
-            Inc(R.Top, cw);
-            Dec(R.Bottom, cw);
-          end;
-          Inc(R.Left, fShift - Re.Left);
-          Dec(R.Right, fShift - Re.Left);
+  R  := fOwner.LVSubItemRect(fOwner.LVCurItem, fCurIdx);
+  cw := fOwner.LVColWidth[fCurIdx];
+  R.Right := R.Left + cw;
+  if Assigned(fInPlaceEd) then begin
+    Header := fOwner.Perform(LVM_GETHEADER, 0, 0);
+    GetWindowRect(Header, Re);
+    HeaderHeight := Re.Bottom - Re.Top;
+    if (R.Top >= HeaderHeight) then begin
+      if fEmbedEd and (fInPlaceEd.Perform(EM_GETRECT, 0, Integer(@Re)) > 0) then begin
+        if (R.Bottom - R.Top) > (Re.Bottom - Re.Top) then begin
+          cw := ((R.Bottom - R.Top) - (Re.Bottom - Re.Top)) div 2;
+          Inc(R.Top, cw);
+          Dec(R.Bottom, cw);
         end;
-        pEO := fColOptions.Items[fCurIdx];
-        with pEO.Indent do begin
-          Inc(R.Left, Left);
-          Dec(R.Right, Right);
-          Inc(R.Top, Top);
-          Dec(R.Bottom, Bottom);
-          //
-          if fEmbedEd then
-            Dec(R.Left, 2);
-        end;
-      end else
-        FillChar(R, SizeOf(R), 0);
-      fInPlaceEd.BoundsRect := R;
-    end;
-    if (R.Left <= 0) then
-      fScroll := R.Left
-    else if (R.Right > fOwner.Width - 24) then
-      fScroll := R.Right - (fOwner.Width - 24)
-    else
-      fScroll := 0;
+        Inc(R.Left, fShift - Re.Left);
+        Dec(R.Right, fShift - Re.Left);
+      end;
+      pEO := fColOptions.Items[fCurIdx];
+      with pEO.Indent do begin
+        Inc(R.Left, Left);
+        Dec(R.Right, Right);
+        Inc(R.Top, Top);
+        Dec(R.Bottom, Bottom);
+        //
+        if fEmbedEd then
+          Dec(R.Left, 2);
+      end;
+    end else
+      FillChar(R, SizeOf(R), 0);
+
+    // for listview
+    if (fInPlaceEd.SubClassName = 'obj_SysListView32') then
+      R.Bottom := R.Bottom + (R.Bottom - R.Top) * 4;
+
+    // set rect
+    fInPlaceEd.BoundsRect := R;
   end;
+  if (R.Left <= 0) then
+    fScroll := R.Left
+  else if (R.Right > fOwner.Width - 24) then
+    fScroll := R.Right - (fOwner.Width - 24)
+  else
+    fScroll := 0;
 end;
 
 procedure TEcmListEdit.LoadEditValues;
 var
-  z: Integer;
+  i: Integer;
   S: String;
+  V: String;
 begin
 {$IFDEF _LE_DEBUG_}
   AddLog(Self.fOwner, 'LoadEditValues');
@@ -609,16 +615,27 @@ begin
     fOnGetText(fOwner, fCurIdx, fOwner.LVCurItem, S);
 
   if IsComboEditor then begin
-    IsComboEditor       := False; //
+    IsComboEditor       := False; 
     fInPlaceEd.CurIndex := fInPlaceEd.IndexOf(S);
     //fInPlaceEd.DroppedDown := True;
   end else begin //if fEmbedEd then begin
     if (fInPlaceEd.SubClassName = 'obj_COMBOBOX') then begin
-      z := fInPlaceEd.IndexOf(S);
-      if (z = -1) then
+      i := fInPlaceEd.IndexOf(S);
+      if (i = -1) then
         fInPlaceEd.Text := S
       else
-        fInPlaceEd.CurIndex := z;
+        fInPlaceEd.CurIndex := i;
+    end else if (fInPlaceEd.SubClassName = 'obj_SysListView32') then begin
+      fInPlaceEd.LVItemStateImgIdx[-1] := 1;
+      repeat
+        V := Parse(S, INPLACE_ITEMS_SEP);
+        if (V = '') and (S = '') then
+          Break;
+        // set flag
+        i := fInPlaceEd.LVIndexOf(V);
+        if (i > -1) then
+          fInPlaceEd.LVItemStateImgIdx[i] := 2;
+      until False;
     end else begin // 'obj_EDIT'
       fInPlaceEd.Text := S;
       fInPlaceEd.SelectAll;
@@ -644,7 +661,7 @@ begin
         Result           := NewCombobox(fOwner, ComboOptions);
         Result.OnCloseUp := ComboBox_CloseUp;
         repeat
-          Result.Add(Parse(ComboText, ';'));
+          Result.Add(Parse(ComboText, INPLACE_ITEMS_SEP));
         until (ComboText = '');
       end else
         Result := NewEditBox(fOwner, Options);
@@ -886,7 +903,8 @@ end;
 
 procedure TEcmListEdit.InternalStopEdit(const Store: Boolean);
 var
-  s: String;
+  i:            Integer;
+  newValue:     String;
   fCellChanged: Boolean;
 begin
   if fStarted then begin
@@ -895,15 +913,30 @@ begin
 {$ENDIF}
     fCellChanged := False;
     if Store then begin
-      if (fOwner.LVItems[fOwner.LVCurItem, fCurIdx] <> fInPlaceEd.Text) then begin
-        S := fInPlaceEd.Text;
-        if Assigned(fOnPutText) then
-          fOnPutText(fOwner, fCurIdx, fOwner.LVCurItem, S);
-        if (S <> fOwner.LVItems[fOwner.LVCurItem, fCurIdx]) then begin
-          fCellChanged := True;
-          fOwner.LVItems[fOwner.LVCurItem, fCurIdx] := S;
+      // get new value for listview
+      if (fInPlaceEd.SubClassName = 'obj_SysListView32') then begin
+        newValue := '';
+        for I := 0 to Pred(fInPlaceEd.LVCount) do begin
+          if (fInPlaceEd.LVItemStateImgIdx[I] = 2) then begin
+            if (newValue <> '') then
+              newValue := newValue + INPLACE_ITEMS_SEP;
+            newValue := newValue + fInPlaceEd.LVItems[I, 0];
+          end;
         end;
-        fInPlaceEd.Text := S;
+      end else // get new value other
+        newValue := fInPlaceEd.Text;
+
+      // compare new with old
+      if (fOwner.LVItems[fOwner.LVCurItem, fCurIdx] <> newValue) then begin
+        if Assigned(fOnPutText) then
+          fOnPutText(fOwner, fCurIdx, fOwner.LVCurItem, newValue);
+
+        if (fOwner.LVItems[fOwner.LVCurItem, fCurIdx] <> newValue) then begin
+          fCellChanged := True;
+          fOwner.LVItems[fOwner.LVCurItem, fCurIdx] := newValue;
+        end;
+
+        fInPlaceEd.Text := newValue;
       end;
     end;
     fStarted := False;

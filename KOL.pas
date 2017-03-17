@@ -1064,8 +1064,8 @@ const
 type
   PThread = ^TThread;
 
-  TThreadMethod = procedure of object;
-  TThreadMethodEx = procedure( Sender: PThread; Param: Pointer ) of object;
+  TThreadMethod   = function: LRESULT of object;
+  TThreadMethodEx = function(Sender: PThread; Param: Pointer): LRESULT of object;
 
   TOnThreadExecute = function(Sender: PThread): PtrInt of object;
   {* Event to be called when Execute method is called for TThread }
@@ -1092,7 +1092,7 @@ type
     FTerminated: Boolean;
     FHandle: THandle;
     FThreadId: DWORD;
-    FOnSuspend: TObjectMethod;
+    FOnSuspend: TThreadMethod;//TObjectMethod;
     FOnResume: TOnEvent;
     FData : Pointer;
     FOnExecute : TOnThreadExecute;
@@ -1164,14 +1164,14 @@ type
 
     property OnExecute: TOnThreadExecute read FOnExecute write FOnExecute;
     {* Is called, when Execute is starting. }
-    property OnSuspend: TObjectMethod read FOnSuspend write FOnSuspend;
+    property OnSuspend: TThreadMethod{TObjectMethod} read FOnSuspend write FOnSuspend;
     {* Is called, when Suspend is performed. }
     property OnResume: TOnEvent read FOnResume write FOnResume;
     {* Is called, when resumed. }
-    procedure Synchronize( Method: TThreadMethod );
+    function Synchronize( Method: TThreadMethod ): LRESULT;
     {* Call it to execute given method in main thread context. Applet variable
        must exist for that time. }
-    procedure SynchronizeEx( Method: TThreadMethodEx; Param: Pointer );
+    function SynchronizeEx( Method: TThreadMethodEx; Param: Pointer ): LRESULT;
     {* Call it to execute given method in main thread context, with a given
        parameter. Applet variable must exist for that time. Param must not be nil. }
     {$IFDEF USE_CONSTRUCTORS}
@@ -14552,10 +14552,10 @@ procedure _SetDIBPixelsTrueColorAlpha( Bmp: PBitmap; X, Y: Integer; Value: TColo
 var OnMonitorMessage: procedure( var M: TMsg; Enter_WndFunc: Boolean ) of object = nil;
 {$ENDIF}
 
-function WndProcCMExec( Sender: PControl; var Msg: TMsg; var Rslt: LRESULT )
-                          : Boolean;
+function WndProcCMExec( Sender: PControl; var Msg: TMsg; var Rslt: LRESULT ): Boolean;
+
 {$IFDEF _D2006orHigher}
-	{$I MCKfakeClasses200x.inc} // Dufa
+  {$I MCKfakeClasses200x.inc} // Dufa
 {$ENDIF}
 implementation
 
@@ -20896,21 +20896,40 @@ asm
 end {$IFDEF F_P} [ 'EAX', 'EDX', 'ECX' ] {$ENDIF};
 {$ENDIF PAS_ONLY}
 
-function StrCat( Dest, Source: PAnsiChar ): PAnsiChar;
+function StrCat(Dest, Source: PAnsiChar): PAnsiChar;
+var
+  str: PAnsiChar;
 begin
-  StrCopy( StrScan( Dest, #0 ), Source );
+  // by dufa
+  str := StrScan(Dest, #0);
+  if Assigned(str) then  
+    StrCopy(str, Source);
   Result := Dest;
 end;
 
 {$IFDEF PAS_ONLY}
+//function bugStrScan(Str: PAnsiChar; Chr: AnsiChar): PAnsiChar;
+//begin
+//    while Str^ <> Chr do
+//    begin
+//        if Str^ = #0 then break;
+//        inc(Str);
+//    end;
+//    Result := Str;
+//end;
+/// by Netspirit
 function StrScan(Str: PAnsiChar; Chr: AnsiChar): PAnsiChar;
 begin
-    while Str^ <> Chr do
-    begin
-        if Str^ = #0 then break;
-        inc(Str);
+  Result := nil;
+  if (Str = nil) then Exit;
+ 
+  while (Str^ <> #0) do begin
+    if (Str^ = Chr) then begin
+      Result := Str;
+      Break;
     end;
-    Result := Str;
+    Inc(Str);
+  end;
 end;
 {$ELSE}
 function StrScan(Str: PAnsiChar; Chr: AnsiChar): PAnsiChar; assembler;
@@ -26501,26 +26520,22 @@ end;
 
 { TThread }
 
-function WndProcCMExec( Sender: PControl; var Msg: TMsg; var Rslt: LRESULT )
-                          : Boolean;
+function WndProcCMExec(Sender: PControl; var Msg: TMsg; var Rslt: LRESULT): Boolean;
 var Thread: PThread;
 begin
   Result := FALSE;
-  if Msg.message = CM_EXECPROC then
-  begin
-    Thread := PThread( Msg.lParam );
-    if   Msg.wParam <> 0 then
-         Thread.FMethodEx( Thread, Pointer( Msg.wParam ) )
-    else Thread.FMethod( );
-    Rslt := 0;
+  if (Msg.message = CM_EXECPROC) then begin
+    Thread := PThread(Msg.lParam);
+    if (Msg.wParam <> 0) then
+      Rslt := Thread.FMethodEx(Thread, Pointer(Msg.wParam))
+    else
+      Rslt := Thread.FMethod();
   end;
 end;
 
 {$IFDEF PSEUDO_THREADS}
-function timeBeginPeriod(uPeriod: UINT): UINT; stdcall;
-external 'winmm.dll' name 'timeBeginPeriod';
-function timeEndPeriod(uPeriod: UINT): UINT; stdcall;
-external 'winmm.dll' name 'timeEndPeriod';
+function timeBeginPeriod(uPeriod: UINT): UINT; stdcall; external 'winmm.dll' name 'timeBeginPeriod';
+function timeEndPeriod(uPeriod: UINT): UINT; stdcall; external 'winmm.dll' name 'timeEndPeriod';
 {$ENDIF}
 
 procedure TThread.Init;
@@ -26840,27 +26855,33 @@ begin
 end;
 {$ENDIF PSEUDO_THREADS}
 
-procedure TThread.Synchronize(Method: TThreadMethod);
+function TThread.Synchronize(Method: TThreadMethod): LRESULT;
 begin
   {$IFDEF PSEUDO_THREADS}
-  Method;
+    Result := Method;
   {$ELSE}
-  FMethod := Method;
-  if Applet <> nil then
-    SendMessage( Applet.fHandle, CM_EXECPROC, 0, LPARAM( @Self ) );
+    if Assigned(Applet) then begin
+      FMethod := Method;
+      Result  := SendMessage(Applet.fHandle, CM_EXECPROC, 0, LPARAM(@Self));
+    end else
+      Result := -1;
   {$ENDIF}
 end;
 
-procedure TThread.SynchronizeEx( Method: TThreadMethodEx; Param: Pointer );
+function TThread.SynchronizeEx(Method: TThreadMethodEx; Param: Pointer): LRESULT;
 begin
   {$IFDEF KOL_ASSERTIONS}
-  Assert( Param <> nil, 'Parameter must not be NIL' );
+    Assert( Param <> nil, 'Parameter must not be NIL' );
   {$ENDIF KOL_ASSERTIONS}
+
   {$IFDEF PSEUDO_THREADS}
-  Method( TMethod( Method ).Data, Param );
+    Result := Method( TMethod( Method ).Data, Param );
   {$ELSE}
-  FMethodEx := Method;
-  SendMessage( Applet.fHandle, CM_EXECPROC, WPARAM( Param ), LPARAM( @Self ) );
+    if Assigned(Applet) then begin
+      FMethodEx := Method;
+      Result    := SendMessage(Applet.fHandle, CM_EXECPROC, WPARAM(Param), LPARAM(@Self));
+    end else
+      Result := -1;
   {$ENDIF}
 end;
 
@@ -55623,8 +55644,7 @@ var I: Integer;
 begin
   if fDynHandlers = nil then Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
   I := fDynHandlers.IndexOf( @Proc );
-  if I >=0 then
-  begin
+  if (I >= 0) then begin
     fDynHandlers.Delete( I );
     fDynHandlers.Delete( I );
   end;
@@ -55632,10 +55652,8 @@ end;
 
 {$IFDEF ASM_VERSION}{$ELSE PAS_VERSION} //Pascal
 function TControl.IsProcAttached(Proc: TWindowFunc): Boolean;
-var I: Integer;
 begin
-  I := fDynHandlers.IndexOf( @Proc );
-  Result := I >=0;
+  Result := (fDynHandlers.IndexOf(@Proc) >= 0);
 end;
 {$ENDIF PAS_VERSION}
 
@@ -58025,8 +58043,7 @@ type
   end;
   PFindWndRec = ^TFindWndRec;
 
-function EnumWindowsProc( Wnd : HWnd; Find : PFindWndRec ) : Boolean;
-stdcall;
+function EnumWindowsProc( Wnd : HWnd; Find : PFindWndRec ) : Boolean; stdcall;
 var Id : DWord;
 begin
   Result := True;
