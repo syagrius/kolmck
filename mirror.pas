@@ -65,7 +65,7 @@ uses olectrls, KOL, KOLadd, Classes, Forms, Controls, Dialogs, Windows, Messages
      DsgnIntf                                   //
      {$ENDIF}                                   //
 //////////////////////////////////////////////////
-     ToolsAPI, TypInfo, Consts,  mckMenuEditor, mckAccEditor, mckActionListEditor;
+     , ToolsAPI, TypInfo, Consts,  mckMenuEditor, mckAccEditor, mckActionListEditor;
 
 const
   WM_USER_ALIGNCHILDREN = WM_USER + 1;

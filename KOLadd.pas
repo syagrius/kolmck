@@ -450,7 +450,7 @@ type
     FDestroying: Boolean;
     FFlags: DWORD;
     function Execute( Sender: PThread ): PtrInt;
-    procedure Changed;
+    function Changed: LRESULT;
   protected
     destructor Destroy; virtual;
     {*}
@@ -2354,9 +2354,8 @@ end;
 
 { TDirChange }
 
+function TDirChange.Changed: LRESULT;
 {$IFDEF ASM_VERSION}
-//[procedure TDirChange.Changed]
-procedure TDirChange.Changed;
 asm
         MOV      ECX, [EAX].FOnChange.TMethod.Code
         JECXZ    @@exit
@@ -2365,14 +2364,12 @@ asm
         MOV      EAX, [EDX].FOnChange.TMethod.Data
         CALL     [EDX].FOnChange.TMethod.Code
 @@exit:
-end;
 {$ELSE ASM_VERSION} //Pascal
-procedure TDirChange.Changed;
 begin
   if Assigned( FOnChange ) then
     FOnChange(@Self, FPath);
-end;
 {$ENDIF ASM_VERSION}
+end;
 
 {$IFDEF noASM_VERSION}
 //[destructor TDirChange.Destroy]

@@ -37,7 +37,7 @@ uses KOL, Classes, Forms, Controls, Dialogs, Windows, Messages, extctrls,
 //////////////////////////////////////////
      {$ENDIF}                           //
 //////////////////////////////////////////
-     imglist, TypInfo, menus;
+     , imglist, TypInfo, menus;
 
 type
   //============================================================================
