@@ -54,7 +54,6 @@ type
   Reading is allowed while owning a write lock.
   Read locks can be promoted to write locks.}
 
-  {$IFNDEF _D2orD3}
   TActiveThreadRecord = record
     ThreadID: Integer;
     RecursionCount: Integer;
@@ -80,7 +79,6 @@ type
     procedure BeginWrite;
     procedure EndWrite;
   end;
-  {$ENDIF}
 
 { COM class manager }
 
@@ -89,9 +87,7 @@ type
   TComClassManager = class(TObject)
   private
     FFactoryList: TComObjectFactory;
-    {$IFNDEF _D2orD3}
     FLock: TMultiReadExclusiveWriteSynchronizer;
-    {$ENDIF}
     procedure AddObjectFactory(Factory: TComObjectFactory);
     procedure RemoveObjectFactory(Factory: TComObjectFactory);
   public
@@ -600,7 +596,6 @@ begin
   Result := S_OK;
 end;
 
-{$IFNDEF _D2orD3}
 { TMultiReadExclusiveWriteSynchronizer }
 
 constructor TMultiReadExclusiveWriteSynchronizer.Create;
@@ -766,38 +761,29 @@ begin
   TObject(Obj) := nil;  // clear the reference before destroying the object
   P.Free;
 end;
-{$ENDIF}
 
 { TComClassManager }
 constructor TComClassManager.Create;
 begin
   inherited Create;
-  {$IFNDEF _D2orD3}
   FLock := TMultiReadExclusiveWriteSynchronizer.Create;
-  {$ENDIF}
 end;
 
 destructor TComClassManager.Destroy;
 begin
-  {$IFNDEF _D2orD3}
   FLock.Free;
-  {$ENDIF}
   inherited Destroy;
 end;
 
 procedure TComClassManager.AddObjectFactory(Factory: TComObjectFactory);
 begin
-  {$IFNDEF _D2orD3}
   FLock.BeginWrite;
   try
-  {$ENDIF}
     Factory.FNext := FFactoryList;
     FFactoryList := Factory;
-  {$IFNDEF _D2orD3}
   finally
     FLock.EndWrite;
   end;
-  {$ENDIF}
 end;
 
 procedure TComClassManager.ForEachFactory(ComServer: TComServerObject;
@@ -805,10 +791,8 @@ procedure TComClassManager.ForEachFactory(ComServer: TComServerObject;
 var
   Factory, Next: TComObjectFactory;
 begin
-  {$IFNDEF _D2orD3}
   FLock.BeginWrite;  // FactoryProc could add or delete factories from list
   try
-  {$ENDIF}
     Factory := FFactoryList;
     while Factory <> nil do
     begin
@@ -816,19 +800,15 @@ begin
       if Factory.ComServer = ComServer then FactoryProc(Factory);
       Factory := Next;
     end;
-  {$IFNDEF _D2orD3}
   finally
     FLock.EndWrite;
   end;
-  {$ENDIF}
 end;
 
 function TComClassManager.GetFactoryFromClass(ComClass: TClass): TComObjectFactory;
 begin
-  {$IFNDEF _D2orD3}
   FLock.BeginRead;
   try
-  {$ENDIF}
     Result := FFactoryList;
     while Result <> nil do
     begin
@@ -836,40 +816,32 @@ begin
       Result := Result.FNext;
     end;
     raise EOleError.CreateResFmt(e_Ole, Integer( @SObjectFactoryMissing ), [ComClass.ClassName]);
-  {$IFNDEF _D2orD3}
   finally
     FLock.EndRead;
   end;
-  {$ENDIF}
 end;
 
 function TComClassManager.GetFactoryFromClassID(const ClassID: TGUID): TComObjectFactory;
 begin
-  {$IFNDEF _D2orD3}
   FLock.BeginRead;
   try
-  {$ENDIF}
     Result := FFactoryList;
     while Result <> nil do
     begin
       if IsEqualGUID(Result.ClassID, ClassID) then Exit;
       Result := Result.FNext;
     end;
-  {$IFNDEF _D2orD3}
   finally
     FLock.EndRead;
   end;
-  {$ENDIF}
 end;
 
 procedure TComClassManager.RemoveObjectFactory(Factory: TComObjectFactory);
 var
   F, P: TComObjectFactory;
 begin
-  {$IFNDEF _D2orD3}
   FLock.BeginWrite;
   try
-  {$ENDIF}
     P := nil;
     F := FFactoryList;
     while F <> nil do
@@ -882,11 +854,9 @@ begin
       P := F;
       F := F.FNext;
     end;
-  {$IFNDEF _D2orD3}
   finally
     FLock.EndWrite;
   end;
-  {$ENDIF}
 end;
 
 { TComObject }
@@ -1741,11 +1711,7 @@ var
   Handle: THandle;
   RegProc: TRegProc;
 begin
-  {$IFDEF _D2orD3}
-  Handle := LoadLibrary( PChar( DLLName ) );
-  {$ELSE}
   Handle := SafeLoadLibrary(DLLName);
-  {$ENDIF}
   if Handle <= HINSTANCE_ERROR then
     raise Exception.CreateFmt( e_Com, '%s: %s', [SysErrorMessage(GetLastError), DLLName]);
   try

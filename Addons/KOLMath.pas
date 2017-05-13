@@ -180,61 +180,44 @@ procedure SumsAndSquares(const Data: array of Double;
 function MinValue(const Data: array of Double): Double;
 function MinIntValue(const Data: array of Integer): Integer;
 
-function Min(A,B: Integer): Integer;
-{$IFDEF _D4orHigher}
-overload;
+function Min(A,B: Integer): Integer; overload;
 function Min(A,B: I64): I64; overload;
 function Min(A,B: Int64): Int64; overload;
 function Min(A,B: Single): Single; overload;
 function Min(A,B: Double): Double; overload;
 function Min(A,B: Extended): Extended; overload;
-{$ENDIF}
 
 { MaxValue: Returns the largest signed value in the data array (MAX) }
 function MaxValue(const Data: array of Double): Double;
 function MaxIntValue(const Data: array of Integer): Integer;
 
-function Max(A,B: Integer): Integer;
-{$IFDEF _D4orHigher}
-overload;
+function Max(A,B: Integer): Integer; overload;
 function Max(A,B: I64): I64; overload;
 function Max(A,B: Single): Single; overload;
 function Max(A,B: Double): Double; overload;
 function Max(A,B: Extended): Extended; overload;
-{$ENDIF}
 
 { Standard Deviation (STD): Sqrt(Variance). aka Sample Standard Deviation }
 function StdDev(const Data: array of Double): Extended;
-
 { MeanAndStdDev calculates Mean and StdDev in one call. }
 procedure MeanAndStdDev(const Data: array of Double; var Mean, StdDev: Extended);
-
-{ Population Standard Deviation (STDP): Sqrt(PopnVariance).
-  Used in some business and financial calculations. }
+{ Population Standard Deviation (STDP): Sqrt(PopnVariance). Used in some business and financial calculations. }
 function PopnStdDev(const Data: array of Double): Extended;
-
 { Variance (VARS): TotalVariance / (N-1). aka Sample Variance }
 function Variance(const Data: array of Double): Extended;
-
 { Population Variance (VAR or VARP): TotalVariance/ N }
 function PopnVariance(const Data: array of Double): Extended;
-
 { Total Variance: SUM(i=1,N)[(X(i) - Mean)**2] }
 function TotalVariance(const Data: array of Double): Extended;
-
 { Norm:  The Euclidean L2-norm.  Sqrt(SumOfSquares) }
 function Norm(const Data: array of Double): Extended;
-
 { MomentSkewKurtosis: Calculates the core factors of statistical analysis:
   the first four moments plus the coefficients of skewness and kurtosis.
   M1 is the Mean.  M2 is the Variance.
   Skew reflects symmetry of distribution: M3 / (M2**(3/2))
   Kurtosis reflects flatness of distribution: M4 / Sqr(M2) }
-procedure MomentSkewKurtosis(const Data: array of Double;
-  var M1, M2, M3, M4, Skew, Kurtosis: Extended);
-
-{ RandG produces random numbers with Gaussian distribution about the mean.
-  Useful for simulating data with sampling errors. }
+procedure MomentSkewKurtosis(const Data: array of Double; var M1, M2, M3, M4, Skew, Kurtosis: Extended);
+{ RandG produces random numbers with Gaussian distribution about the mean. Useful for simulating data with sampling errors. }
 function RandG(Mean, StdDev: Extended): Extended;
 
 {-----------------------------------------------------------------------
@@ -323,9 +306,7 @@ function count_1_bits_in_dword( x: Integer ): Integer;
 
 implementation
 
-{$IFNDEF _D2orD3}
 uses SysConst;
-{$ENDIF}
 
 function EAbs( D: Double ): Double;
 begin
@@ -959,7 +940,6 @@ begin
 end;
 {$ENDIF}
 
-{$IFDEF _D4orHigher}
 function Min(A,B: I64): I64;
 begin
   if Cmp64( A, B ) < 0 then
@@ -999,7 +979,6 @@ begin
   else
     Result := B;
 end;
-{$ENDIF}
 
 function MaxValue(const Data: array of Double): Double;
 var
@@ -1039,7 +1018,6 @@ begin
 end;
 {$ENDIF}
 
-{$IFDEF _D4orHigher}
 function Max(A,B: I64): I64;
 begin
   if Cmp64( A, B ) > 0 then
@@ -1071,7 +1049,6 @@ begin
   else
     Result := B;
 end;
-{$ENDIF}
 
 procedure MeanAndStdDev(const Data: array of Double; var Mean, StdDev: Extended);
 var

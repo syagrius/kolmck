@@ -588,7 +588,7 @@ begin
 
     // for listview
     if (fInPlaceEd.SubClassName = 'obj_SysListView32') then
-      R.Bottom := R.Bottom + (R.Bottom - R.Top) * 4;
+      R.Bottom := R.Bottom + (R.Bottom - R.Top) * 7;
 
     // set rect
     fInPlaceEd.BoundsRect := R;

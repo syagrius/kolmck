@@ -18,11 +18,6 @@ uses
   {$ENDIF}
 {$ENDIF}
 
-{$IFNDEF _D5orHigher}
-const
-  sNoRunningObject = 'Unable to retrieve a pointer to a running object registered with OLE for %s/%s';
-{$ENDIF}
-
 type
   POleCtl = ^TOleCtl;
 
@@ -45,11 +40,6 @@ type
   public
     constructor Create(Control: POleCtl);
   end;
-
-  {$IFNDEF _D5orHigher}
-  TOleEnum = type Integer;
-  //{$NODEFINE TOleEnum}
-  {$ENDIF}
 
   TGetStrProc = procedure(const S: string) of object;
 
@@ -354,7 +344,6 @@ type
 
   end;
 
-{$IFNDEF _D2orD3}
 type
   TVariantArray = Array of OleVariant;
   TOleServer    = class;
@@ -446,7 +435,6 @@ type
     property ConnectKind: TConnectKind read GetConnectKind write SetConnectKind;
     property RemoteMachineName: string read FRemoteMachineName write FRemoteMachineName;
   end;
-{$ENDIF}
 
 var
   EmptyParam: OleVariant; { "Empty parameter" standard constant which can be
@@ -1911,7 +1899,6 @@ begin
   end;
 end;
 
-{$IFNDEF _D2orD3}
 { TServerEventDispatch }
 constructor TServerEventDispatch.Create(Server: TOleServer);
 begin
@@ -2130,7 +2117,6 @@ begin
   Dec(FRefCount);
   Result := FRefCount;
 end;
-{$ENDIF _D2orD3}
 
 { TEventDispatch }
 
@@ -2202,22 +2188,14 @@ end;
 
 function TOleCtlIntf._AddRef: Integer;
 begin
-  //{$IFDEF _D2orD3}
-  //Result := inherited _AddRef;
-  //{$ELSE}
   Inc(FRefCount);
   Result := FRefCount;
-  //{$ENDIF}
 end;
 
 function TOleCtlIntf._Release: Integer;
 begin
-  //{$IFDEF _D2orD3}
-  //Result := inherited _Release;
-  //{$ELSE}
   Dec(FRefCount);
   Result := FRefCount;
-  //{$ENDIF}
 end;
 
 function TOleCtlIntf.CanInPlaceActivate: HResult;

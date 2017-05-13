@@ -939,38 +939,6 @@ begin
         Result := true;
 end;
 
-(*
-function Data2Hex(Data: Pointer; Count: integer): Pointer;
-    function HexDigit( B : Byte ) : Char;
-    {$IFDEF F_P}
-    const
-      HexDigitChr: array[ 0..15 ] of Char = ( '0','1','2','3','4','5','6','7',
-                                              '8','9','A','B','C','D','E','F' );
-    begin
-      Result := HexDigitChr[ B and $F ];
-    end;
-    {$ELSE DELPHI}
-    asm
-             DB $3C,9
-             JA   @@1
-             DB $04, $30-$41+$0A
-    @@1:
-             DB $04, $41-$0A
-    end;
-    {$ENDIF F_P/DELPHI}
-
-var     i: integer;
-        ch: byte;
-begin
-    GetMem(Result, Count*2);
-    for i := 0 to Count-1 do begin
-        ch := Byte(PChar(Data)[i]);
-        PChar(Result)[i*2] := HexDigit( ch and $F );
-        ch := ch shr 4;
-        PChar(Result)[i*2+1] := HexDigit( ch and $F );
-    end;
-end;  *)
-
 function AlignColorTo16Bit;
 begin
     Color := Color2RGB( Color );
