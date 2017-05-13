@@ -4,7 +4,6 @@
 ********************************************************************************}
 
 {$IFDEF interface_1} ///////////////////////////////////////////////////////////
-  {$IFNDEF _D2}
   {$IFNDEF _FPC}
   TOnLVDataW = procedure( Sender: PControl; Idx, SubItem: Integer;
               var Txt: WideString; var ImgIdx: Integer; var State: DWORD;
@@ -15,12 +14,10 @@
      (i.e. having lvoOwnerData style) with actual data on request. Use parameter
      Store as a flag if control should store obtained data by itself or not. }
   {$ENDIF _FPC}
-  {$ENDIF _D2}
 {$ENDIF interface_1} ///////////////////////////////////////////////////////////
 
 {$IFDEF interface_2} ///////////////////////////////////////////////////////////
     {$IFNDEF _FPC}
-    {$IFNDEF _D2}
   protected
     fOnLVDataW: TOnLVDataW;
     function GetLVColTextW(Idx: Integer): WideString;
@@ -85,13 +82,11 @@
        as a concatenation of all parent nodes text strings, separated by
        given delimiter character. If Item is not specified ( =0 ), path is returned
        for Selected item. }
-    {$ENDIF _D2}
     {$ENDIF _FPC}
 {$ENDIF interface_2} ///////////////////////////////////////////////////////////
 
 {$IFDEF implementation} ////////////////////////////////////////////////////////
 {$IFNDEF _FPC}
-{$IFNDEF _D2}
 //[procedure LVGetItemW]
 procedure LVGetItemW( Sender: PControl; Idx, Col: Integer; var LVI: TLVItemW;
           TextBuf: PWideChar; TextBufSize: Integer );
@@ -228,7 +223,7 @@ begin
   while Item <> 0 do
   begin
     if Result <> '' then
-      Result := {$IFDEF _D3} '' + {$ENDIF} Delimiter + Result;
+      Result := Delimiter + Result;
     Result := TVItemTextW[ Item ] + Result;
     Item := TVItemParent[ Item ];
   end;
@@ -302,6 +297,5 @@ begin
     f.psz    := @s[1];
     result := Perform(LVM_FINDITEMW,StartAfter,integer(@f));
 end;
-{$ENDIF _D2}
 {$ENDIF _FPC}
 {$ENDIF implementation} ////////////////////////////////////////////////////////

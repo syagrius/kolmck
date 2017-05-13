@@ -1,47 +1,13 @@
-{$IFDEF VER90}
-  {$DEFINE _D2}
-  {$DEFINE _D2orD3}
-  {$DEFINE _D2orD3orD4}
-{$ENDIF}
-
-{$IFDEF VER100}
-  {$DEFINE _D3}
-  {$DEFINE _D3orHigher}
-  {$DEFINE _D2orD3}
-  {$DEFINE _D2orD3orD4}
-  {$DEFINE _D3orD4}
-{$ENDIF}
-
-{$IFDEF VER120}
-  {$DEFINE _D3orHigher}
-  {$DEFINE _D3orD4}
-  {$DEFINE _D4}
-  {$DEFINE _D4orHigher}
-  {$DEFINE _D2orD3orD4}
-  {$IFnDEF KOL_MCK}
-    {$DEFINE INPACKAGE}
-  {$ENDIF}
-{$ENDIF}
-
-{$IFDEF VER130}
-  {$DEFINE _D3orHigher}
-  {$DEFINE _D4orHigher}
+{$IFDEF VER130} // Delphi 5
   {$DEFINE _D5}
-  {$DEFINE _D5orHigher}
 {$ENDIF}
 
-{$IFDEF VER140}
-  {$DEFINE _D3orHigher}
-  {$DEFINE _D4orHigher}
-  {$DEFINE _D5orHigher}
+{$IFDEF VER140} // Delphi 6
   {$DEFINE _D6}
   {$DEFINE _D6orHigher}
 {$ENDIF}
 
-{$IFDEF VER150}
-  {$DEFINE _D3orHigher}
-  {$DEFINE _D4orHigher}
-  {$DEFINE _D5orHigher}
+{$IFDEF VER150} // Delphi 7
   {$DEFINE _D6orHigher}
   {$DEFINE _D7}
   {$DEFINE _D7orHigher}
@@ -57,9 +23,6 @@
 {$ENDIF}
 
 {$IFDEF VER170} // Delphi 2005
-  {$DEFINE _D3orHigher}
-  {$DEFINE _D4orHigher}
-  {$DEFINE _D5orHigher}
   {$DEFINE _D6orHigher}
   {$DEFINE _D7orHigher}
   {$DEFINE _D8}
@@ -74,9 +37,6 @@
 {$ENDIF}
 
 {$IFDEF VER180} // Delphi 2006
-  {$DEFINE _D3orHigher}
-  {$DEFINE _D4orHigher}
-  {$DEFINE _D5orHigher}
   {$DEFINE _D6orHigher}
   {$DEFINE _D7orHigher}
   {$DEFINE _D8orHigher}
@@ -90,12 +50,8 @@
   {$WARN UNSAFE_CODE OFF}
 {$ENDIF}
 
-{$IFDEF _D2005orHigher}
-  // by Thaddy de Koning:
+{$IFDEF _D2005orHigher} // by Thaddy de Koning:
   {$IFDEF VER185} // Delphi 2007 ( and Highlander )
-  {$DEFINE _D3orHigher}
-  {$DEFINE _D4orHigher}
-  {$DEFINE _D5orHigher}
   {$DEFINE _D6orHigher}
   {$DEFINE _D7orHigher}
   {$DEFINE _D2005orHigher}
@@ -112,9 +68,6 @@
 {$ENDIF}
 
 {$IFDEF VER200} // Delphi 2009
-  {$DEFINE _D3orHigher}
-  {$DEFINE _D4orHigher}
-  {$DEFINE _D5orHigher}
   {$DEFINE _D6orHigher}
   {$DEFINE _D7orHigher}
   {$DEFINE _D2005orHigher}
@@ -130,9 +83,6 @@
 {$ENDIF}
 
 {$IFDEF VER210} // Delphi 2010
-  {$DEFINE _D3orHigher}
-  {$DEFINE _D4orHigher}
-  {$DEFINE _D5orHigher}
   {$DEFINE _D6orHigher}
   {$DEFINE _D7orHigher}
   {$DEFINE _D2005orHigher}
@@ -149,9 +99,6 @@
 {$ENDIF}
 
 {$IFDEF VER220} // Delphi XE
-  {$DEFINE _D3orHigher}
-  {$DEFINE _D4orHigher}
-  {$DEFINE _D5orHigher}
   {$DEFINE _D6orHigher}
   {$DEFINE _D7orHigher}
   {$DEFINE _D2005orHigher}
@@ -169,9 +116,6 @@
 {$ENDIF}
 
 {$IFDEF VER230} // Delphi XE2
-  {$DEFINE _D3orHigher}
-  {$DEFINE _D4orHigher}
-  {$DEFINE _D5orHigher}
   {$DEFINE _D6orHigher}
   {$DEFINE _D7orHigher}
   {$DEFINE _D2005orHigher}
@@ -196,9 +140,6 @@
 {$ENDIF}
 
 {$IFDEF VER240} // Delphi XE3
-  {$DEFINE _D3orHigher}
-  {$DEFINE _D4orHigher}
-  {$DEFINE _D5orHigher}
   {$DEFINE _D6orHigher}
   {$DEFINE _D7orHigher}
   {$DEFINE _D2005orHigher}
@@ -224,9 +165,6 @@
 {$ENDIF}
 
 {$IFDEF VER250} // Delphi XE4
-  {$DEFINE _D3orHigher}
-  {$DEFINE _D4orHigher}
-  {$DEFINE _D5orHigher}
   {$DEFINE _D6orHigher}
   {$DEFINE _D7orHigher}
   {$DEFINE _D2005orHigher}
@@ -254,9 +192,6 @@
 {$ENDIF}
 
 {$IFDEF VER260} // Delphi XE5
-  {$DEFINE _D3orHigher}
-  {$DEFINE _D4orHigher}
-  {$DEFINE _D5orHigher}
   {$DEFINE _D6orHigher}
   {$DEFINE _D7orHigher}
   {$DEFINE _D2005orHigher}
@@ -285,9 +220,6 @@
 {$ENDIF}
 
 {$IFDEF VER270} // Delphi XE6
-  {$DEFINE _D3orHigher}
-  {$DEFINE _D4orHigher}
-  {$DEFINE _D5orHigher}
   {$DEFINE _D6orHigher}
   {$DEFINE _D7orHigher}
   {$DEFINE _D2005orHigher}
@@ -317,9 +249,6 @@
 {$ENDIF}
 
 {$IFDEF VER280} // Delphi XE7
-  {$DEFINE _D3orHigher}
-  {$DEFINE _D4orHigher}
-  {$DEFINE _D5orHigher}
   {$DEFINE _D6orHigher}
   {$DEFINE _D7orHigher}
   {$DEFINE _D2005orHigher}
@@ -366,29 +295,21 @@
   {$DEFINE USE_OLD_FLAGS} //size of set type in fpc is 4 bytes
   {------------------------------------
   by Thaddy de Koning:
-
   FPC version 2.1.1 is very compatible with Delphi and kol now.
   You can simply use the $(DELPHI)\source\rtl\win\*.pas files from Delphi 4/5 instead of the prepared files that were needed for
   FPC1.X
-
   That is all to have full compatibility.
   ------------------------------------}
   {$DEFINE PAS_VERSION}
   {$IFDEF VER2}
-    {$DEFINE _D3orHigher}
-    {$DEFINE _D4orHigher}
-    {$DEFINE _D5orHigher}
-    {$DEFINE _D6orHigher}
+          {$DEFINE _D6orHigher}
     {$DEFINE _D7}
     {$DEFINE _D7orHigher}
   {$ENDIF}
   {$IFDEF VER3}
     // I should clean this up later.
     {$DEFINE VER2}
-    {$DEFINE _D3orHigher}
-    {$DEFINE _D4orHigher}
-    {$DEFINE _D5orHigher}
-    {$DEFINE _D6orHigher}
+          {$DEFINE _D6orHigher}
     {$DEFINE _D7}
     {$DEFINE _D7orHigher}
     {$DEFINE _D2005orHigher}
@@ -409,8 +330,7 @@
 
 //{$DEFINE _FPC}
 {$DEFINE ASM_VERSION} // Comment this line to produce Pascal code.
-                      // Or, just add PAS_VERSION to conditionals
-                      // of your project (must be rebuilt).
+                      // Or, just add PAS_VERSION to conditionals of your project (must be rebuilt).
 
 {$IFDEF ASM_VERSION}
   {$IFDEF PAS_VERSION}
@@ -419,17 +339,6 @@
     // define a symbol PAS_VERSION in project options.
   {$ENDIF}
 {$ENDIF}
-
-//{$DEFINE USE_CONSTRUCTORS}
-// Comment this line to produce smaller code if constructors are not used.
-// When uncommented, this definition allows to create descendant controls
-// and objects overriding constructors, which are actually members of objects.
-// Otherwise, global functions (usually named New<ObjectName>) are used to
-// create and initialize object instances. This gives smaller code, but
-// prevents from using OOP inheritance.
-// Note: creating descendant objects derived from TObj does not require using
-// of this option. It is actually needed only for deriving new controls on
-// base of TControl. See also option USE_CUSTOMEXTENSIONS below.
 
 //{$DEFINE USE_CUSTOMEXTENSIONS}
 // Uncomment this option or add it to your project conditional defines,
@@ -444,16 +353,8 @@
 //  {$DEFINE UNLOAD_RICHEDITLIB}
 //{$ENDIF}
 // You can freely comment this directive. 1st, if the application does not
-// use richedit control. 2nd, even if it does, freeing the library handle
-// actually is not needed.
-// Another way to turn this option off is to define symbol NOT_UNLOAD_RICHEDITLIB
-// in your project options.
-
-//{$DEFINE TEST_VERSION}
-{$IFNDEF _D6orHigher}
-  {$DEFINE PARANOIA} //seems not needed from D6 !!! Inprise fixed this, finally...
-{$ENDIF}
-
+// use richedit control. 2nd, even if it does, freeing the library handle actually is not needed.
+// Another way to turn this option off is to define symbol NOT_UNLOAD_RICHEDITLIB in your project options.
 
 {$IFNDEF USE_OLD_FLAGS}
   {$DEFINE USE_FLAGS}
@@ -474,4 +375,3 @@
 {$ENDIF}
 
 {$DEFINE KOL3XX}
-{$DEFINE DIBPixels32bitWithAlpha}

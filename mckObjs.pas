@@ -37,8 +37,7 @@ uses KOL, Classes, Forms, Controls, Dialogs, Windows, Messages, extctrls,
 //////////////////////////////////////////
      {$ENDIF}                           //
 //////////////////////////////////////////
-     {$IFNDEF _D2} {$IFNDEF _d3}, imglist {$ENDIF} {$ENDIF},
-     TypInfo, menus;
+     imglist, TypInfo, menus;
 
 type
   //============================================================================
@@ -504,9 +503,6 @@ begin
 end;
 
 procedure RemoveSelection( FD: IFormDesigner );
-{$IFDEF _D2orD3}
-var L: TComponentList;
-{$ENDIF}
 begin
   asm
     jmp @@e_signature
@@ -515,17 +511,7 @@ begin
   @@e_signature:
   end;
   try
-    {$IFDEF _D5orHigher}
     FD.NoSelection;
-    {$ELSE}
-      {$IFDEF _D2orD3}
-        L := TComponentList.Create;
-        FD.SetSelections( L );
-        L.Free;
-      {$ELSE _D4}
-        FD.SetSelections( nil );
-      {$ENDIF}
-    {$ENDIF}
   except
     Rpt( '*/\* EXCEPTION - Could not remove current selection', WHITE );
   end;
@@ -717,94 +703,6 @@ begin
     //ColorList.Free;
   END;
 end;
-
-{$IFDEF _D2}
-procedure GenerateBitmapResource( Bitmap: TBitmap; const RsrcName, FileName: String;
-          var Updated: Boolean );
-var RL: TStringList;
-    Buf1, Buf2: PChar;
-    I, J: Integer;
-    F: THandle;
-    S: String;
-    KOLBmp: KOL.PBitmap;
-begin
-  asm
-    jmp @@e_signature
-    DB '#$signature$#', 0
-    DB 'GenerateBitmapResource', 0
-  @@e_signature:
-  end;
-  KOLBmp := NewDIBBitmap( Bitmap.Width, Bitmap.Height, KOL.pf32bit );
-  BitBlt( KOLBmp.Canvas.Handle, 0, 0, Bitmap.Width, Bitmap.Height,
-          Bitmap.Canvas.Handle, 0, 0, SRCCOPY );
-  KOLBmp.HandleType := KOL.bmDIB;
-  KOLBmp.PixelFormat := KOL.pf32bit;
-  KOLBmp.PixelFormat := CountSystemColorsUsedInBitmap( KOLBmp );
-  KOLBmp.SaveToFile( ProjectSourcePath + FileName + '.bmp' );
-
-  Buf1 := nil;
-  Buf2 := nil;
-  I := 0;
-  J := 0;
-  S := ProjectSourcePath + FileName + '.res';
-  if FileExists( S ) then
-  begin
-    I := FileSize( S );
-    if I > 0 then
-    begin
-      GetMem( Buf1, I );
-      F := KOL.FileCreate( S, ofOpenRead or ofShareDenyWrite or ofOpenExisting );
-      if F <> THandle( -1 ) then
-      begin
-        KOL.FileRead( F, Buf1^, I );
-        KOL.FileClose( F );
-      end;
-    end;
-  end;
-  RL := TStringList.Create;
-  RL.Add( UpperCase( RsrcName ) + ' BITMAP "' + FileName + '.bmp"' );
-  RL.SaveToFile( ProjectSourcePath + FileName + '.rc' );
-  RL.Free;
-  if not FileExists( ProjectSourcePath + FileName + '.rc' ) then
-  begin
-    ShowMessage( 'Can not save file: ' + ProjectSourcePath + FileName + '.rc' );
-    Exit;
-  end;
-  {ShellExecute( 0, 'open', PChar( ExtractFilePath( Application.ExeName ) + 'brcc32.exe' ),
-                PChar( ProjectSourcePath + FileName + '.rc' ), PChar( ProjectSourcePath ),
-                SW_HIDE );}
-  Rpt( 'Compiling resource ' + ProjectSourcePath + FileName + '.rc', WHITE );
-  if not ExecuteWait( ExtractFilePath( Application.ExeName ) + 'brcc32.exe',
-               '"' + ProjectSourcePath + FileName + '.rc"',
-               ProjectSourcePath, SW_HIDE, INFINITE, nil ) then
-  begin
-    Rpt( 'Can not compile resource with ' + ExtractFilePath( Application.ExeName ) + 'brcc32.exe', RED );
-  end;
-  if FileExists( S ) then
-  begin
-    J := FileSize( S );
-    if J > 0 then
-    begin
-      GetMem( Buf2, J );
-      F := KOL.FileCreate( S, ofOpenRead or ofShareDenyWrite or ofOpenExisting );
-      if F <> THandle( -1 ) then
-      begin
-        KOL.FileRead( F, Buf2^, J );
-        KOL.FileClose( F );
-      end;
-    end;
-  end;
-  if (Buf1 = nil) or (I <> J) or
-     (Buf2 <> nil) and not CompareMem( Buf1, Buf2, J ) then
-  begin
-    Rpt( 'Resource ' + FileName + ' changed.', WHITE );
-    Updated := TRUE;
-  end;
-  if Buf1 <> nil then FreeMem( Buf1 );
-  if Buf2 <> nil then FreeMem( Buf2 );
-end;
-
-{$ELSE not _D2}
 
 procedure OptimizeKOLBitmapBeforeRLEEncoding( B: KOL.PBitmap );
 var ColorCounts: array[ 0..255 ] of Integer;
@@ -1025,15 +923,13 @@ begin
   DeleteFile( Bmp );
 
   if FE then begin
-      hFtm := CreateFile( PChar( (Res+'_tmp') ), GENERIC_READ,
-FILE_SHARE_READ, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0 );
+      hFtm := CreateFile( PChar( (Res+'_tmp') ), GENERIC_READ, FILE_SHARE_READ, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0 );
       tm := GetFileSize( hFtm, nil );
       GetMem( Buf2, tm );
       ReadFile( hFtm, Buf2[0], tm, br, nil );
       CloseHandle( hFtm );
       DeleteFile( Res + '_tmp' );
-      if ( RLen <> tm ) or (not CompareMem( @Buf1[0], @Buf2[0], Min( RLen,
-tm ) )) then begin
+      if ( RLen <> tm ) or (not CompareMem( @Buf1[0], @Buf2[0], Min( RLen, tm ) )) then begin
           Rpt( 'Resource ' + Res + ' changed.', WHITE );
           Updated := True;
       end;
@@ -1042,7 +938,6 @@ tm ) )) then begin
   FreeMem( Buf1 );
 
 end;
-{$ENDIF}
 
 function SaveIcon( Icon: TIcon; const Path: String ): Boolean;
 var MS, MS2: TMemoryStream;
@@ -1384,10 +1279,8 @@ begin
     //FKOLImgList.BkColor := Color2RGB( BkColor );
     FKOLImgList.ImgWidth := ImgWidth;
     FKOLImgList.ImgHeight := ImgHeight;
-    {$IFDEF _D3orHigher}
     {Bitmap.HandleType := bmDIB;
     Bitmap.PixelFormat := pf24bit;}
-    {$ENDIF}
     //ShowMessage( Int2Hex( Color2RGB( BkColor ), 8 ) );
     if not Bitmap.Empty then
     begin
@@ -1595,9 +1488,6 @@ begin
 end;
 
 procedure TKOLImageList.SetBitmap(const Value: TBitmap);
-{$IFDEF _D2}
-var KOLBmp: KOL.PBitmap;
-{$ENDIF}
 begin
   asm
     jmp @@e_signature
@@ -1613,23 +1503,6 @@ begin
     {AK->}if FImgWidth<=0 then{<-AK} FImgWidth := FImgHeight;
     FCount := FBitmap.Width div FImgWidth;
   end;
-  {$IFDEF _D2}
-  KOLBmp := NewBitmap( Value.Width, Value.Height );
-  TRY
-    KOLBmp.HandleType := KOL.bmDIB;
-    KOLBmp.PixelFormat := KOL.pf32bit;
-    BitBlt( KOLBmp.Canvas.Handle, 0, 0, Value.Width, Value.Height,
-            Value.Canvas.Handle, 0, 0, SrcCopy );
-    case CountSystemColorsUsedInBitmap( KOLBmp ) of
-    KOL.pf1bit, KOL.pf4bit: Colors := ilcColor4;
-    KOL.pf8bit: Colors := ilcColor8;
-    KOL.pf32bit: Colors := ilcColor32;
-    else         Colors := ilcColor24;
-    end;
-  FINALLY
-    KOLBmp.Free;
-  END;
-  {$ELSE}
   if FBitmap.HandleType = bmDDB then
     Colors := ilcColorDDB
   else
@@ -1645,9 +1518,7 @@ begin
     else if Colors < ilcColor24 then Colors := ilcColor24;
     end;
   end;
-  {$ENDIF}
-  if (FBitmap.Height <> 0) and (FBitmap.Width <> 0) then
-  begin
+  if (FBitmap.Height <> 0) and (FBitmap.Width <> 0) then begin
     TransparentColor := FBitmap.Canvas.Pixels[ 0, FBitmap.Height - 1 ];
   end;
   if FKOLImgList <> nil then
@@ -1669,9 +1540,7 @@ begin
 end;
 
 procedure TKOLImageList.SetColors(const Value: TImageListColors);
-//{$IFDEF _D2}
 var KOLBmp: KOL.PBitmap;
-//{$ENDIF}
 begin
   asm
     jmp @@e_signature
@@ -1683,7 +1552,6 @@ begin
   FColors := Value;
   if FBitmap = nil then Exit;
   if FBitmap.Width * FBitmap.Height = 0 then Exit;
-  //{$IFDEF _D2}
   KOLBmp := NewBitmap( FBitmap.Width, FBitmap.Height );
   TRY
     KOLBmp.HandleType := KOL.bmDIB;
@@ -1701,23 +1569,6 @@ begin
   FINALLY
     KOLBmp.Free;
   END;
-  (*{$ELSE}
-  if Assigned( FBitmap ) then
-  begin
-    if FColors = ilcColorDDB then
-      FBitmap.HandleType := bmDDB
-    else
-    begin
-      FBitmap.HandleType := bmDIB;
-      case Value of
-      ilcColor4: FBitmap.PixelFormat := pf4bit;
-      ilcColor8: FBitmap.PixelFormat := pf8bit;
-      ilcColor24: FBitmap.PixelFormat := pf24bit;
-      ilcColor32: FBitmap.PixelFormat := pf32bit;
-      end;
-    end;
-  end;
-  {$ENDIF}*)
   Change;
 end;
 
@@ -1972,8 +1823,6 @@ begin
   IL.Height := KIL.ImgHeight;}
   try
 
-    {$IFNDEF _D2}
-    //KIL.Bitmap.HandleType := bmDIB;
     CASE KIL.Colors OF
     ilcColor4  : I := ILC_COLOR4;
     ilcColor8  : I := ILC_COLOR8;
@@ -1982,19 +1831,7 @@ begin
     ilcColor32 : I := ILC_COLOR32;
     else         I := ILC_COLOR;
     END;
-    {case KIL.Bitmap.PixelFormat of
-    pf1bit, pf4bit:   I := ILC_COLOR4;
-    pf8bit:           I := ILC_COLOR8;
-    pf15bit, pf16bit: I := ILC_COLOR16;
-    pf24bit:          I := ILC_COLOR24;
-    pf32bit:          I := ILC_COLOR32;
-    else              I := ILC_COLOR;
-    end;}
-    {$ELSE}
-    I := ILC_COLOR;
-    {$ENDIF}
 
-    //I := ILC_COLOR8;
     if KIL.TransparentColor = clNone then
       ILH := ImageList_Create( KIL.ImgWidth, KIL.ImgHeight, I, KIL.Count, 1 )
     else

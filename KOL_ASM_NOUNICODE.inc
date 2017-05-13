@@ -236,7 +236,7 @@ asm     // EAX = Value
 @@loop: DEC       EDI
         DEC       EDX
           PUSH      EAX
-          {$IFDEF PARANOIA} DB $24, $0F {$ELSE} AND AL, 0Fh {$ENDIF}
+          AND AL, 0Fh
           AAM
           DB $D5, $11 //AAD
           ADD      AL, $30
@@ -266,24 +266,24 @@ asm
         TEST     ESI, ESI
         JE       @@exit
         LODSB
-        {$IFDEF PARANOIA} DB $3C, '$' {$ELSE} CMP AL, '$' {$ENDIF}
+        CMP AL, '$'
         JNE      @@1
 @@0:    LODSB
 @@1:    TEST     AL, AL
         JE       @@exit
-        {$IFDEF PARANOIA} DB $2C, '0' {$ELSE} SUB AL, '0' {$ENDIF}
-        {$IFDEF PARANOIA} DB $3C, 9 {$ELSE} CMP AL, '9' - '0' {$ENDIF}
+        SUB AL, '0'
+        CMP AL, '9' - '0'
         JBE      @@3
 
-        {$IFDEF PARANOIA} DB $2C, $11 {$ELSE} SUB AL, 'A' - '0' {$ENDIF}
-        {$IFDEF PARANOIA} DB $3C, 5 {$ELSE} CMP AL, 'F' - 'A' {$ENDIF}
+        SUB AL, 'A' - '0'
+        CMP AL, 'F' - 'A'
         JBE      @@2
 
-        {$IFDEF PARANOIA} DB $2C, 32 {$ELSE} SUB AL, 32 {$ENDIF}
-        {$IFDEF PARANOIA} DB $3C, 5 {$ELSE} CMP AL, 'F' - 'A' {$ENDIF}
+        SUB AL, 32 
+        CMP AL, 'F' - 'A'
         JA       @@exit
 @@2:
-        {$IFDEF PARANOIA} DB $04, 0Ah {$ELSE} ADD AL, 0Ah {$ENDIF}
+        ADD AL, 0Ah
 @@3:
         SHL      EDX, 4
         ADD      DL, AL
@@ -476,11 +476,7 @@ asm     PUSH     EBX
         MOV      EDI, ESP
         FLD      ST(0)
         CALL     System.@TRUNC
-        {$IFDEF _D2orD3}
-        PUSH     0
-        {$ELSE}
         PUSH     EDX
-        {$ENDIF}
         PUSH     EAX
         FILD     qword ptr [ESP]
         POP      EDX
@@ -1012,10 +1008,6 @@ end;
 
 function StrIsStartingFrom( Str, Pattern: PKOLChar ): Boolean;
 asm
-  {$IFDEF F_P}
-        MOV     EAX, [Str]
-        MOV     EDX, [Pattern]
-  {$ENDIF F_P}
         XOR     ECX, ECX
       @@1:
         MOV     CL, [EDX]   // pattern[ i ]
@@ -1028,7 +1020,7 @@ asm
       @@2:
         TEST    CL, CL
         SETZ    AL
-end {$IFDEF F_P} [ 'EAX', 'EDX', 'ECX' ] {$ENDIF};
+end;
 
 function Format( const fmt: KOLString; params: array of const ): AnsiString;
 asm
@@ -1118,7 +1110,7 @@ asm
         INC      EAX
         JZ       @@exit
         DEC      EAX
-        {$IFDEF PARANOIA} DB $24, FILE_ATTRIBUTE_DIRECTORY {$ELSE} AND AL, FILE_ATTRIBUTE_DIRECTORY {$ENDIF}
+        AND AL, FILE_ATTRIBUTE_DIRECTORY
         SETZ     AL
 @@exit:
 {$ENDIF}
@@ -2584,10 +2576,10 @@ asm     //cmd    //opd
             PUSH     EBX
             CALL     ESI
             MOV      EAX, [ESP+8] // Align
-            {$IFDEF PARANOIA} DB $2C, 1 {$ELSE} SUB AL, 1 {$ENDIF}
+            SUB AL, 1
             JL       @@bounds_correct
             JE       @@corr_right
-            {$IFDEF PARANOIA} DB $2C, 2 {$ELSE} SUB AL, 2 {$ENDIF}
+            SUB AL, 2
             JNE      @@corr_bottom
     @@corr_right:
             MOV      EDX, [EBX].TControl.fBoundsRect.Left
@@ -3055,19 +3047,19 @@ asm
         LEA      ECX, [EBX].TControl.EV.fOnKeyUp
         {$ENDIF}
         JZ       @@event
-        {$IFDEF PARANOIA} DB $34, 1 {$ELSE} XOR AL, 1 {$ENDIF}
+        XOR AL, 1 
         JZ       @@event
         //LEA      ECX, [EBX].TControl.EV.fOnKeyDown
         ADD      ECX, 8
-        {$IFDEF PARANOIA} DB $34, 1 {$ELSE} XOR AL, 1 {$ENDIF}
+        XOR AL, 1 
         JZ       @@event
-        {$IFDEF PARANOIA} DB $34, 4 {$ELSE} XOR AL, 4 {$ENDIF}
+        XOR AL, 4 
         JZ       @@event
         //LEA      ECX, [EBX].TControl.EV.fOnChar
         SUB      ECX, 24
-        {$IFDEF PARANOIA} DB $34, 6 {$ELSE} XOR AL, 2 xor 4 {$ENDIF}
+        XOR AL, 2 xor 4
         JZ       @@event
-        {$IFDEF PARANOIA} DB $34, 4 {$ELSE} XOR AL, 6 xor 2 {$ENDIF}
+        XOR AL, 6 xor 2
         JNZ      @@fin_false
 @@event:
         {$IFDEF  NIL_EVENTS}
@@ -3713,14 +3705,10 @@ asm
         XCHG     ECX, EAX
         MOV      EAX, ESP
         PUSH     ECX
-        {$IFDEF _D2}
-        CALL     _LStrFromPCharLen
-        {$ELSE}
         {$IFDEF _D2009orHigher}
         PUSH EDX // ushort 0, CodePage?
         {$ENDIF}
         CALL     System.@LStrFromPCharLen
-        {$ENDIF}
         POP      ECX
         MOV      EAX, EBX
         POP      EDX

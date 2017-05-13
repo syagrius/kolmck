@@ -683,10 +683,8 @@ type
   MakeIntAtom = MakeIntAtomA;
   PWin32FindData = PWin32FindDataA;
   TWin32FindData = TWin32FindDataA;
-  {$IFDEF _D3orHigher}
   PHWProfileInfo = PHWProfileInfoA;
   THWProfileInfo = THWProfileInfoA;
-  {$ENDIF}
   POSVersionInfo = POSVersionInfoA;
   TOSVersionInfo = TOSVersionInfoA;
   PLogColorSpace = PLogColorSpaceA;
@@ -1225,7 +1223,6 @@ type
   // REMOTE_NAME_INFO}
   REMOTE_NAME_INFO = REMOTE_NAME_INFOA;
   AUDIT_EVENT_TYPE = DWORD;
-  {$IFDEF _D3orHigher}
   PObjectTypeList = ^TObjectTypeList;
   _OBJECT_TYPE_LIST = record
     Level: WORD;
@@ -1234,7 +1231,6 @@ type
   end;
   TObjectTypeList = _OBJECT_TYPE_LIST;
   OBJECT_TYPE_LIST = _OBJECT_TYPE_LIST;
-  {$ENDIF _D3orHigher}
   { Alt-Tab Switch window information. }
   PAltTabInfo = ^TAltTabInfo;
   tagALTTABINFO = {packed} record
@@ -1256,7 +1252,6 @@ function AccessCheckAndAuditAlarm(SubsystemName: PKOLChar;
   SecurityDescriptor: PSecurityDescriptor; DesiredAccess: DWORD;
   const GenericMapping: TGenericMapping;  ObjectCreation: BOOL;
   var GrantedAccess: DWORD; var AccessStatus, pfGenerateOnClose: BOOL): BOOL; stdcall;
-{$IFDEF _D4orHigher}
 function AccessCheckByTypeAndAuditAlarm(SubsystemName: PKOLChar;
   HandleId: Pointer; ObjectTypeName, ObjectName: PKOLChar;
   SecurityDescriptor: PSecurityDescriptor; PrincipalSelfSid: PSID; DesiredAccess: DWORD;
@@ -1269,7 +1264,6 @@ function AccessCheckByTypeResultListAndAuditAlarm(SubsystemName: PKOLChar;
   AuditType: AUDIT_EVENT_TYPE; Flags: DWORD; ObjectTypeList: PObjectTypeList;
   ObjectTypeListLength: DWORD; const GenericMapping: TGenericMapping;  ObjectCreation: BOOL;
   var GrantedAccess: DWORD; var AccessStatusList: DWORD; var pfGenerateOnClose: BOOL): BOOL; stdcall;
-{$ENDIF _D4orHigher}  
 function BackupEventLog(hEventLog: THandle; lpBackupFileName: PKOLChar): BOOL; stdcall;
 function ClearEventLog(hEventLog: THandle; lpBackupFileName: PKOLChar): BOOL; stdcall;
 function CreateProcessAsUser(hToken: THandle; lpApplicationName: PKOLChar;
@@ -1277,9 +1271,7 @@ function CreateProcessAsUser(hToken: THandle; lpApplicationName: PKOLChar;
   lpThreadAttributes: PSecurityAttributes; bInheritHandles: BOOL;
   dwCreationFlags: DWORD; lpEnvironment: Pointer; lpCurrentDirectory: PKOLChar;
   const lpStartupInfo: TStartupInfo; var lpProcessInformation: TProcessInformation): BOOL; stdcall;
-{$IFDEF _D3orHigher}
 function GetCurrentHwProfile(var lpHwProfileInfo: THWProfileInfo): BOOL; stdcall;
-{$ENDIF _D3orHigher}
 function GetFileSecurity(lpFileName: PKOLChar; RequestedInformation: SECURITY_INFORMATION;
   pSecurityDescriptor: PSecurityDescriptor; nLength: DWORD; var lpnLengthNeeded: DWORD): BOOL; stdcall;
 function GetUserName(lpBuffer: PKOLChar; var nSize: DWORD): BOOL; stdcall;
@@ -1378,11 +1370,9 @@ function CommConfigDialog(lpszName: PKOLChar; hWnd: HWND; var lpCC: TCommConfig)
 function CompareString(Locale: LCID; dwCmpFlags: DWORD; lpString1: PKOLChar;
   cchCount1: Integer; lpString2: PKOLChar; cchCount2: Integer): Integer; stdcall;
 function CopyFile(lpExistingFileName, lpNewFileName: PKOLChar; bFailIfExists: BOOL): BOOL; stdcall;
-{$IFDEF _D3orHigher}
 function CopyFileEx(lpExistingFileName, lpNewFileName: PKOLChar;
   lpProgressRoutine: TFNProgressRoutine; lpData: Pointer; pbCancel: PBool;
   dwCopyFlags: DWORD): BOOL; stdcall;
-{$ENDIF _D3orHigher}
 function CreateDirectory(lpPathName: PKOLChar;
   lpSecurityAttributes: PSecurityAttributes): BOOL; stdcall;
 function CreateDirectoryEx(lpTemplateDirectory, lpNewDirectory: PKOLChar;
@@ -1434,11 +1424,9 @@ function FindAtom(lpString: PKOLChar): ATOM; stdcall;
 function FindFirstChangeNotification(lpPathName: PKOLChar;
   bWatchSubtree: BOOL; dwNotifyFilter: DWORD): THandle; stdcall;
 function FindFirstFile(lpFileName: PKOLChar; var lpFindFileData: TWIN32FindData): THandle; stdcall;
-{$IFDEF _D3orHigher}
 function FindFirstFileEx(lpFileName: PKOLChar; fInfoLevelId: TFindexInfoLevels;
   lpFindFileData: Pointer; fSearchOp: TFindexSearchOps; lpSearchFilter: Pointer;
   dwAdditionalFlags: DWORD): BOOL; stdcall;
-{$ENDIF _D3orHigher}
 function FindNextFile(hFindFile: THandle; var lpFindFileData: TWIN32FindData): BOOL; stdcall;
 function FindResource(hModule: HMODULE; lpName, lpType: PKOLChar): HRSRC; stdcall;
 function FindResourceEx(hModule: HMODULE; lpType, lpName: PKOLChar; wLanguage: Word): HRSRC; stdcall;
@@ -1468,10 +1456,7 @@ function GetDriveType(lpRootPathName: PKOLChar): UINT; stdcall;
 function GetEnvironmentStrings: PKOLChar; stdcall;
 function GetEnvironmentVariable(lpName: PKOLChar; lpBuffer: PKOLChar; nSize: DWORD): DWORD; stdcall; //overload;
 function GetFileAttributes(lpFileName: PKOLChar): DWORD; stdcall;
-{$IFDEF _D3orHigher}
-function GetFileAttributesEx(lpFileName: PKOLChar;
-  fInfoLevelId: TGetFileExInfoLevels; lpFileInformation: Pointer): BOOL; stdcall;
-{$ENDIF _D3orHigher}
+function GetFileAttributesEx(lpFileName: PKOLChar; fInfoLevelId: TGetFileExInfoLevels; lpFileInformation: Pointer): BOOL; stdcall;
 function GetFullPathName(lpFileName: PKOLChar; nBufferLength: DWORD;
   lpBuffer: PKOLChar; var lpFilePart: PKOLChar): DWORD; stdcall;
 function GetLocaleInfo(Locale: LCID; LCType: LCTYPE; lpLCData: PKOLChar; cchData: Integer): Integer; stdcall;
@@ -1519,35 +1504,25 @@ function LoadLibrary(lpLibFileName: PKOLChar): HMODULE; stdcall;
 function LoadLibraryEx(lpLibFileName: PKOLChar; hFile: THandle; dwFlags: DWORD): HMODULE; stdcall;
 function MoveFile(lpExistingFileName, lpNewFileName: PKOLChar): BOOL; stdcall;
 function MoveFileEx(lpExistingFileName, lpNewFileName: PKOLChar; dwFlags: DWORD): BOOL; stdcall;
-{$IFDEF _D3orHigher}
 function MoveFileWithProgress(lpExistingFileName, lpNewFileName: PKOLChar; lpProgressRoutine: TFNProgressRoutine;
   lpData: Pointer; dwFlags: DWORD): BOOL; stdcall;
-{$ENDIF _D3orHigher}
 function OpenEvent(dwDesiredAccess: DWORD; bInheritHandle: BOOL; lpName: PKOLChar): THandle; stdcall;
 function OpenFileMapping(dwDesiredAccess: DWORD; bInheritHandle: BOOL; lpName: PKOLChar): THandle; stdcall;
 function OpenMutex(dwDesiredAccess: DWORD; bInheritHandle: BOOL; lpName: PKOLChar): THandle; stdcall;
 function OpenSemaphore(dwDesiredAccess: DWORD; bInheritHandle: BOOL; lpName: PKOLChar): THandle; stdcall;
-function OpenWaitableTimer(dwDesiredAccess: DWORD; bInheritHandle: BOOL;
-  lpTimerName: PKOLChar): THandle; stdcall;
+function OpenWaitableTimer(dwDesiredAccess: DWORD; bInheritHandle: BOOL; lpTimerName: PKOLChar): THandle; stdcall;
 procedure OutputDebugString(lpOutputString: PKOLChar); stdcall;
-function PeekConsoleInput(hConsoleInput: THandle; var lpBuffer: TInputRecord;
-  nLength: DWORD; var lpNumberOfEventsRead: DWORD): BOOL; stdcall;
+function PeekConsoleInput(hConsoleInput: THandle; var lpBuffer: TInputRecord; nLength: DWORD; var lpNumberOfEventsRead: DWORD): BOOL; stdcall;
 function QueryDosDevice(lpDeviceName: PKOLChar; lpTargetPath: PKOLChar; ucchMax: DWORD): DWORD; stdcall;
 function QueryRecoveryAgents(p1: PKOLChar; var p2: Pointer; var p3: TRecoveryAgentInformation): DWORD; stdcall;
-function ReadConsole(hConsoleInput: THandle; lpBuffer: Pointer;
-  nNumberOfCharsToRead: DWORD; var lpNumberOfCharsRead: DWORD; lpReserved: Pointer): BOOL; stdcall;
-function ReadConsoleInput(hConsoleInput: THandle; var lpBuffer: TInputRecord;
-  nLength: DWORD; var lpNumberOfEventsRead: DWORD): BOOL; stdcall;
-function ReadConsoleOutput(hConsoleOutput: THandle; lpBuffer: Pointer;
-  dwBufferSize, dwBufferCoord: TCoord; var lpReadRegion: TSmallRect): BOOL; stdcall;
-function ReadConsoleOutputCharacter(hConsoleOutput: THandle; lpCharacter: PKOLChar;
-  nLength: DWORD; dwReadCoord: TCoord; var lpNumberOfCharsRead: DWORD): BOOL; stdcall;
+function ReadConsole(hConsoleInput: THandle; lpBuffer: Pointer; nNumberOfCharsToRead: DWORD; var lpNumberOfCharsRead: DWORD; lpReserved: Pointer): BOOL; stdcall;
+function ReadConsoleInput(hConsoleInput: THandle; var lpBuffer: TInputRecord; nLength: DWORD; var lpNumberOfEventsRead: DWORD): BOOL; stdcall;
+function ReadConsoleOutput(hConsoleOutput: THandle; lpBuffer: Pointer; dwBufferSize, dwBufferCoord: TCoord; var lpReadRegion: TSmallRect): BOOL; stdcall;
+function ReadConsoleOutputCharacter(hConsoleOutput: THandle; lpCharacter: PKOLChar; nLength: DWORD; dwReadCoord: TCoord; var lpNumberOfCharsRead: DWORD): BOOL; stdcall;
 function RemoveDirectory(lpPathName: PKOLChar): BOOL; stdcall;
-function ScrollConsoleScreenBuffer(hConsoleOutput: THandle;
-  const lpScrollRectangle: TSmallRect; lpClipRectangle: PSmallRect;
+function ScrollConsoleScreenBuffer(hConsoleOutput: THandle; const lpScrollRectangle: TSmallRect; lpClipRectangle: PSmallRect;
   dwDestinationOrigin: TCoord; var lpFill: TCharInfo): BOOL; stdcall;
-function SearchPath(lpPath, lpFileName, lpExtension: PKOLChar;
-  nBufferLength: DWORD; lpBuffer: PKOLChar; var lpFilePart: PKOLChar): DWORD; stdcall;
+function SearchPath(lpPath, lpFileName, lpExtension: PKOLChar; nBufferLength: DWORD; lpBuffer: PKOLChar; var lpFilePart: PKOLChar): DWORD; stdcall;
 function SetComputerName(lpComputerName: PKOLChar): BOOL; stdcall;
 function SetConsoleTitle(lpConsoleTitle: PKOLChar): BOOL; stdcall;
 function SetCurrentDirectory(lpPathName: PKOLChar): BOOL; stdcall;
@@ -1556,18 +1531,13 @@ function SetEnvironmentVariable(lpName, lpValue: PKOLChar): BOOL; stdcall;
 function SetFileAttributes(lpFileName: PKOLChar; dwFileAttributes: DWORD): BOOL; stdcall;
 function SetLocaleInfo(Locale: LCID; LCType: LCTYPE; lpLCData: PKOLChar): BOOL; stdcall;
 function SetVolumeLabel(lpRootPathName: PKOLChar; lpVolumeName: PKOLChar): BOOL; stdcall;
-function UpdateResource(hUpdate: THandle; lpType, lpName: PKOLChar;
-  wLanguage: Word; lpData: Pointer; cbData: DWORD): BOOL; stdcall;
+function UpdateResource(hUpdate: THandle; lpType, lpName: PKOLChar; wLanguage: Word; lpData: Pointer; cbData: DWORD): BOOL; stdcall;
 function VerLanguageName(wLang: DWORD; szLang: PKOLChar; nSize: DWORD): DWORD; stdcall;
 function WaitNamedPipe(lpNamedPipeName: PKOLChar; nTimeOut: DWORD): BOOL; stdcall;
-function WriteConsole(hConsoleOutput: THandle; const lpBuffer: Pointer;
-  nNumberOfCharsToWrite: DWORD; var lpNumberOfCharsWritten: DWORD; lpReserved: Pointer): BOOL; stdcall;
-function WriteConsoleInput(hConsoleInput: THandle; const lpBuffer: TInputRecord;
-  nLength: DWORD; var lpNumberOfEventsWritten: DWORD): BOOL; stdcall;
-function WriteConsoleOutput(hConsoleOutput: THandle; lpBuffer: Pointer;
-  dwBufferSize, dwBufferCoord: TCoord; var lpWriteRegion: TSmallRect): BOOL; stdcall;
-function WriteConsoleOutputCharacter(hConsoleOutput: THandle;lpCharacter: PKOLChar;
-  nLength: DWORD; dwWriteCoord: TCoord; var lpNumberOfCharsWritten: DWORD): BOOL; stdcall;
+function WriteConsole(hConsoleOutput: THandle; const lpBuffer: Pointer; nNumberOfCharsToWrite: DWORD; var lpNumberOfCharsWritten: DWORD; lpReserved: Pointer): BOOL; stdcall;
+function WriteConsoleInput(hConsoleInput: THandle; const lpBuffer: TInputRecord; nLength: DWORD; var lpNumberOfEventsWritten: DWORD): BOOL; stdcall;
+function WriteConsoleOutput(hConsoleOutput: THandle; lpBuffer: Pointer; dwBufferSize, dwBufferCoord: TCoord; var lpWriteRegion: TSmallRect): BOOL; stdcall;
+function WriteConsoleOutputCharacter(hConsoleOutput: THandle;lpCharacter: PKOLChar; nLength: DWORD; dwWriteCoord: TCoord; var lpNumberOfCharsWritten: DWORD): BOOL; stdcall;
 function WritePrivateProfileSection(lpAppName, lpString, lpFileName: PKOLChar): BOOL; stdcall;
 function WritePrivateProfileString(lpAppName, lpKeyName, lpString, lpFileName: PKOLChar): BOOL; stdcall;
 function WriteProfileSection(lpAppName, lpString: PKOLChar): BOOL; stdcall;
@@ -1578,60 +1548,39 @@ function lstrcmpi(lpString1, lpString2: PKOLChar): Integer; stdcall;
 function lstrcpy(lpString1, lpString2: PKOLChar): PKOLChar; stdcall;
 function lstrcpyn(lpString1, lpString2: PKOLChar; iMaxLength: Integer): PKOLChar; stdcall;
 function lstrlen(lpString: PKOLChar): Integer; stdcall;
-function MultinetGetConnectionPerformance(lpNetResource: PNetResource;
-  lpNetConnectInfoStruc: PNetConnectInfoStruct): DWORD; stdcall;
-function WNetAddConnection2(var lpNetResource: TNetResource;
-  lpPassword, lpUserName: PKOLChar; dwFlags: DWORD): DWORD; stdcall;
-function WNetAddConnection3(hwndOwner: HWND; var lpNetResource: TNetResource;
-  lpPassword, lpUserName: PKOLChar; dwFlags: DWORD): DWORD; stdcall;
+function MultinetGetConnectionPerformance(lpNetResource: PNetResource; lpNetConnectInfoStruc: PNetConnectInfoStruct): DWORD; stdcall;
+function WNetAddConnection2(var lpNetResource: TNetResource; lpPassword, lpUserName: PKOLChar; dwFlags: DWORD): DWORD; stdcall;
+function WNetAddConnection3(hwndOwner: HWND; var lpNetResource: TNetResource; lpPassword, lpUserName: PKOLChar; dwFlags: DWORD): DWORD; stdcall;
 function WNetAddConnection(lpRemoteName, lpPassword, lpLocalName: PKOLChar): DWORD; stdcall;
 function WNetCancelConnection2(lpName: PKOLChar; dwFlags: DWORD; fForce: BOOL): DWORD; stdcall;
 function WNetCancelConnection(lpName: PKOLChar; fForce: BOOL): DWORD; stdcall;
 function WNetConnectionDialog1(var lpConnDlgStruct: TConnectDlgStruct): DWORD; stdcall;
 function WNetDisconnectDialog1(var lpConnDlgStruct: TDiscDlgStruct): DWORD; stdcall;
-function WNetEnumResource(hEnum: THandle; var lpcCount: DWORD;
-  lpBuffer: Pointer; var lpBufferSize: DWORD): DWORD; stdcall;
-function WNetGetConnection(lpLocalName: PKOLChar;
-  lpRemoteName: PKOLChar; var lpnLength: DWORD): DWORD; stdcall;
-function WNetGetLastError(var lpError: DWORD; lpErrorBuf: PKOLChar;
-  nErrorBufSize: DWORD; lpNameBuf: PKOLChar; nNameBufSize: DWORD): DWORD; stdcall;
-function WNetGetNetworkInformation(lpProvider: PKOLChar;
-  var lpNetInfoStruct: TNetInfoStruct): DWORD; stdcall;
-function WNetGetProviderName(dwNetType: DWORD; lpProviderName: PKOLChar;
-  var lpBufferSize: DWORD): DWORD; stdcall;
-function WNetGetResourceParent(lpNetResource: PNetResource;
-  lpBuffer: Pointer; var cbBuffer: DWORD): DWORD; stdcall;
-function WNetGetUniversalName(lpLocalPath: PKOLChar; dwInfoLevel: DWORD;
-  lpBuffer: Pointer; var lpBufferSize: DWORD): DWORD; stdcall;
+function WNetEnumResource(hEnum: THandle; var lpcCount: DWORD; lpBuffer: Pointer; var lpBufferSize: DWORD): DWORD; stdcall;
+function WNetGetConnection(lpLocalName: PKOLChar; lpRemoteName: PKOLChar; var lpnLength: DWORD): DWORD; stdcall;
+function WNetGetLastError(var lpError: DWORD; lpErrorBuf: PKOLChar; nErrorBufSize: DWORD; lpNameBuf: PKOLChar; nNameBufSize: DWORD): DWORD; stdcall;
+function WNetGetNetworkInformation(lpProvider: PKOLChar; var lpNetInfoStruct: TNetInfoStruct): DWORD; stdcall;
+function WNetGetProviderName(dwNetType: DWORD; lpProviderName: PKOLChar; var lpBufferSize: DWORD): DWORD; stdcall;
+function WNetGetResourceParent(lpNetResource: PNetResource; lpBuffer: Pointer; var cbBuffer: DWORD): DWORD; stdcall;
+function WNetGetUniversalName(lpLocalPath: PKOLChar; dwInfoLevel: DWORD; lpBuffer: Pointer; var lpBufferSize: DWORD): DWORD; stdcall;
 function WNetGetUser(lpName: PKOLChar; lpUserName: PKOLChar; var lpnLength: DWORD): DWORD; stdcall;
-function WNetOpenEnum(dwScope, dwType, dwUsage: DWORD;
-  lpNetResource: PNetResource; var lphEnum: THandle): DWORD; stdcall;
+function WNetOpenEnum(dwScope, dwType, dwUsage: DWORD; lpNetResource: PNetResource; var lphEnum: THandle): DWORD; stdcall;
 function WNetSetConnection(lpName: PKOLChar; dwProperties: DWORD; pvValues: Pointer): DWORD; stdcall;
-function WNetUseConnection(hwndOwner: HWND;
-  var lpNetResource: TNetResource; lpUserID: PKOLChar;
-  lpPassword: PKOLChar; dwFlags: DWORD; lpAccessName: PKOLChar;
-  var lpBufferSize: DWORD; var lpResult: DWORD): DWORD; stdcall;
-function GetFileVersionInfo(lptstrFilename: PKOLChar; dwHandle, dwLen: DWORD;
-  lpData: Pointer): BOOL; stdcall;
+function WNetUseConnection(hwndOwner: HWND; var lpNetResource: TNetResource; lpUserID: PKOLChar;
+  lpPassword: PKOLChar; dwFlags: DWORD; lpAccessName: PKOLChar; var lpBufferSize: DWORD; var lpResult: DWORD): DWORD; stdcall;
+function GetFileVersionInfo(lptstrFilename: PKOLChar; dwHandle, dwLen: DWORD; lpData: Pointer): BOOL; stdcall;
 function GetFileVersionInfoSize(lptstrFilename: PKOLChar; var lpdwHandle: DWORD): DWORD; stdcall;
-function VerFindFile(uFlags: DWORD; szFileName, szWinDir, szAppDir, szCurDir: PKOLChar;
-  var lpuCurDirLen: UINT; szDestDir: PKOLChar; var lpuDestDirLen: UINT): DWORD; stdcall;
-function VerInstallFile(uFlags: DWORD;
-  szSrcFileName, szDestFileName, szSrcDir, szDestDir, szCurDir, szTmpFile: PKOLChar;
-  var lpuTmpFileLen: UINT): DWORD; stdcall;
-function VerQueryValue(pBlock: Pointer; lpSubBlock: PKOLChar;
-  var lplpBuffer: Pointer; var puLen: UINT): BOOL; stdcall;
-function GetPrivateProfileStruct(lpszSection, lpszKey: PKOLChar;
-  lpStruct: Pointer; uSizeStruct: UINT; szFile: PKOLChar): BOOL; stdcall;
-function WritePrivateProfileStruct(lpszSection, lpszKey: PKOLChar;
-  lpStruct: Pointer; uSizeStruct: UINT; szFile: PKOLChar): BOOL; stdcall;
+function VerFindFile(uFlags: DWORD; szFileName, szWinDir, szAppDir, szCurDir: PKOLChar; var lpuCurDirLen: UINT; szDestDir: PKOLChar; var lpuDestDirLen: UINT): DWORD; stdcall;
+function VerInstallFile(uFlags: DWORD; szSrcFileName, szDestFileName, szSrcDir, szDestDir, szCurDir, szTmpFile: PKOLChar; var lpuTmpFileLen: UINT): DWORD; stdcall;
+function VerQueryValue(pBlock: Pointer; lpSubBlock: PKOLChar; var lplpBuffer: Pointer; var puLen: UINT): BOOL; stdcall;
+function GetPrivateProfileStruct(lpszSection, lpszKey: PKOLChar; lpStruct: Pointer; uSizeStruct: UINT; szFile: PKOLChar): BOOL; stdcall;
+function WritePrivateProfileStruct(lpszSection, lpszKey: PKOLChar; lpStruct: Pointer; uSizeStruct: UINT; szFile: PKOLChar): BOOL; stdcall;
 function AddFontResource(FileName: PKOLChar): Integer; stdcall;
 function AddFontResourceEx(p1: PKOLChar; p2: DWORD; p3: PDesignVector): Integer; stdcall;
 function CopyEnhMetaFile(p1: HENHMETAFILE; p2: PKOLChar): HENHMETAFILE; stdcall;
 function CopyMetaFile(p1: HMETAFILE; p2: PKOLChar): HMETAFILE; stdcall;
 function CreateColorSpace(var ColorSpace: TLogColorSpace): HCOLORSPACE; stdcall;
-function CreateDC(lpszDriver, lpszDevice, lpszOutput: PKOLChar;
-  lpdvmInit: PDeviceMode): HDC; stdcall;
+function CreateDC(lpszDriver, lpszDevice, lpszOutput: PKOLChar; lpdvmInit: PDeviceMode): HDC; stdcall;
 function CreateEnhMetaFile(DC: HDC; FileName: PKOLChar; Rect: PRect; Desc: PKOLChar): HDC; stdcall;
 function CreateFont(nHeight, nWidth, nEscapement, nOrientaion, fnWeight: Integer;
   fdwItalic, fdwUnderline, fdwStrikeOut, fdwCharSet, fdwOutputPrecision,
@@ -1641,39 +1590,30 @@ function CreateFontIndirectEx(const p1: PEnumLogFontExDV): HFONT; stdcall;
 function CreateIC(lpszDriver, lpszDevice, lpszOutput: PKOLChar; lpdvmInit: PDeviceMode): HDC; stdcall;
 function CreateMetaFile(p1: PKOLChar): HDC; stdcall;
 function CreateScalableFontResource(p1: DWORD; p2, p3, p4: PKOLChar): BOOL; stdcall;
-function DeviceCapabilities(pDriverName, pDeviceName, pPort: PKOLChar;
-  iIndex: Integer; pOutput: PKOLChar; DevMode: PDeviceMode): Integer; stdcall;
+function DeviceCapabilities(pDriverName, pDeviceName, pPort: PKOLChar; iIndex: Integer; pOutput: PKOLChar; DevMode: PDeviceMode): Integer; stdcall;
 function EnumFontFamilies(DC: HDC; p2: PKOLChar; p3: TFNFontEnumProc; p4: LPARAM): BOOL; stdcall;
-function EnumFontFamiliesEx(DC: HDC; var p2: TLogFont;
-  p3: TFNFontEnumProc; p4: LPARAM; p5: DWORD): BOOL; stdcall;
-function EnumFonts(DC: HDC; lpszFace: PKOLChar; fntenmprc: TFNFontEnumProc;
-  lpszData: PKOLChar): Integer; stdcall;
+function EnumFontFamiliesEx(DC: HDC; var p2: TLogFont; p3: TFNFontEnumProc; p4: LPARAM; p5: DWORD): BOOL; stdcall;
+function EnumFonts(DC: HDC; lpszFace: PKOLChar; fntenmprc: TFNFontEnumProc; lpszData: PKOLChar): Integer; stdcall;
 function EnumICMProfiles(DC: HDC; ICMProc: TFNICMEnumProc; p3: LPARAM): Integer; stdcall;
-function ExtTextOut(DC: HDC; X, Y: Integer; Options: Longint;
-  Rect: PRect; Str: PKOLChar; Count: Longint; Dx: PInteger): BOOL; stdcall;
+function ExtTextOut(DC: HDC; X, Y: Integer; Options: Longint; Rect: PRect; Str: PKOLChar; Count: Longint; Dx: PInteger): BOOL; stdcall;
 function GetCharABCWidths(DC: HDC; FirstChar, LastChar: UINT; const ABCStructs): BOOL; stdcall;
 function GetCharABCWidthsFloat(DC: HDC; FirstChar, LastChar: UINT; const ABCFloatSturcts): BOOL; stdcall;
 function GetCharWidth32(DC: HDC; FirstChar, LastChar: UINT; const Widths): BOOL; stdcall;
 function GetCharWidth(DC: HDC; FirstChar, LastChar: UINT; const Widths): BOOL; stdcall;
 function GetCharWidthFloat(DC: HDC; FirstChar, LastChar: UINT; const Widths): BOOL; stdcall;
-function GetCharacterPlacement(DC: HDC; p2: PKOLChar; p3, p4: BOOL;
-  var p5: TGCPResults; p6: DWORD): DWORD; stdcall;
+function GetCharacterPlacement(DC: HDC; p2: PKOLChar; p3, p4: BOOL; var p5: TGCPResults; p6: DWORD): DWORD; stdcall;
 function GetEnhMetaFile(p1: PKOLChar): HENHMETAFILE; stdcall;
 function GetEnhMetaFileDescription(p1: HENHMETAFILE; p2: UINT; p3: PKOLChar): UINT; stdcall;
 function GetGlyphIndices(DC: HDC; p2: PKOLChar; p3: Integer; p4: PWORD; p5: DWORD): DWORD; stdcall;
-function GetGlyphOutline(DC: HDC; uChar, uFormat: UINT;
-  const lpgm: TGlyphMetrics; cbBuffer: DWORD; lpvBuffer: Pointer; const lpmat2: TMat2): DWORD; stdcall;
+function GetGlyphOutline(DC: HDC; uChar, uFormat: UINT; const lpgm: TGlyphMetrics; cbBuffer: DWORD; lpvBuffer: Pointer; const lpmat2: TMat2): DWORD; stdcall;
 function GetICMProfile(DC: HDC; var Size: DWORD; Name: PKOLChar): BOOL; stdcall;
 function GetLogColorSpace(p1: HCOLORSPACE; var ColorSpace: TLogColorSpace; Size: DWORD): BOOL; stdcall;
 function GetMetaFile(p1: PKOLChar): HMETAFILE; stdcall;
 function GetObject(p1: HGDIOBJ; p2: Integer; p3: Pointer): Integer; stdcall;
 function GetOutlineTextMetrics(DC: HDC; p2: UINT; OTMetricStructs: Pointer): UINT; stdcall;
-function GetTextExtentExPoint(DC: HDC; p2: PKOLChar;
-  p3, p4: Integer; p5, p6: PInteger; var p7: TSize): BOOL; stdcall;
-function GetTextExtentPoint32(DC: HDC; Str: PKOLChar; Count: Integer;
-  var Size: TSize): BOOL; stdcall;
-function GetTextExtentPoint(DC: HDC; Str: PKOLChar; Count: Integer;
-  var Size: TSize): BOOL; stdcall;
+function GetTextExtentExPoint(DC: HDC; p2: PKOLChar; p3, p4: Integer; p5, p6: PInteger; var p7: TSize): BOOL; stdcall;
+function GetTextExtentPoint32(DC: HDC; Str: PKOLChar; Count: Integer; var Size: TSize): BOOL; stdcall;
+function GetTextExtentPoint(DC: HDC; Str: PKOLChar; Count: Integer; var Size: TSize): BOOL; stdcall;
 function GetTextFace(DC: HDC; Count: Integer; Buffer: PKOLChar): Integer; stdcall;
 function GetTextMetrics(DC: HDC; var TM: TTextMetric): BOOL; stdcall;
 function PolyTextOut(DC: HDC; const PolyTextArray; Strings: Integer): BOOL; stdcall;
@@ -1903,22 +1843,17 @@ function GetClassLongPtrA(hWnd: HWND; nIndex: Integer): ULONG_PTR; stdcall;
 function SetClassLongPtrA(hWnd: HWND; nIndex: Integer; dwNewLong: LONG_PTR): ULONG_PTR; stdcall;
 function GetClassLongPtrW(hWnd: HWND; nIndex: Integer): ULONG_PTR; stdcall;
 function SetClassLongPtrW(hWnd: HWND; nIndex: Integer; dwNewLong: LONG_PTR): ULONG_PTR; stdcall;
-
 {$ENDIF interface_part} ////////////////////////////////////////////////////////
 
 {$IFDEF implementation_part} ///////////////////////////////////////////////////
 function AbortSystemShutdown; external advapi32 name 'AbortSystemShutdownA';
 function AccessCheckAndAuditAlarm; external advapi32 name 'AccessCheckAndAuditAlarmA';
-{$IFDEF _D4orHigher}
 function AccessCheckByTypeAndAuditAlarm; external advapi32 name 'AccessCheckByTypeAndAuditAlarmA';
 function AccessCheckByTypeResultListAndAuditAlarm; external advapi32 name 'AccessCheckByTypeResultListAndAuditAlarmA';
-{$ENDIF _D4orHigher}
 function BackupEventLog; external advapi32 name 'BackupEventLogA';
 function ClearEventLog; external advapi32 name 'ClearEventLogA';
 function CreateProcessAsUser; external advapi32 name 'CreateProcessAsUserA';
-{$IFDEF _D3orHigher}
 function GetCurrentHwProfile; external advapi32 name 'GetCurrentHwProfileA';
-{$ENDIF _D3orHigher}
 function GetFileSecurity; external advapi32 name 'GetFileSecurityA';
 function GetUserName; external advapi32 name 'GetUserNameA';
 function InitiateSystemShutdown; external advapi32 name 'InitiateSystemShutdownA';
@@ -1968,9 +1903,7 @@ function CallNamedPipe; external kernel32 name 'CallNamedPipeA';
 function CommConfigDialog; external kernel32 name 'CommConfigDialogA';
 function CompareString; external kernel32 name 'CompareStringA';
 function CopyFile; external kernel32 name 'CopyFileA';
-{$IFDEF _D3orHigher}
 function CopyFileEx; external kernel32 name 'CopyFileExA';
-{$ENDIF _D3orHigher}
 function CreateDirectory; external kernel32 name 'CreateDirectoryA';
 function CreateDirectoryEx; external kernel32 name 'CreateDirectoryExA';
 function CreateEvent; external kernel32 name 'CreateEventA';
@@ -1999,9 +1932,7 @@ function FillConsoleOutputCharacter; external kernel32 name 'FillConsoleOutputCh
 function FindAtom; external kernel32 name 'FindAtomA';
 function FindFirstChangeNotification; external kernel32 name 'FindFirstChangeNotificationA';
 function FindFirstFile; external kernel32 name 'FindFirstFileA';
-{$IFDEF _D3orHigher}
 function FindFirstFileEx; external kernel32 name 'FindFirstFileExA';
-{$ENDIF _D3orHigher}
 function FindNextFile; external kernel32 name 'FindNextFileA';
 function FindResource; external kernel32 name 'FindResourceA';
 function FindResourceEx; external kernel32 name 'FindResourceExA';
@@ -2022,12 +1953,9 @@ function GetDiskFreeSpace; external kernel32 name 'GetDiskFreeSpaceA';
 function GetDiskFreeSpaceEx; external kernel32 name 'GetDiskFreeSpaceExA';
 function GetDriveType; external kernel32 name 'GetDriveTypeA';
 function GetEnvironmentStrings; external kernel32 name 'GetEnvironmentStringsA';
-function GetEnvironmentVariable(lpName: PKOLChar; lpBuffer: PKOLChar;
-  nSize: DWORD): DWORD; external kernel32 name 'GetEnvironmentVariableA';
+function GetEnvironmentVariable(lpName: PKOLChar; lpBuffer: PKOLChar; nSize: DWORD): DWORD; external kernel32 name 'GetEnvironmentVariableA';
 function GetFileAttributes; external kernel32 name 'GetFileAttributesA';
-{$IFDEF _D3orHigher}
 function GetFileAttributesEx; external kernel32 name 'GetFileAttributesExA';
-{$ENDIF _D3orHigher}
 function GetFullPathName; external kernel32 name 'GetFullPathNameA';
 function GetLocaleInfo; external kernel32 name 'GetLocaleInfoA';
 function GetLogicalDriveStrings; external kernel32 name 'GetLogicalDriveStringsA';
@@ -2061,9 +1989,7 @@ function LoadLibrary; external kernel32 name 'LoadLibraryA';
 function LoadLibraryEx; external kernel32 name 'LoadLibraryExA';
 function MoveFile; external kernel32 name 'MoveFileA';
 function MoveFileEx; external kernel32 name 'MoveFileExA';
-{$IFDEF _D3orHigher}
 function MoveFileWithProgress; external kernel32 name 'MoveFileWithProgressA';
-{$ENDIF _D3orHigher}
 function OpenEvent; external kernel32 name 'OpenEventA';
 function OpenFileMapping; external kernel32 name 'OpenFileMappingA';
 function OpenMutex; external kernel32 name 'OpenMutexA';

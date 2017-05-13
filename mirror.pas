@@ -36,14 +36,7 @@ unit mirror;
 interface
 
 {$I KOLDEF.INC}
-{$IFDEF _D3}
-    //{$DEFINE MCKLOG}
-{$ENDIF}
 {$IFNDEF USE_KOLCTRLWRAPPER}
-  {$DEFINE NOT_USE_KOLCTRLWRAPPER}
-{$ENDIF}
-
-{$IFDEF _D2orD3}
   {$DEFINE NOT_USE_KOLCTRLWRAPPER}
 {$ENDIF}
 
@@ -72,85 +65,12 @@ uses olectrls, KOL, KOLadd, Classes, Forms, Controls, Dialogs, Windows, Messages
      DsgnIntf                                   //
      {$ENDIF}                                   //
 //////////////////////////////////////////////////
-     {$IFNDEF _D2}{$IFNDEF _D3}, ToolsAPI{$ENDIF}{$ENDIF},
-     TypInfo, Consts,
-     mckMenuEditor, mckAccEditor, mckActionListEditor;
-
-{$IFDEF _D4}
-{$O-}
-{$ENDIF}
-
-{$IFDEF _D2}
-type TCustomForm = TForm;
-const
-{ Browsing for directory. }
-
-  BIF_RETURNONLYFSDIRS   = $0001;  { For finding a folder to start document searching }
-  BIF_DONTGOBELOWDOMAIN  = $0002;  { For starting the Find Computer }
-  BIF_STATUSTEXT         = $0004;
-  BIF_RETURNFSANCESTORS  = $0008;
-  BIF_EDITBOX            = $0010;
-  BIF_VALIDATE           = $0020;  { insist on valid result (or CANCEL) }
-
-  BIF_BROWSEFORCOMPUTER  = $1000;  { Browsing for Computers. }
-  BIF_BROWSEFORPRINTER   = $2000;  { Browsing for Printers }
-  BIF_BROWSEINCLUDEFILES = $4000;  { Browsing for Everything }
-
-{ message from browser }
-
-  BFFM_INITIALIZED       = 1;
-  BFFM_SELCHANGED        = 2;
-  BFFM_VALIDATEFAILEDA   = 3;   { lParam:szPath ret:1(cont),0(EndDialog) }
-  BFFM_VALIDATEFAILEDW   = 4;   { lParam:wzPath ret:1(cont),0(EndDialog) }
-
-{ messages to browser }
-
-  BFFM_SETSTATUSTEXTA         = WM_USER + 100;
-  BFFM_ENABLEOK               = WM_USER + 101;
-  BFFM_SETSELECTIONA          = WM_USER + 102;
-  BFFM_SETSELECTIONW          = WM_USER + 103;
-  BFFM_SETSTATUSTEXTW         = WM_USER + 104;
-
-type
-  PSHItemID = ^TSHItemID;
-  _SHITEMID = record
-    cb: Word;                         { Size of the ID (including cb itself) }
-    abID: array[0..0] of Byte;        { The item ID (variable length) }
-  end;
-  TSHItemID = _SHITEMID;
-  SHITEMID = _SHITEMID;
-
-  PItemIDList = ^TItemIDList;
-  _ITEMIDLIST = record
-     mkid: TSHItemID;
-   end;
-  TItemIDList = _ITEMIDLIST;
-  ITEMIDLIST = _ITEMIDLIST;
-
-  BFFCALLBACK = function(Wnd: HWND; uMsg: UINT; lParam, lpData:
-LPARAM): Integer stdcall;
-  TFNBFFCallBack = type BFFCALLBACK;
-
-  PBrowseInfo = ^TBrowseInfo;
-  _browseinfo = record
-    hwndOwner: HWND;
-    pidlRoot: PItemIDList;
-    pszDisplayName: PAnsiChar;  { Return display name of item selected. }
-    lpszTitle: PAnsiChar;      { text to go in the banner over the tree. }
-    ulFlags: UINT;           { Flags that control the return stuff }
-    lpfn: TFNBFFCallBack;
-    lParam: LPARAM;          { extra info that's passed back in callbacks }
-    iImage: Integer;         { output var: where to return the Image index. }
-  end;
-  TBrowseInfo = _browseinfo;
-  BROWSEINFOA = _browseinfo;
-{$ENDIF}
+     ToolsAPI, TypInfo, Consts,  mckMenuEditor, mckAccEditor, mckActionListEditor;
 
 const
   WM_USER_ALIGNCHILDREN = WM_USER + 1;
   cKOLTag = -999;
 
-const
   LIGHT = FOREGROUND_INTENSITY;
   WHITE =  FOREGROUND_RED or FOREGROUND_BLUE or FOREGROUND_GREEN;
   RED   =  FOREGROUND_INTENSITY or FOREGROUND_RED;
@@ -158,9 +78,6 @@ const
   BLUE  =  FOREGROUND_BLUE;
   CYAN  =  FOREGROUND_BLUE or FOREGROUND_GREEN;
   YELLOW = FOREGROUND_INTENSITY or FOREGROUND_GREEN or FOREGROUND_RED;
-
-
-
 
 type
 
@@ -1368,19 +1285,9 @@ type
   TKOLOnEventPropEditor = class( TMethodProperty )
   private
   protected
-    {$IFDEF _D2}
-    function GetTrimmedEventName: String;
-    function GetFormMethodName: String; virtual;
-    {$ENDIF _D2}
   public
     procedure Edit; override;
   end;
-
-
-
-
-
-
 
   //============================================================================
   //---- MIRROR FOR A MENU ----
@@ -1431,9 +1338,6 @@ type
     procedure Edit; override;
   end;
 
-  {$IFDEF _D2orD3}
-    {$WARNINGS OFF}
-  {$ENDIF}
   TKOLMenuItem = class(TComponent)
   private
     FCaption: TDelphiString;
@@ -1533,8 +1437,7 @@ type
   public
     procedure Change;
     property Parent: TComponent read FParent;
-    constructor Create( AOwner: TComponent; AParent, Before: TKOLMenuItem );
-    {$IFDEF _D4orHigher} reintroduce; {$ENDIF}
+    constructor Create( AOwner: TComponent; AParent, Before: TKOLMenuItem ); reintroduce;
     destructor Destroy; override;
     property MenuComponent: TKOLMenu read GetMenuComponent;
     property UplevelMenuItem: TKOLMenuItem read GetUplevel;
@@ -1579,9 +1482,6 @@ type
     property AllowBitmapCompression: Boolean read FAllowBitmapCompression write SetAllowBitmapCompression
              default TRUE;
   end;
-  {$IFDEF _D2orD3}
-    {$WARNINGS ON}
-  {$ENDIF}
 
   TKOLMenu = class(TKOLObj)
   private
@@ -2939,7 +2839,7 @@ type
     function GetCount: integer;
     procedure SetOnUpdateActions(const Value: TOnEvent);
   public
-    procedure GetChildren(Proc: TGetChildProc {$IFDEF _D3orHigher} ; Root: TComponent {$ENDIF} ); override;
+    procedure GetChildren(Proc: TGetChildProc; Root: TComponent); override;
     procedure SetChildOrder(Component: TComponent; Order: Integer); override;
 
     procedure SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
@@ -3026,26 +2926,13 @@ type
   {$ENDIF}                              //
 //*///////////////////////////////////////
 
-  {$IFDEF _D2orD3}
-type
-  IDesigner = TDesigner;
-  IFormDesigner = TFormDesigner;
-  {$ENDIF}
-
-
 function QueryFormDesigner( D: IDesigner; var FD: IFormDesigner ): Boolean;
-
-
-
 function PCharStringConstant( Sender: TObject; const Propname, Value: String ): String;
 function P_PCharStringConstant( Sender: TObject; const Propname, Value: String ): String;
-
 procedure LoadSource( SL: TStrings; const Path: String );
 procedure SaveStrings( SL: TStrings; const Path: String; var Updated: Boolean );
 procedure SaveStringToFile(const Path, Str: String );
 procedure MarkModified( const Path: String );
-
-//procedure OutSortedListOfComponents( const path: String; L: TList; ii: Integer );
 
 const
   Signature = '{ KOL MCK } // Do not remove this line!';
@@ -3063,8 +2950,7 @@ function Remove_Result_dot( const s: String ): String;
 
 implementation
 
-uses ShellAPI {$IFNDEF _D2}, shlobj, ActiveX {$ENDIF},
-     mckCtrls, mckObjs;
+uses ShellAPI, shlobj, ActiveX, mckCtrls, mckObjs;
 
   procedure Register;
   begin
@@ -3094,17 +2980,6 @@ uses ShellAPI {$IFNDEF _D2}, shlobj, ActiveX {$ENDIF},
     RegisterPropertyEditor( TypeInfo( TKOLAccelerator ), TKOLAction, 'Accelerator',
                             TKOLAcceleratorPropEditor );
   end;
-
-{$IFNDEF _D5orHigher} // code is grabbed here from SysUtils.pas of newer compiler
-procedure FreeAndNil( var Obj ); // (since it is not existing for Delphi4 and older)
-var
-  Temp: TObject;
-begin
-  Temp := TObject(Obj);
-  Pointer(Obj) := nil;
-  Temp.Free;
-end;
-{$ENDIF}
 
 const BoolVals: array[ Boolean ] of String = ( 'FALSE', 'TRUE' );
 
@@ -4330,14 +4205,11 @@ begin
     Int2Str( Message.Msg ) + ')' );
   TRY
 
-    if Assigned(FKOLCtrl) then
-    begin
+    if Assigned(FKOLCtrl) then begin
       DeniedMessage:=(((Message.Msg >= WM_MOUSEFIRST) and (Message.Msg <= WM_MOUSELAST)) or
          ((Message.Msg >= WM_KEYFIRST) and (Message.Msg <= WM_KEYLAST)) or
          (Message.Msg in [WM_NCHITTEST, WM_SETCURSOR]) or
-         (Message.Msg = CM_DESIGNHITTEST)
-         {$IFDEF _D3orHigher} or (Message.Msg = CM_RECREATEWND) {$ENDIF}
-         );
+         (Message.Msg = CM_DESIGNHITTEST) or (Message.Msg = CM_RECREATEWND));
 
       if not FAllowSelfPaint and (Message.Msg in [WM_NCCALCSIZE, WM_ERASEBKGND]) then
       begin
@@ -4384,13 +4256,11 @@ begin
 
     end;
     inherited;
-    if {$IFDEF _D3orHigher} (Message.Msg = CM_RECREATEWND) and {$ENDIF}
-       FKOLCtrlNeeded then
+    if (Message.Msg = CM_RECREATEWND) and FKOLCtrlNeeded then
       HandleNeeded;
     LogOK;
   FINALLY
-    Log( '<-TKOLCtrlWrapper.WndProc: ' + Int2Hex( Message.Msg, 2 ) + '(' +
-      Int2Str( Message.Msg ) + ')' );
+    Log( '<-TKOLCtrlWrapper.WndProc: ' + Int2Hex( Message.Msg, 2 ) + '(' + Int2Str( Message.Msg ) + ')' );
   END;
 end;
 
@@ -4491,16 +4361,12 @@ begin
       FKOLCtrl.Children[0].Parent:=nil;
     Log( 'C' );
     WindowHandle:=0;
-    {$IFDEF _D4orHigher}
     ControlState:=ControlState + [csDestroyingHandle];
-    {$ENDIF}
     Log( 'D' );
     try
       FKOLCtrl.Free;
     finally
-      {$IFDEF _D4orHigher}
       ControlState:=ControlState - [csDestroyingHandle];
-      {$ENDIF}
     end;
     Log( 'E' );
     FKOLCtrl:=nil;
@@ -7370,17 +7236,13 @@ begin
   Log( '2 - ParentKOLForm' );
   F := ParentKOLForm;
   if (F <> nil) and not F.FIsDestroying and (Owner <> nil) and
-     not( csDestroying in Owner.ComponentState ) then
-  begin
+     not( csDestroying in Owner.ComponentState ) then begin
     Log( '3 - Value <> nil?' );
     if Value <> nil then
-    if (Value is TKOLCustomControl) or (Value is TForm) then
-    begin
+    if (Value is TKOLCustomControl) or (Value is TForm) then begin
       Log( '4 - Get_ParentFont' );
       PF := Get_ParentFont;
-      Log( '5 - Font(=' + Int2Hex( DWORD( Font), 6 ) + ').Assign( PF(=' +
-        Int2Hex( DWORD( PF ), 6 ) + ') )' );
-      {$IFDEF _D4orHigher}
+      Log( '5 - Font(=' + Int2Hex( DWORD( Font), 6 ) + ').Assign( PF(=' + Int2Hex( DWORD( PF ), 6 ) + ') )' );
       try
         Font.Assign(PF); {YS}
       except
@@ -7389,7 +7251,6 @@ begin
           Log( 'Exception while assigning a font:' + E.message );
         end;
       end;
-      {$ENDIF}
     end;
   {YS}
     {$IFDEF _KOLCtrlWrapper_}
@@ -8330,12 +8191,10 @@ procedure TKOLCustomControl.SetAnchorLeft(const Value: Boolean);
 begin
   if FAnchorLeft = Value then Exit;
   FAnchorLeft := Value;
-  {$IFDEF _D4orHigher}
   if Value then
     Anchors := Anchors + [ akLeft ]
   else
     Anchors := Anchors - [ akLeft ];
-  {$ENDIF}
   Change;
 end;
 
@@ -8343,12 +8202,10 @@ procedure TKOLCustomControl.SetAnchorTop(const Value: Boolean);
 begin
   if FAnchorTop = Value then Exit;
   FAnchorTop := Value;
-  {$IFDEF _D4orHigher}
   if Value then
     Anchors := Anchors + [ akTop ]
   else
     Anchors := Anchors - [ akTop ];
-  {$ENDIF}
   Change;
 end;
 
@@ -8816,22 +8673,17 @@ begin
   try
 
   TRY
-
     //Rpt( 'Call RunTimeFont', WHITE ); //Rpt_Stack;
-    if not Font.Equal2(nil) then
-    begin
+    if not Font.Equal2(nil) then begin
       //Rpt( 'Font different ! Color=' + Int2Hex( Color2RGB( Font.Color ), 8 ),
       //  WHITE );
       ACanvas.Font.Name:= Font.FontName;
       ACanvas.Font.Height:= Font.FontHeight;
       //ACanvas.Font.Color:= Font.Color;
       ACanvas.Font.Style:= TFontStyles( Font.FontStyle );
-      {$IFNDEF _D2}
       ACanvas.Font.Charset:= Font.FontCharset;
-      {$ENDIF}
       ACanvas.Font.Pitch:= Font.FontPitch;
-    end
-    else
+    end else
       ACanvas.Font.Handle:=GetDefaultControlFont;
 
     ACanvas.Font.Color:= Font.Color;    // !!!!!!
@@ -10059,11 +9911,8 @@ procedure TKOLCustomControl.SetAnchorBottom(const Value: Boolean);
 begin
   if FAnchorBottom = Value then Exit;
   FAnchorBottom := Value;
-  if Value then
-  begin
-    {$IFDEF _D4orHigher}
-    if Value then
-    begin
+  if Value then begin
+    if Value then begin
       Anchors := Anchors + [ akBottom ];
       if FAnchorTop then
         Anchors := AnChors + [ akTop ]
@@ -10071,11 +9920,6 @@ begin
         Anchors := AnChors - [ akTop ];
     end else
       Anchors := Anchors - [ akBottom ];
-    {$ELSE}
-    // Owners/users of Delphi2,3! Please develop this code for you (and send it
-    // me) if you need anchors. Otherwise do not forget check size of parent
-    // each time before compiling/building the project.
-    {$ENDIF}
   end;
   Change;
 end;
@@ -10084,11 +9928,8 @@ procedure TKOLCustomControl.SetAnchorRight(const Value: Boolean);
 begin
   if FAnchorRight = Value then Exit;
   FAnchorRight := Value;
-  if Value then
-  begin
-    {$IFDEF _D4orHigher}
-    if Value then
-    begin
+  if Value then begin
+    if Value then begin
       Anchors := Anchors + [ akRight ];
       if FAnchorLeft then
         Anchors := Anchors + [ akLeft ]
@@ -10096,7 +9937,6 @@ begin
         Anchors := Anchors - [ akLeft ];
     end else
       Anchors := Anchors - [ akRight ];
-    {$ENDIF}
   end;
   Change;
 end;
@@ -11724,92 +11564,6 @@ begin
   else            Result := 'TRUE';
 end;
 
-{$IFDEF _D2}
-function GetEnumProp(Instance: TObject; PropInfo: PPropInfo): string;
-begin
-  asm
-    jmp @@e_signature
-    DB '#$signature$#', 0
-    DB 'GetEnumProp', 0
-  @@e_signature:
-  end;
-  Result := GetEnumName(PropInfo^.PropType, GetOrdProp(Instance, PropInfo));
-end;
-{$ENDIF}
-{$IFDEF _D3orD4}
-function GetEnumProp(Instance: TObject; PropInfo: PPropInfo): string;
-begin
-  asm
-    jmp @@e_signature
-    DB '#$signature$#', 0
-    DB 'GetEnumProp', 0
-  @@e_signature:
-  end;
-  Result := GetEnumName(PropInfo^.PropType^, GetOrdProp(Instance, PropInfo));
-end;
-{$ENDIF}
-
-{$IFDEF _D2}
-type
-  TIntegerSet = set of 0..SizeOf(Integer) * 8 - 1;
-
-function GetSetProp(Instance: TObject; PropInfo: PPropInfo;
-  Brackets: Boolean): string;
-var
-  S: TIntegerSet;
-  TypeInfo: PTypeInfo;
-  I: Integer;
-begin
-  asm
-    jmp @@e_signature
-    DB '#$signature$#', 0
-    DB 'GetSetProp', 0
-  @@e_signature:
-  end;
-  Integer(S) := GetOrdProp(Instance, PropInfo);
-  TypeInfo := GetTypeData(PropInfo.PropType).CompType;
-  for I := 0 to SizeOf(Integer) * 8 - 1 do
-    if I in S then
-    begin
-      if Result <> '' then
-        Result := Result + ',';
-      Result := Result + GetEnumName(TypeInfo, I);
-    end;
-  if Brackets then
-    Result := '[' + Result + ']';
-end;
-{$ENDIF}
-{$IFDEF _D3orD4}
-type
-  TIntegerSet = set of 0..SizeOf(Integer) * 8 - 1;
-
-function GetSetProp(Instance: TObject; PropInfo: PPropInfo;
-  Brackets: Boolean): string;
-var
-  S: TIntegerSet;
-  TypeInfo: PTypeInfo;
-  I: Integer;
-begin
-  asm
-    jmp @@e_signature
-    DB '#$signature$#', 0
-    DB 'GetSetProp', 0
-  @@e_signature:
-  end;
-  Integer(S) := GetOrdProp(Instance, PropInfo);
-  TypeInfo := GetTypeData(PropInfo.PropType^).CompType^;
-  for I := 0 to SizeOf(Integer) * 8 - 1 do
-    if I in S then
-    begin
-      if Result <> '' then
-        Result := Result + ',';
-      Result := Result + GetEnumName(TypeInfo, I);
-    end;
-  if Brackets then
-    Result := '[' + Result + ']';
-end;
-{$ENDIF}
-
 // ƒанна€ функци€ возвращает значение публикуемого свойства компонента в виде
 // строки, которую можно вставить в текст программы в правую часть присваивани€
 // значени€ этому свойству.
@@ -11873,12 +11627,9 @@ begin
      SL.Add( '    //-----^----- Error getting variant value' )
     end;
     end;
-    tkString, tkLString,
-    {$IFDEF _D2} tkLWString {$ELSE} tkWString {$ENDIF}:
+    tkString, tkLString, tkWString:
      try
-       //PropValue := String2Pascal( GetStrProp( C,
-       PropValue := StringConstant( Propname, GetStrProp( C,
-                    {$IFDEF _D2orD3orD4} PI {$ELSE} PropName {$ENDIF} ) );
+       PropValue := StringConstant( Propname, GetStrProp( C, PropName ) );
      except
        PropValue := '';
        SL.Add( '    //----^---- Cannot obtain string property ' + PropName +
@@ -11887,7 +11638,7 @@ begin
      end;
     tkChar:
      begin
-       Ch := AnsiChar( GetOrdProp( C, {$IFDEF _D2orD3orD4} PI {$ELSE} PropName {$ENDIF} ) );
+       Ch := AnsiChar( GetOrdProp( C, PropName ) );
        if Ch in [ ' '..#127 ] then
          PropValue := '''' + Ch + ''''
        else
@@ -11895,7 +11646,7 @@ begin
      end;
     tkWChar:
      begin
-       Wc := WChar( GetOrdProp( C, {$IFDEF _D2orD3orD4} PI {$ELSE} PropName {$ENDIF} ) );
+       Wc := WChar( GetOrdProp( C, PropName ) );
        if  (Wc >= WChar(' ')) and (Wc <= WChar(#127)) then
            PropValue := '''' + AnsiChar( Wc ) + ''''
        else
@@ -11903,15 +11654,14 @@ begin
      end;
     tkMethod:
     begin
-      Method := GetMethodProp( C, {$IFDEF _D2orD3orD4} PI {$ELSE} PropName {$ENDIF} );
+      Method := GetMethodProp( C, PropName );
       if not Assigned( Method.Code ) then
         Exit;
       if C.Owner <> nil then
       if C.Owner is TForm then
         PropValue := 'Result.' + C.Owner.MethodName( Method.Code );
     end;
-    tkInteger:     PropValue := IntToStr( GetOrdProp( C,
-                                {$IFDEF _D2orD3orD4} PI {$ELSE} PropName {$ENDIF} ) );
+    tkInteger:     PropValue := IntToStr( GetOrdProp( C, PropName ) );
     tkEnumeration: PropValue := GetEnumProp( C, PI );
     tkFloat:       begin
                     S := FloatToStr( GetFloatProp( C, PI ) );
@@ -11920,9 +11670,7 @@ begin
                     PropValue := S;
                   end;
     tkSet:         PropValue := GetSetProp( C, PI, TRUE );
-    {$IFNDEF _D2orD3}
     tkInt64:       PropValue := IntToStr( GetInt64Prop( C, PI ) );
-    {$ENDIF}
     tkUnknown: begin
                 SL.Add( '    //-----?----- property type tkUnknown' );
                 Exit;
@@ -20101,15 +19849,6 @@ begin
   END;
 end;
 
-{$IFDEF _D2}
-function SHBrowseForFolder(var lpbi: TBrowseInfo): PItemIDList; stdcall;
-  external 'shell32.dll' name 'SHBrowseForFolderA';
-function SHGetPathFromIDList(pidl: PItemIDList; pszPath: PAnsiChar): BOOL; stdcall;
-  external 'shell32.dll' name 'SHGetPathFromIDListA';
-procedure CoTaskMemFree(pv: Pointer); stdcall;
-  external 'ole32.dll' name 'CoTaskMemFree';
-{$ENDIF}
-
 // From D3, Get Interface for bpg n groupproj
 // like Get_ProjectName?
 {$IFDEF _D2005orHigher}
@@ -22025,9 +21764,7 @@ begin
             _FKOLCtrl.Font.FontWidth:=FontWidth;
             _FKOLCtrl.Font.Color:=Self.Color;
             _FKOLCtrl.Font.FontStyle:= KOL.TFontStyle( FontStyle );
-            {$IFNDEF _D2}
             _FKOLCtrl.Font.FontCharset:=FontCharset;
-            {$ENDIF}
           end
           else
             _FKOLCtrl.Font.AssignHandle((fOwner as TKOLCustomControl).GetDefaultControlFont);
@@ -22904,15 +22641,11 @@ end;
 
 procedure TKOLObjectCompEditor.Edit;
 var
-  {$IFDEF _D5orHigher}
-  {$IFDEF _D6orHigher}
-  Components: IDesignerSelections;
-  {$ELSE}
-  Components: TDesignerSelectionList;
-  {$ENDIF}
-  {$ELSE}
-  Components: TComponentList;
-  {$ENDIF}
+    {$IFDEF _D6orHigher}
+      Components: IDesignerSelections;
+    {$ELSE}
+      Components: TDesignerSelectionList;
+    {$ENDIF}
 begin
   asm
     jmp @@e_signature
@@ -22925,14 +22658,10 @@ begin
     inherited;
     Exit;
   end;}
-  {$IFDEF _D2orD3orD4}
-  Components := TComponentList.Create;
-  {$ELSE}
   {$IFDEF _D6orHigher}
-  Components := CreateSelectionList;
+    Components := CreateSelectionList;
   {$ELSE}
-  Components := TDesignerSelectionList.Create;
-  {$ENDIF}
+    Components := TDesignerSelectionList.Create;
   {$ENDIF}
 
   try
@@ -23077,66 +22806,13 @@ begin
     if FormMethodName = '' then
       FormMethodName := GetFormMethodName;
     if FormMethodName = '' then
-      {$IFDEF _D3orD4}
-      raise EPropertyError.Create(SCannotCreateName);
-      {$ELSE}
-      raise EPropertyError.CreateRes( {$IFNDEF _D2}@{$ENDIF} SCannotCreateName);
-      {$ENDIF}
+      raise EPropertyError.CreateRes(@SCannotCreateName);
     SetValue(FormMethodName);
   end;
   Designer.ShowMethod(FormMethodName);
 end;
 
-{$IFDEF _D2}
-function TKOLOnEventPropEditor.GetFormMethodName: String;
-var
-  I: Integer;
-begin
-  asm
-    jmp @@e_signature
-    DB '#$signature$#', 0
-    DB 'TKOLOnEventPropEditor.GetFormMethodName', 0
-  @@e_signature:
-  end;
-  if GetComponent(0) = Designer.GetRoot then
-  begin
-    Result := Designer.GetRoot.ClassName;
-    if (Result <> '') and (Result[1] = 'T') then
-      Delete(Result, 1, 1);
-  end
-  else
-  begin
-    {$IFDEF _D2}
-    Result := GetComponent(0).Name;
-    {$ELSE _D3orHigher}
-    Result := Designer.GetObjectName(GetComponent(0));
-    {$ENDIF}
-    for I := Length(Result) downto 1 do
-      if Result[I] in ['.','[',']'] then
-        Delete(Result, I, 1);
-  end;
-  if Result = '' then
-    raise EPropertyError.CreateRes( SCannotCreateName );
-  Result := Result + GetTrimmedEventName;
-end;
-
-function TKOLOnEventPropEditor.GetTrimmedEventName: String;
-begin
-  asm
-    jmp @@e_signature
-    DB '#$signature$#', 0
-    DB 'TKOLOnEventPropEditor.GetTrimmedEventName', 0
-  @@e_signature:
-  end;
-  Result := GetName;
-  if (Length(Result) >= 2) and
-    (Result[1] in ['O','o']) and (Result[2] in ['N','n']) then
-    Delete(Result,1,2);
-end;
-{$ENDIF _D2}
-
-{function SearchKOLProject( KOLPrj: Pointer; Child: TIComponentInterface ): Boolean;
-         stdcall;
+{function SearchKOLProject( KOLPrj: Pointer; Child: TIComponentInterface ): Boolean; stdcall;
 type PIComponentInterface = ^TIComponentInterface;
 begin
   if CompareText( Child.GetComponentType, 'TKOLProject' ) = 0 then
@@ -24710,16 +24386,7 @@ begin
     DB 'QueryFormDesigner', 0
   @@e_signature:
   end;
-  {$IFDEF _D4orHigher}
     Result := D.QueryInterface( IFormDesigner, FD ) = 0;
-  {$ELSE}
-    Result := False;
-    if D is TFormDesigner then
-    begin
-      FD := D as TFormDesigner;
-      Result := True;
-    end;
-  {$ENDIF}
 end;
 
 procedure TKOLMenuItem.SetName(const NewName: TComponentName);
@@ -27879,7 +27546,7 @@ begin
   inherited;
 end;
 
-procedure TKOLActionList.GetChildren(Proc: TGetChildProc {$IFDEF _D3orHigher} ; Root: TComponent {$ENDIF});
+procedure TKOLActionList.GetChildren(Proc: TGetChildProc; Root: TComponent);
 var
   I: Integer;
   Action: TKOLAction;

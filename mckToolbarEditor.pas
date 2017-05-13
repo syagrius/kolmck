@@ -6,7 +6,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ComCtrls, StdCtrls, {$IFDEF _D3orHigher} ExtDlgs, {$ENDIF}
+  ComCtrls, StdCtrls, ExtDlgs,
 //////////////////////////////////////////////////
      {$IFDEF _D6orHigher}                       //
      DesignIntf, DesignEditors, DesignConst,    //
@@ -17,7 +17,7 @@ uses
 //////////////////////////////////////////////////
      {$ENDIF}                                   //
 //////////////////////////////////////////////////
-  {$IFNDEF _D2}{$IFNDEF _D3},ImgList{$ENDIF}{$ENDIF};
+  , ImgList;
 
 type
   TfmToolbarEditor = class(TForm)

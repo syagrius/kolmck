@@ -62,16 +62,7 @@ uses Windows, KOL;
 {+} // These resource strings are grabbed from SysConst and changed a bit to make it smaller.
 
 //{$DEFINE USE_RESOURCESTRING}
-{$IFDEF _D2orD3}
-  {$IFDEF USE_RESOURCESTRING}
-    {$UNDEF USE_RESOURCESTRING}
-  {$ENDIF}
-{$ENDIF}
 
-{$IFDEF _D2orD3}
-type
-  LongWord = DWORD;
-{$ENDIF}
 {$IFNDEF USE_RESOURCESTRING}
 const
 {$ELSE}
@@ -306,23 +297,16 @@ procedure AddTerminateProc(TermProc: TTerminateProc);
 
 function CallTerminateProcs: Boolean;
 
-{$IFNDEF _D2}
 function GDAL: LongWord;
 procedure RCS;
 procedure RPR;
-{$ENDIF}
-
 
 { SafeLoadLibrary calls LoadLibrary, disabling normal Win32 error message
   popup dialogs if the requested file can't be loaded.  SafeLoadLibrary also
   preserves the current FPU control word (precision, exception masks) across
   the LoadLibrary call (in case the DLL you're loading hammers the FPU control
   word in its initialization, as many MS DLLs do)}
-
-{$IFNDEF _D2orD3}
-function SafeLoadLibrary(const Filename: KOLString;
-  ErrorMode: UINT = SEM_NOOPENFILEERRORBOX): HMODULE;
-{$ENDIF}
+function SafeLoadLibrary(const Filename: KOLString; ErrorMode: UINT = SEM_NOOPENFILEERRORBOX): HMODULE;
 
 implementation
 
@@ -442,22 +426,6 @@ end;
 
 { Format and return an exception error message }
 
-{$IFDEF _D2} // this code is luck in D2 system.pas
-{type
-  PLibModule = ^TLibModule;
-  TLibModule = record
-    Next: PLibModule;
-    Instance: Longint;
-    ResInstance: Longint;
-    Reserved: Integer;
-  end;}
-
-function FindResourceHInstance(Instance: Longint): Longint;
-begin
-  Result := Instance;
-end;
-{$ENDIF}
-
 type
   PStrData = ^TStrData;
   TStrData = record
@@ -476,7 +444,6 @@ begin
   end;
 end;
 
-{$IFNDEF _D2}
 function FindStringResource(Ident: Integer; Buffer: PKOLChar; BufSize: Integer): Integer;
 var
   StrData: TStrData;
@@ -488,24 +455,13 @@ begin
   EnumResourceModules(EnumStringModules, @StrData);
   Result := StrData.nChars;
 end;
-{$ENDIF}
 
-{$IFDEF _D2}
-function LoadStr(Ident: Integer): string;
-var
-  Buffer: array[0..1023] of Char;
-begin
-  SetString(Result, Buffer, LoadString(HInstance, Ident, Buffer,
-    SizeOf(Buffer)));
-end;
-{$ELSE}
 function LoadStr(Ident: Integer): string;
 var
   Buffer: array[0..1023] of KOLChar;
 begin
   SetString(Result, Buffer, FindStringResource(Ident, Buffer, SizeOf(Buffer)));
 end;
-{$ENDIF}
 
 function FmtLoadStr(Ident: Integer; const Args: array of const): string;
 begin
@@ -1082,7 +1038,6 @@ begin
   raise Exception.Create(e_License, SNL);
 end;
 
-{$IFNDEF _D2}
 function ALR: Pointer;
 var
   LibModule: PLibModule;
@@ -1149,9 +1104,7 @@ begin
   AL := GDAL;
   if (AL <> AL1s[1]) and (AL <> AL1s[2]) then ALV;
 end;
-{$ENDIF}
 
-{$IFNDEF _D2orD3}
 function SafeLoadLibrary(const Filename: KOLString; ErrorMode: UINT): HMODULE;
 var
   OldMode: UINT;
@@ -1174,7 +1127,6 @@ begin
     SetErrorMode(OldMode);
   end;
 end;
-{$ENDIF}
 
 {procedure Exception.FreeInstance;
 begin
@@ -1182,14 +1134,9 @@ begin
     inherited;
 end;}
 
-
-
 initialization
   InitExceptions;
-
 finalization
   FreeTerminateProcs;
   DoneExceptions;
-
 end.
-

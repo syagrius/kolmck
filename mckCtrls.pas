@@ -1328,9 +1328,6 @@ type
     FGenerateColIdxConst: Boolean;
     FOnLVCustomDraw: TOnLVCustomDraw;
     FOnLVSubitemDraw: TOnLVSubitemDraw;
-    {$IFNDEF _D2}
-    //FOnLVDataW: TOnLVDataW;
-    {$ENDIF _D2}
     fLVItemHeight: Integer;
     procedure SetOptions(const Value: TKOLListViewOptions);
     procedure SetStyle(const Value: TKOLListViewStyle);
@@ -1349,9 +1346,6 @@ type
     procedure SetOnLVCustomDraw(const Value: TOnLVCustomDraw);
     procedure SetOnLVSubitemDraw(const Value: TOnLVSubitemDraw);
     procedure UpdateColumns;
-    {$IFNDEF _D2}
-    //procedure SetOnLVDataW(const Value: TOnLVDataW); {YS}
-    {$ENDIF _D2}
     procedure SetLVItemHeight(const Value: Integer);
   protected
     FCols: TList;
@@ -1432,9 +1426,6 @@ type
     property Columns: String read GetColumns write SetColumns stored FALSE;
     property generateConstants: Boolean read FGenerateColIdxConst write SetGenerateColIdxConst;
     property Brush;
-    {$IFNDEF _D2}
-    //property OnLVDataW: TOnLVDataW read FOnLVDataW write SetOnLVDataW;
-    {$ENDIF _D2}
     property OverrideScrollbars;
   end;
 
@@ -2138,14 +2129,12 @@ begin
   Result := TRUE;
   if Bitmap = nil then Exit;
   if (Bitmap.Width = 0) or (Bitmap.Height = 0) then Exit;
-  {$IFNDEF _D2}
   if (Bitmap.HandleType = bmDIB) and not (Bitmap.PixelFormat in [pfCustom, pfDevice]) then
   begin
     //ShowMessage( 'format=' + IntToStr( Integer( Bitmap.PixelFormat ) ) );
     Result := Bitmap.PixelFormat in [ pf1bit, pf4bit, pf8bit ];
   end
     else
-  {$ENDIF _D2}
   begin
     if Bitmap.Handle = 0 then
       Result := FALSE
@@ -2272,16 +2261,7 @@ begin
   @@e_signature:
   end;
   Result := inherited GenerateTransparentInits;
-  if assigned( FimageIcon ) and not FimageIcon.Empty
-    {$IFDEF _D2orD3}
-       {$IFDEF ICON_DIFF_WH}
-       and (FimageIcon.Width > 0) and (FimageIcon.Height > 0)
-       {$ELSE}
-       and (FImageIcon.Size > 0)
-       {$ENDIF}
-    {$ENDIF}
-  then
-  begin
+  if assigned( FimageIcon ) and not FimageIcon.Empty then begin
       Rpt( 'Button has icon, generating code SetButtonIcon:'#13#10 + Result,
            WHITE );
       if
@@ -2319,16 +2299,7 @@ begin
   KF := ParentKOLForm;
   if  KF = nil then Exit;
   if  not KF.FormCompact then Exit;
-  if assigned( FimageIcon ) and not FimageIcon.Empty
-    {$IFDEF _D2orD3}
-       {$IFDEF ICON_DIFF_WH}
-       and (FimageIcon.Width > 0) and (FimageIcon.Height > 0)
-       {$ELSE}
-       and (FImageIcon.Size > 0)
-       {$ENDIF}
-    {$ENDIF}
-  then
-  begin
+  if assigned( FimageIcon ) and not FimageIcon.Empty then begin
       if
       {$IFDEF ICON_DIFF_WH}
       (FimageIcon.Width = 32) and (FimageIcon.Height = 32)
@@ -2480,16 +2451,7 @@ begin
   @@e_signature:
   end;
   Result := inherited P_GenerateTransparentInits;
-  if assigned( FimageIcon ) and not FImageIcon.Empty
-    {$IFDEF _D2orD3}
-       {$IFDEF ICON_DIFF_WH}
-       and (Fimageicon.Width > 0) and (Fimageicon.Height > 0)
-       {$ELSE}
-       and (FImageIcon.Size > 0)
-       {$ENDIF}
-    {$ENDIF}
-   then
-  begin
+  if assigned( FimageIcon ) and not FImageIcon.Empty then begin
       //Result := Result + '.SetButtonIcon( LoadIcon( hInstance, ''' +
       //       ImageResourceName + ''' ) )';
       {P}Result := Result + ' LoadAnsiStr ''' +
@@ -2548,16 +2510,7 @@ begin
       //SL.Add( Prefix + AName + '.Flat := TRUE;' );
       {P}SL.Add( ' L(1) C1 TControl_.SetFlat<2>' );
 
-  if assigned( FimageIcon ) and not Fimageicon.Empty
-    {$IFDEF _D2orD3}
-       {$IFDEF ICON_DIFF_WH}
-       and (Fimageicon.Width > 0) and (Fimageicon.Height > 0)
-       {$ELSE}
-       and (FImageIcon.Size > 0)
-       {$ENDIF}
-    {$ENDIF}
-  then
-  begin
+  if assigned( FimageIcon ) and not Fimageicon.Empty then begin
       Rpt( 'Button has icon, generate resource', WHITE );
       SL.Add( '{$R ' + ImageResourceName + '.res}' );
       TmpIcon := TIcon.Create;
@@ -2807,16 +2760,7 @@ begin
       end else
       SL.Add( Prefix + AName + '.Style := ' + AName + '.Style or BS_MULTILINE;' );
 
-  if  assigned( FimageIcon ) and not FimageIcon.Empty
-      {$IFDEF _D2orD3}
-       {$IFDEF ICON_DIFF_WH}
-       and (Fimageicon.Width > 0) and (Fimageicon.Height > 0)
-       {$ELSE}
-       and (FImageIcon.Size > 0)
-       {$ENDIF}
-      {$ENDIF}
-  then
-  begin
+  if  assigned( FimageIcon ) and not FimageIcon.Empty then begin
       Rpt( 'Button has icon, generate resource', WHITE );
       if  (KF <> nil) and KF.FormCompact then
       begin
@@ -7551,10 +7495,8 @@ end;
 procedure TKOLListView.AssignEvents(SL: TStringList; const AName: String);
 begin
   inherited;
-  DoAssignEvents( SL, AName, [ 'OnDeleteLVItem', 'OnLVCustomDraw', 'OnLVSubitemDraw'
-                  (*{$IFNDEF _D2}, 'OnLVDataW' {$ENDIF _D2}*) ],
-                             [ @ OnDeleteLVItem, @ OnLVCustomDraw, @ OnLVSubitemDraw
-                  (*{$IFNDEF _D2}, @ OnLVDataW {$ENDIF _D2}*) ] );
+  DoAssignEvents( SL, AName, [ 'OnDeleteLVItem', 'OnLVCustomDraw', 'OnLVSubitemDraw'],
+                             [ @ OnDeleteLVItem, @ OnLVCustomDraw, @ OnLVSubitemDraw] );
 end;
 
 constructor TKOLListView.Create(AOwner: TComponent);
@@ -8239,14 +8181,6 @@ begin
   Result:=GetStockObject(DEFAULT_GUI_FONT);
 end;
 
-(*{$IFNDEF _D2}
-procedure TKOLListView.SetOnLVDataW(const Value: TOnLVDataW);
-begin
-  FOnLVDataW := Value;
-  Change;
-end;
-{$ENDIF _D2}*)
-
 procedure TKOLListView.SetLVItemHeight(const Value: Integer);
 begin
   if fLVItemHeight <> Value then begin
@@ -8510,17 +8444,14 @@ begin
   Result := inherited P_AssignEvents( SL, AName, CheckOnly );
   if Result and CheckOnly then Exit;
   Result := Result or
-  P_DoAssignEvents( SL, AName, [ 'OnDeleteLVItem', 'OnLVCustomDraw', 'OnLVSubitemDraw'
-                  (*{$IFNDEF _D2}, 'OnLVDataW' {$ENDIF _D2}*) ],
-                             [ @ OnDeleteLVItem, @ OnLVCustomDraw, @ OnLVSubitemDraw
-                  (*{$IFNDEF _D2}, @ OnLVDataW {$ENDIF _D2}*) ],
+  P_DoAssignEvents( SL, AName, [ 'OnDeleteLVItem', 'OnLVCustomDraw', 'OnLVSubitemDraw'],
+                             [ @ OnDeleteLVItem, @ OnLVCustomDraw, @ OnLVSubitemDraw],
                   [ TRUE, TRUE, TRUE ], CheckOnly );
 end;
 
 procedure TKOLListView.GenerateTransparentInits_Compact;
 begin
   inherited;
-
 end;
 
 procedure TKOLListView.SetupConstruct_Compact;
@@ -10299,11 +10230,7 @@ end;
 
 function TKOLTabControl.HasCompactConstructor: Boolean;
 begin
-    {$IFDEF _D4orHigher}
-    Result := TRUE;
-    {$ELSE}
-    Result := FALSE;
-    {$ENDIF} 
+  Result := TRUE;
 end;
 
 function TKOLTabControl.IndexOfPage(const page_name: String): Integer;
@@ -11030,7 +10957,6 @@ var KF: TKOLForm;
     C: String;
 begin
     inherited;
-    {$IFDEF _D4orHigher}
     KF := ParentKOLForm;
     if  KF = nil then Exit;
     KF.FormAddAlphabet( 'FormNewTabControl', TRUE, TRUE, '' );
@@ -11044,8 +10970,6 @@ begin
     end;
     KF.FormAddNumParameter( PByte( @ Options )^ );
     KF.FormAddNumParameter( ImageList1stIdx );
-    {$ELSE}
-    {$ENDIF}
 end;
 
 procedure TKOLTabControl.SetupFirst(SL: TStringList; const AName, AParent,
@@ -11473,9 +11397,7 @@ begin
   TRY
     Bmp.Width := W;
     Bmp.Height := bitmap.Height;
-    {$IFNDEF _D2}
     Bmp.PixelFormat := Format;
-    {$ENDIF}
     for I := 0 to Items.Count - 1 do
     begin
       if I >= Items.Count then break;
@@ -12058,9 +11980,7 @@ begin
         end;
         Bmp.Width := N * W;
         Bmp.Height := H;
-        {$IFNDEF _D2}
         Bmp.PixelFormat := pf24bit;
-        {$ENDIF}
         if FBmpTranColor <> clNone then
         begin
           Bmp.Canvas.Brush.Color := FBmpTranColor;
@@ -12256,7 +12176,6 @@ begin
 
   if  showTooltips or (tooltips.Count > 0) then
   begin
-      //{$IFDEF _D4orHigher}
       {$IFDEF not_economy_code_size}
       if  (KF <> nil) and KF.FormCompact then
       begin
@@ -12760,16 +12679,11 @@ begin
           TmpBmp.Canvas.Brush.Color := clBtnFace;
           TmpBmp.Width := Bitmap.Width;
           TmpBmp.Height := Bitmap.Height;
-          {$IFDEF _D3orHigher}
           Bitmap.Transparent := TRUE;
-          {$ENDIF}
           //Bitmap.TransparentColor := Bitmap.Canvas.Pixels[ 0, Bitmap.Height-1 ];
           TmpBmp.Canvas.Draw( 0, 0, Bitmap );
-          {$IFDEF _D3orHigher}
           Bitmap.Transparent := FALSE;
-          {$ENDIF}
-          FBmpDesign := //CopyImage( TmpBmp.Handle, IMAGE_BITMAP, 0, 0, 0 {LR_CREATEDIBSECTION} );
-                     TmpBmp.ReleaseHandle;
+          FBmpDesign := TmpBmp.ReleaseHandle;
         FINALLY
           TmpBmp.Free;
         END;
@@ -12779,8 +12693,7 @@ begin
         FBmpDesign := CopyImage( Bitmap.Handle, IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION );
       end;
 
-      if mapBitmapColors then
-      begin
+      if mapBitmapColors then begin
         TmpBmp := TBitmap.Create;
         TmpBmp2 := TBitmap.Create;
         TRY
@@ -12788,9 +12701,7 @@ begin
           TmpBmp2.Canvas.Brush.Color := clBtnFace;
           TmpBmp2.Width := TmpBmp.Width;
           TmpBmp2.Height := TmpBmp.Height;
-          {$IFDEF _D3orHigher}
           TmpBmp.Transparent := TRUE;
-          {$ENDIF}
           TmpBmp2.Canvas.Draw( 0, 0, TmpBmp );
           FBmpDesign := TmpBmp2.ReleaseHandle;
         FINALLY
@@ -12807,7 +12718,7 @@ end;
 
 function TKOLToolbar.NoDrawFrame: Boolean;
 begin
-  Result:=HasBorder;
+  Result := HasBorder;
 end;
 
 procedure TKOLToolbar.UpdateButtons;
@@ -12944,7 +12855,7 @@ begin
     {$ENDIF}                                              //
   //*///////////////////////////////////////////////////////
         if (D <> nil) and QueryFormDesigner( D, FD ) then begin
-          FD.SelectComponent( {$IFDEF _D5orHigher} TPersistent {$ENDIF} ( FItems[res] ) );
+          FD.SelectComponent(TPersistent( FItems[res] ) );
         end;
       end;
     end;
@@ -13603,9 +13514,7 @@ begin
       end;
       Bmp.Width := N * W;
       Bmp.Height := H;
-      {$IFNDEF _D2}
       Bmp.PixelFormat := pf24bit;
-      {$ENDIF}
       if FBmpTranColor <> clNone then
       begin
         Bmp.Canvas.Brush.Color := FBmpTranColor;
@@ -14634,10 +14543,8 @@ begin
                          Rect( ImageListNormal.ImgWidth*(CurIndex),0,
                                ImageListNormal.ImgWidth*(CurIndex+1),
                                ImageListNormal.ImgHeight));
-    {$IFNDEF _D2}
     TMP.Transparent:=True;
     TMP.TransparentColor:=ImageListNormal.TransparentColor;
-    {$ENDIF}
     Canvas.Draw((Width - ImageListNormal.ImgWidth) div 2,
                 (Height - ImageListNormal.ImgHeight) div 2,
                 TMP);

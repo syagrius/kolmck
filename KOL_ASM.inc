@@ -1714,7 +1714,7 @@ asm
         JCXZ     @@5
         MOV      AL, [ECX].TGraphicTool.fData.Pen.Style
         DEC      AL
-        {$IFDEF PARANOIA} DB $2C, 3 {$ELSE} SUB AL, 3 {$ENDIF}
+        SUB AL, 3
         JB       @@6
 @@5:    TEST     BL, BrushValid
         JZ       @@7
@@ -2517,8 +2517,8 @@ asm
 
 @@go:
         LODSB
-        {$IFDEF PARANOIA} DB $2C, 'A' {$ELSE} SUB AL, 'A' {$ENDIF}
-        {$IFDEF PARANOIA} DB $3C, 26 {$ELSE} CMP AL, 'Z'-'A'+1 {$ENDIF}
+        SUB AL, 'A'
+        CMP AL, 'Z'-'A'+1
         JNB      @@1
 
         ADD      byte ptr [ESI - 1], 20h
@@ -2548,8 +2548,8 @@ asm
 
 @@go:
         LODSB
-        {$IFDEF PARANOIA} DB $2C, 'a' {$ELSE} SUB AL, 'a' {$ENDIF}
-        {$IFDEF PARANOIA} DB $3C, $1A {$ELSE} CMP AL, 'z'-'a'+1 {$ENDIF}
+        SUB AL, 'a'
+        CMP AL, 'z'-'a'+1
         JNB      @@1
 
         SUB      byte ptr [ESI - 1], 20h
@@ -2833,9 +2833,6 @@ asm
         POP      EBX
         POP      EAX
         PUSH     EDX
-        {$IFDEF _D2}
-        CALL     _LStrFromPCharLen
-        {$ELSE}
           {$IFDEF _D2009orHigher}
           PUSH     ECX // TODO: check to remove
           XOR      ECX, ECX
@@ -2844,10 +2841,7 @@ asm
           {$IFDEF _D2009orHigher}
           POP      ECX
           {$ENDIF}
-
-        {$ENDIF}
         JMP      @@freebuf
-
 @@exitEBX:
         POP      EBX
 @@exit:
@@ -2959,7 +2953,7 @@ asm
 
 @@calc:
         SBB      EAX, EAX
-        {$IFDEF PARANOIA} DB $0C, 1 {$ELSE} OR AL, 1 {$ENDIF}
+        OR AL, 1
 
 @@exit:
         POP      EBX
@@ -2978,7 +2972,7 @@ asm
         INC      EAX
         JZ       @@exit
         DEC      EAX
-        {$IFDEF PARANOIA} DB $24, FILE_ATTRIBUTE_DIRECTORY {$ELSE} AND AL, FILE_ATTRIBUTE_DIRECTORY {$ENDIF}
+        AND AL, FILE_ATTRIBUTE_DIRECTORY
         SETNZ    AL
 @@exit:
    XCHG EAX, EBX
@@ -3549,7 +3543,7 @@ asm
         MOV      [EBX].TControl.fBoundsRect.Bottom, EDX
         TEST     ECX, ECX
         JZ       @@noGlyphWH
-        {$IFDEF PARANOIA} DB $A8, 01 {$ELSE} TEST AL, bboImageList {$ENDIF}
+        TEST AL, bboImageList
         JZ       @@getBmpWH
         PUSH     EAX
         MOV      EAX, ESP
@@ -3992,7 +3986,7 @@ asm
         MOV      CL, [EBX].TControl.fAlign
         MOV      AL, 1
         SHL      EAX, CL
-        {$IFDEF PARANOIA} DB $A8, chkRight or chkBott {$ELSE} TEST AL, chkRight or chkBott {$ENDIF} //fAlign in [ caRight, caBottom ] ?
+        TEST AL, chkRight or chkBott //fAlign in [ caRight, caBottom ] ?
         JNZ      @@mReady
         INC      EDI
         INC      EDI
@@ -4000,7 +3994,7 @@ asm
         MOV      EDX, [EBX].TControl.fParent
         MOVSX    EBP, [EDX].TControl.fMargin
         NEG      EBP
-        {$IFDEF PARANOIA} DB $A8, chkTop or chkBott {$ELSE} TEST AL, chkTop or chkBott {$ENDIF} // fAlign in [ caTop, caBottom ] ?
+        TEST AL, chkTop or chkBott // fAlign in [ caTop, caBottom ] ?
         XCHG     EAX, EDX
         JZ       @@noTopBottom
 
@@ -4164,7 +4158,7 @@ asm
         MOV      CL, [EBX].TControl.fAlign
         MOV      AL, 1
         SHL      EAX, CL
-        {$IFDEF PARANOIA} DB $A8, chkTop or chkBott {$ELSE} TEST AL, chkTop or chkBott {$ENDIF} // fAlign in [caTop,caBottom] ?
+        TEST AL, chkTop or chkBott // fAlign in [caTop,caBottom] ?
         XCHG     EAX, EDX
         JZ       @@no_caTop_caBottom
         CALL     TControl.GetHeight
@@ -4291,7 +4285,7 @@ asm
         PUSH     ECX
         MOV      AL, 1
         SHL      EAX, CL
-        {$IFDEF PARANOIA} DB $A8, chkTop or chkBott {$ELSE} TEST AL, chkTop or chkBott {$ENDIF}
+        TEST AL, chkTop or chkBott
         MOV      EAX, int_IDC_SIZEWE
         JZ       @@TopBottom
         INC      EAX
@@ -4373,7 +4367,7 @@ asm
         XCHG     ECX, EAX // ECX = Flags
         POP      EAX  // Options
         PUSH     EAX
-        {$IFDEF PARANOIA} DB $A8, 8 {$ELSE} TEST AL, 8 {$ENDIF}
+        TEST AL, 8
         JNZ      @@1
         AND      ECX, WS_clear
 @@1:    OR       ECX, WS_flags
@@ -4396,7 +4390,7 @@ asm
         ADD      EDX, 22
         MOV      [ECX].TRect.Bottom, EDX
         POP      EAX // Options
-        {$IFDEF PARANOIA} DB $A8, 8 {$ELSE} TEST AL, 8 {$ENDIF}
+        TEST AL, 8
         MOV      DL, $0D
         JZ       @@2
         ADD      [ECX].TRect.Right, 100
@@ -5253,14 +5247,10 @@ asm
         {$IFDEF UNICODE_CTRLS}
         CALL     System.@WStrFromPWChar // TODO: not need ecx
         {$ELSE not UNICODE_CTRLS}
-        {$IFDEF  _D2}
-        CALL     LStrFromPWChar
-        {$ELSE}
           {$IFDEF _D2009orHigher}
           XOR      ECX, ECX // TODO: fixme
           {$ENDIF}
         CALL     System.@LStrFromPWChar
-        {$ENDIF}
         {$ENDIF UNICODE_CTRLS}
         JMP      @@2
 @@1:
@@ -5775,7 +5765,7 @@ asm
            MOV       EAX, [EAX].TMsg.wParam
 
            JNC       @@noset_MKALT
-           {$IFDEF PARANOIA} DB $0C, MK_ALT {$ELSE} OR AL, MK_ALT {$ENDIF}
+           OR AL, MK_ALT
 @@noset_MKALT:
 
          PUSH      EAX             // prepare Shift
@@ -6012,7 +6002,7 @@ asm     //cmd    //opd
         JNE      @@chk_WM_SETFOCUS
 
         MOV      EAX, [EDI].TMsg.wParam
-        {$IFDEF PARANOIA} DB $24, $F0 {$ELSE} AND AL, $F0 {$ENDIF}
+        AND AL, $F0
         CMP      AX, SC_MINIMIZE
         JNE      @@calldef
 
@@ -8604,7 +8594,7 @@ asm
         SETZ    AL
     {$ELSE}
         MOV      AL, [EAX].fPreventResize
-        {$IFDEF PARANOIA} DB $34,$01 {$ELSE} XOR AL, 1 {$ENDIF}
+        XOR AL, 1
     {$ENDIF USE_FLAGS}
 end;
 
@@ -9833,9 +9823,7 @@ asm
         TEST     EAX, EAX
         JZ       @@1
         CALL     System.@FreeMem
-        {$IFNDEF _D2orD3} //???//
         XOR      EAX, EAX // not needed for Delphi4 and Higher: if OK, EAX = 0
-        {$ENDIF}
 @@1:    XCHG     EAX, [EBX].fList
         CALL     TObj.RefDec
         POP      EBX
@@ -11522,7 +11510,7 @@ asm
         MOVZX    ECX, byte ptr [ BitsPerPixel_By_PixelFormat + EAX ]
         JECXZ    @@loadDefault
         MOV      [EBX].TBitmap.fNewPixelFormat, AL
-        {$IFDEF PARANOIA} DB $3C, pf16bit {$ELSE} CMP AL, pf16bit {$ENDIF}
+        CMP AL, pf16bit
         POP      EAX
 
         PUSHFD
@@ -13921,11 +13909,7 @@ asm
 @@if32bit:
         LOOP     @@iffin
         INC      EDX
-        {$IFDEF DIBPixels32bitWithAlpha}
         MOV      EAX, offset[_GetDIBPixelsTrueColorAlpha]
-        {$ELSE}
-        MOV      EAX, offset[_GetDIBPixelsTrueColor]
-        {$ENDIF}
 @@iffin:
         MOV      byte ptr [EBX].fPixelMask, DH
         MOV      byte ptr [EBX].fPixelsPerByteMask, DL
@@ -14045,7 +14029,7 @@ asm
         JMP      @@1516
 
 @@16bit:
-        {$IFDEF PARANOIA} DB $24, $F8 {$ELSE} AND AL, $F8 {$ENDIF}
+        AND AL, $F8
         MOV      CH, AL
         SHR      EAX, 5
         MOV      EDX, EAX
@@ -14151,11 +14135,7 @@ asm
 @@if32bit:
         LOOP     @@ifend
         INC      EDX
-        {$IFDEF DIBPixels32bitWithAlpha}
         MOV      EAX, offset[_SetDIBPixelsTrueColor]
-        {$ELSE}
-        MOV      EAX, offset[_SetDIBPixelsTrueColor]
-        {$ENDIF}
 @@ifend:
         MOV      byte ptr [EBX].fPixelMask, DH
         MOV      byte ptr [EBX].fPixelsPerByteMask, DL
@@ -15068,30 +15048,6 @@ end;
 //@@exit:
 //end;
 
-{$IFDEF USE_CONSTRUCTORS}
-constructor TControl.CreateGradientPanel(AParent: PControl; AColor1,            //
-  AColor2: TColor);                                                             //
-asm     //cmd    //opd                                                          //
-        XOR      EDX, EDX                                                       //
-        PUSH     EDX                                                            //
-        CALL     CreateLabel                                                    //
-        MOV      ECX, AColor1                                                   //
-        MOV      [EAX].fColor1, ECX                                             //
-        MOV      ECX, AColor2                                                   //
-        MOV      [EAX].fColor2, ECX                                             //
-        MOV      EDX, [EAX].fBoundsRect.Left                                    //
-        ADD      EDX, 40                                                        //
-        MOV      [EAX].fBoundsRect.Right, EDX                                   //
-        MOV      EDX, [EAX].fBoundsRect.Top                                     //
-        ADD      EDX, 40                                                        //
-        MOV      [EAX].fBoundsRect.Bottom, EDX                                  //
-        PUSH     EAX                                                            //
-        MOV      EDX, offset[ WndProcGradient ]                                 //
-        CALL     AttachProc                                                     //
-        POP      EAX                                                            //
-end;                                                                            //
-{$ENDIF USE_CONSTRUCTORS}
-
 function TControl.MakeWordWrap: PControl;
 asm
     {$IFDEF USE_FLAGS}
@@ -15168,11 +15124,7 @@ asm
         LEA  EAX, [EDI].FormString
         PUSH ECX
             MOV  EDX, DWORD PTR[EDI].DF.FormParams
-            {$IFDEF _D2}
-            CALL System.@LStrFromLenStr
-            {$ELSE}
             CALL System.@LStrFromPCharLen
-            {$ENDIF}
         POP  ECX
         ADD  DWORD PTR[EDI].DF.FormParams, ECX
     POP  EDI

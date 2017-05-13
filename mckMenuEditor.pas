@@ -492,9 +492,6 @@ begin
   {$IFDEF _D4orD5}
   Position := poDesktopCenter              ;
   {$ENDIF}
-  {$IFDEF _D2orD3}
-  Position := poScreenCenter              ;
-  {$ENDIF}
   Scaled := False                          ;
   Visible := True                          ;
   OnClose := FormClose                     ;

@@ -697,10 +697,6 @@ type
     function GetTotal: Integer;
     function GetIndexAmongSiblings: Integer;
   protected
-    {$IFDEF USE_CONSTRUCTORS}
-    constructor CreateTree( AParent: PTree; const AName: AnsiString );
-    {* }
-    {$ENDIF}
     destructor Destroy; virtual;
     {* }
     procedure Init; virtual;
@@ -854,7 +850,6 @@ implementation
 //uses
   //ShellAPI,
   //shlobj,
-  //{$IFNDEF _D2}ActiveX,{$ENDIF}
 //  CommDlg
 {$IFDEF USE_GRUSH}uses ToGrush; {$ENDIF}
 
@@ -1096,7 +1091,7 @@ begin
           CLD
           POP   EDI
           POP   ESI
-    end {$IFDEF F_P} ['EAX','EDX','ECX'] {$ENDIF};
+    end;
   end;
 end;
 
@@ -1239,7 +1234,7 @@ begin
           MOV  EAX, D
           BSF  EAX, EAX
           MOV  D, EAX
-        end {$IFDEF F_P} [ 'EAX' ] {$ENDIF};
+        end;
         Result := I * 32 + Integer( D );
         if  Result >= fCount then
             Result := -1;
@@ -1260,7 +1255,7 @@ begin
           NOT  EAX
           BSF  EAX, EAX
           MOV  D, EAX
-        end {$IFDEF F_P} [ 'EAX' ] {$ENDIF};
+        end;
         Result := I * 32 + Integer( D );
         break;
       end;
@@ -1425,7 +1420,7 @@ procedure InitUpper;
 var c: AnsiChar;
 begin
   for c := #0 to #255 do
-    Upper[ c ] := AnsiUpperCase( {$IFDEF _D3orHigher}AnsiString{$ENDIF}(c + #0) )[ 1 ];
+    Upper[ c ] := AnsiUpperCase(AnsiString(c + #0))[1];
   Upper_Initialized := TRUE;
 end;
 
@@ -3014,15 +3009,6 @@ end;
 
 { -- TTree -- }
 
-{$IFDEF USE_CONSTRUCTORS}
-//[function NewTree]
-function NewTree( AParent: PTree; const AName: AnsiString ): PTree;
-begin
-  New( Result, CreateTree(  AParent, AName ) );
-end;
-//[END NewTree]
-{$ELSE not_USE_CONSTRUCTORS}
-//[function NewTree]
 {$IFDEF TREE_NONAME}
 function NewTree( AParent: PTree ): PTree;
 begin
@@ -3058,12 +3044,9 @@ begin
 end;
 {$ENDIF}
 {$ENDIF}
-//[END NewTree]
-{$ENDIF USE_CONSTRUCTORS}
 
 { TTree }
 
-//[procedure TTree.Add]
 procedure TTree.Add(Node: PTree);
 var Previous: PTree;
 begin
@@ -3083,7 +3066,6 @@ begin
   Node.fParent := @Self;
 end;
 
-//[procedure TTree.Clear]
 procedure TTree.Clear;
 var I: Integer;
 begin
@@ -3092,19 +3074,6 @@ begin
     PTree( fChildren.Items[ I ] ).Free;
 end;
 
-{$IFDEF USE_CONSTRUCTORS}
-//[constructor TTree.CreateTree]
-constructor TTree.CreateTree(AParent: PTree; const AName: AnsiString);
-begin
-  inherited Create;
-  if AParent <> nil then
-    AParent.Add( @Self );
-  fParent := AParent;
-  fName := AName;
-end;
-{$ENDIF}
-
-//[destructor TTree.Destroy]
 destructor TTree.Destroy;
 begin
   Unlink;
@@ -3116,7 +3085,6 @@ begin
   inherited;
 end;
 
-//[function TTree.GetCount]
 function TTree.GetCount: Integer;
 begin
   Result := 0;
@@ -3124,7 +3092,6 @@ begin
   Result := fChildren.Count;
 end;
 
-//[function TTree.GetIndexAmongSiblings]
 function TTree.GetIndexAmongSiblings: Integer;
 begin
   Result := -1;
@@ -3132,7 +3099,6 @@ begin
   Result := fParent.fChildren.IndexOf( @Self );
 end;
 
-//[function TTree.GetItems]
 function TTree.GetItems(Idx: Integer): PTree;
 begin
   Result := nil;
@@ -3140,7 +3106,6 @@ begin
   Result := fChildren.Items[ Idx ];
 end;
 
-//[function TTree.GetLevel]
 function TTree.GetLevel: Integer;
 var Node: PTree;
 begin
@@ -3153,7 +3118,6 @@ begin
   end;
 end;
 
-//[function TTree.GetRoot]
 function TTree.GetRoot: PTree;
 begin
   Result := @Self;
@@ -3161,7 +3125,6 @@ begin
     Result := Result.fParent;
 end;
 
-//[function TTree.GetTotal]
 function TTree.GetTotal: Integer;
 var I: Integer;
 begin
@@ -3173,14 +3136,12 @@ begin
   end;
 end;
 
-//[procedure TTree.Init]
 procedure TTree.Init;
 begin
   if FParent <> nil then
     FParent.Add( @Self );
 end;
 
-//[procedure TTree.Insert]
 procedure TTree.Insert(Before, Node: PTree);
 var Previous: PTree;
 begin
@@ -3207,7 +3168,6 @@ begin
   Node.fParent := @Self;
 end;
 
-//[function CompareTreeNodes]
 function CompareTreeNodes( const Data: Pointer; const e1, e2: DWORD ): Integer;
 var List: PList;
 begin
@@ -3221,7 +3181,6 @@ begin
   {$ENDIF}
 end;
 
-//[procedure SwapTreeNodes]
 procedure SwapTreeNodes( const Data: Pointer; const e1, e2: DWORD );
 var List: PList;
 begin
@@ -3229,20 +3188,17 @@ begin
   List.Swap( e1, e2 );
 end;
 
-//[procedure TTree.SwapNodes]
 procedure TTree.SwapNodes( i1, i2: Integer );
 begin
   fChildren.Swap( i1, i2 );
 end;
 
-//[procedure TTree.SortByName]
 procedure TTree.SortByName;
 begin
   if Count <= 1 then Exit;
   SortData( fChildren, fChildren.Count, CompareTreeNodes, SwapTreeNodes );
 end;
 
-//[procedure TTree.Unlink]
 procedure TTree.Unlink;
 var I: Integer;
 begin
@@ -3265,7 +3221,6 @@ begin
   fParent := nil;
 end;
 
-//[function TTree.IsParentOfNode]
 function TTree.IsParentOfNode(Node: PTree): Boolean;
 begin
   Result := TRUE;
@@ -3277,7 +3232,6 @@ begin
   Result := FALSE;
 end;
 
-//[function TTree.IndexOf]
 function TTree.IndexOf(Node: PTree): Integer;
 begin
   Result := -1;
@@ -3295,9 +3249,7 @@ begin
 end;
 
 {-------------------------------------------------------------------------------
-  ADDITIONAL UTILITIES
-}
-
+  ADDITIONAL UTILITIES }
 function MapFileRead( const Filename: AnsiString; var hFile, hMap: THandle ): Pointer;
 var Sz, Hi: DWORD;
 begin
@@ -3337,15 +3289,12 @@ begin
     CloseHandle( hFile );
 end;
 
-//[procedure CloseMsg]
 procedure CloseMsg( Dummy, Dialog: PControl; var Accept: Boolean );
 begin
   Accept := FALSE;
   Dialog.ModalResult := -1;
 end;
-//[END CloseMsg]
 
-//[procedure OKClick]
 procedure OKClick( Dialog, Btn: PControl );
 var Rslt: Integer;
 begin
@@ -3355,9 +3304,7 @@ begin
   Dialog.ModalResult := Rslt;
   Dialog.Close;
 end;
-//[END OKClick]
 
-//[procedure KeyClick]
 procedure KeyClick( Dialog, Btn: PControl; var Key: Longint; Shift: DWORD );
 begin
   if (Key = VK_RETURN) or (Key = VK_ESCAPE) then
@@ -3367,7 +3314,6 @@ begin
     OKClick( Dialog, Btn );
   end;
 end;
-//[END KeyClick]
 
 {$IFDEF SNAPMOUSE2DFLTBTN}
 function WndProcDlg( Sender: PControl; var Msg: TMsg; var Rslt: Integer ): Boolean;

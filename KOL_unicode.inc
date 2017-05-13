@@ -4,11 +4,9 @@
 *******************************************************************************}
 {$IFDEF interface_part} ////////////////////////////////////////////////////////
   MakeIntAtom = MakeIntAtomW;
-  {$IFDEF _D4orHigher}
   PRecoveryAgentInformation = PRecoveryAgentInformationW;
   TRecoveryAgentInformation = TRecoveryAgentInformationW;
   RECOVERY_AGENT_INFORMATION = RECOVERY_AGENT_INFORMATIONW;
-  {$ENDIF}
   PWin32FindData = PWin32FindDataW;
   TWin32FindData = TWin32FindDataW;
   PHWProfileInfo = PHWProfileInfoW;
@@ -17,7 +15,6 @@
   TOSVersionInfo = TOSVersionInfoW;
   PLogColorSpace = PLogColorSpaceW;
   TLogColorSpace = TLogColorSpaceW;
-  {$IFDEF _D4orHigher}
   PTextMetric = PTextMetricW;
   tagTEXTMETRIC = tagTEXTMETRICW;
   TTextMetric = TTextMetricW;
@@ -26,10 +23,8 @@
   TNewTextMetric = TNewTextMetricW;
   NEWTEXTMETRIC = NEWTEXTMETRICW;
   PNewTextMetricEx = PNewTextMetricExW;
-  {$ENDIF}
   PLogFont = PLogFontW;
   TLogFont = TLogFontW;
-  {$IFDEF _D4orHigher}
   PEnumLogFont = PEnumLogFontW;
   TEnumLogFont = TEnumLogFontW;
   ENUMLOGFONT = ENUMLOGFONTW;
@@ -40,150 +35,95 @@
   tagEXTLOGFONT = tagEXTLOGFONTW;
   TExtLogFont = TExtLogFontW;
   EXTLOGFONT = EXTLOGFONTW;
-  {$ENDIF}
   PDeviceMode = PDeviceModeW;
   TDeviceMode = TDeviceModeW;
-  {$IFDEF _D4orHigher}
   DEVMODE = DEVMODEW;
   PDisplayDevice = PDisplayDeviceW;
   TDisplayDevice = TDisplayDeviceW;
-  {$ENDIF}
   POutlineTextmetric = POutlineTextmetricW;
   TOutlineTextmetric = TOutlineTextmetricW;
-  {$IFDEF _D4orHigher}
   OUTLINETEXTMETRIC = OUTLINETEXTMETRICW;
-  {$ENDIF}
   PPolyText = PPolyTextW;
-  {$IFDEF _D4orHigher}
   tagPOLYTEXT = tagPOLYTEXTW;
   POLYTEXT = POLYTEXTW;
-  {$ENDIF}
   TPolyText = TPolyTextW;
   PGCPResults = PGCPResultsW;
   TGCPResults = TGCPResultsW;
-  {$IFDEF _D4orHigher}
   GCP_RESULTS = GCP_RESULTSW;
-  {$ENDIF}
   TFNOldFontEnumProc = TFNOldFontEnumProcW;
   TFNFontEnumProc = TFNFontEnumProcW;
-  {$IFDEF _D4orHigher}
   PAxisInfo = PAxisInfoW;
   PAxesList = PAxesListW;
   PEnumLogFontExDV = PEnumLogFontExDVW;
   PEnumTextMetric = PEnumTextMetricW;
-  {$ENDIF}
   PDocInfo = PDocInfoW;
   TDocInfo = TDocInfoW;
-  {$IFDEF _D4orHigher}
   DOCINFO = DOCINFOW;
-  {$ENDIF}
   MakeIntResource = MakeIntResourceW;
   PCreateStruct = PCreateStructW;
   TCreateStruct = TCreateStructW;
-  {$IFDEF _D4orHigher}
   CREATESTRUCT = CREATESTRUCTW;
-  {$ENDIF}
   PWndClassEx = PWndClassExW;
   TWndClassEx = TWndClassExW;
-  {$IFDEF _D4orHigher}
   WNDCLASSEX = WNDCLASSEXW;
-  {$ENDIF}
   PWndClass = PWndClassW;
   TWndClass = TWndClassW;
-  {$IFDEF _D4orHigher}
   WNDCLASS = WNDCLASSW;
-  {$ENDIF}
   //PMenuItemInfo = PMenuItemInfoW;
   //TMenuItemInfo = TMenuItemInfoW;
   //MENUITEMINFO = MENUITEMINFOW;
   PMsgBoxParams = PMsgBoxParamsW;
   TMsgBoxParams = TMsgBoxParamsW;
-  {$IFDEF _D4orHigher}
   MSGBOXPARAMS = MSGBOXPARAMSW;
-  {$ENDIF}
   PMDICreateStruct = PMDICreateStructW;
   TMDICreateStruct = TMDICreateStructW;
   PMultiKeyHelp = PMultiKeyHelpW;
   TMultiKeyHelp = TMultiKeyHelpW;
-  {$IFDEF _D4orHigher}
   MULTIKEYHELP = MULTIKEYHELPW;
-  {$ENDIF}
   PHelpWinInfo = PHelpWinInfoW;
   THelpWinInfo = THelpWinInfoW;
-  {$IFDEF _D4orHigher}
   HELPWININFO = HELPWININFOW;
-  {$ENDIF}
   PNonClientMetrics = PNonClientMetricsW;
   TNonClientMetrics = TNonClientMetricsW;
-  {$IFDEF _D4orHigher}
   NONCLIENTMETRICS = NONCLIENTMETRICSW;
-  {$ENDIF}
   PIconMetrics = PIconMetricsW;
   TIconMetrics = TIconMetricsW;
-  {$IFDEF _D4orHigher}
   ICONMETRICS = ICONMETRICSW;
-  {$ENDIF}
   PSerialKeys = PSerialKeysW;
   TSerialKeys = TSerialKeysW;
-  {$IFDEF _D4orHigher}
   SERIALKEYS = SERIALKEYSW;
-  {$ENDIF}
   PHighContrast = PHighContrastW;
   THighContrast = THighContrastW;
-  {$IFDEF _D4orHigher}
   HIGHCONTRAST = HIGHCONTRASTW;
-  {$ENDIF}
   PSoundsEntry = PSoundsEntryW;
   TSoundsEntry = TSoundsEntryW;
-  {$IFDEF _D4orHigher}
   SOUNDSENTRY = SOUNDSENTRYW;
-  {$ENDIF}
   PNumberFmt = PNumberFmtW;
   TNumberFmt = TNumberFmtW;
-  {$IFDEF _D4orHigher}
   NUMBERFMT = NUMBERFMTW;
-  {$ENDIF}
   PCurrencyFmt = PCurrencyFmtW;
-  {$IFDEF _D4orHigher}
   _currencyfmt = _currencyfmtW;
-  {$ENDIF}
   TCurrencyFmt = TCurrencyFmtW;
-  {$IFDEF _D4orHigher}
   CURRENCYFMT = CURRENCYFMTW;
-  {$ENDIF}
   PPValue = PPValueW;
-  {$IFDEF _D4orHigher}
   pvalue = pvalueW;
-  {$ENDIF}
   TPValue = TPValueW;
   PValueEnt = PValueEntW;
   TValueEnt = TValueEntW;
-  {$IFDEF _D4orHigher}
   VALENT = VALENTW;
-  {$ENDIF}
   PNetResource = PNetResourceW;
   TNetResource = TNetResourceW;
-  {$IFDEF _D4orHigher}
   NETRESOURCE = NETRESOURCEW;
-  {$ENDIF}
   PDiscDlgStruct = PDiscDlgStructW;
-  {$IFDEF _D4orHigher}
   _DISCDLGSTRUCT = _DISCDLGSTRUCTW;
-  {$ENDIF}
   TDiscDlgStruct = TDiscDlgStructW;
-  {$IFDEF _D4orHigher}
   DISCDLGSTRUCT = DISCDLGSTRUCTW;
-  {$ENDIF}
   PUniversalNameInfo = PUniversalNameInfoW;
   TUniversalNameInfo = TUniversalNameInfoW;
-  {$IFDEF _D4orHigher}
   UNIVERSAL_NAME_INFO = UNIVERSAL_NAME_INFOW;
-  {$ENDIF}
   PRemoteNameInfo = PRemoteNameInfoW;
   TRemoteNameInfo = TRemoteNameInfoW;
-  {$IFDEF _D4orHigher}
   REMOTE_NAME_INFO = REMOTE_NAME_INFOW;
-  {$ENDIF}
 
 function AbortSystemShutdown(lpMachineName: PKOLChar): BOOL; stdcall;
 function AccessCheckAndAuditAlarm(SubsystemName: PKOLChar;
@@ -191,7 +131,6 @@ function AccessCheckAndAuditAlarm(SubsystemName: PKOLChar;
   SecurityDescriptor: PSecurityDescriptor; DesiredAccess: DWORD;
   const GenericMapping: TGenericMapping;  ObjectCreation: BOOL;
   var GrantedAccess: DWORD; var AccessStatus, pfGenerateOnClose: BOOL): BOOL; stdcall;
-{$IFDEF _D4orHigher}
 function AccessCheckByTypeAndAuditAlarm(SubsystemName: PKOLChar;
   HandleId: Pointer; ObjectTypeName, ObjectName: PKOLChar;
   SecurityDescriptor: PSecurityDescriptor; PrincipalSelfSid: PSID; DesiredAccess: DWORD;
@@ -204,7 +143,6 @@ function AccessCheckByTypeResultListAndAuditAlarm(SubsystemName: PKOLChar;
   AuditType: AUDIT_EVENT_TYPE; Flags: DWORD; ObjectTypeList: PObjectTypeList;
   ObjectTypeListLength: DWORD; const GenericMapping: TGenericMapping;  ObjectCreation: BOOL;
   var GrantedAccess: DWORD; var AccessStatusList: DWORD; var pfGenerateOnClose: BOOL): BOOL; stdcall;
-{$ENDIF}
 function BackupEventLog(hEventLog: THandle; lpBackupFileName: PKOLChar): BOOL; stdcall;
 function ClearEventLog(hEventLog: THandle; lpBackupFileName: PKOLChar): BOOL; stdcall;
 function CreateProcessAsUser(hToken: THandle; lpApplicationName: PKOLChar;
@@ -395,20 +333,16 @@ function GetDiskFreeSpaceEx(lpDirectoryName: PKOLChar;
   var lpFreeBytesAvailableToCaller, lpTotalNumberOfBytes; lpTotalNumberOfFreeBytes: PLargeInteger): BOOL; stdcall;
 function GetDriveType(lpRootPathName: PKOLChar): UINT; stdcall;
 function GetEnvironmentStrings: PKOLChar; stdcall;
-function GetEnvironmentVariable(lpName: PKOLChar; lpBuffer: PKOLChar; nSize: DWORD): DWORD; stdcall;
-         {$IFDEF _D4orHigher} overload; {$ENDIF}
+function GetEnvironmentVariable(lpName: PKOLChar; lpBuffer: PKOLChar; nSize: DWORD): DWORD; stdcall; overload;
 function GetFileAttributes(lpFileName: PKOLChar): DWORD; stdcall;
-function GetFileAttributesEx(lpFileName: PKOLChar;
-  fInfoLevelId: TGetFileExInfoLevels; lpFileInformation: Pointer): BOOL; stdcall;
-function GetFullPathName(lpFileName: PKOLChar; nBufferLength: DWORD;
-  lpBuffer: PKOLChar; var lpFilePart: PKOLChar): DWORD; stdcall;
+function GetFileAttributesEx(lpFileName: PKOLChar; fInfoLevelId: TGetFileExInfoLevels; lpFileInformation: Pointer): BOOL; stdcall;
+function GetFullPathName(lpFileName: PKOLChar; nBufferLength: DWORD; lpBuffer: PKOLChar; var lpFilePart: PKOLChar): DWORD; stdcall;
 function GetLocaleInfo(Locale: LCID; LCType: LCTYPE; lpLCData: PKOLChar; cchData: Integer): Integer; stdcall;
 function GetLogicalDriveStrings(nBufferLength: DWORD; lpBuffer: PKOLChar): DWORD; stdcall;
 function GetModuleFileName(hModule: HINST; lpFilename: PKOLChar; nSize: DWORD): DWORD; stdcall;
 function GetModuleHandle(lpModuleName: PKOLChar): HMODULE; stdcall;
 function GetNamedPipeHandleState(hNamedPipe: THandle;
-  lpState, lpCurInstances, lpMaxCollectionCount, lpCollectDataTimeout: PDWORD;
-  lpUserName: PKOLChar; nMaxUserNameSize: DWORD): BOOL; stdcall;
+  lpState, lpCurInstances, lpMaxCollectionCount, lpCollectDataTimeout: PDWORD; lpUserName: PKOLChar; nMaxUserNameSize: DWORD): BOOL; stdcall;
 function GetNumberFormat(Locale: LCID; dwFlags: DWORD; lpValue: PKOLChar;
   lpFormat: PNumberFmt; lpNumberStr: PKOLChar; cchNumber: Integer): Integer; stdcall;
 function GetPrivateProfileInt(lpAppName, lpKeyName: PKOLChar; nDefault: Integer; lpFileName: PKOLChar): UINT; stdcall;
@@ -420,29 +354,23 @@ function GetProfileInt(lpAppName, lpKeyName: PKOLChar; nDefault: Integer): UINT;
 function GetProfileSection(lpAppName: PKOLChar; lpReturnedString: PKOLChar; nSize: DWORD): DWORD; stdcall;
 function GetProfileString(lpAppName, lpKeyName, lpDefault: PKOLChar;
   lpReturnedString: PKOLChar; nSize: DWORD): DWORD; stdcall;
-function GetShortPathName(lpszLongPath: PKOLChar; lpszShortPath: PKOLChar;
-  cchBuffer: DWORD): DWORD; stdcall;
+function GetShortPathName(lpszLongPath: PKOLChar; lpszShortPath: PKOLChar; cchBuffer: DWORD): DWORD; stdcall;
 procedure GetStartupInfo(var lpStartupInfo: TStartupInfo); stdcall;
-function GetStringTypeEx(Locale: LCID; dwInfoType: DWORD;
-  lpSrcStr: PKOLChar; cchSrc: Integer; var lpCharType): BOOL; stdcall;
+function GetStringTypeEx(Locale: LCID; dwInfoType: DWORD; lpSrcStr: PKOLChar; cchSrc: Integer; var lpCharType): BOOL; stdcall;
 function GetSystemDirectory(lpBuffer: PKOLChar; uSize: UINT): UINT; stdcall;
-function GetTempFileName(lpPathName, lpPrefixString: PKOLChar;
-  uUnique: UINT; lpTempFileName: PKOLChar): UINT; stdcall;
+function GetTempFileName(lpPathName, lpPrefixString: PKOLChar; uUnique: UINT; lpTempFileName: PKOLChar): UINT; stdcall;
 function GetTempPath(nBufferLength: DWORD; lpBuffer: PKOLChar): DWORD; stdcall;
 function GetTimeFormat(Locale: LCID; dwFlags: DWORD; lpTime: PSystemTime;
   lpFormat: PKOLChar; lpTimeStr: PKOLChar; cchTime: Integer): Integer; stdcall;
 function GetVersionEx(var lpVersionInformation: TOSVersionInfo): BOOL; stdcall;
-function GetVolumeInformation(lpRootPathName: PKOLChar;
-  lpVolumeNameBuffer: PKOLChar; nVolumeNameSize: DWORD; lpVolumeSerialNumber: PDWORD;
-  var lpMaximumComponentLength, lpFileSystemFlags: DWORD;
-  lpFileSystemNameBuffer: PKOLChar; nFileSystemNameSize: DWORD): BOOL; stdcall;
+function GetVolumeInformation(lpRootPathName: PKOLChar; lpVolumeNameBuffer: PKOLChar; nVolumeNameSize: DWORD; lpVolumeSerialNumber: PDWORD;
+  var lpMaximumComponentLength, lpFileSystemFlags: DWORD; lpFileSystemNameBuffer: PKOLChar; nFileSystemNameSize: DWORD): BOOL; stdcall;
 function GetWindowsDirectory(lpBuffer: PKOLChar; uSize: UINT): UINT; stdcall;
 function GlobalAddAtom(lpString: PKOLChar): ATOM; stdcall;
 function GlobalFindAtom(lpString: PKOLChar): ATOM; stdcall;
 function GlobalGetAtomName(nAtom: ATOM; lpBuffer: PKOLChar; nSize: Integer): UINT; stdcall;
 function IsBadStringPtr(lpsz: PKOLChar; ucchMax: UINT): BOOL; stdcall;
-function LCMapString(Locale: LCID; dwMapFlags: DWORD; lpSrcStr: PKOLChar;
-  cchSrc: Integer; lpDestStr: PKOLChar; cchDest: Integer): Integer; stdcall;
+function LCMapString(Locale: LCID; dwMapFlags: DWORD; lpSrcStr: PKOLChar; cchSrc: Integer; lpDestStr: PKOLChar; cchDest: Integer): Integer; stdcall;
 function LoadLibrary(lpLibFileName: PKOLChar): HMODULE; stdcall;
 function LoadLibraryEx(lpLibFileName: PKOLChar; hFile: THandle; dwFlags: DWORD): HMODULE; stdcall;
 function MoveFile(lpExistingFileName, lpNewFileName: PKOLChar): BOOL; stdcall;
@@ -453,15 +381,12 @@ function OpenEvent(dwDesiredAccess: DWORD; bInheritHandle: BOOL; lpName: PKOLCha
 function OpenFileMapping(dwDesiredAccess: DWORD; bInheritHandle: BOOL; lpName: PKOLChar): THandle; stdcall;
 function OpenMutex(dwDesiredAccess: DWORD; bInheritHandle: BOOL; lpName: PKOLChar): THandle; stdcall;
 function OpenSemaphore(dwDesiredAccess: DWORD; bInheritHandle: BOOL; lpName: PKOLChar): THandle; stdcall;
-function OpenWaitableTimer(dwDesiredAccess: DWORD; bInheritHandle: BOOL;
-  lpTimerName: PKOLChar): THandle; stdcall;
+function OpenWaitableTimer(dwDesiredAccess: DWORD; bInheritHandle: BOOL; lpTimerName: PKOLChar): THandle; stdcall;
 procedure OutputDebugString(lpOutputString: PKOLChar); stdcall;
 function PeekConsoleInput(hConsoleInput: THandle; var lpBuffer: TInputRecord;
   nLength: DWORD; var lpNumberOfEventsRead: DWORD): BOOL; stdcall;
 function QueryDosDevice(lpDeviceName: PKOLChar; lpTargetPath: PKOLChar; ucchMax: DWORD): DWORD; stdcall;
-{$IFDEF _D4orHigher}
 function QueryRecoveryAgents(p1: PKOLChar; var p2: Pointer; var p3: TRecoveryAgentInformation): DWORD; stdcall;
-{$ENDIF}
 function ReadConsole(hConsoleInput: THandle; lpBuffer: Pointer;
   nNumberOfCharsToRead: DWORD; var lpNumberOfCharsRead: DWORD; lpReserved: Pointer): BOOL; stdcall;
 function ReadConsoleInput(hConsoleInput: THandle; var lpBuffer: TInputRecord;
@@ -554,9 +479,7 @@ function GetPrivateProfileStruct(lpszSection, lpszKey: PKOLChar;
 function WritePrivateProfileStruct(lpszSection, lpszKey: PKOLChar;
   lpStruct: Pointer; uSizeStruct: UINT; szFile: PKOLChar): BOOL; stdcall;
 function AddFontResource(FileName: PKOLChar): Integer; stdcall;
-{$IFDEF _D4orHigher}
 function AddFontResourceEx(p1: PKOLChar; p2: DWORD; p3: PDesignVector): Integer; stdcall;
-{$ENDIF}
 function CopyEnhMetaFile(p1: HENHMETAFILE; p2: PKOLChar): HENHMETAFILE; stdcall;
 function CopyMetaFile(p1: HMETAFILE; p2: PKOLChar): HMETAFILE; stdcall;
 function CreateColorSpace(var ColorSpace: TLogColorSpace): HCOLORSPACE; stdcall;
@@ -567,9 +490,7 @@ function CreateFont(nHeight, nWidth, nEscapement, nOrientaion, fnWeight: Integer
   fdwItalic, fdwUnderline, fdwStrikeOut, fdwCharSet, fdwOutputPrecision,
   fdwClipPrecision, fdwQuality, fdwPitchAndFamily: DWORD; lpszFace: PKOLChar): HFONT; stdcall;
 function CreateFontIndirect(const p1: TLogFont): HFONT; stdcall;
-{$IFDEF _D4orHigher}
 function CreateFontIndirectEx(const p1: PEnumLogFontExDV): HFONT; stdcall;
-{$ENDIF}
 function CreateIC(lpszDriver, lpszDevice, lpszOutput: PKOLChar; lpdvmInit: PDeviceMode): HDC; stdcall;
 function CreateMetaFile(p1: PKOLChar): HDC; stdcall;
 function CreateScalableFontResource(p1: DWORD; p2, p3, p4: PKOLChar): BOOL; stdcall;
@@ -610,9 +531,7 @@ function GetTextFace(DC: HDC; Count: Integer; Buffer: PKOLChar): Integer; stdcal
 function GetTextMetrics(DC: HDC; var TM: TTextMetric): BOOL; stdcall;
 function PolyTextOut(DC: HDC; const PolyTextArray; Strings: Integer): BOOL; stdcall;
 function RemoveFontResource(FileName: PKOLChar): BOOL; stdcall;
-{$IFDEF _D4orHigher}
 function RemoveFontResourceEx(p1: PKOLChar; p2: DWORD; p3: PDesignVector): BOOL; stdcall;
-{$ENDIF}
 function ResetDC(DC: HDC; const InitData: TDeviceMode): HDC; stdcall;
 function SetICMProfile(DC: HDC; Name: PKOLChar): BOOL; stdcall;
 function StartDoc(DC: HDC; const p2: TDocInfo): Integer; stdcall;
@@ -676,67 +595,44 @@ function DefMDIChildProc(hWnd: HWND; uMsg: UINT; wParam: WPARAM; lParam: LPARAM)
 function DefWindowProc(hWnd: HWND; Msg: UINT; wParam: WPARAM; lParam: LPARAM): LRESULT; stdcall;
 function DialogBoxIndirectParam(hInstance: HINST; const lpDialogTemplate: TDlgTemplate;
   hWndParent: HWND; lpDialogFunc: TFNDlgProc; dwInitParam: LPARAM): Integer; stdcall;
-function DialogBoxParam(hInstance: HINST; lpTemplateName: PKOLChar;
-  hWndParent: HWND; lpDialogFunc: TFNDlgProc; dwInitParam: LPARAM): Integer; stdcall;
+function DialogBoxParam(hInstance: HINST; lpTemplateName: PKOLChar; hWndParent: HWND; lpDialogFunc: TFNDlgProc; dwInitParam: LPARAM): Integer; stdcall;
 function DispatchMessage(const lpMsg: TMsg): LRESULT; stdcall;
-function DlgDirList(hDlg: HWND; lpPathSpec: PKOLChar;
-  nIDListBox, nIDStaticPath: Integer; uFileType: UINT): Integer; stdcall;
-function DlgDirListComboBox(hDlg: HWND; lpPathSpec: PKOLChar;
-  nIDComboBox, nIDStaticPath: Integer; uFiletype: UINT): Integer; stdcall;
-function DlgDirSelectComboBoxEx(hDlg: HWND; lpString: PKOLChar;
-  nCount, nIDComboBox: Integer): BOOL; stdcall;
+function DlgDirList(hDlg: HWND; lpPathSpec: PKOLChar; nIDListBox, nIDStaticPath: Integer; uFileType: UINT): Integer; stdcall;
+function DlgDirListComboBox(hDlg: HWND; lpPathSpec: PKOLChar; nIDComboBox, nIDStaticPath: Integer; uFiletype: UINT): Integer; stdcall;
+function DlgDirSelectComboBoxEx(hDlg: HWND; lpString: PKOLChar; nCount, nIDComboBox: Integer): BOOL; stdcall;
 function DlgDirSelectEx(hDlg: HWND; lpString: PKOLChar; nCount, nIDListBox: Integer): BOOL; stdcall;
-function DrawState(DC: HDC; Brush: HBRUSH; CBFunc: TFNDrawStateProc;
-  lData: LPARAM; wData: WPARAM; x, y, cx, cy: Integer; Flags: UINT): BOOL; stdcall;
-function DrawText(hDC: HDC; lpString: PKOLChar; nCount: Integer;
-  var lpRect: TRect; uFormat: UINT): Integer; stdcall;
-function DrawTextEx(DC: HDC; lpchText: PKOLChar; cchText: Integer; var p4: TRect;
-  dwDTFormat: UINT; DTParams: PDrawTextParams): Integer; stdcall;
+function DrawState(DC: HDC; Brush: HBRUSH; CBFunc: TFNDrawStateProc; lData: LPARAM; wData: WPARAM; x, y, cx, cy: Integer; Flags: UINT): BOOL; stdcall;
+function DrawText(hDC: HDC; lpString: PKOLChar; nCount: Integer; var lpRect: TRect; uFormat: UINT): Integer; stdcall;
+function DrawTextEx(DC: HDC; lpchText: PKOLChar; cchText: Integer; var p4: TRect; dwDTFormat: UINT; DTParams: PDrawTextParams): Integer; stdcall;
 function EnumDesktops(hwinsta: HWINSTA; lpEnumFunc: TFNDeskTopEnumProc; lParam: LPARAM): BOOL; stdcall;
-function EnumDisplaySettings(lpszDeviceName: PKOLChar; iModeNum: DWORD;
-  var lpDevMode: TDeviceMode): BOOL; stdcall;
-{$IFDEF _D4orHigher}
-function EnumDisplayDevices(Unused: Pointer; iDevNum: DWORD;
-  var lpDisplayDevice: TDisplayDevice; dwFlags: DWORD): BOOL; stdcall;
-{$ENDIF}
+function EnumDisplaySettings(lpszDeviceName: PKOLChar; iModeNum: DWORD; var lpDevMode: TDeviceMode): BOOL; stdcall;
+function EnumDisplayDevices(Unused: Pointer; iDevNum: DWORD; var lpDisplayDevice: TDisplayDevice; dwFlags: DWORD): BOOL; stdcall;
 function EnumProps(hWnd: HWND; lpEnumFunc: TFNPropEnumProc): Integer; stdcall;
 function EnumPropsEx(hWnd: HWND; lpEnumFunc: TFNPropEnumProcEx; lParam: LPARAM): Integer; stdcall;
 function EnumWindowStations(lpEnumFunc: TFNWinStaEnumProc; lParam: LPARAM): BOOL; stdcall;
 function FindWindow(lpClassName, lpWindowName: PKOLChar): HWND; stdcall;
 function FindWindowEx(Parent, Child: HWND; ClassName, WindowName: PKOLChar): HWND; stdcall;
-{$IFDEF _D4orHigher}
-function GetAltTabInfo(hwnd: HWND; iItem: Integer; var pati: TAltTabInfo;
-  pszItemText: PKOLChar; cchItemText: UINT): BOOL; stdcall;
-{$ENDIF}
-function GetClassInfo(hInstance: HINST; lpClassName: PKOLChar;
-  var lpWndClass: TWndClass): BOOL; stdcall;
+function GetAltTabInfo(hwnd: HWND; iItem: Integer; var pati: TAltTabInfo; pszItemText: PKOLChar; cchItemText: UINT): BOOL; stdcall;
+function GetClassInfo(hInstance: HINST; lpClassName: PKOLChar; var lpWndClass: TWndClass): BOOL; stdcall;
 function GetClassInfoEx(Instance: HINST; Classname: PKOLChar; var WndClass: TWndClassEx): BOOL; stdcall;
 function GetClassLong(hWnd: HWND; nIndex: Integer): DWORD; stdcall;
 function GetClassName(hWnd: HWND; lpClassName: PKOLChar; nMaxCount: Integer): Integer; stdcall;
-function GetClipboardFormatName(format: UINT; lpszFormatName: PKOLChar;
-  cchMaxCount: Integer): Integer; stdcall;
-function GetDlgItemText(hDlg: HWND; nIDDlgItem: Integer;
-  lpString: PKOLChar; nMaxCount: Integer): UINT; stdcall;
+function GetClipboardFormatName(format: UINT; lpszFormatName: PKOLChar; cchMaxCount: Integer): Integer; stdcall;
+function GetDlgItemText(hDlg: HWND; nIDDlgItem: Integer; lpString: PKOLChar; nMaxCount: Integer): UINT; stdcall;
 function GetKeyNameText(lParam: Longint; lpString: PKOLChar; nSize: Integer): Integer; stdcall;
 function GetKeyboardLayoutName(pwszKLID: PKOLChar): BOOL; stdcall;
 function GetMenuItemInfo(p1: HMENU; p2: UINT; p3: BOOL; var p4: TMenuItemInfo): BOOL; stdcall;
-function GetMenuString(hMenu: HMENU; uIDItem: UINT; lpString: PKOLChar;
-  nMaxCount: Integer; uFlag: UINT): Integer; stdcall;
-function GetMessage(var lpMsg: TMsg; hWnd: HWND;
-  wMsgFilterMin, wMsgFilterMax: UINT): BOOL; stdcall;
+function GetMenuString(hMenu: HMENU; uIDItem: UINT; lpString: PKOLChar; nMaxCount: Integer; uFlag: UINT): Integer; stdcall;
+function GetMessage(var lpMsg: TMsg; hWnd: HWND; wMsgFilterMin, wMsgFilterMax: UINT): BOOL; stdcall;
 function GetProp(hWnd: HWND; lpString: PKOLChar): THandle; stdcall;
-function GetTabbedTextExtent(hDC: HDC; lpString: PKOLChar;
-  nCount, nTabPositions: Integer; var lpnTabStopPositions): DWORD; stdcall;
-function GetUserObjectInformation(hObj: THandle; nIndex: Integer; pvInfo: Pointer;
-  nLength: DWORD; var lpnLengthNeeded: DWORD): BOOL; stdcall;
+function GetTabbedTextExtent(hDC: HDC; lpString: PKOLChar; nCount, nTabPositions: Integer; var lpnTabStopPositions): DWORD; stdcall;
+function GetUserObjectInformation(hObj: THandle; nIndex: Integer; pvInfo: Pointer; nLength: DWORD; var lpnLengthNeeded: DWORD): BOOL; stdcall;
 function GetWindowLong(hWnd: HWND; nIndex: Integer): Longint; stdcall;
 function GetWindowModuleFileName(hwnd: HWND; pszFileName: PKOLChar; cchFileNameMax: UINT): UINT; stdcall;
 function GetWindowText(hWnd: HWND; lpString: PKOLChar; nMaxCount: Integer): Integer; stdcall;
 function GetWindowTextLength(hWnd: HWND): Integer; stdcall;
-function GrayString(hDC: HDC; hBrush: HBRUSH; lpOutputFunc: TFNGrayStringProc;
-  lpData: LPARAM; nCount, X, Y, nWidth, nHeight: Integer): BOOL; stdcall;
-function InsertMenu(hMenu: HMENU; uPosition, uFlags, uIDNewItem: UINT;
-  lpNewItem: PKOLChar): BOOL; stdcall;
+function GrayString(hDC: HDC; hBrush: HBRUSH; lpOutputFunc: TFNGrayStringProc; lpData: LPARAM; nCount, X, Y, nWidth, nHeight: Integer): BOOL; stdcall;
+function InsertMenu(hMenu: HMENU; uPosition, uFlags, uIDNewItem: UINT; lpNewItem: PKOLChar): BOOL; stdcall;
 function InsertMenuItem(p1: HMENU; p2: UINT; p3: BOOL; const p4: TMenuItemInfo): BOOL; stdcall;
 function IsCharAlpha(ch: KOLChar): BOOL; stdcall;
 function IsCharAlphaNumeric(ch: KOLChar): BOOL; stdcall;
@@ -756,55 +652,41 @@ function LoadString(hInstance: HINST; uID: UINT; lpBuffer: PKOLChar; nBufferMax:
 function MapVirtualKey(uCode, uMapType: UINT): UINT; stdcall;
 function MapVirtualKeyEx(uCode, uMapType: UINT; dwhkl: HKL): UINT; stdcall;
 function MessageBox(hWnd: HWND; lpText, lpCaption: PKOLChar; uType: UINT): Integer; stdcall;
-function MessageBoxEx(hWnd: HWND; lpText, lpCaption: PKOLChar;
-  uType: UINT; wLanguageId: Word): Integer; stdcall;
+function MessageBoxEx(hWnd: HWND; lpText, lpCaption: PKOLChar; uType: UINT; wLanguageId: Word): Integer; stdcall;
 function MessageBoxIndirect(const MsgBoxParams: TMsgBoxParams): BOOL; stdcall;
-function ModifyMenu(hMnu: HMENU; uPosition, uFlags, uIDNewItem: UINT;
-  lpNewItem: PKOLChar): BOOL; stdcall;
+function ModifyMenu(hMnu: HMENU; uPosition, uFlags, uIDNewItem: UINT; lpNewItem: PKOLChar): BOOL; stdcall;
 function OemToAnsi(const lpszSrc: LPCSTR; lpszDst: LPSTR): BOOL; stdcall;
 function OemToAnsiBuff(lpszSrc: LPCSTR; lpszDst: LPSTR; cchDstLength: DWORD): BOOL; stdcall;
 function OemToChar(lpszSrc: PKOLChar; lpszDst: PKOLChar): BOOL; stdcall;
 function OemToCharBuff(lpszSrc: PKOLChar; lpszDst: PKOLChar; cchDstLength: DWORD): BOOL; stdcall;
-function OpenDesktop(lpszDesktop: PKOLChar; dwFlags: DWORD; fInherit: BOOL;
-  dwDesiredAccess: DWORD): HDESK; stdcall;
-function OpenWindowStation(lpszWinSta: PKOLChar; fInherit: BOOL;
-  dwDesiredAccess: DWORD): HWINSTA; stdcall;
-function PeekMessage(var lpMsg: TMsg; hWnd: HWND;
-  wMsgFilterMin, wMsgFilterMax, wRemoveMsg: UINT): BOOL; stdcall;
+function OpenDesktop(lpszDesktop: PKOLChar; dwFlags: DWORD; fInherit: BOOL; dwDesiredAccess: DWORD): HDESK; stdcall;
+function OpenWindowStation(lpszWinSta: PKOLChar; fInherit: BOOL; dwDesiredAccess: DWORD): HWINSTA; stdcall;
+function PeekMessage(var lpMsg: TMsg; hWnd: HWND; wMsgFilterMin, wMsgFilterMax, wRemoveMsg: UINT): BOOL; stdcall;
 function PostMessage(hWnd: HWND; Msg: UINT; wParam: WPARAM; lParam: LPARAM): BOOL; stdcall;
 function PostThreadMessage(idThread: DWORD; Msg: UINT; wParam: WPARAM; lParam: LPARAM): BOOL; stdcall;
 function RealGetWindowClass(hwnd: HWND; pszType: PKOLChar; cchType: UINT): UINT; stdcall;
 function RegisterClass(const lpWndClass: TWndClass): ATOM; stdcall;
 function RegisterClassEx(const WndClass: TWndClassEx): ATOM; stdcall;
 function RegisterClipboardFormat(lpszFormat: PKOLChar): UINT; stdcall;
-{$IFDEF _D4orHigher}
 function RegisterDeviceNotification(hRecipient: THandle; NotificationFilter: Pointer; Flags: DWORD): HDEVNOTIFY; stdcall;
-{$ENDIF}
 function RegisterWindowMessage(lpString: PKOLChar): UINT; stdcall;
 function RemoveProp(hWnd: HWND; lpString: PKOLChar): THandle; stdcall;
-function SendDlgItemMessage(hDlg: HWND; nIDDlgItem: Integer;
-  Msg: UINT; wParam: WPARAM; lParam: LPARAM): Longint; stdcall;
+function SendDlgItemMessage(hDlg: HWND; nIDDlgItem: Integer; Msg: UINT; wParam: WPARAM; lParam: LPARAM): Longint; stdcall;
 function SendMessage(hWnd: HWND; Msg: UINT; wParam: WPARAM; lParam: LPARAM): LRESULT; stdcall;
-function SendMessageCallback(hWnd: HWND; Msg: UINT; wParam: WPARAM;
-  lParam: LPARAM; lpResultCallBack: TFNSendAsyncProc; dwData: DWORD): BOOL; stdcall;
-function SendMessageTimeout(hWnd: HWND; Msg: UINT; wParam: WPARAM;
-  lParam: LPARAM; fuFlags, uTimeout: UINT; var lpdwResult: DWORD): LRESULT; stdcall;
-function SendNotifyMessage(hWnd: HWND; Msg: UINT; wParam: WPARAM;
-  lParam: LPARAM): BOOL; stdcall;
+function SendMessageCallback(hWnd: HWND; Msg: UINT; wParam: WPARAM; lParam: LPARAM; lpResultCallBack: TFNSendAsyncProc; dwData: DWORD): BOOL; stdcall;
+function SendMessageTimeout(hWnd: HWND; Msg: UINT; wParam: WPARAM; lParam: LPARAM; fuFlags, uTimeout: UINT; var lpdwResult: DWORD): LRESULT; stdcall;
+function SendNotifyMessage(hWnd: HWND; Msg: UINT; wParam: WPARAM; lParam: LPARAM): BOOL; stdcall;
 function SetClassLong(hWnd: HWND; nIndex: Integer; dwNewLong: Longint): DWORD; stdcall;
 function SetDlgItemText(hDlg: HWND; nIDDlgItem: Integer; lpString: PKOLChar): BOOL; stdcall;
 function SetMenuItemInfo(p1: HMENU; p2: UINT; p3: BOOL; const p4: TMenuItemInfo): BOOL; stdcall;
 function SetProp(hWnd: HWND; lpString: PKOLChar; hData: THandle): BOOL; stdcall;
-function SetUserObjectInformation(hObj: THandle; nIndex: Integer;
-  pvInfo: Pointer; nLength: DWORD): BOOL; stdcall;
+function SetUserObjectInformation(hObj: THandle; nIndex: Integer; pvInfo: Pointer; nLength: DWORD): BOOL; stdcall;
 function SetWindowLong(hWnd: HWND; nIndex: Integer; dwNewLong: Longint): Longint; stdcall;
 function SetWindowText(hWnd: HWND; lpString: PKOLChar): BOOL; stdcall;
 function SetWindowsHook(nFilterType: Integer; pfnFilterProc: TFNHookProc): HHOOK; stdcall;
 function SetWindowsHookEx(idHook: Integer; lpfn: TFNHookProc; hmod: HINST; dwThreadId: DWORD): HHOOK; stdcall;
-function SystemParametersInfo(uiAction, uiParam: UINT;
-  pvParam: Pointer; fWinIni: UINT): BOOL; stdcall;
-function TabbedTextOut(hDC: HDC; X, Y: Integer; lpString: PKOLChar; nCount, nTabPositions: Integer;
-  var lpnTabStopPositions; nTabOrigin: Integer): Longint; stdcall;
+function SystemParametersInfo(uiAction, uiParam: UINT; pvParam: Pointer; fWinIni: UINT): BOOL; stdcall;
+function TabbedTextOut(hDC: HDC; X, Y: Integer; lpString: PKOLChar; nCount, nTabPositions: Integer; var lpnTabStopPositions; nTabOrigin: Integer): Longint; stdcall;
 function TranslateAccelerator(hWnd: HWND; hAccTable: HACCEL; var lpMsg: TMsg): Integer; stdcall;
 function UnregisterClass(lpClassName: PKOLChar; hInstance: HINST): BOOL; stdcall;
 function VkKeyScan(ch: KOLChar): SHORT; stdcall;
@@ -879,10 +761,8 @@ function SetClassLongPtrW(hWnd: HWND; nIndex: Integer; dwNewLong: LONG_PTR): ULO
 {$IFDEF implementation_part} ///////////////////////////////////////////////////
 function AbortSystemShutdown; external advapi32 name 'AbortSystemShutdownW';
 function AccessCheckAndAuditAlarm; external advapi32 name 'AccessCheckAndAuditAlarmW';
-{$IFDEF _D4orHigher}
 function AccessCheckByTypeAndAuditAlarm; external advapi32 name 'AccessCheckByTypeAndAuditAlarmW';
 function AccessCheckByTypeResultListAndAuditAlarm; external advapi32 name 'AccessCheckByTypeResultListAndAuditAlarmW';
-{$ENDIF}
 function BackupEventLog; external advapi32 name 'BackupEventLogW';
 function ClearEventLog; external advapi32 name 'ClearEventLogW';
 function CreateProcessAsUser; external advapi32 name 'CreateProcessAsUserW';
@@ -1032,9 +912,7 @@ function OpenWaitableTimer; external kernel32 name 'OpenWaitableTimerW';
 procedure OutputDebugString; external kernel32 name 'OutputDebugStringW';
 function PeekConsoleInput; external kernel32 name 'PeekConsoleInputW';
 function QueryDosDevice; external kernel32 name 'QueryDosDeviceW';
-{$IFDEF _D4orHigher}
 function QueryRecoveryAgents; external kernel32 name 'QueryRecoveryAgentsW';
-{$ENDIF}
 function ReadConsole; external kernel32 name 'ReadConsoleW';
 function ReadConsoleInput; external kernel32 name 'ReadConsoleInputW';
 function ReadConsoleOutput; external kernel32 name 'ReadConsoleOutputW';
@@ -1094,9 +972,7 @@ function VerQueryValue; external version name 'VerQueryValueW';
 function GetPrivateProfileStruct; external kernel32 name 'GetPrivateProfileStructW';
 function WritePrivateProfileStruct; external kernel32 name 'WritePrivateProfileStructW';
 function AddFontResource; external gdi32 name 'AddFontResourceW';
-{$IFDEF _D4orHigher}
 function AddFontResourceEx; external gdi32 name 'AddFontResourceExW';
-{$ENDIF}
 function CopyEnhMetaFile; external gdi32 name 'CopyEnhMetaFileW';
 function CopyMetaFile; external gdi32 name 'CopyMetaFileW';
 function CreateColorSpace; external gdi32 name 'CreateColorSpaceW';
@@ -1104,9 +980,7 @@ function CreateDC; external gdi32 name 'CreateDCW';
 function CreateEnhMetaFile; external gdi32 name 'CreateEnhMetaFileW';
 function CreateFont; external gdi32 name 'CreateFontW';
 function CreateFontIndirect; external gdi32 name 'CreateFontIndirectW';
-{$IFDEF _D4orHigher}
 function CreateFontIndirectEx; external gdi32 name 'CreateFontIndirectExW';
-{$ENDIF}
 function CreateIC; external gdi32 name 'CreateICW';
 function CreateMetaFile; external gdi32 name 'CreateMetaFileW';
 function CreateScalableFontResource; external gdi32 name 'CreateScalableFontResourceW';
@@ -1138,9 +1012,7 @@ function GetTextFace; external gdi32 name 'GetTextFaceW';
 function GetTextMetrics; external gdi32 name 'GetTextMetricsW';
 function PolyTextOut; external gdi32 name 'PolyTextOutW';
 function RemoveFontResource; external gdi32 name 'RemoveFontResourceW';
-{$IFDEF _D4orHigher}
 function RemoveFontResourceEx; external gdi32 name 'RemoveFontResourceExW';
-{$ENDIF}
 function ResetDC; external gdi32 name 'ResetDCW';
 function SetICMProfile; external gdi32 name 'SetICMProfileW';
 function StartDoc; external gdi32 name 'StartDocW';
@@ -1199,17 +1071,13 @@ function DrawText; external user32 name 'DrawTextW';
 function DrawTextEx; external user32 name 'DrawTextExW';
 function EnumDesktops; external user32 name 'EnumDesktopsW';
 function EnumDisplaySettings; external user32 name 'EnumDisplaySettingsW';
-{$IFDEF _D4orHigher}
 function EnumDisplayDevices; external user32 name 'EnumDisplayDevicesW';
-{$ENDIF}
 function EnumProps; external user32 name 'EnumPropsW';
 function EnumPropsEx; external user32 name 'EnumPropsExW';
 function EnumWindowStations; external user32 name 'EnumWindowStationsW';
 function FindWindow; external user32 name 'FindWindowW';
 function FindWindowEx; external user32 name 'FindWindowExW';
-{$IFDEF _D4orHigher}
 function GetAltTabInfo; external user32 name 'GetAltTabInfoW';
-{$ENDIF}
 function GetClassInfo; external user32 name 'GetClassInfoW';
 function GetClassInfoEx; external user32 name 'GetClassInfoExW';
 function GetClassLong; external user32 name 'GetClassLongW';
@@ -1265,9 +1133,7 @@ function RealGetWindowClass; external user32 name 'RealGetWindowClassW';
 function RegisterClass; external user32 name 'RegisterClassW';
 function RegisterClassEx; external user32 name 'RegisterClassExW';
 function RegisterClipboardFormat; external user32 name 'RegisterClipboardFormatW';
-{$IFDEF _D4orHigher}
 function RegisterDeviceNotification; external user32 name 'RegisterDeviceNotificationW';
-{$ENDIF}
 function RegisterWindowMessage; external user32 name 'RegisterWindowMessageW';
 function RemoveProp; external user32 name 'RemovePropW';
 function SendDlgItemMessage; external user32 name 'SendDlgItemMessageW';
