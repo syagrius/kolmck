@@ -3317,7 +3317,6 @@ asm
         {$ENDIF}
         JECXZ    @@exit
 
-        {$IFNDEF  NOT_FIX_CURINDEX}
         PUSH     ESI
         PUSH     EBP
 
@@ -3352,19 +3351,6 @@ asm
 
         POP      EBP
         POP      ESI
-        {$ELSE NOT_FIX_CURINDEX}
-        PUSH     EDX
-
-        MOV      EDX, EDI
-        MOV      EAX, EBX
-        CALL     Delete
-
-        XCHG     EAX, EBX
-        XCHG     EDX, EDI
-
-        POP      ECX
-        CALL     Insert
-        {$ENDIF NOT_FIX_CURINDEX}
 
 @@exit:
         POP      EBX
@@ -3653,6 +3639,7 @@ asm
 @@exit:
 end;
 
+(* bugged?! dufa
 function TStrList.AppendToFile(const FileName: Ansistring): Boolean;
 asm
         PUSH     EBX
@@ -3728,7 +3715,6 @@ asm
 @@exit: POP      EDX
 end;
 
-{ maybebugged.dufa
 function TStrList.SaveToFile(const FileName: Ansistring): Boolean;
 asm
         PUSH     EBX
@@ -3762,7 +3748,7 @@ asm
 @@exit:
         POP      EDX
         POP      EBX
-end;}
+end; *)
 
 procedure TControl.SetStatusText(Index: Integer; const Value: KOLString);
 asm

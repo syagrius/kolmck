@@ -32,17 +32,14 @@
 ****************************************************************}
 {$I KOLDEF.inc}
 {$IFDEF WIN64}
-    {$DEFINE PAS_ONLY}
-    {$DEFINE STREAM_LARGE64}
-    {.$ALIGN 8}
-    {$Z1}
+  {$DEFINE PAS_ONLY}
+  {.$ALIGN 8}
+  {$Z1}
 {$ENDIF}
+
 {$IFDEF PAS_ONLY}         {$DEFINE PAS_VERSION}           {$ENDIF PAS_ONLY}
 {$IFDEF EXTERNAL_KOLDEFS} {$INCLUDE PROJECT_KOL_DEFS.INC} {$ENDIF EXTERNAL_KOLDEFS}
 {$IFDEF EXTERNAL_DEFINES} {$INCLUDE EXTERNAL_DEFINES.INC} {$ENDIF EXTERNAL_DEFINES}
-{$UNDEF LIN}
-{$DEFINE WIN}
-{$DEFINE WIN_GDI}
 unit KOL; 
 {*
    Please note, that KOL does not use keyword 'class'. Instead,
@@ -114,8 +111,7 @@ unit KOL;
 |         </td>
 |     </table>
 
-  Following conditional symbols can be used in a project
-  (Project | Options | Directories/Conditional Defines)
+  Following conditional symbols can be used in a project (Project-Options-Directories/Conditional Defines)
   to change code generated a bit. There are following:
 
   EXTERNAL_KOLDEFS      - since there are a lot of such symbols, it may be not
@@ -129,10 +125,6 @@ unit KOL;
                           syntax:  add a directive (*$DEFINE symbol*) for each
                           symbol you want, and you can decorate it with usual
                           comments if necessary.
-  ENABLE_DEPRECATED     - some old declaration made "deprecated" and moved to
-                          KOL_deprecated.inc. This symbol provides including
-                          such declarations into KOL.pas and makes it available again.
-  DISABLE_DEPRECATED    - (default) - disables deprecated declaration.
   FPC                   - Free Pascal version. KOL can be used with such compiler
                           to create Win32 applications. To create Win-CE
                           applications (with FPC compiler)), use the separate
@@ -141,9 +133,8 @@ unit KOL;
                           only). This option should be included only in MCK package
                           options and never in options of the KOL/MCK application.
   PAS_VERSION           - to use Pascal version of the code.
-  USE_CMOV              - force using CMOV machine instruction in asm code (not
-                          recommended, still on some machines your application
-                          will not work).
+  USE_CMOV              - force using CMOV machine instruction in asm code (not recommended,
+                          still on some machines your application will not work).
   SMALLEST_CODE         - to create minimal code application (affected:
                           (o) SimpleGetCtlBrushHandle - returns solid silver brush
                               always;
@@ -174,10 +165,8 @@ unit KOL;
                           (o) Int2Hex
                               there are no check for second parameter > 15
                           (o) .... other see in code
-  SMALLER_CODE          - like smallest code, but functionality is the same.
-                          The speed can be lower therefore.
-  SMALLEST_CODE_PARENTFONT - Parent font therefore is applied for child controls,
-                             but initially only.
+  SMALLER_CODE - like smallest code, but functionality is the same. The speed can be lower therefore.
+  SMALLEST_CODE_PARENTFONT - Parent font therefore is applied for child controls, but initially only.
   SPEED_FASTER          - by default (but off when SMALLEST_CODE on) - sorting of
                           TStrList.AnsiSort and comparing using AnsiCompareStrA,
                           AnsiCompareStrNoCaseA is much faster (about 5-6 times).
@@ -187,8 +176,7 @@ unit KOL;
   REGKEYGETSTREX_ALWAYS - If you use already RegKeyGetStrEx, add this option to
                           redirect RegKeyGetStr to it.
   NOT_USE_EXCEPTIONS    - to prevent referencing unit ERR.PAS in uses even when KOLmath is listed there.
-  REDEFINE_ABS          - usual Abs works as a macro which is better in most
-                          cases. But who knows...
+  REDEFINE_ABS          - usual Abs works as a macro which is better in most cases. But who knows...
   CUSTOM_APPICON        - when this option is defined, the resource name for the
                           application icon is extracted from a file
                           CusomAppIconRsrcName_PAS.inc (place it in your project
@@ -200,39 +188,13 @@ unit KOL;
   USE_MHTOOLTIP         - to use KOLMHTOOLTIP.pas (actually it is not a separate
                           unit but a set of portions of code included into KOL.pas
                           in different places). This unit provides tooltips (hints)
-                          for arbitrary controls which appear when mouse is over
-                          such controls.
-  USE_GRUSH             - to use ToGRush.pas unit, which provides automatic
-                          redirection of the most controls creation functions
-                          to the KOLGRushControls.pas.
+                          for arbitrary controls which appear when mouse is over such controls.
+  USE_GRUSH             - to use ToGRush.pas unit, which provides automatic redirection of the most
+                          controls creation functions to the KOLGRushControls.pas.
   TLIST_FAST            - very fast implementation of TList (for coast of some additional code).
   DFLT_TLIST_NOUSE_BLOCKS - for TLIST_FAST: by default, do not make all TList
                           objects using new (fast) algorithms, but only those of
-                          TList objects, which property UseBlocks was set to
-                          TRUE after creating it.
-  STREAM_LARGE64        - turns on support of streams (and files) of size larger
-                          then 4 Gbytes. Data type Int64 used for parameters of
-                          the most of methods and functions in such case. (Note:
-                          Int64 was introduced since Delphi5, so in earlier Delphi
-                          versions using this symbol is not possible).
-  STREAM_COMPAT         - still STREAM_LARGE64 appeared (in v2.84), most of
-                          methods and functions declarations became incompatible
-                          with earlier created extensions. This symbol provides
-                          compatibility for such extensions, but it disables
-                          using large streams.
-  OLD_STREAM_CAPACITY   - to use elder TStream.SetCapacity algorithm (it did not
-                          make Capacity smaller than already achieved, but in
-                          newer version, Capacity can be set to a smaller value,
-                          and for memory streams, rest of memory is freeing in
-                          such case).
-  OLD_MEMSTREAMS_SETSIZE - to use elder TStream.SetSize for memory streams. In
-                          a new version, setting new size also changes Capacity
-                          to the same value (in earlier case, a value for
-                          Capacity property was calculated to become a bit
-                          greater then a value set for Size property).
-  OLD_COMPAT            - to use symbol ';' as a file list separator (all operations
-                          using DoFileOp function such as DeleteFile2Recycle and
-                          CopyMoveFiles).
+                          TList objects, which property UseBlocks was set to TRUE after creating it.
   OLD_REGKEYGETSUBKEYS  - to use elder version of RegKeyGetSubKeys functions
                           (new version is faster).
   OLD_REGKEYGETVALUENAMES - to use elder version of RegKeyGetValueNames
@@ -259,8 +221,7 @@ unit KOL;
                              don't become focused in such case.
   DEFAULT_CANCEL_BTN_EXCLUSIVE - to disable assigning to a button properties
                              DefaultBtn and CancelBtn simultaneously.
-  NO_DEFAULT_BUTTON_BOLD - to prevent DefaultBtn to be visually with
-                             a bold border.
+  NO_DEFAULT_BUTTON_BOLD - to prevent DefaultBtn to be visually with a bold border.
   BITBTN_DISABLEDGLYPH2 - to restore old behavior of multi-glyph bitbtn, when
                           index 2 was used to represent the button in disabled
                           state, and glyph with index 1 was used for pressed state.
@@ -268,13 +229,9 @@ unit KOL;
                           and index 2 to the pressed state, i.e. these are swapped.
   ESC_CLOSE_DIALOGS     - to allow closing all dialogs with ESCAPE.
   KEY_PREVIEW           - form also receive WM_KEYDOWN (OnKeyDown event fired)
-  SUPPORT_ONDEADCHAR    - to support OnKeyDeadChar event in response to
-                          WM_DEADCHAR, WM_SYSDEADCHAR
+  SUPPORT_ONDEADCHAR    - to support OnKeyDeadChar event in response to WM_DEADCHAR, WM_SYSDEADCHAR
   OpenSaveDialog_Extended - to allow using custom extensions for OpenSaveDialog.
-  AUTO_CONTEXT_HELP     - to use automatic respond to WM_CONTEXTMENU to call
-                        context help.
-  NOT_FIX_CURINDEX      - to use old version of TControl.SetItems, which could
-                        lead to loose CurIndex value (e.g. for Combobox)
+  AUTO_CONTEXT_HELP     - to use automatic respond to WM_CONTEXTMENU to call context help.
   NOT_FIX_MODAL         - not to fix modal (if fixed, click on any window
                           activates the application. If not fixed, code is
                           smaller very a little, but only click on modal form
@@ -297,8 +254,7 @@ unit KOL;
   NOT_UNLOAD_RICHEDITLIB - to stop unload Rich Edit library in finalization
                         section (to economy several byte of code).
   NOT_USE_RICHEDIT      - not use richedit (it will not be possible to create richedit)
-  TV_DRAG_RBUTTON       - to allow dragging tree view items with right mouse
-                          button too.
+  TV_DRAG_RBUTTON       - to allow dragging tree view items with right mouse button too.
   TOOLBAR_FORCE_CHILDALIGN - this option provides Align working for child
                           controls of the toolbar control, but when with this option
                           is turned on it is impossible to have neighbor controls
@@ -316,16 +272,14 @@ unit KOL;
                           style of the window (this cause incorrect form view in
                           Vista Aero theme (due a bug in Vista?)).
   ANCHORS_WM_SIZE       - to check WM_SIZE message in Anchor handling window
-                          procedure. By default, now used WM_WINDOWPOSCHANGED.   
+                          procedure. By default, now used WM_WINDOWPOSCHANGED.
   USE_PROP              - to use GetProp / SetProp (old style) in place of
                           Get / SetWindowLong( wnd, GWL_USERDATA... ) (slower?)
-
   PROVIDE_EXITCODE      - PostQuitMessage( value ) assigns value to ExitCode
   INITIALFORMSIZE_FIXMENU - form size initially is really the same as defined at
                           design time even for forms having main menu bar
   USE_GRAPHCTLS         - to use graphic (non-windowed) controls
-  RICHEDIT_XPBORDER     - provide correct drawing rich edit control border with
-                          XP themes.
+  RICHEDIT_XPBORDER     - provide correct drawing rich edit control border with XP themes.
   GRAPHCTL_XPSTYLES     - to use XP themed Visual styles for drawing graphic
                           controls. This does not affect windowed controls
                           which visual style is controlled by the manifest.
@@ -347,9 +301,7 @@ unit KOL;
                           extracted and in case when such symbol is defined,
                           these one or two bitmaps are preserved until TIcon
                           object is destroyed.
-  LOADEX                - to use TBitmap.LoadFromStreamEx while loading icon
-                          from a stream or a file.
-  USE_OLDCONVERT2MASK   - to use elder Convert2Mask method (newer is more correct).
+  LOADEX                - to use TBitmap.LoadFromStreamEx while loading icon from a stream or a file.
   FIX_TRANSPBMPPALETTE  - for TBitmap.StretchDrawMasked, bitmaps with PixelFormat
                           = pf4bit or pf8bit are first converted (in a temporary
                           TBitmap object) to pf32bit, and then are drawn. This
@@ -358,46 +310,32 @@ unit KOL;
                           scanlines are filled with zeros (usually black color)
                           rather then left containing trash memory bits.
   AUTO_REPLACE_CLEARTYPE- to replace automatically CLEARTYPE_QUALITY fonts
-                          with ANTIALIASED_QUALITY when running under elder
-                          Windows version than XP.
+                          with ANTIALIASED_QUALITY when running under elder Windows version than XP.
   FORCE_ALTERNATEFILENAME- TDirList.ScanDirectoryFORCE_ALTERNATEFILENAME - forced
                           using an alternate file path and filename for unicode
                           paths (принудительное использование альтернативного имени
                           пути и имени файла для юникод путей)
-
-  NEW_GRADIENT - to use new gradient painting by homm (fast).
-  OLD_ALIGN    - to prevent using new Align by Galkov.
-  NEW_ALIGN    - (default) - to use new Align implementation (faster).
+  NEW_GRADIENT          - to use new gradient painting by homm (fast).
+  OLD_ALIGN             - to prevent using new Align by Galkov.
+  NEW_ALIGN             - (default) - to use new Align implementation (faster).
   OLD_TRANSPARENT       - to prevent using NEW_TRANSPARENT
   NEW_TRANSPARENT       - created by Alexander Karpinsky a.k.a. homm (faster)
-  SBOX_OLDPOS           - to use elder formulas to calculate scroll box positions
-                          (just for compatibility with very old apps using it).
-  OLD_REFCOUNT          - to prevent using new RefInc / RefDec behavior
-                          (new style of using RefCount works better).
+  OLD_REFCOUNT          - to prevent using new RefInc/RefDec behavior (new style works better).
   OLD_FREE              - to declare Free as a method as in earlier versions of KOL.
                           In new versions, Free is declared as a property, and
                           "calling" it just redirects call to RefDec. OLD_FREE
                           can be used for compatibility with compilers not
                           understanding "calling" a property without assigning
                           something to or from it (Turbo Delphi?).
-  SCROLL_OLD            - for compatibility with the old applications using
-                          TScrollBar: there was another method of adjusting
-                          SBMax and SBPageSize: SBMax should be corrected to
-                          (nMaxItems-1-SBPageSize).
-  FILE_EXISTS_EX - to use more correct (but a bit large code in FileExists function)
+  FILE_EXISTS_EX        - to use more correct (but a bit large code in FileExists function)
   USE_AUTOFREE4CONTROLS - (default) - from 2.40, most of control sub-objects are
                           destroying using Add2AutoFree (smaller code).
-  NOT_USE_AUTOFREE4CONTROLS - this option returns to previous behavior (just to
-                          compare code size). Will be deprecated in future.
-                          Ignored when UNION_FIELDS is used (by default)
-  ENDSESSION_HALT - to halt the process when WM_ENDSESSION comes.
+  ENDSESSION_HALT       - to halt the process when WM_ENDSESSION comes.
   FILESTREAM_POSITION   - in PAS_VERSION, Stream..fData.fPosition always show
                           current position (for debug purposes)
   PSEUDO_THREADS        - to use pseudo-threads instead of normal threads.
-  WAIT_SLEEP            - for PSEUDO_THREADS: sleep 10 ms in a
-                          WaitForMultipleObjects loop.
-  ENUM_DYN_HANDLERS_AFTER_RUN - to allow all the events handling even when
-                        AppletTerminated become TRUE.
+  WAIT_SLEEP            - for PSEUDO_THREADS: sleep 10 ms in a WaitForMultipleObjects loop.
+  ENUM_DYN_HANDLERS_AFTER_RUN - to allow all the events handling even when AppletTerminated become TRUE.
   STOP_WNDPROCTRANSPARENT_AFTER_APPLETTERMINATED - use this long-named option to
                           prevent any functionality of WndProcTransparent after
                           AppletTerminated is set to true.
@@ -406,8 +344,6 @@ unit KOL;
   TIMER_APPLETWND       - to use Applet window to handle WM_TIMER events
                           (otherwise special single invisible window is created
                           to handle such events).
-  SUPPORT_LONG_TIMER    - LINUX only: set this option if TTimer.Interval can be
-                          set to a value greater then 1,800,000 (30 minutes).
   DEBUG_MENU            - to debug menu.
   DEBUG_GDIOBJECTS      - to allow counting all the GDI objects used.
   CHK_BITBLT            - to check BitBlt operations.
@@ -455,45 +391,37 @@ unit KOL;
                           and this is applied automatically).
   |</pre>
 }
-{= K.O.L - ключевая библиотека объектов. (C) Кладов Владимир, 2000-2007.
-}
+// = K.O.L - ключевая библиотека объектов. (C) Кладов Владимир, 2000-2007.
 {$IFNDEF WIN64}
-{$A-} // align off, otherwise code is not good
-{$Q-} // no overflow check: this option makes code wrong
-{$R-} // no range checking: this option makes code wrong
-{$Z-}
+  {$A-} // align off, otherwise code is not good
+  {$Q-} // no overflow check: this option makes code wrong
+  {$R-} // no range checking: this option makes code wrong
+  {$Z-}
 {$ENDIF}
 {$T-} // not typed @-operator
 //{$D+}
-//______________________________________________________________________________
-//
-//{$DEFINE INPACKAGE} // Uncomment this line while rebuild MCK package
-// for Delphi3 only, then restore the comment mark!!!!!!!!!!!!!!!!!!!!
-//______________________________________________________________________________
+
 {$IFDEF PUREPASCAL}
-        {$DEFINE PAS_VERSION}
-        {$DEFINE PAS_ONLY}
+  {$DEFINE PAS_VERSION}
+  {$DEFINE PAS_ONLY}
 {$ENDIF}
+
 {$IFDEF INPACKAGE} // use this symbol in packages requiring kol.pas
   {$WARNINGS OFF}
-  //{$DEFINE NOT_USE_AUTOFREE4CONTROLS}
   {$DEFINE PAS_VERSION}
   {$UNDEF ASM_VERSION}
   {$UNDEF ASM_UNICODE}
   {$IFDEF _D2009orHigher}
-      {$DEFINE UNICODE_CTRLS}
+    {$DEFINE UNICODE_CTRLS}
   {$ENDIF}
 {$ENDIF}
-{$IFDEF _D7orHigher}
-  {$WARN UNSAFE_TYPE OFF} // Too many such warnings in Delphi7
-  {$WARN UNSAFE_CODE OFF}
-  {$WARN UNSAFE_CAST OFF}
-{$ENDIF}
+
 {$IFDEF UNICODE_CTRLS}
-    {$IFDEF _D2009orHigher}
-        {$DEFINE UStr_} // use functions @UStrXXXX instead of @WStrXXXX
-    {$ENDIF}
+  {$IFDEF _D2009orHigher}
+    {$DEFINE UStr_} // use functions @UStrXXXX instead of @WStrXXXX
+  {$ENDIF}
 {$ENDIF}
+
 interface
 {$IFnDEF CREATE_VISIBLE}
   {$DEFINE CREATE_HIDDEN}
@@ -515,16 +443,8 @@ interface
 {$IFNDEF OLD_TRANSPARENT}
   {$DEFINE NEW_TRANSPARENT}
 {$ENDIF}
-{$IFNDEF NOT_UNION_FIELDS}
-  {$DEFINE UNION_FIELDS}
-{$ENDIF}
-{$IFDEF UNION_FIELDS}
-  {$UNDEF NOT_USE_AUTOFREE4CONTROLS}
-{$ENDIF}
-{$IFNDEF NOT_USE_AUTOFREE4CONTROLS}
-  {$DEFINE USE_AUTOFREE4CONTROLS}
-  {$DEFINE USE_AUTOFREE4CHILDREN}
-{$ENDIF}
+{$DEFINE USE_AUTOFREE4CONTROLS}
+{$DEFINE USE_AUTOFREE4CHILDREN}
 {$IFDEF SMALLEST_CODE}
   {$DEFINE NOT_UNLOAD_RICHEDITLIB}
   {$DEFINE SMALLER_CODE}
@@ -548,9 +468,10 @@ interface
 {$IFDEF NOT_USE_RICHEDIT}
   {$DEFINE NOT_UNLOAD_RICHEDITLIB}
 {$ENDIF}
-//{$DEFINE DEBUG_GDIOBJECTS}
-//{$DEFINE CHK_GDI}
-uses Messages, Windows{$IFNDEF NOT_USE_RICHEDIT}, RichEdit{$ENDIF}{$IFDEF CHK_GDI}, ChkGdi {$ENDIF};
+
+uses
+  Messages, Windows{$IFNDEF NOT_USE_RICHEDIT}, RichEdit{$ENDIF}{$IFDEF CHK_GDI}, ChkGdi {$ENDIF};
+
 var
   AppTheming: Boolean;
 {$IFDEF DEBUG_GDIOBJECTS}
@@ -559,6 +480,7 @@ var
   FontCount: Integer;
   PenCount: Integer;
 {$ENDIF}
+
 {$IFNDEF FPC}
 type
 {$IFDEF WIN64}
@@ -573,62 +495,63 @@ type
   PPtrInt = ^Integer;
 {$ENDIF}
 {$ENDIF}
+
 {$IFDEF _D2009orHigher}
 type KOLWideString = UnicodeString;
 {$ELSE}
-
 type KOLWideString = WideString;
-
 {$ENDIF}
+
 {$IFNDEF FPC}
 {$IFDEF UNICODE_CTRLS}
 const
-	SizeOfKOLChar = SizeOf(WideChar);
+  SizeOfKOLChar = SizeOf(WideChar);
 
- type
-	 KOLString = KOLWideString;
-         KOL_String = type KOLWideString;
-	 KOLChar = type WideChar;
-	 PKOLChar = PWideChar;
-         PKOL_Char = type PWideChar;
+type
+  KOLString = KOLWideString;
+  KOL_String = type KOLWideString;
+  KOLChar = type WideChar;
+  PKOLChar = PWideChar;
+  PKOL_Char = type PWideChar;
 {$ELSE}
 const
-	SizeOfKOLChar = SizeOf(AnsiChar);
+  SizeOfKOLChar = SizeOf(AnsiChar);
 
- type
-	 KOLString = AnsiString;
-         KOL_String = type AnsiString;
-	 KOLChar = type AnsiChar;
-	 PKOLChar = PAnsiChar;
-         PKOL_Char = type PAnsiChar;
-   {$IFDEF ASM_VERSION}
-     {$IFNDEF ASM_NOUNICODE}
-       {$DEFINE ASM_UNICODE}
-     {$ENDIF}
-     {$UNDEF PAS_VERSION}
-   {$ENDIF}
+type
+  KOLString = AnsiString;
+  KOL_String = type AnsiString;
+  KOLChar = type AnsiChar;
+  PKOLChar = PAnsiChar;
+  PKOL_Char = type PAnsiChar;
+  {$IFDEF ASM_VERSION}
+    {$IFNDEF ASM_NOUNICODE}
+      {$DEFINE ASM_UNICODE}
+    {$ENDIF}
+    {$UNDEF PAS_VERSION}
+  {$ENDIF}
 {$ENDIF}
 {$ENDIF FPC}
+
 {$IFNDEF ASM_VERSION}
   {$DEFINE PAS_VERSION}
 {$ENDIF ASM_VERSION}
+
 {$IFDEF PAS_VERSION}
-        {$UNDEF ASM_VERSION}
-        {$UNDEF ASM_UNICODE}
-        {$UNDEF ASM_TLIST}
+  {$UNDEF ASM_VERSION}
+  {$UNDEF ASM_UNICODE}
+  {$UNDEF ASM_TLIST}
 {$ENDIF}
 
 {$IFDEF FPC}
   {$DEFINE interface_part} {$I KOL_FPC.inc} {$UNDEF interface_part}
-  //{$DEFINE read_interface} {$I unidef.inc} {$UNDEF read_interface}
   {$INCLUDE delphicommctrl.inc}
 {$ELSE}
-{$INCLUDE delphicommctrl.inc}
-{$IFDEF UNICODE_CTRLS}
-  {$DEFINE interface_part} {$I KOL_unicode.inc} {$UNDEF interface_part}
-{$ELSE} // ANSI_CTRLS
-  {$DEFINE interface_part} {$I KOL_ansi.inc} {$UNDEF interface_part}
-{$ENDIF UNICODE_CTRLS}
+  {$INCLUDE delphicommctrl.inc}
+  {$IFDEF UNICODE_CTRLS}
+    {$DEFINE interface_part} {$I KOL_unicode.inc} {$UNDEF interface_part}
+  {$ELSE} // ANSI_CTRLS
+    {$DEFINE interface_part} {$I KOL_ansi.inc} {$UNDEF interface_part}
+  {$ENDIF UNICODE_CTRLS}
 {$ENDIF FPC}
 
 type
@@ -651,15 +574,14 @@ type
   {* }
   PList = ^TList;
   {* }
-   PPointerList = ^TPointerList;
-   TPointerList = array[0..MaxInt div SizeOf(Pointer) - 1] of Pointer;
+  PPointerList = ^TPointerList;
+  TPointerList = array[0..MaxInt div SizeOf(Pointer) - 1] of Pointer;
 
   TObjectMethod = procedure of object;
   {* }
   TOnEvent = procedure( Sender: PObj ) of object;
-  {* This type of event is the most common - event handler when called can
-     know only what object was a sender of this call. Replaces good known
-     VCL TNotifyEvent event type. }
+  {* This type of event is the most common - event handler when called can know only what object
+   was a sender of this call. Replaces good known VCL TNotifyEvent event type. }
   TOnEventMoving = procedure( Sender: PObj; P: PRect ) of object;
 
 { ---------------------------------------------------------------------
@@ -1076,29 +998,17 @@ type
   TMoveMethod = ( spBegin, spCurrent, spEnd );
 
 type
-  {$IFDEF STREAM_LARGE64}
   TStrmSize = Int64;
   TStrmMove = Int64;
-    {$UNDEF ASM_STREAM}
-    {$UNDEF STREAM_COMPAT}
-  {$ELSE}
-  TStrmSize = DWORD;
-  TStrmMove = Integer;
-    {$IFDEF ASM_VERSION}
-      {$IFNDEF ASM_NOSTREAM}
-        {$DEFINE ASM_STREAM}
-      {$ENDIF}
-    {$ENDIF}
-  {$ENDIF}
-  PStream = ^TStream;
+  PStream   = ^TStream;
 
   PStreamMethods = ^TStreamMethods;
   TStreamMethods = Packed Record
-    fSeek: function( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmMove; MoveMethod: TMoveMethod ): TStrmSize;
+    fSeek: function( Strm: PStream; const MoveTo: TStrmMove; MoveMethod: TMoveMethod ): TStrmSize;
     fGetSiz: function( Strm: PStream ): TStrmSize;
-    fSetSiz: procedure( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Value: TStrmSize );
-    fRead: function( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
-    fWrite: function( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+    fSetSiz: procedure( Strm: PStream; const Value: TStrmSize );
+    fRead: function( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
+    fWrite: function( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
     fClose: procedure( Strm: PStream );
     fCustom: Pointer;
     fWait: procedure( Strm: PStream );
@@ -1156,15 +1066,14 @@ type
   public
     function Read(var Buffer; const Count: TStrmSize): TStrmSize;
     {* Reads Count bytes from a stream. Returns number of bytes read. }
-    function Seek({$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmMove; MoveMethod: TMoveMethod): TStrmSize;
+    function Seek(const MoveTo: TStrmMove; MoveMethod: TMoveMethod): TStrmSize;
     {* Allows to change current position or to obtain it. Property
        Position uses this method both for get and set position. }
-    function Write(var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize): TStrmSize;
+    function Write(var Buffer; const Count: TStrmSize): TStrmSize;
     {* Writes Count bytes from Buffer, starting from current position
        in a stream. Returns how much bytes are written. }
     function WriteVal( Value: DWORD; Count: DWORD ): TStrmSize;
-    {* Writes maximum 4 bytes of Value to a stream. Allows writing constants
-       easier than via Write. }
+    {* Writes maximum 4 bytes of Value to a stream. Allows writing constants easier than via Write. }
     function WriteStr( S: AnsiString ): TStrmSize;
     {* Writes string to the stream, not including ending #0. Exactly
        Length( S ) characters are written. }
@@ -1254,55 +1163,54 @@ function _NewStream( const StreamMethods: TStreamMethods ): PStream;
 // Methods below are declared here to simplify creating your
 // own streams with some methods standard and some non-standard
 // together:
-function SeekFileStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
+function SeekFileStream( Strm: PStream; const MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
 function GetSizeFileStream( Strm: PStream ): TStrmSize;
-function ReadFileStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
-function ReadFileStreamWithEvent( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
-var ReadFileStreamProc: function( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize
-    = ReadFileStream;
+function ReadFileStream( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
+function ReadFileStreamWithEvent( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
+var ReadFileStreamProc: function( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize = ReadFileStream;
 
-function WriteFileStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
-function WriteFileStreamWithEvent( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
-function WriteFileStreamEOF( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
-function WriteFileStreamEOFWithEvent( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+function WriteFileStream( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
+function WriteFileStreamWithEvent( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
+function WriteFileStreamEOF( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
+function WriteFileStreamEOFWithEvent( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
 procedure CloseFileStream( Strm: PStream );
-function SeekMemStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
-function SeekMemStreamWithEvent( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
+function SeekMemStream( Strm: PStream; const MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
+function SeekMemStreamWithEvent( Strm: PStream; const MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
 function GetSizeMemStream( Strm: PStream ): TStrmSize;
 
 var CapacityMask: DWORD = $4000 - 1; // must be 2**n-1
-procedure SetSizeMemStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} NewSize: TStrmSize );
-function ReadMemStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
-function ReadMemStreamWithEvent( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
-function WriteMemStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
-function WriteMemStreamWithEvent( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+procedure SetSizeMemStream( Strm: PStream; const NewSize: TStrmSize );
+function ReadMemStream( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
+function ReadMemStreamWithEvent( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
+function WriteMemStream( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
+function WriteMemStreamWithEvent( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
 procedure CloseMemStream( Strm: PStream );
-procedure SetSizeFileStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} NewSize: TStrmSize );
+procedure SetSizeFileStream( Strm: PStream; const NewSize: TStrmSize );
 
-function ReadMemBlkStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
-function SeekMemBlkStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
-function WriteMemBlkStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
-procedure ResizeMemBlkStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} NewSize: TStrmSize );
+function ReadMemBlkStream( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
+function SeekMemBlkStream( Strm: PStream; const MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
+function WriteMemBlkStream( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
+procedure ResizeMemBlkStream( Strm: PStream; const NewSize: TStrmSize );
 procedure FreeMemBlkStream( Strm: PStream );
 
-function SeekConcatStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
+function SeekConcatStream( Strm: PStream; const MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
 function GetSizeConcatStream( Strm: PStream ): TStrmSize;
-procedure SetSizeConcatStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} NewSize: TStrmSize );
-function ReadConcatStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
-function WriteConcatStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+procedure SetSizeConcatStream( Strm: PStream; const NewSize: TStrmSize );
+function ReadConcatStream( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
+function WriteConcatStream( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
 procedure CloseConcatStream( Strm: PStream );
 
-function SeekSubStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
+function SeekSubStream( Strm: PStream; const MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
 function GetSizeSubStream( Strm: PStream ): TStrmSize;
-procedure SetSizeSubStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} NewSize: TStrmSize );
-function ReadSubStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
-function WriteSubStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+procedure SetSizeSubStream( Strm: PStream; const NewSize: TStrmSize );
+function ReadSubStream( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
+function WriteSubStream( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
 procedure CloseSubStream( Strm: PStream );
 
 procedure DummyCloseStream( Strm: PStream );
 
-function DummyReadWrite( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
-procedure DummySetSize( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Value: TStrmSize );
+function DummyReadWrite( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
+procedure DummySetSize( Strm: PStream; const Value: TStrmSize );
 procedure DummyStreamProc(Strm: PStream);
 
 function NewFileStream( const FileName: KOLString; Options: DWORD ): PStream;
@@ -1402,22 +1310,20 @@ function NewSubStream( BaseStream: PStream; const FromPos, Size: TStrmSize ): PS
 
    This function accepts recursive (multi-level) usage: it is possible to create
    later another sub-stream on base of existing sub-stream, still it is actually
-   can be treated as usual stream.
-}
-function Stream2Stream( Dst, Src: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+   can be treated as usual stream. }
+function Stream2Stream( Dst, Src: PStream; const Count: TStrmSize ): TStrmSize;
 {* Copies Count (or less, if the rest of Src is not sufficiently long)
    bytes from Src to Dst, but with optimizing in cases, when Src or/and
    Dst are memory streams (intermediate buffer is not allocated). }
-function Stream2StreamEx( Dst, Src: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+function Stream2StreamEx( Dst, Src: PStream; const Count: TStrmSize ): TStrmSize;
 {* Copies Count bytes from Src to Dst, but without any optimization.
    Unlike Stream2Stream function, it can be applied to very large streams.
    See also Stream2StreamExBufSz. }
-function Stream2StreamExBufSz( Dst, Src: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize; BufSz: DWORD ): TStrmSize;
+function Stream2StreamExBufSz( Dst, Src: PStream; const Count: TStrmSize; BufSz: DWORD ): TStrmSize;
 {* Copies Count bytes from Src to Dst using buffer of given size, but without
    other optimizations.
    Unlike Stream2Stream function, it can be applied to very large streams }
-function Resource2Stream( DestStrm : PStream; Inst : HInst;
-                          ResName : PKOLChar; ResType : PKOLChar ): TStrmSize;
+function Resource2Stream(DestStrm : PStream; Inst : HInst; ResName: PKOLChar; ResType: PKOLChar): TStrmSize;
 {* Loads given resource to DestStrm. Useful for non-standard
    resources to load it into memory (use memory stream for such
    purpose). Use one of following resource types to pass as ResType:
@@ -1468,33 +1374,34 @@ type
                 TStrList - string list
 ---------------------------------------------------------------------- }
   TStrList = object(TObj)
-  {* Easy string list implementation (non-visual, just to store
-     string data). It is well improved and has very high performance
-     allowing to work fast with huge text files (more then megabyte
-     of text data).
-     |
-     Please note that #0 character if stored in string lines, will cut it
-     preventing reading the rest of a line. Be careful, if your data
-     contain such characters. }
+  {* Easy string list implementation (non-visual, just to store string data).
+    It is well improved and has very high performance allowing to work fast with huge text files
+    (more then megabyte of text data).
+    Please note that #0 character if stored in string lines, will cut it preventing reading
+    the rest of a line. Be careful, if your data contain such characters. }
   protected
     procedure Init; virtual;
   protected
-    fList: PList;
-    fCount: Integer;
-    fCaseSensitiveSort: Boolean;
-    fAnsiSort: Boolean;
-    fTextBuf: PAnsiChar;
-    fTextSiz: DWORD;
+    fList:              PList;
+    fCount:             Integer;
+    FItemIndex:         Integer; //dufa
+    fTextBuf:           PAnsiChar;
+    fTextSiz:           DWORD;
     fCompareStrListFun: TCompareStrListFun;
+    fCaseSensitiveSort: Boolean;
+    fAnsiSort:          Boolean;
     function GetPChars(Idx: Integer): PAnsiChar;
     //procedure AddTextBuf( Src: PAnsiChar; Len: DWORD );
   protected
+    {$IFDEF TLIST_FAST}
+    function GetUseBlocks: Boolean;
+    procedure SetUseBlocks(const Value: Boolean);
+    {$ENDIF TLIST_FAST}
     function Get(Idx: integer): Ansistring;
     function GetTextStr: Ansistring;
     procedure Put(Idx: integer; const Value: Ansistring);
     procedure SetTextStr(const Value: Ansistring);
     destructor Destroy; virtual;
-  protected
     // by Dod:
     procedure SetValue(const AName, Value: Ansistring);
     function GetValue(const AName: Ansistring): Ansistring;
@@ -1510,20 +1417,18 @@ type
     function IndexOfName_NoCase(AName: Ansistring): Integer;
     property Values[const AName: Ansistring]: Ansistring read GetValue write SetValue;
     {* by Dod. Returns right side of a line starting like Name=... }
-    // dufa
     function IndexOfName_NoCaseFast(AName: AnsiString): Integer;
     function IndexOfName_Fast(AName: AnsiString): Integer;
     property Values_NocaseFast[const AName: AnsiString]: AnsiString read GetValueNocaseFast write SetValueNoCaseFast;
     property Values_Fast[const AName: AnsiString]: AnsiString read GetValueFast write SetValueFast;
-  public
+    { dufa }
     function Add(const S: Ansistring): integer;
     {* Adds a string to list. }
     procedure AddStrings(Strings: PStrList);
     {* Merges string list with given one. Very fast - more preferable to
        use than any loop with calling Add method. }
     procedure Assign(Strings: PStrList);
-    {* Fills string list with strings from other one. The same as AddStrings,
-       but Clear is called first. }
+    {* Fills string list with strings from other one. The same as AddStrings, but Clear is called first. }
     procedure Clear;
     {* Makes string list empty. }
     procedure Delete(Idx: integer);
@@ -1577,16 +1482,15 @@ type
     function Last: AnsiString;
     {* Last item (or '', if string list is empty). }
     property Text: Ansistring read GetTextStr write SetTextStr;
-    {* Content of string list as a single string (where strings are separated
-       by characters $0D,$0A). }
+    {* Content of string list as a single string (where strings are separated by chars $0D,$0A) }
     procedure Swap( Idx1, Idx2 : Integer );
     {* Swaps to strings with given indexes. }
     procedure Sort( CaseSensitive: Boolean );
     {* Call it to sort string list. }
     procedure AnsiSort( CaseSensitive: Boolean );
     {* Call it to sort ANSI string list. }
-    procedure SortEx(const CompareFun: TCompareEvent); // by Dufa
-    {* Call it to sort via your own compare procedure }
+    procedure SortEx(const CompareFun: TCompareEvent);
+    {* Call it to sort via your own compare procedure. Dufa }
   protected // by Alexander Pravdin:
     fNameDelim: AnsiChar;
     function GetLineName( Idx: Integer ): AnsiString;
@@ -1599,7 +1503,6 @@ type
     property NameDelimiter: AnsiChar read fNameDelim write fNameDelim;
     function Join( const sep: AnsiString ): AnsiString;
     {* by Sergey Shishmintzev }
-    
     function LoadFromFile(const FileName: KOLString): Boolean;
     {* Loads string list from a file. (If file does not exist, nothing
        happens). Very fast even for huge text files. }
@@ -1614,36 +1517,51 @@ type
     {* Saves string list to a stream (from current position). }
     function AppendToFile(const FileName: KOLString): Boolean;
     {* Appends strings of string list to the end of a file. }
-    
     procedure OptimizeForRead;
+    {* }
+    {$IFDEF TLIST_FAST}
+    property UseBlocks: Boolean read GetUseBlocks write SetUseBlocks;
+    {$ENDIF TLIST_FAST}
   public
-    // by dufa:
     ColsCount: Integer;
-    {* }
+    {* For Matrix-Items access, Cols count. dufa }
+    procedure DeleteRange(Idx, Len: Integer);
+    {* Like TList.DeleteRange. dufa }
     function Count2: Integer;
-    {* }
+    {* For Matrix-Items access, Items(Rows) count. dufa }
     function Add2(const S: array of AnsiString): Integer;
-    {* Adds a array of string to list. }
+    {* For Matrix-Items access, Adds a array of string to list. }
     procedure Insert2(Idx: Integer; const S: array of AnsiString);
-    {* Inserts array of strings before one with given index. }
+    {* For Matrix-Items access, Inserts array of strings before one with given index. }
     procedure Delete2(Idx: integer);
-    {* Deletes string with given index (it *must* exist). }
+    {* For Matrix-Items access, Deletes string with given index (it *must* exist). }
     function Get2(Idx, Col: Integer): AnsiString;
-    {* }
+    {* For Matrix-Items access, dufa}
     procedure Put2(Idx, Col: Integer; const Value: AnsiString);
-    {* }
+    {* For Matrix-Items access, dufa}
     property Items2[Idx, Col: Integer]: AnsiString read Get2 write Put2;
-    {* Strings array items. If item does not exist, empty string is returned.
+    {* For Matrix-Items access, Strings array items. If item does not exist, empty string is returned.
        But for assign to property, string with given index *must* exist. }
-    {* }
     procedure Swap2(Idx1, Idx2: Integer);
-    {* }
+    {* For Matrix-Items access, like Swap. dufa}
     function IndexOf2(const S2: array of AnsiString): Integer;
-    {* }
+    {* For Matrix-Items access, like IndexOf. dufa}
     function IsEmpty: Boolean;
-    {* Is list empty? dufa}
+    {* Is list empty? dufa }
     function GetRandomItem: String;
-    {* Get random item. dufa}
+    {* Get random item. dufa }
+    procedure ItemFirst;
+    {* Select first item - ItemIndex = 0, Dufa }
+    procedure ItemLast;
+    {* Select  last item - ItemIndex = (fCount-1), Dufa }
+    function  ItemEOL: Boolean;
+    {* Return True if ItemIndex = End Of List. Dufa }
+    function  ItemNext(var Item: AnsiString): Boolean;
+    {* Select next item and return False if End Of List. Dufa }
+    function  ItemPrev(var Item: AnsiString): Boolean;
+    {* Select prev item and return False if Start Of List. Dufa }
+    property ItemIndex: Integer read FItemIndex;
+    {* Current ItemIndex. Dufa }
   end;
 
 var DefaultNameDelimiter: AnsiChar = '=';
@@ -1651,11 +1569,13 @@ var DefaultNameDelimiter: AnsiChar = '=';
 
 function NewStrList: PStrList;
 {* Creates string list object. }
+
 {$IFNDEF _FPC}
 function WStrLen( W: PWideChar ): Integer;
 {* Returns Length of null-terminated Unicode string. }
 function UTF8_2KOLWideString( const s: AnsiString ): KOLWideString;
 {$ENDIF _FPC}
+
 type
   PStrListEx = ^TStrListEx;
 
@@ -1756,6 +1676,8 @@ type
     procedure SetText(const Value: KOLWideString);
     {* See also TStrList.SetText }
     destructor Destroy; virtual;
+    {* }
+    function Join( const sep: KOLWideString ): KOLWideString;
     {* }
     procedure Clear;
     {* See also TStrList.Clear }
@@ -1888,8 +1810,7 @@ function GetFileList(const dir: KOLString): PKOLStrList;
 ////////////////////////////////////////////////////////////////////////////////
 //                            GRAPHIC OBJECTS                                 //
 ////////////////////////////////////////////////////////////////////////////////
-{
-  It is very important, that the most of code, implementing graphic objects
+{ It is very important, that the most of code, implementing graphic objects
   from this section, is included into executable ONLY if really accessed in your
   project directly (e.g., if Font or Brush properties of a control are accessed
   or changed). }
@@ -2173,9 +2094,7 @@ type
        object, procedure Changed is called. }
     procedure AssignHandle( NewHandle: THandle );
     {* Assigns value to Handle property. }
-    property BrushBitmap: HBitmap read {-BCB-}fData.Brush.Bitmap{+BCB+}
-                                       {BCB++}(*GetBrushBitmap*){--BCB}
-       write SetBrushBitmap;
+    property BrushBitmap: HBitmap read fData.Brush.Bitmap write SetBrushBitmap;
     {* Brush bitmap. For more info about using brush bitmap,
        see Delphi or Win32 help files. }
     property BrushStyle: TBrushStyle read fData.Brush.Style write SetBrushStyle;
@@ -3873,11 +3792,7 @@ type
   {* Event type for OnLVData event. Used to provide virtual list view control
      (i.e. having lvoOwnerData style) with actual data on request. Use parameter
      Store as a flag if control should store obtained data by itself or not. }
-  {$IFDEF ENABLE_DEPRECATED}
-  {$DEFINE interface_1} {$I KOL_deprecated.inc} {$UNDEF interface_1}
-  {$ENDIF DISABLE_DEPRECATED}
-  TOnCompareLVItems = function( Sender: PControl; Idx1, Idx2: Integer ): Integer
-                    of object;
+  TOnCompareLVItems = function( Sender: PControl; Idx1, Idx2: Integer ): Integer of object;
   {* Event type to compare two items of the list view (while sorting it). }
   TOnLVColumnClick = procedure( Sender: PControl; Idx: Integer ) of object;
   {* Event type for OnColumnClick event. }
@@ -4291,195 +4206,179 @@ type
   // -- so these can be alternated using variant record type to economy run time
   // size of TControl object instance
   TDataFields = packed record
-  fCurrentControl: PControl; //---- sometimes it is used for a parent control,
-                             // not only for parent form, so should be common.
-  {$IFDEF UNION_FIELDS}
-  CASE Integer OF
-  1:( // Toolbar control fields
-  {$ENDIF}
-    fOnTBCustomDraw: TOnTBCustomDraw;
-    fTBevents: PList; // events for TBAssignEvents
-    fTBBtnImgWidth: Integer; // custom toolbar bitmap width
-    fTBBtMinWidth: Integer;
-    fTBBtMaxWidth: Integer;
-    fTBttCmd: PList;
-    fTBttTxt: {$IFDEF UNICODE_CTRLS} PWStrList {$ELSE} PStrList {$ENDIF};
-    fTBCurItem: Integer;
-    fDefaultTBBtnStyle: Byte; // for Toolbars
-    fTBDropped: Boolean;
-  {$IFDEF UNION_FIELDS}
-    );
-  2:( // Combobox + Group box
-  {$ENDIF}
-    fDroppedWidth: Integer; // SmallInt;
-    fDropDownCount: Cardinal;
-    fCurIdxAtDrop: Integer;
-    fErasingBkgnd: Boolean; // for Group box
-  {$IFDEF UNION_FIELDS}
-    );
-  3:( // Form + Applet
-  {$ENDIF}
-    fModalResult: Integer;
-    fModalForm: PControl;
-    //fCurrentControl: PControl;
-    //FMinimizeWnd: PControl;
-    fIcon: HIcon;
-
-    {$IFDEF USE_GRAPHCTLS}
-    {$IFDEF GRAPHCTL_HOTTRACK}
-    fHotCtl: PControl;
-    {$ENDIF}
-    {$ENDIF}
-    //fDefaultBtnCtl: PControl;
-    //fCancelBtnCtl: PControl;
-    fWindowState: TWindowState;
-    fActivating: Boolean;
-    fCloseQueryReason: TCloseQueryReason;
-    fFixingModal: ShortInt;
-    fShowAction: Byte;
-    fKeyPreviewCount: Byte;
-    fModal: Byte;
-    fAllBtnReturnClick: Boolean;
-    //-- внимание! порядок следующих 3х полей не должен меняться!!!
-    FormCurrentParent: PControl;
-    {* контрол, использующийся в качестве родительского, в функциях создания }
-    FormParams: PAnsiChar;
-    {* строка команд и параметров }
-    FormAddress: PPControl;
-    {* адрес поля Form в объекте формы MCK - нужен для вычисления адресов
-       контролов по смещению, для функции FormSetCurCtl }
-    FormObj: PObj;
-    FormAlphabet: PFormInitFuncArray;
-    {* алфавит процедур }
-    FormLastCreatedChild: PControl;
-    {* контрол, созданный последним }
-  {$IFDEF UNION_FIELDS}
-    );
-  4:( // ListView
-  {$ENDIF}
-    fColumn: Integer; // for listview only (column to sort)
-    fOnDeleteAllLVItems: TOnEvent;
-    fCtlImageListSml: PImageList;
-    {* ImageList object (with small icons 16x16) to use with a control (e.g.,
-       with ListView control).
-       If not set, but control has a list of image list objects, last added
-       image list with small icons is used automatically. }
-    fCtlImageListNormal: PImageList;
-    {* ImageList object (with big icons 32x32) to use with a control.
-       If not set, last added image list with big icons is used. }
-    fCtlImgListState: PImageList;
-    {* ImageList object to use as a state image list (for ListView control). }
-    fLVColCount: Integer;
-    fLVTextBkColor: TColor;
-    fLVItemHeight: Integer;
-    fLVOptions: TListViewOptions;
-    fLVStyle: TListViewStyle;
-  {$IFDEF UNION_FIELDS}
-    );
-  5:( // Rich Edit -- 11 dwords
-  {$ENDIF}
-      {$IFNDEF NOT_USE_RICHEDIT}
-        {$IFDEF STATIC_RICHEDIT_DATA}
-        fRECharFormatRec: TCharFormat;
-        fREParaFmtRec: TParaFormat2;
-        {$ELSE}
-        fRECharFormatRec: PCharFormat;
-        fREParaFmtRec: PParaFormat2;
-        {$ENDIF}
-        fCharFmtDeltaSz: Integer;
-        fParaFmtDeltaSz: Integer;
-        fREError: Integer;
-        fREStream: PStream;
-        fREStrLoadLen: DWORD;
-        fREUrl: PKOLChar;
-        fTmpFont: PGraphicTool; // for RichEdit
-        fREUpdCount: SmallInt;
-        fReOvrDisable: Boolean;
-        fREOvr: Boolean;
-        fREScrolling: Boolean;
-        fRECharArea: TRichFmtArea;
-        FSupressTab: Boolean;
-        fRETransparent: Boolean;
-      {$ENDIF NOT_USE_RICHEDIT}
-  {$IFDEF UNION_FIELDS}
-    );
-  6:( // Label Effect + Graphic edit control
-  {$ENDIF}
-    fShadowDeep: Integer;
-    fEditCtl: PControl;
-    fEditOptions: TEditOptions;
-  {$IFDEF UNION_FIELDS}
-    );
-  7:( // BitBtn
-  {$ENDIF}
-    fGlyphBitmap : HBitmap;
-    fGlyphCount : Integer;
-    fGlyphWidth, fGlyphHeight: Integer;
-    fRepeatInterval: Integer;
-    fTextShiftX, fTextShiftY: Integer;
-    fBitBtnDrawMnemonic: Boolean;
-    fBitBtnOptions : TBitBtnOptions;
-    fGlyphLayout : TGlyphLayout;
-    fButtonIcon: HIcon; // for Graphic button control though...
-    FBitBtnGetCaption: function( Self_: PControl; const S: KOLString ): KOLString;
-    FBitBtnExtDraw: procedure( Self_: PControl; DC: HDC; X, Y: Integer; const R: TRect;
-                    const CapText, CapTxtOrig: KOLString; Color: TColor );
-  {$IFDEF UNION_FIELDS}
-    );
-  8:( // Splitter
-  {$ENDIF}
-    fSplitStartPos: TPoint;
-    fSplitStartPos2: TPoint;
-    fSplitStartSize: Integer;
-    fSplitMinSize1, fSplitMinSize2: Integer;
-    fSecondControl: PControl;
-    fSplitLastPos: TPoint;
-  {$IFDEF UNION_FIELDS}
-    );
-  9:( // Gradient panel
-  {$ENDIF}
-    fColor1: TColor;
-    fColor2: TColor;
-    fGradientStyle: TGradientStyle;
-    fGradientLayout: TGradientLayout;
-  {$IFDEF  UNION_FIELDS}
-    );
-  10:( // Tree view only
-  {$ENDIF}
-    fTVRightClickSelect: Boolean;
-  {$IFDEF UNION_FIELDS}
-     );
-  11:( // Scroll Bar
-  {$ENDIF}
-    FScrollLineDist: array[ 0..1 ] of Integer;
-    fSBMinMax: TPoint;
-    fSBPageSize: Integer;
-    fSBPosition: Integer;
-  {$IFDEF UNION_FIELDS}
-     );
-  100:( // for custom controls
-  {$ENDIF}
-    //fCustom6: Integer;
-    //fCustEvent2: TOnEvent;
-    fCustom5: Integer;
-    fCustom4: Integer;
-    fCustEvent1: TOnEvent;
-    fCustom3: Integer;
-    fCustom2: Integer;
-    fCustEvent0: TOnEvent;
-    fCustom1: Integer;
-    fCustom0: Integer;
-    fCustFlag7: Boolean;
-    fCustFlag6: Boolean;
-    fCustFlag5: Boolean;
-    fCustFlag4: Boolean;
-    fCustFlag3: Byte;
-    fCustFlag2: Byte;
-    fCustFlag1: Byte;
-    fCustFlag0: Byte;
-  {$IFDEF UNION_FIELDS}
+    fCurrentControl: PControl; //---- sometimes it is used for a parent control,
+                               // not only for parent form, so should be common.
+    case Integer of
+      // Toolbar control fields
+      1: (
+        fOnTBCustomDraw: TOnTBCustomDraw;
+        fTBevents:      PList;   // events for TBAssignEvents
+        fTBBtnImgWidth: Integer; // custom toolbar bitmap width
+        fTBBtMinWidth:  Integer;
+        fTBBtMaxWidth:  Integer;
+        fTBttCmd:       PList;
+        fTBttTxt:       {$IFDEF UNICODE_CTRLS} PWStrList {$ELSE} PStrList {$ENDIF};
+        fTBCurItem: Integer;
+        fDefaultTBBtnStyle: Byte; // for Toolbars
+        fTBDropped: Boolean;
       );
-  {$ENDIF}
+      // Combobox + Group box
+      2: (
+        fDroppedWidth: Integer; // SmallInt;
+        fDropDownCount: Cardinal;
+        fCurIdxAtDrop: Integer;
+        fErasingBkgnd: Boolean; // for Group box
+      );
+      // Form + Applet
+      3: (
+        fModalResult: Integer;
+        fModalForm: PControl;
+        //fCurrentControl: PControl;
+        //FMinimizeWnd: PControl;
+        fIcon: HIcon;
+        {$IFDEF USE_GRAPHCTLS}
+        {$IFDEF GRAPHCTL_HOTTRACK}
+        fHotCtl: PControl;
+        {$ENDIF}
+        {$ENDIF}
+        //fDefaultBtnCtl: PControl;
+        //fCancelBtnCtl: PControl;
+        fWindowState: TWindowState;
+        fActivating: Boolean;
+        fCloseQueryReason: TCloseQueryReason;
+        fFixingModal: ShortInt;
+        fShowAction: Byte;
+        fKeyPreviewCount: Byte;
+        fModal: Byte;
+        fAllBtnReturnClick: Boolean;
+        //-- внимание! порядок следующих 3х полей не должен меняться!!!
+        FormCurrentParent: PControl;
+        {* контрол, использующийся в качестве родительского, в функциях создания }
+        FormParams: PAnsiChar;
+        {* строка команд и параметров }
+        FormAddress: PPControl;
+        {* адрес поля Form в объекте формы MCK - нужен для вычисления адресов
+           контролов по смещению, для функции FormSetCurCtl }
+        FormObj: PObj;
+        FormAlphabet: PFormInitFuncArray;
+        {* алфавит процедур }
+        FormLastCreatedChild: PControl;
+        {* контрол, созданный последним }
+      );
+      // ListView
+      4: (
+        fColumn: Integer; // for listview only (column to sort)
+        fOnDeleteAllLVItems: TOnEvent;
+        fCtlImageListSml: PImageList;
+        {* ImageList object (with small icons 16x16) to use with a control (e.g.,
+           with ListView control). If not set, but control has a list of image list objects,
+           last added image list with small icons is used automatically. }
+        fCtlImageListNormal: PImageList;
+        {* ImageList object (with big icons 32x32) to use with a control.
+           If not set, last added image list with big icons is used. }
+        fCtlImgListState: PImageList;
+        {* ImageList object to use as a state image list (for ListView control). }
+        fLVColCount: Integer;
+        fLVTextBkColor: TColor;
+        fLVItemHeight: Integer;
+        fLVOptions: TListViewOptions;
+        fLVStyle: TListViewStyle;
+      );
+      // Rich Edit -- 11 dwords
+      5: (
+        {$IFNDEF NOT_USE_RICHEDIT}
+          {$IFDEF STATIC_RICHEDIT_DATA}
+          fRECharFormatRec: TCharFormat;
+          fREParaFmtRec: TParaFormat2;
+          {$ELSE}
+          fRECharFormatRec: PCharFormat;
+          fREParaFmtRec: PParaFormat2;
+          {$ENDIF}
+          fCharFmtDeltaSz: Integer;
+          fParaFmtDeltaSz: Integer;
+          fREError: Integer;
+          fREStream: PStream;
+          fREStrLoadLen: DWORD;
+          fREUrl: PKOLChar;
+          fTmpFont: PGraphicTool; // for RichEdit
+          fREUpdCount: SmallInt;
+          fReOvrDisable: Boolean;
+          fREOvr: Boolean;
+          fREScrolling: Boolean;
+          fRECharArea: TRichFmtArea;
+          FSupressTab: Boolean;
+          fRETransparent: Boolean;
+        {$ENDIF NOT_USE_RICHEDIT}
+      );
+      // Label Effect + Graphic edit control
+      6: (
+        fShadowDeep: Integer;
+        fEditCtl: PControl;
+        fEditOptions: TEditOptions;
+      );
+      // BitBtn
+      7: (
+        fGlyphBitmap : HBitmap;
+        fGlyphCount : Integer;
+        fGlyphWidth, fGlyphHeight: Integer;
+        fRepeatInterval: Integer;
+        fTextShiftX, fTextShiftY: Integer;
+        fBitBtnDrawMnemonic: Boolean;
+        fBitBtnOptions : TBitBtnOptions;
+        fGlyphLayout : TGlyphLayout;
+        fButtonIcon: HIcon; // for Graphic button control though...
+        FBitBtnGetCaption: function( Self_: PControl; const S: KOLString ): KOLString;
+        FBitBtnExtDraw: procedure( Self_: PControl; DC: HDC; X, Y: Integer; const R: TRect;
+                        const CapText, CapTxtOrig: KOLString; Color: TColor );
+      );
+      // Splitter
+      8: (
+        fSplitStartPos: TPoint;
+        fSplitStartPos2: TPoint;
+        fSplitStartSize: Integer;
+        fSplitMinSize1, fSplitMinSize2: Integer;
+        fSecondControl: PControl;
+        fSplitLastPos: TPoint;
+      );
+      // Gradient panel
+      9: (
+        fColor1: TColor;
+        fColor2: TColor;
+        fGradientStyle: TGradientStyle;
+        fGradientLayout: TGradientLayout;
+      );
+      // Tree view only
+      10: (
+        fTVRightClickSelect: Boolean;
+      );
+      // Scroll Bar
+      11: ( 
+        FScrollLineDist: array[ 0..1 ] of Integer;
+        fSBMinMax: TPoint;
+        fSBPageSize: Integer;
+        fSBPosition: Integer;
+      );
+      // for custom controls
+      100: ( 
+        //fCustom6: Integer;
+        //fCustEvent2: TOnEvent;
+        fCustom5: Integer;
+        fCustom4: Integer;
+        fCustEvent1: TOnEvent;
+        fCustom3: Integer;
+        fCustom2: Integer;
+        fCustEvent0: TOnEvent;
+        fCustom1: Integer;
+        fCustom0: Integer;
+        fCustFlag7: Boolean;
+        fCustFlag6: Boolean;
+        fCustFlag5: Boolean;
+        fCustFlag4: Boolean;
+        fCustFlag3: Byte;
+        fCustFlag2: Byte;
+        fCustFlag1: Byte;
+        fCustFlag0: Byte;
+      );
   end;
 
 { ----------------------------------------------------------------------
@@ -4645,7 +4544,6 @@ type
     procedure SetTime(const Value: TDateTime);
   
   protected
-  
     function GetHelpPath: KOLString;
     procedure SetHelpPath(const Value: KOLString);
   public
@@ -4655,13 +4553,19 @@ type
     procedure SetOnMaximize( const Value: TOnEvent );
     procedure SetOnRestore( const Value: TOnEvent );
     procedure SetOnScroll(const Value: TOnScroll);
+    procedure SetHasBorder(const Value: Boolean);
+    procedure SetStayOnTop(const Value: Boolean);
+    procedure SetCtl3D(const Value: Boolean);
+    procedure SetTextAlign(const Value: TTextAlign);
+    procedure SetVerticalAlign(const Value: TVerticalAlign);
+    procedure SetDoubleBuffered(const Value: Boolean);
+    procedure SetTransparent(const Value: Boolean);
   protected
     procedure SetConstraint(const Index: Integer; Value: SmallInt);
     function GetOnMinMaxRestore(const Index: Integer): TOnEvent;
     function GetConstraint(const Index: Integer): Integer;
     function GetLVColalign(Idx: Integer): TTextAlign;
     procedure SetLVColalign(Idx: Integer; const Value: TTextAlign);
-
     procedure SetParent( Value: PControl );
     function GetLeft: Integer;
     procedure SetLeft( Value: Integer );
@@ -4683,78 +4587,45 @@ type
     procedure SetClientHeight(const Value: Integer);
     procedure SetClientWidth(const Value: Integer);
     function GetHasBorder: Boolean;
-  public
-    procedure SetHasBorder(const Value: Boolean);
-  protected
     function GetHasCaption: Boolean;
     procedure SetHasCaption(const Value: Boolean);
-
     function GetCanResize: Boolean;
     procedure SetCanResize( const Value: Boolean );
-
     function GetStayOnTop: Boolean;
-  public
-    procedure SetStayOnTop(const Value: Boolean);
-  protected
     function GetChecked: Boolean;
     procedure Set_Checked(const Value: Boolean);
-
     function GetCheck3: TTriStateCheck;
     procedure SetCheck3(value: TTriStateCheck);
-
     function GetSelStart: Integer;
     procedure SetSelStart(const Value: Integer);
     function GetSelLength: Integer;
     procedure SetSelLength(const Value: Integer);
-
     function GetItems(Idx: Integer): KOLString;
     procedure SetItems(Idx: Integer; const Value: KOLString);
-
     function GetItemsCount: Integer;
     function GetItemSelected(ItemIdx: Integer): Boolean;
     procedure SetItemSelected(ItemIdx: Integer; const Value: Boolean);
-  public
-    procedure SetCtl3D(const Value: Boolean);
-  protected
     function GetCurIndex: Integer;
     procedure SetCurIndex(const Value: Integer);
     function GetTextAlign: TTextAlign;
-  public procedure SetTextAlign(const Value: TTextAlign);
-  protected
     function GetVerticalAlign: TVerticalAlign;
-  public procedure SetVerticalAlign(const Value: TVerticalAlign);
-  protected
     function GetCanvas: PCanvas;
     function Dc2Canvas( Sender: PCanvas ): HDC;
     procedure SetShadowDeep(const Value: Integer);
-  public procedure SetDoubleBuffered(const Value: Boolean);
-  protected
-
     procedure SetStatusText(Index: Integer; const Value: KOLString);
     function GetStatusText( Index: Integer ): KOLString;
     function GetStatusPanelX(Idx: Integer): Integer;
     procedure SetStatusPanelX(Idx: Integer; const Value: Integer);
-
-  public procedure SetTransparent(const Value: Boolean);
-  protected
     function GetImgListIdx(const Index: Integer): PImageList;
-
     procedure SetImgListIdx(const Index: Integer; const Value: PImageList);
     function GetLVColText(Idx: Integer): KOLString;
     procedure SetLVColText(Idx: Integer; const Value: KOLString);
-    {$IFDEF ENABLE_DEPRECATED}
-    {$DEFINE interface_2}
-    {$I KOL_deprecated.inc}
-    {$UNDEF interface_2}
-    {$ENDIF DISABLE_DEPRECATED}
-  protected
     function LVGetItemText(Idx, Col: Integer): KOLString;
     procedure LVSetItemText(Idx, Col: Integer; const Value: KOLString);
     procedure SetLVOptions(const Value: TListViewOptions);
     procedure SetLVStyle(const Value: TListViewStyle);
     function GetLVColEx(Idx: Integer; const Index: Integer): Integer;
-    procedure SetLVColEx(Idx: Integer; const Index: Integer;
-      const Value: Integer);
+    procedure SetLVColEx(Idx: Integer; const Index: Integer; const Value: Integer);
     function GetChildCount: Integer;
     function LVGetItemPos(Idx: Integer): TPoint;
     procedure LVSetItemPos(Idx: Integer; const Value: TPoint);
@@ -5210,26 +5081,19 @@ type
     procedure InitOrthaned( AParentWnd: HWnd ); virtual;
     {* Initialization of visual object. }
     procedure DestroyChildren;
-    {* Destroys children. Is called in destructor, and can be
-       called in descending classes as earlier as needed to
-       prevent problems of too late destroying of visuals.
-       |<br>
-       Note: since v 2.40, used only for case when a symbol NOT_USE_AUTOFREE4CONTROLS
-       is defined, otherwise all children are destroyed using common mechanism of
-       Add2AutoFree. }
+    {* Destroys children. Is called in destructor, and can be called in descending classes as
+      earlier as needed to prevent problems of too late destroying of visuals.
+      Note: since v2.40 NOT USED: all children are destroyed using common mechanism of Add2AutoFree. }
     function GetParentWnd( NeedHandle: Boolean ): HWnd;
     {* Returns handle of parent window. }
     function GetParentWindow: HWnd;
     {* }
     procedure SetEnabled( Value: Boolean );
-    {* Changes Enabled property value. Overridden here to change enabling
-       status of a window. }
+    {* Changes Enabled property value. Overridden here to change enabling status of a window. }
     function GetEnabled: Boolean;
-    {* Returns True, if Enabled. Overridden here to obtain real window
-       state. }
+    {* Returns True, if Enabled. Overridden here to obtain real window state. }
     procedure SetVisible( Value: Boolean );
-    {* Sets Visible property value. Overridden here to change visibility
-       of correspondent window. }
+    {* Sets Visible property value. Overridden here to change visibility of correspondent window. }
     procedure Set_Visible( Value: Boolean );
     {* }
     function GetVisible: Boolean;
@@ -7474,9 +7338,7 @@ type
     property SBMin: Longint read DF.fSBMinMax.X write SetSBMin;
     {* Minimum scrolling area position. }
     property SBMax: Longint read DF.fSBMinMax.Y write SetSBMax;
-    {* Maximum scrolling area position (size of the text or image to be scrolling).
-       For case when SCROLL_OLD defined, this value should be set as scrolling
-       object size without SBPageSize. }
+    {* Maximum scrolling area position (size of the text or image to be scrolling). }
     property SBMinMax: TPoint read DF.fSBMinMax write SetSBMinMax;
     {* The property to adjust SBMin and SBMax for a single call (set X to a minimum
        and Y to a maximum value). }
@@ -8258,7 +8120,6 @@ type
        character position of the next match, or -1 if there are no more matches.
        To search in backward direction, set ScanForward to False, and pass
        SearchFrom > SearchTo (or even SearchFrom = -1 and SearchTo = 0). }
-    {$IFNDEF DISABLE_DEPRECATED}
     {$IFNDEF _FPC}
     function RE_WSearchText( const Value: KOLWideString; MatchCase, WholeWord, ScanForward: Boolean; SearchFrom, SearchTo: Integer ): PtrInt;
     {* |<#richedit>
@@ -8268,7 +8129,6 @@ type
        To search in backward direction, set ScanForward to False, and pass
        SearchFrom > SearchTo (or even SearchFrom = -1 and SearchTo = 0). }
     {$ENDIF}
-    {$ENDIF DISABLE_DEPRECATED}
     property RE_AutoURLDetect: Boolean read REGetAutoURLDetect write RESetAutoURLDetect;
     {* |<#richedit>
        If set to True, automatically detects URLs (and highlights it with
@@ -9538,8 +9398,7 @@ function NewTabControl( AParent: PControl; const Tabs: array of PKOLChar; Option
    |<br> Other methods and properties, suitable for tab control, are:
    |#tabcontrol }
 {$IFNDEF OLD_ALIGN}
-function NewTabEmpty( AParent: PControl; Options: TTabControlOptions;
-         ImgList: PImageList ): PControl;
+function NewTabEmpty( AParent: PControl; Options: TTabControlOptions; ImgList: PImageList ): PControl;
 {* |<#control>
    Creates new empty tab control for using methods TC_Insert (to create Pages as Panel),
    or TC_InsertControl (if you want using your custom Pages).}
@@ -9612,7 +9471,6 @@ function NewImageList( AOwner: PControl ): PImageList;
    too (at least, now I implemented it so). }
 
 type
-  TTimerKind = ( tkReal, tkProcess, tkProfiler ); // only for UNIX!
   PTimer = ^TTimer;
 { ----------------------------------------------------------------------
                             TTimer object
@@ -9638,9 +9496,7 @@ type
     property Enabled : Boolean read fEnabled write SetEnabled;
     {* True, is timer is on. Initially, always False. }
     property Interval : Integer read fInterval write SetInterval;
-    {* Interval in milliseconds (1000 is default and means 1 second).
-       Note: in UNIX, if an Interval can be set to a value large then 30 minutes,
-       add a conditional definition SUPPORT_LONG_TIMER to the project options. }
+    {* Interval in milliseconds (1000 is default and means 1 second). }
     property OnTimer : TOnEvent read fOnTimer write fOnTimer;
     {* Event, which is called when time interval is over. }
   end;
@@ -10671,7 +10527,7 @@ function WFileExists( const FileName: KOLWideString ) : Boolean;
    It is not documented in a help for GetFileAttributes, but it seems that
    under NT-based Windows systems, FALSE is always returned for files
    opened for exclusive use like pagefile.sys. }
-function FileSeek(Handle: THandle; {$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmMove; MoveMethod: TMoveMethod): TStrmSize;
+function FileSeek(Handle: THandle; const MoveTo: TStrmMove; MoveMethod: TMoveMethod): TStrmSize;
 {* Changes current position in file. }
 function FileRead(Handle: THandle; var Buffer; Count: DWord): DWord;
 {* Reads bytes from current position in file to buffer. Returns number of read bytes. }
@@ -10855,9 +10711,8 @@ function  GetFileListStr(FPath{e.g.'c:\tmp\'}, FMask{e.g.'*.*'}: KOLString): KOL
 function DeleteFiles( const DirPath: KOLString ): Boolean;
 {* Deletes files by file mask (given with wildcards '*' and '?'). }
  //vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-var FileOpSeparator: KOLChar = {$IFDEF OLD_COMPAT}';'{$ELSE}#13{$ENDIF};
-function DoFileOp( const FromList, ToList: KOLString; FileOp: UINT; Flags: Word;
-         Title: PKOLChar): Boolean;
+var FileOpSeparator: KOLChar = #13;
+function DoFileOp( const FromList, ToList: KOLString; FileOp: UINT; Flags: Word; Title: PKOLChar): Boolean;
 {* By Unknown Mystic. FileOp can be: FO_MOVE, FO_COPY, FO_DELETE, FO_RENAME.
    Flags can be a combination of values: FOF_MULTIDESTFILES, FOF_CONFIRMMOUSE,
    FOF_SILENT, FOF_RENAMEONCOLLISION, FOF_NOCONFIRMATION, FOF_WANTMAPPINGHANDLE,
@@ -10867,12 +10722,9 @@ function DeleteFile2Recycle( const Filename : KOLString ) : Boolean;
 {* Deletes file to recycle bin. This operation can be very slow, when
    called for a single file. To delete group of files at once (fast),
    pass a list of paths to files to be deleted, separating each path
-   from others with a character stored in FileOpSeparator variable (by default #13,
-   but in case when OLD_COMPAT symbol added - ';'). E.g.: 'unit1.dcu'#13'unit1.~pa'
-   |<br>
-   FALSE is returned only in case when at least one file was not deleted
-   successfully.
-   |<br>
+   from others with a character stored in FileOpSeparator variable (by default #13).
+   E.g.: 'unit1.dcu'#13'unit1.~pa'
+   FALSE is returned only in case when at least one file was not deleted successfully.
    Note, that files are deleted not to recycle bin, if wildcards are
    used or not fully qualified paths to files. }
 function CopyMoveFiles( const FromList, ToList: KOLString; Move: Boolean ): Boolean;
@@ -11320,10 +11172,9 @@ function NewColorDialog( FullOpen: TColorCustomOption ): PColorDialog;
 
 
 type
-  TIniFileMode = ( ifmRead, ifmWrite );
+  TIniFileMode = (ifmRead, ifmWrite);
   {* ifmRead is default mode (means "read" data from ini-file.
-     Set mode to ifmWrite to write data to ini-file, correspondent to
-     TIniFile. }
+     Set mode to ifmWrite to write data to ini-file, correspondent to TIniFile. }
   PIniFile = ^TIniFile;
 
 { ----------------------------------------------------------------------
@@ -11387,8 +11238,7 @@ type
     procedure SectionData(Names:PKOLStrList);
     {* Read/write current section content to/from string list. (Depending on
        current Mode value). }
-    ///////////////
-    function GetSectionNamesStr: KOLString; //dufa
+    {$IFNDEF UNICODE_CTRLS}function GetSectionNamesStr: KOLString;{$ENDIF} //dufa
     {* like GetSectionNames, but return string }
   end;
 
@@ -13273,7 +13123,7 @@ end;
 const PossibleColorBits : array[1..7] of Byte = ( 1, 4, 8, 16, 24, 32, 0 );
 
 function FindFilter( const Filter: KOLString): KOLString; forward;
-function WriteExMemoryStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize; forward;
+function WriteExMemoryStream( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize; forward;
 procedure CreateComboboxWnd( Combo: PControl ); forward;
 procedure ComboboxDropDown( Sender: PObj ); forward;
 function WndProcParentResize(Self_: PControl; var Msg: TMsg; var Rslt: LRESULT ): Boolean; forward;
@@ -14370,11 +14220,12 @@ begin
   FreeMem( @ Self );
 end;
 {$ENDIF PAS_VERSION}
+
 {$IFDEF ASM_VERSION}
   {$DEFINE ASM_TLIST}
-{$IFDEF TLIST_FAST}
-  {$UNDEF ASM_TLIST}
-{$ENDIF}
+  {$IFDEF TLIST_FAST}
+    {$UNDEF ASM_TLIST}
+  {$ENDIF}
 {$ENDIF}
 
 {$IFDEF ASM_TLIST}
@@ -14694,13 +14545,14 @@ begin
    {$ENDIF}
 end;
 {$ENDIF PAS_VERSION}
+
 procedure TList.SetAddBy(Value: Integer);
 begin
   if Value < 1 then Value := 1;
   fAddBy := Value;
 end;
-{$IFDEF ASM_NO_VERSION}  /// ASM-version disabled due some problems - 20-May-2010
-{$ELSE PAS_VERSION} //Pascal
+
+// ASM-version disabled due some problems - 20-May-2010
 procedure TList.Add( Value: Pointer );
 {$IFDEF TLIST_FAST}
 var LastBlockCount: PtrInt;
@@ -14748,7 +14600,6 @@ begin
   end;
   Inc(fCount);
 end;
-{$ENDIF PAS_VERSION}
 
 procedure TList.AddItems(const AItems: array of Pointer);
 var i: Integer;
@@ -14988,6 +14839,7 @@ begin
     Result := fItems[ Idx ];
 end;
 {$ENDIF PAS_VERSION}
+
 {$IFDEF ASM_TLIST}
 function TList.IndexOf( Value: Pointer ): Integer;
 asm
@@ -15056,6 +14908,7 @@ begin
   {$ENDIF}
 end;
 {$ENDIF PAS_VERSION}
+
 {$IFDEF ASM_TLIST}
 procedure TList.Insert(Idx: Integer; Value: Pointer);
 asm
@@ -15169,6 +15022,7 @@ begin
    end;
 end;
 {$ENDIF PAS_VERSION}
+
 {$IFDEF ASM_VERSION} {$DEFINE MoveItem_ASM} {$ENDIF}
 {$IFDEF TLIST_FAST}  {$UNDEF  MoveItem_ASM} {$ENDIF}
 {$IFDEF MoveItem_ASM}
@@ -15182,6 +15036,7 @@ begin
   Insert( NewIdx, Item );
 end;
 {$ENDIF PAS_VERSION}
+
 {$IFDEF ASM_TLIST}
 function TList.Last: Pointer;
 asm     //cmd    //opd
@@ -15201,6 +15056,7 @@ begin
     Result := Items[ Count-1 ];
 end;
 {$ENDIF PAS_VERSION}
+
 {$IFDEF ASM_TLIST}
 procedure TList.Swap(Idx1, Idx2: Integer);
 asm
@@ -15230,8 +15086,8 @@ begin
   AItem2^ := Tmp;
 end;
 {$ENDIF PAS_VERSION}
-//dufa
-procedure TList.SortEx(const CompareFun: TCompareEvent);
+
+procedure TList.SortEx(const CompareFun: TCompareEvent); //dufa
 begin
   SortData(@Self, Count, CompareFun, @TList.Swap);
 end;
@@ -20078,23 +19934,9 @@ begin
   {$ENDIF}
 end;
 
-{$IFDEF ASM_STREAM}
-function FileSeek(Handle: THandle; {$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmMove; MoveMethod: TMoveMethod): TStrmSize;
-asm
-        MOVZX    ECX, CL
-        PUSH     ECX
-        PUSH     0
-        PUSH     EDX
-        PUSH     EAX
-        CALL     SetFilePointer
-end;
-{$ELSE PAS_VERSION} //Pascal
-function FileSeek(Handle: THandle; {$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmMove; MoveMethod: TMoveMethod): TStrmSize;
-{$IFDEF STREAM_LARGE64}
+function FileSeek(Handle: THandle; const MoveTo: TStrmMove; MoveMethod: TMoveMethod): TStrmSize;
 var HiPtr: DWORD;
-{$ENDIF}
 begin
-  {$IFDEF STREAM_LARGE64}
   HiPtr := MoveTo shr 32;
   Result := SetFilePointer(Handle, Integer( MoveTo ), @ HiPtr, Ord( MoveMethod ) );
   if (DWORD( Result ) = $FFFFFFFF {INVALID_SET_FILE_POINTER}) and
@@ -20102,18 +19944,13 @@ begin
      Result := -1; // Int64(-1)
   if Result >= 0 then
     Result := Result or (Int64(HiPtr) shl 32);
-  {$ELSE}
-  Result := SetFilePointer(Handle, MoveTo, nil, Ord( MoveMethod ) );
-  {$ENDIF}
 end;
-{$ENDIF PAS_VERSION}
-
 
 {$IFDEF ASM_VERSION}{$ELSE PAS_VERSION} //Pascal
 function FileRead(Handle: THandle; var Buffer; Count: DWord): DWord;
 begin
   if not ReadFile(Handle, Buffer, Count, Result, nil) then
-	  Result := 0;
+    Result := 0;
 end;
 
 function FileWrite(Handle: THandle; const Buffer; Count: DWord): DWord;
@@ -23493,52 +23330,34 @@ end;
    of such data in your fClose procedure). }
 function TStream.GetPosition: TStrmSize;
 begin
-  Result := Seek( 0, spCurrent );
+  Result := Seek(0, spCurrent);
 end;
 
 procedure TStream.SetPosition(const Value: TStrmSize);
 begin
-  Seek( Value, spBegin );
+  Seek(Value, spBegin);
 end;
 
-{$IFDEF ASM_STREAM}
-function TStream.GetSize: TStrmSize;
-asm
-        CALL     [EAX].fMethods.fGetSiz
-end;
-{$ELSE PAS_VERSION} //Pascal
 function TStream.GetSize: TStrmSize;
 begin
-  Result := fMethods.fGetSiz( @Self );
+  Result := fMethods.fGetSiz(@Self);
 end;
-{$ENDIF PAS_VERSION}
-{$IFDEF ASM_STREAM}
-procedure TStream.SetSize(const NewSize: TStrmSize);
-asm
-        CALL     [EAX].fMethods.fSetSiz
-end;
-{$ELSE PAS_VERSION} //Pascal
+
 procedure TStream.SetSize(const NewSize: TStrmSize);
 begin
-  fMethods.fSetSiz( @Self, NewSize );
+  fMethods.fSetSiz(@Self, NewSize);
 end;
-{$ENDIF PAS_VERSION}
+
 function TStream.GetFileStreamHandle: THandle;
 begin
   Result := fData.fHandle;
 end;
 
-{$IFDEF ASM_STREAM}
-function TStream.Read(var Buffer; const Count: TStrmSize): TStrmSize;
-asm
-        CALL     [EAX].fMethods.fRead
-end;
-{$ELSE PAS_VERSION} //Pascal
 function TStream.Read(var Buffer; const Count: TStrmSize): TStrmSize;
 begin
-  Result := fMethods.fRead( @Self, Buffer, Count );
+  Result := fMethods.fRead(@Self, Buffer, Count);
 end;
-{$ENDIF PAS_VERSION}
+
 function TStream.GetCapacity: TStrmSize;
 begin
   Result := fData.fCapacity;
@@ -23549,12 +23368,6 @@ var OldSize: DWORD;
     V: TStrmSize;
 begin
   V := Value;
-  {$IFDEF OLD_STREAM_CAPACITY}
-  if fData.fCapacity >= Value then Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
-  OldSize := Size;
-  Size := V;
-  Size := OldSize;
-  {$ELSE}
   if Value < fData.fSize then V := fData.fSize;
   if Value > fData.fCapacity then begin
     OldSize := Size;
@@ -23565,7 +23378,6 @@ begin
     fMemory := ReallocMemory( fMemory, V );
     fData.fCapacity := V;
   end;
-  {$ENDIF}
 end;
 
 function TStream.Busy: Boolean;
@@ -23626,23 +23438,18 @@ end;
 
 procedure TStream.Wait;
 begin
-  if  ( fData.fThread = nil ) then Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
-  if   Assigned( fMethods.fWait ) then
-       fMethods.fWait( @Self )
-  else fData.fThread.WaitFor;
+  if (fData.fThread = nil) then Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
+  if Assigned( fMethods.fWait ) then
+    fMethods.fWait( @Self )
+  else
+    fData.fThread.WaitFor;
 end;
 
-{$IFDEF ASM_STREAM}
-function TStream.Write(var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize): TStrmSize;
-asm
-        CALL     [EAX].fMethods.fWrite
-end;
-{$ELSE PAS_VERSION} //Pascal
-function TStream.Write(var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize): TStrmSize;
+function TStream.Write(var Buffer; const Count: TStrmSize): TStrmSize;
 begin
   Result := fMethods.fWrite( @Self, Buffer, Count );
 end;
-{$ENDIF PAS_VERSION}
+
 function TStream.WriteVal(Value, Count: DWORD): TStrmSize;
 begin
   Result := Write( Value, Count );
@@ -23650,9 +23457,10 @@ end;
 
 function TStream.WriteStr(S: AnsiString): TStrmSize;
 begin
-  if   S <> '' then
-       Result := fMethods.fWrite( @Self, S[1], Length( S ) )
-  else Result := 0;
+  if (S <> '') then
+    Result := fMethods.fWrite( @Self, S[1], Length( S ) )
+  else
+    Result := 0;
 end;
 
 function TStream.ReadStrZ: AnsiString;
@@ -23714,7 +23522,7 @@ begin
     C := #0;
     Result := Write( C, 1 );
   end else 
-	  Result := Write( S[ 1 ], Length( S ) + 1 );
+    Result := Write( S[ 1 ], Length( S ) + 1 );
 end;
 
 function TStream.WriteWStrZ(S: KOLWideString): TStrmSize;
@@ -23724,7 +23532,7 @@ begin
     C := #0;
     Result := Write( C, 2 );
   end else
-		Result := Write( S[ 1 ], (Length( S ) + 1) * 2 );
+    Result := Write( S[ 1 ], (Length( S ) + 1) * 2 );
 end;
 
 function TStream.WriteStrEx(S: AnsiString): TStrmSize;
@@ -23741,7 +23549,7 @@ begin
   fmethods.fread(@self,result,Sizeof(DWORD));
   setlength(s,result);
   if result <> 0 then 
-	  result:=fmethods.fread(@self,s[1],result);
+    result := fmethods.fread(@self,s[1],result);
 end;
 
 function TStream.ReadStrEx: AnsiString;
@@ -23771,18 +23579,10 @@ begin
   Result := Copy( Result, 1, L );
 end;
 
-{$IFDEF ASM_STREAM}
-function TStream.Seek({$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmMove; MoveMethod: TMoveMethod): TStrmSize;
-//function TStream.Seek(MoveTo: TStrmMove; MoveMethod: TMoveMethod): TStrmSize;
-asm
-        CALL     [EAX].fMethods.fSeek
-end;
-{$ELSE PAS_VERSION} //Pascal
-function TStream.Seek({$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmMove; MoveMethod: TMoveMethod): TStrmSize;
+function TStream.Seek(const MoveTo: TStrmMove; MoveMethod: TMoveMethod): TStrmSize;
 begin
   Result := fMethods.fSeek( @Self, MoveTo, MoveMethod );
 end;
-{$ENDIF PAS_VERSION}
 
 {$IFDEF ASM_VERSION}{$ELSE PAS_VERSION} //Pascal
 destructor TStream.Destroy;
@@ -23816,7 +23616,7 @@ begin
   TMethod( Result.fOnChangePos ).Code := @DummyObjProc;
 end;
 
-function SeekFileStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
+function SeekFileStream( Strm: PStream; const MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
 begin
   Result := FileSeek( Strm.fData.fHandle, MoveTo, MoveFrom );
   {$IFDEF FILESTREAM_POSITION}
@@ -23825,20 +23625,13 @@ begin
 end;
 
 function GetSizeFileStream( Strm: PStream ): TStrmSize;
-{$IFDEF STREAM_LARGE64}
 var SizeHigh: DWORD;
-{$ENDIF}
 begin
-  {$IFDEF STREAM_LARGE64}
   Result := GetFileSize( Strm.fData.fHandle, @ SizeHigh );
   Result := Result or Int64(SizeHigh) shl 32;
-  {$ELSE}
-  Result := GetFileSize( Strm.fData.fHandle, nil );
-  if Result = DWORD( -1 ) then Result := 0;
-  {$ENDIF}
 end;
 
-procedure DummySetSize( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Value: TStrmSize );
+procedure DummySetSize( Strm: PStream; const Value: TStrmSize );
 begin
 end;
 
@@ -23846,33 +23639,15 @@ procedure DummyStreamProc(Strm: PStream);
 begin
 end;
 
-function DummyReadWrite( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
-{$ifndef PAS_ONLY}
-asm
-  XOR EAX, EAX
-  {$IFDEF STREAM_LARGE64}
-  XOR EDX, EDX
-  {$ENDIF}
-end;
-{$ELSE}
+function DummyReadWrite( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
 begin
   Result := 0;
 end;
-{$ENDIF}
-function DummySeek( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmMove; MoveMethod: TMoveMethod ): TStrmSize;
-{$ifndef PAS_ONLY}
-asm
-  XOR EAX, EAX
-  {$IFDEF STREAM_LARGE64}
-  XOR EDX, EDX
-  {$ENDIF}
-end;
-{$ELSE}
+function DummySeek( Strm: PStream; const MoveTo: TStrmMove; MoveMethod: TMoveMethod ): TStrmSize;
 begin
   Result := 0;
 end;
-{$ENDIF}
-function ReadFileStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+function ReadFileStream( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
 begin
   Result := FileRead( Strm.fData.fHandle, Buffer, Count );
   {$IFDEF FILESTREAM_POSITION}
@@ -23880,7 +23655,7 @@ begin
   {$ENDIF}
 end;
 
-function ReadFileStreamWithEvent( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+function ReadFileStreamWithEvent( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
 begin
   Result := FileRead( Strm.fData.fHandle, Buffer, Count );
   inc( Strm.fData.fPosition, Result );
@@ -23889,7 +23664,7 @@ begin
       Strm.OnChangePos( Strm );
 end;
 
-function WriteFileStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+function WriteFileStream( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
 begin
   Result := FileWrite( Strm.fData.fHandle, Buffer, Count );
   {$IFDEF FILESTREAM_POSITION}
@@ -23897,7 +23672,7 @@ begin
   {$ENDIF}
 end;
 
-function WriteFileStreamWithEvent( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+function WriteFileStreamWithEvent( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
 begin
   Result := FileWrite( Strm.fData.fHandle, Buffer, Count );
   inc( Strm.fData.fPosition, Result );
@@ -23906,19 +23681,7 @@ begin
     Strm.OnChangePos( Strm );
 end;
 
-{$IFDEF ASM_STREAM}
-function WriteFileStreamEOF( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
-asm
-        PUSH     EBX
-        PUSH     [EAX].TStream.fData.fHandle
-        CALL     WriteFileStream
-        XCHG     EBX, EAX
-        CALL     SetEndOfFile
-        XCHG     EAX, EBX
-        POP      EBX
-end;
-{$ELSE PAS_VERSION} //Pascal
-function WriteFileStreamEOF( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+function WriteFileStreamEOF( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
 begin
   Result := WriteFileStream( Strm, Buffer, Count );
   {$IFDEF FILESTREAM_POSITION}
@@ -23926,8 +23689,8 @@ begin
   {$ENDIF}
   SetEndOfFile( Strm.fData.fHandle );
 end;
-{$ENDIF PAS_VERSION}
-function WriteFileStreamEOFWithEvent( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+
+function WriteFileStreamEOFWithEvent( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
 begin
   Result := WriteFileStream( Strm, Buffer, Count );
   inc( Strm.fData.fPosition, Result );
@@ -23944,48 +23707,22 @@ begin
   Strm.fData.fHandle := INVALID_HANDLE_VALUE;
 end;
 
-{$IFDEF ASM_STREAM}
-function SeekMemStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF}
-         MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
-asm
-        PUSH     EBX
-        MOV      EBX, EDX
-        AND      ECX, $FF
-        LOOP     @@not_from_cur
-        ADD      EBX, [EAX].TStream.fData.fPosition
-@@not_from_cur:
-        LOOP     @@not_from_end
-        ADD      EBX, [EAX].TStream.fData.fSize
-@@not_from_end:
-        CMP      EBX, [EAX].TStream.fData.fSize
-        JLE      @@space_ok
-        PUSH     EAX
-        MOV      EDX, EBX
-        CALL     TStream.SetSize
-        POP      EAX
-@@space_ok:
-        XCHG     EAX, EBX
-        MOV      [EBX].TStream.fData.fPosition, EAX
-        POP      EBX
-end;
-{$ELSE PAS_VERSION} //Pascal
-function SeekMemStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF}
-         MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
+function SeekMemStream( Strm: PStream; const MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
 var NewPos: TStrmSize;
 begin
   case MoveFrom of
-  spBegin: NewPos := MoveTo;
-  spCurrent: NewPos := Strm.fData.fPosition + TStrmSize( MoveTo );
-  else //spEnd:
-       NewPos := Strm.fData.fSize + TStrmSize( MoveTo );
+    spBegin:   NewPos := MoveTo;
+    spCurrent: NewPos := Strm.fData.fPosition + TStrmSize( MoveTo );
+    else //spEnd:
+      NewPos := Strm.fData.fSize + TStrmSize( MoveTo );
   end;
   if NewPos > Strm.fData.fSize then
     Strm.SetSize( NewPos );
   Strm.fData.fPosition := NewPos;
   Result := NewPos;
 end;
-{$ENDIF PAS_VERSION}
-function SeekMemStreamWithEvent( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
+
+function SeekMemStreamWithEvent( Strm: PStream; const MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
 var OldPos: TStrmSize;
 begin
   OldPos := Strm.Position;
@@ -24000,69 +23737,13 @@ begin
   Result := Strm.fData.fSize;
 end;
 
-{$IFDEF ASM_STREAM}
-procedure SetSizeMemStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} NewSize: TStrmSize );
-asm
-        push     ebx
-        push     edx
-        xchg     ebx, eax
-        cmp      [ebx].TStream.fData.fCapacity, edx
-        jae      @@mem_ok
-        {$IFDEF OLD_MEMSTREAMS_SETSIZE}
-        or       edx, [CapacityMask]
-        inc      edx
-        {$ENDIF}
-        mov      [ebx].TStream.fData.fCapacity, edx
-        mov      ecx, [ebx].TStream.fMemory
-        jecxz    @@getmem
-        lea      eax, [ebx].TStream.fMemory
-        call     System.@ReallocMem
-        jmp      @@setmem
-
-@@getmem:
-        or       ecx, edx
-        jz       @@mem_ok
-        xchg     eax, ecx
-        call     System.@GetMem
-@@setmem:
-        mov      [ebx].TStream.fMemory, eax
-
-@@mem_ok:
-        pop      ecx // NewSize
-        inc      ecx
-        loop     @@set_new_sz
-        cmp      [ebx].TStream.fData.fSize, ecx
-        jz       @@set_new_sz
-
-        mov      [ebx].TStream.fData.fCapacity, ecx
-        xchg     ecx, [ebx].TStream.fMemory
-        jecxz    @@mem_freed
-        xchg     eax, ecx
-        call     System.@FreeMem
-@@mem_freed:
-        xor      ecx, ecx
-
-@@set_new_sz:
-        mov      [ebx].TStream.fData.fSize, ecx
-        cmp      [ebx].TStream.fData.fPosition, ecx
-        jb       @@exit
-        mov      [ebx].TStream.fData.fPosition, ecx
-
-@@exit:
-        pop      ebx
-end;
-{$ELSE PAS_VERSION} //Pascal
-procedure SetSizeMemStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} NewSize: TStrmSize );
+procedure SetSizeMemStream( Strm: PStream; const NewSize: TStrmSize );
 var S: PStream;
     NewCapacity: TStrmSize;
 begin
   S := Strm;
   if S.fData.fCapacity < NewSize then begin
-    {$IFDEF OLD_MEMSTREAMS_SETSIZE}
-    NewCapacity := (NewSize or CapacityMask) + 1;
-    {$ELSE}
     NewCapacity := NewSize;
-    {$ENDIF}
     if S.fMemory = nil then begin
       if NewSize <> 0 then
          GetMem( S.fMemory, NewCapacity );
@@ -24080,29 +23761,8 @@ begin
   if S.fData.fPosition > S.fData.fSize then
      S.fData.fPosition := S.fData.fSize;
 end;
-{$ENDIF PAS_VERSION}
-{$IFDEF ASM_STREAM}
-function ReadMemStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
-asm
-        PUSH     EBX
-        XCHG     EBX, EAX
-        MOV      EAX, [EBX].TStream.fData.fPosition
-        ADD      EAX, ECX
-        CMP      EAX, [EBX].TStream.fData.fSize
-        JLE      @@count_ok
-        MOV      ECX, [EBX].TStream.fData.fSize
-        SUB      ECX, [EBX].TStream.fData.fPosition
-@@count_ok:
-        PUSH     ECX
-        MOV      EAX, [EBX].TStream.fMemory
-        ADD      EAX, [EBX].TStream.fData.fPosition
-        CALL     System.Move
-        POP      EAX
-        ADD      [EBX].TStream.fData.fPosition, EAX
-        POP      EBX
-end;
-{$ELSE PAS_VERSION} //Pascal
-function ReadMemStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+
+function ReadMemStream( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
 var S: PStream;
     C: TStrmSize;
 begin
@@ -24114,8 +23774,8 @@ begin
   Move( Pointer( PAnsiChar(S.fMemory) + S.fData.fPosition )^, Buffer, Result );
   Inc( S.fData.fPosition, Result );
 end;
-{$ENDIF PAS_VERSION}
-function ReadMemStreamWithEvent( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+
+function ReadMemStreamWithEvent( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
 begin
   Result := ReadMemStream( Strm, Buffer, Count );
   if (Result > 0)
@@ -24123,33 +23783,7 @@ begin
      Strm.OnChangePos( Strm );
 end;
 
-{$IFDEF ASM_STREAM}
-function WriteMemStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
-asm
-        PUSH     EBX
-        XCHG     EBX, EAX
-        MOV      EAX, [EBX].TStream.fData.fPosition
-        ADD      EAX, ECX
-        CMP      EAX, [EBX].TStream.fData.fSize
-        PUSH     EDX
-        PUSH     ECX
-        JLE      @@count_ok
-        XCHG     EDX, EAX
-        MOV      EAX, EBX
-        CALL     TStream.SetSize
-@@count_ok:
-        POP      ECX
-        POP      EAX
-        MOV      EDX, [EBX].TStream.fMemory
-        ADD      EDX, [EBX].TStream.fData.fPosition
-        PUSH     ECX
-        CALL     System.Move
-        POP      EAX
-        ADD      [EBX].TStream.fData.fPosition, EAX
-        POP      EBX
-end;
-{$ELSE PAS_VERSION} //Pascal
-function WriteMemStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+function WriteMemStream( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
 var S: PStream;
 begin
   S := Strm;
@@ -24159,13 +23793,12 @@ begin
   Move( Buffer, Pointer( PAnsiChar(S.fMemory) + S.fData.fPosition )^, Result );
   Inc( S.fData.fPosition, Result );
 end;
-{$ENDIF PAS_VERSION}
-function WriteMemStreamWithEvent( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+
+function WriteMemStreamWithEvent( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
 begin
   Result := WriteMemStream( Strm, Buffer, Count );
-  if (Result > 0)
-     {$IFDEF SAFE_CODE} and Assigned( Strm.OnChangePos ) {$ENDIF} then
-     Strm.OnChangePos( Strm );
+  if (Result > 0) {$IFDEF SAFE_CODE} and Assigned( Strm.OnChangePos ) {$ENDIF} then
+    Strm.OnChangePos( Strm );
 end;
 
 {$IFDEF ASM_VERSION}{$ELSE PAS_VERSION} //Pascal
@@ -24185,7 +23818,7 @@ begin // nothing here
 end;
 
 // by Roman Vorobets:
-procedure SetSizeFileStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} NewSize: TStrmSize );
+procedure SetSizeFileStream( Strm: PStream; const NewSize: TStrmSize );
 var P: DWORD;
 begin
   P:=Strm.Position;
@@ -24195,7 +23828,7 @@ begin
     Strm.Position:=P;
 end;
 
-function ReadMemBlkStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+function ReadMemBlkStream( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
 var P, bStart, bLen, C: DWORD;
     bAddr: PByte;
     i: Integer;
@@ -24226,7 +23859,7 @@ begin
     inc( Strm.fData.fPosition, C );
 end;
 
-function SeekMemBlkStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
+function SeekMemBlkStream( Strm: PStream; const MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
 var P: Integer;
 begin
     P := MoveTo;
@@ -24241,7 +23874,7 @@ begin
     Result := P;
 end;
 
-function WriteMemBlkStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+function WriteMemBlkStream( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
 var LastBlkAddr: PByte;
     LastBlkUsed, C: Integer;
     NewBlkSz: Integer;
@@ -24273,7 +23906,7 @@ begin
     Result := Count;
 end;
 
-procedure ResizeMemBlkStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} NewSize: TStrmSize );
+procedure ResizeMemBlkStream( Strm: PStream; const NewSize: TStrmSize );
 var i, del: Integer;
     LastBlkAddr: PByte;
     LastBlkUsed: Integer;
@@ -24313,7 +23946,7 @@ begin
     {$ENDIF}
 end;
 
-function SeekConcatStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
+function SeekConcatStream( Strm: PStream; const MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
 var NewPos: TStrmSize;
 begin
   NewPos := MoveTo;
@@ -24337,7 +23970,7 @@ begin
   Result := Strm.fData.fStream1.Size + Strm.fData.fStream2.Size;
 end;
 
-procedure SetSizeConcatStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} NewSize: TStrmSize );
+procedure SetSizeConcatStream( Strm: PStream; const NewSize: TStrmSize );
 var New_Sz, Sz1: TStrmSize;
 begin
   New_Sz := NewSize;
@@ -24347,7 +23980,7 @@ begin
   Strm.fData.fStream2.Size := New_Sz - Sz1;
 end;
 
-function ReadConcatStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+function ReadConcatStream( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
 var C, Sz1, ToRead: TStrmSize;
     ToAddr: PByte;
 begin
@@ -24372,7 +24005,7 @@ begin
                           Strm.fData.fStream2.Position;
 end;
 
-function WriteConcatStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+function WriteConcatStream( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
 var C, Sz1, ToWrite: TStrmSize;
     FromAddr: PByte;
 begin
@@ -24403,21 +24036,17 @@ begin
   Strm.fData.fStream2.fMethods.fClose( Strm.fData.fStream2 );
 end;
 
-function SeekSubStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
+function SeekSubStream( Strm: PStream; const MoveTo: TStrmMove; MoveFrom: TMoveMethod ): TStrmSize;
 var NewPos, OldPos: TStrmMove;
 begin
   OldPos := Strm.fData.fBaseStream.Position - Strm.fData.fFromPos;
-  {$IFDEF STREAM_LARGE64}
   if OldPos < 0 then OldPos := 0;
-  {$ENDIF}
   CASE MoveFrom OF
-  spCurrent: NewPos := OldPos + MoveTo;
-  spEnd    : NewPos := TStrmMove( Strm.Size ) + MoveTo;
-  else       NewPos := MoveTo;
+    spCurrent: NewPos := OldPos + MoveTo;
+    spEnd    : NewPos := TStrmMove( Strm.Size ) + MoveTo;
+    else       NewPos := MoveTo;
   END;
-  {$IFDEF STREAM_LARGE64}
   if NewPos < 0 then NewPos := 0;
-  {$ENDIF}
   Strm.fData.fBaseStream.Position := Strm.fData.fFromPos + TStrmSize( NewPos );
   Result := Strm.fData.fBaseStream.Position - Strm.fData.fFromPos;
   if Result > Strm.fData.fSize then
@@ -24429,15 +24058,13 @@ begin
   Result := Strm.fData.fSize;
 end;
 
-procedure SetSizeSubStream( Strm: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} NewSize: TStrmSize );
+procedure SetSizeSubStream( Strm: PStream; const NewSize: TStrmSize );
 begin
-  {$IFDEF STREAM_LARGE64}
   if NewSize >= 0 then
-  {$ENDIF}
     Strm.fData.fSize := NewSize;
 end;
 
-function ReadSubStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+function ReadSubStream( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
 var C: TStrmSize;
 begin
   C := Count;
@@ -24446,7 +24073,7 @@ begin
   Result := Strm.fData.fBaseStream.Read( Buffer, C );
 end;
 
-function WriteSubStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+function WriteSubStream( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
 begin
   Result := Strm.fData.fBaseStream.Write( Buffer, Count );
 end;
@@ -24587,36 +24214,7 @@ begin
   Result.fMethods.fWrite := WriteMemStreamWithEvent;
 end;
 
-{$IFDEF ASM_STREAM}
-function WriteExMemoryStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
-asm
-        PUSH     EBX
-        XCHG     EBX, EAX
-        MOV      EAX, [EBX].TStream.fData.fSize
-        SUB      EAX, [EBX].TStream.fData.fPosition
-        CMP      EAX, ECX
-        JGE      @@1
-        XCHG     ECX, EAX
-@@1:
-        PUSH     EDX
-        PUSH     ECX
-        JLE      @@count_ok
-        XCHG     EDX, EAX
-        MOV      EAX, EBX
-        CALL     TStream.SetSize
-@@count_ok:
-        POP      ECX
-        POP      EAX
-        MOV      EDX, [EBX].TStream.fMemory
-        ADD      EDX, [EBX].TStream.fData.fPosition
-        PUSH     ECX
-        CALL     System.Move
-        POP      EAX
-        ADD      [EBX].TStream.fData.fPosition, EAX
-        POP      EBX
-end;
-{$ELSE PAS_VERSION}
-function WriteExMemoryStream( Strm: PStream; var Buffer; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize; 
+function WriteExMemoryStream( Strm: PStream; var Buffer; const Count: TStrmSize ): TStrmSize;
 var S: PStream;
     C: TStrmSize;
 begin
@@ -24628,7 +24226,7 @@ begin
   Move( Buffer, Pointer( PAnsiChar(S.fMemory) + S.fData.fPosition )^, Result );
   Inc( S.fData.fPosition, Result );
 end;
-{$ENDIF PAS_VERSION}
+
 procedure DummyClose_ExMemStream( Strm: PStream );
 begin
   // nothing to do - ignore call (memory is not released by any way)
@@ -24692,7 +24290,7 @@ begin
   Result.Add2AutoFree( BaseStream );
 end;
 
-function Stream2Stream( Dst, Src: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+function Stream2Stream( Dst, Src: PStream; const Count: TStrmSize ): TStrmSize;
 var Buf: Pointer;
     C: TStrmSize;
 begin
@@ -24718,12 +24316,12 @@ begin
   end;
 end;
 
-function Stream2StreamEx( Dst, Src: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize ): TStrmSize;
+function Stream2StreamEx( Dst, Src: PStream; const Count: TStrmSize ): TStrmSize;
 begin
   Result := Stream2StreamExBufSz( Dst, Src, Count, 65536 );
 end;
 
-function Stream2StreamExBufSz( Dst, Src: PStream; {$IFNDEF STREAM_COMPAT} const {$ENDIF} Count: TStrmSize; BufSz: DWORD ): TStrmSize;
+function Stream2StreamExBufSz( Dst, Src: PStream; const Count: TStrmSize; BufSz: DWORD ): TStrmSize;
 var
   buf:pointer;
   rd, wr:TStrmSize;
@@ -24747,75 +24345,6 @@ begin
         end;
 end;
 
-{$IFDEF ASM_UNICODE}
-  {$IFNDEF STREAM_LARGE64}
-    {$DEFINE ASM_Resource2Stream}
-  {$ENDIF}
-{$ENDIF}
-{$IFDEF ASM_Resource2Stream}
-function Resource2Stream( DestStrm : PStream; Inst : HInst;
-                          ResName : PAnsiChar; ResType : PAnsiChar ): TStrmSize;
-asm
-        PUSH     EBX
-        PUSH     ESI
-        MOV      EBX, EDX // EBX = Inst
-        PUSH     EAX      // DestStrm
-        PUSH     ResType
-        PUSH     ECX
-        PUSH     EDX
-        CALL     FindResource
-        TEST     EAX, EAX
-        JZ       @@exit0
-
-        PUSH     EAX
-        PUSH     EBX
-        PUSH     EAX
-        PUSH     EBX
-        CALL     SizeofResource
-        XCHG     EBX, EAX
-        CALL     LoadResource
-        TEST     EAX, EAX
-        JZ       @@exit0
-        XCHG     ESI, EAX
-
-        PUSH     ESI
-        CALL     GlobalLock
-        TEST     EAX, EAX
-        JNZ      @@P_ok
-
-        CALL     GetLastError
-        CMP      EAX, ERROR_INVALID_HANDLE
-        JNZ      @@exit_00
-        MOV      EAX, ESI
-
-@@P_ok:
-        XCHG     EDX, EAX
-        POP      EAX // DestStrm
-        PUSH     EDX
-        MOV      ECX, EBX
-        CALL     TStream.Write
-
-        //EAX = Result (length of written data)
-        XCHG     EBX, EAX
-        POP      EAX
-        CMP      ESI, EAX
-        JE       @@not_unlock
-
-        PUSH     ESI
-        CALL     GlobalUnlock
-@@not_unlock:
-        XCHG     EAX, EBX
-        JMP      @@exit
-
-@@exit_00:
-        XOR      EAX, EAX
-@@exit0:
-        POP      ECX
-@@exit:
-        POP      ESI
-        POP      EBX
-end;
-{$ELSE PAS_VERSION} //Pascal
 function Resource2Stream( DestStrm : PStream; Inst : HInst;
                           ResName : PKOLChar; ResType : PKOLChar ): TStrmSize;
 var R : HRSRC;
@@ -24844,7 +24373,7 @@ begin
     end;
   end;
 end;
-{$ENDIF PAS_VERSION}
+
 ///////////////////////////////////////////////////////////////////////////
 //                        I  N  I  -  F  I  L  E  S
 ///////////////////////////////////////////////////////////////////////////
@@ -24945,7 +24474,7 @@ const
   IniBufferStrSize = IniBufferSize+4;         /// для махинаций :)
 
 {$IFDEF ASM_UNICODE}{$ELSE PAS_VERSION} //Pascal
-procedure TIniFile.GetSectionNames(Names:PKOLStrList);
+procedure TIniFile.GetSectionNames(Names: PKOLStrList);
 var
   i:integer;
   Pc:PKOLChar;
@@ -24994,15 +24523,18 @@ begin
   FreeMem(Buffer);
 end;
 {$ENDIF PAS_VERSION}
+
+{$IFNDEF UNICODE_CTRLS}
 function TIniFile.GetSectionNamesStr: KOLString; //dufa
 var
   Names: PKOLStrList;
 begin
-  Names := NewStrList;
+  Names := NewKOLStrList;
   GetSectionNames(Names);
   Result := Names.Join(',');
   Names.Free;
 end;
+{$ENDIF}
 
 /////////////////////////////////////////////////////////////////////////
 //                                M  E  N  U
@@ -28663,44 +28195,27 @@ end;
 procedure NotifyScrollBox( Self_, Child: PControl );
 var SI: TScrollInfo;
 
-    procedure GetSetScrollInfo( SBar: DWORD; WH, R_RightBottom, SzR_LeftTop, SzR_RightBottom: Integer );
-    {$IFDEF SBOX_OLDPOS} var OldPos: Double; {$ENDIF}
-    begin
-      {$IFDEF SBOX_OLDPOS} OldPos := 0; {$ENDIF}
-      if not GetScrollInfo( Self_.fHandle, SBar, SI ) then begin
-        SI.nMin := 0;
-        SI.nMax := Max( R_RightBottom - 1, SzR_RightBottom - 1 );
-      end else begin
-        {$IFDEF SBOX_OLDPOS}
-        if SI.nMax > SI.nMin then begin
-          OldPos := (SI.nPos - SI.nMin) / (SI.nMax - SI.nMin);
-          SI.nMin := 0;
-          SI.nMax := Max( R_RightBottom - 1, SzR_RightBottom - 1 );
-          if SzR_LeftTop < 0 then
-            SI.nMax := Max( R_RightBottom - SzR_LeftTop - 1, WH - 1 );
-        end else begin
-          SI.nMin := 0;
-          SI.nMax := Max( R_RightBottom - 1, SzR_RightBottom - 1 );
-        end;
-        {$ENDIF}
-        SI.nMin := 0; {!ecm}
-        SI.nMax := SzR_RightBottom - SzR_LeftTop; {!ecm}
-      end;
-      {$IFDEF SBOX_OLDPOS}
-      SI.nPos := SI.nMin + Round( (SI.nMax - SI.nMin) * OldPos );
-      {$ELSE}
-      SI.nPos := - SzR_LeftTop;
-      {$ENDIF}
-      SI.nPage := R_RightBottom;
-      SetScrollInfo( Self_.fHandle, SBar, SI, TRUE );
+  procedure GetSetScrollInfo( SBar: DWORD; WH, R_RightBottom, SzR_LeftTop, SzR_RightBottom: Integer );
+  begin
+    if not GetScrollInfo( Self_.fHandle, SBar, SI ) then begin
+      SI.nMin := 0;
+      SI.nMax := Max( R_RightBottom - 1, SzR_RightBottom - 1 );
+    end else begin
+      SI.nMin := 0; {!ecm}
+      SI.nMax := SzR_RightBottom - SzR_LeftTop; {!ecm}
     end;
+    SI.nPos  := -SzR_LeftTop;
+    SI.nPage := R_RightBottom;
+    SetScrollInfo( Self_.fHandle, SBar, SI, TRUE );
+  end;
 
 var W, H: Integer;
     SzR: TRect;
     R: TRect;
 begin
   if  ( Child <> nil ) then begin
-      Child.AttachProc( WndProcNotifyParentAboutResize ); Exit; {>>>>>>>>>>>>>>}
+    Child.AttachProc( WndProcNotifyParentAboutResize );
+    Exit; {>>>>>>>>>>>>>>}
   end;
   CalcMinMaxChildren( Self_, SzR );
   W := SzR.Right - SzR.Left;
@@ -28730,9 +28245,7 @@ var SzR, R: TRect;
     OldNotifyProc: Pointer;
     C: PControl;
     DeltaX, DeltaY: Integer;
-
 begin
-
   CalcMinMaxChildren( _Self_, SzR );
   Xpos := GetScrollPos( _Self_.fHandle, SB_HORZ );
   Ypos := GetScrollPos( _Self_.fHandle, SB_VERT );
@@ -28741,7 +28254,6 @@ begin
   DeltaY := -Ypos - SzR.Top;
 
   if (DeltaX <> 0) or (DeltaY <> 0) then begin
-
     OldNotifyProc := @ _Self_.PP.fNotifyChild;
     _Self_.PP.fNotifyChild := @DummyObjProc;
 
@@ -28763,9 +28275,7 @@ begin
     if  Assigned( _Self_.PP.fNotifyChild ) then
     {$ENDIF}
        _Self_.PP.fNotifyChild( _Self_, nil );
-
   end;
-
 end;
 
 function NewScrollBoxEx( AParent: PControl; EdgeStyle: TEdgeStyle ): PControl;
@@ -28782,23 +28292,21 @@ var Bar: TScrollerBar;
 begin
   Bar := sbHorizontal; //0
   if  Msg.message = WM_VSCROLL then
-      Bar := sbVertical
-  else
-  if  Msg.message <> WM_HSCROLL then begin
-      Result := FALSE; Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
+    Bar := sbVertical
+  else if  Msg.message <> WM_HSCROLL then begin
+    Result := FALSE;
+    Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
   end;
   {$IFDEF NIL_EVENTS}
-  if  Assigned( Sender.EV.fOnScroll ) then
+  if Assigned( Sender.EV.fOnScroll ) then
   {$ENDIF}
-      Sender.EV.fOnScroll( Sender, Bar, LoWord( Msg.wParam ),
-                           HiWord( Msg.wParam ) );
+    Sender.EV.fOnScroll( Sender, Bar, LoWord( Msg.wParam ), HiWord( Msg.wParam ) );
   Result := FALSE;
 end;
 
 procedure TControl.SetOnScroll(const Value: TOnScroll);
 begin
-  {$IFDEF EVENTS_DYNAMIC} ProvideUniqueEvents {$ELSE} EV {$ENDIF}
-  .FOnScroll := Value;
+  {$IFDEF EVENTS_DYNAMIC} ProvideUniqueEvents {$ELSE} EV {$ENDIF}.FOnScroll := Value;
   AttachProc( @ WndProcOnScroll );
 end;
 
@@ -29134,8 +28642,7 @@ begin
   end;
 end;
 
-function CallDefFrameProc( Wnd: HWnd; Msg: Integer; wParam: WPARAM; lParam: LPARAM ): LRESULT;
-stdcall;
+function CallDefFrameProc( Wnd: HWnd; Msg: Integer; wParam: WPARAM; lParam: LPARAM ): LRESULT; stdcall;
 var Form, MDIClient: PControl;
 begin
   {$IFDEF USE_PROP}
@@ -29157,8 +28664,7 @@ begin
     Result := DefWindowProc(Wnd, Msg, wParam, lParam);
 end;
 
-function WndFuncMDIClient( Wnd: HWnd; Msg, wParam: WPARAM; lParam: LPARAM ): LRESULT;
-stdcall;
+function WndFuncMDIClient( Wnd: HWnd; Msg, wParam: WPARAM; lParam: LPARAM ): LRESULT; stdcall;
 var C: PControl;
     M: TMsg;
 begin
@@ -29212,46 +28718,45 @@ begin
   Result := FALSE;
   if  MDIClient.fAnchors and MDI_DESTROYING = 0 then
   case Msg.message of
-  $3f:
-      begin
-        PostMessage( MDIClient.fHandle, CM_MDIClientShowEdge, 0, 0 );
-      end;
-  CM_MDIClientShowEdge:
-      begin
-        ShowMDIClientEdge( MDIClient );
-      end;
-  WM_NCHITTEST: // not necessary though
-      begin
-        Rslt := DefWindowProc( MDIClient.fHandle, WM_NCHITTEST, Msg.wParam, Msg.lParam );
-        if Rslt = HTCLIENT then Rslt := HTTRANSPARENT;
-      end;
-  WM_WINDOWPOSCHANGING:
-      begin
-        MDIClient.Perform( WM_SETREDRAW, 0, 0 );
-      end;
-  WM_WINDOWPOSCHANGED:
-      begin
-        Global_Align( {$IFDEF OLD_ALIGN}MDIClient.Parent{$ELSE}MDIClient{$ENDIF} );
-        MDIClient.Invalidate;
-        MDIClient.Parent.Invalidate;
-        MDIClient.Perform( WM_SETREDRAW, 1, 0 );
-        PostMessage( MDIClient.fHandle, CM_INVALIDATE, 0, 0 );
-      end;
-  CM_INVALIDATE:
-      begin
-        MDIClient.InvalidateNC( TRUE );
-        MDIClient.InvalidateEx;
-      end;
-  WM_DESTROY:
-      begin
-        MDIClient.FParent.fMDIClient := nil;
-      end;
+    $3f:
+    begin
+          PostMessage( MDIClient.fHandle, CM_MDIClientShowEdge, 0, 0 );
+    end;
+    CM_MDIClientShowEdge:
+    begin
+          ShowMDIClientEdge( MDIClient );
+    end;
+    WM_NCHITTEST: // not necessary though
+    begin
+          Rslt := DefWindowProc( MDIClient.fHandle, WM_NCHITTEST, Msg.wParam, Msg.lParam );
+          if Rslt = HTCLIENT then Rslt := HTTRANSPARENT;
+    end;
+    WM_WINDOWPOSCHANGING:
+    begin
+          MDIClient.Perform( WM_SETREDRAW, 0, 0 );
+    end;
+    WM_WINDOWPOSCHANGED:
+    begin
+          Global_Align( {$IFDEF OLD_ALIGN}MDIClient.Parent{$ELSE}MDIClient{$ENDIF} );
+          MDIClient.Invalidate;
+          MDIClient.Parent.Invalidate;
+          MDIClient.Perform( WM_SETREDRAW, 1, 0 );
+          PostMessage( MDIClient.fHandle, CM_INVALIDATE, 0, 0 );
+    end;
+    CM_INVALIDATE:
+    begin
+          MDIClient.InvalidateNC( TRUE );
+          MDIClient.InvalidateEx;
+    end;
+    WM_DESTROY:
+    begin
+          MDIClient.FParent.fMDIClient := nil;
+    end;
   end;
 end;
 
 // function added by Thaddy de Koning to fix MDI behavior
-function WndProcParentNotifyMouseLDown( Sender: PControl; var Msg: TMsg;
-var Rslt: LRESULT ): Boolean;
+function WndProcParentNotifyMouseLDown( Sender: PControl; var Msg: TMsg; var Rslt: LRESULT ): Boolean;
 begin
   Result := FALSE;
   if (Sender.IsMDIChild) and (Msg.message = WM_PARENTNOTIFY) and
@@ -29307,8 +28812,7 @@ begin
 end;
 
 //===================== MDI child window object ==============//
-function MDIChildFunc( Wnd: HWnd; Msg: DWord; wParam: WPARAM; lParam: LPARAM ): LRESULT;
-stdcall;
+function MDIChildFunc( Wnd: HWnd; Msg: DWord; wParam: WPARAM; lParam: LPARAM ): LRESULT; stdcall;
 var C: PControl;
     M: TMsg;
 begin
@@ -32660,133 +32164,121 @@ begin
                          {$ENDIF INPACKAGE}
                           Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
                        end;
-						 WM_SysCommand:
-						 begin
-							if ((Msg.wParam and $FFF0) = SC_MINIMIZE) and
-								 IsMainWindow and (@Self <> Applet) then begin
-								 PostMessage( Applet.Handle, WM_SYSCOMMAND, SC_MINIMIZE, 0 );
-								 Result := 0;
-							end else 
-								Default;
-						 end;
-						 WM_SETFOCUS:
-						 begin
-							 if not DoSetFocus then begin
-								 Result := 0;
-							 end else begin
-								 Inc( fClickDisabled );
-								 Default;
-								 Dec( fClickDisabled );
-								 {$IFDEF INPACKAGE}
-								 LogOK;
-								 {$ENDIF INPACKAGE}
-								 Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
-							 end;
-						 end;
-						 WM_CTLCOLORMSGBOX..WM_CTLCOLORSTATIC:
-						 begin
-							 Result := SendMessage(Msg.LParam, CN_BASE + Msg.message, Msg.WParam, Msg.LParam);
-						 end;
-						 WM_COMMAND:
-						 begin
-							 {$IFDEF USE_PROP}
-							 C := Pointer( GetProp( Msg.lParam, ID_SELF ) );
-							 {$ELSE}
-							 C := Pointer( GetWindowLongPtr( Msg.lParam, GWLP_USERDATA ) );
-							 {$ENDIF}
-							 if C <> nil then
-							 begin
-								 Result := SendMessage( Msg.lParam, CM_COMMAND, Msg.wParam, Msg.lParam );
-							 end
-							 else Default;
-						 end;
-						 WM_KEYFIRST..WM_KEYLAST:
-						 begin
-							 F := GetFocus;
-							 if {(F <> fFocusHandle) and} (F <> fHandle)
-									{$IFDEF USE_GRAPHCTLS} and
-											{$IFDEF USE_FLAGS} not(G6_GraphicCtl in fFlagsG6)
-											{$ELSE} fWindowed {$ENDIF} {$ENDIF}
-							 {$IFDEF KEY_PREVIEW}
-								and {$IFDEF USE_FLAGS} not(G4_Pushed in fFlagsG4)
-										{$ELSE}  not fKeyPreviewing {$ENDIF}
-							 {$ENDIF}
-							 then begin
-								 Result := 0;
-								 // Jump to PassFun here. Prevents beep in case when WM_KEYDOWN
-								 // called another form and focus is changed, so WM_KEYUP failed
-								 // to handle.
-							 end else begin
-								 {$IFDEF KEY_PREVIEW} //ADDITION JUST FOR CORRECT KEYPREVIEWING
-								 {$IFDEF USE_FLAGS} exclude( fFlagsG4, G4_Pushed );
-								 {$ELSE} fKeyPreviewing:=false; {$ENDIF}
-								 {$ENDIF}
-								 if  fGlobalProcKeybd( @Self, Msg, Result ) then
-								 begin
-										 {$IFDEF INPACKAGE}
-										 LogOK;
-										 {$ENDIF INPACKAGE}
-										 Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
-								 end;
-								 if  PP.fWndProcKeybd( @Self, Msg, Result ) then
-								 begin
-										 {$IFDEF INPACKAGE}
-										 LogOK;
-										 {$ENDIF INPACKAGE}
-										 Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
-								 end;
-								 if ((GetKeystate( VK_CONTROL ) or GetKeyState( VK_MENU )) >= 0) then
-								 begin
-									 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-									 if (Msg.message <> WM_CHAR) // v1.02 Tabulate AND " in EditBox fix
-									 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-									 then
-									 begin
-											 C := ParentForm;
-											 if  (C <> nil)
-											 {$IFDEF NIL_EVENTS}
-											 and Assigned(C.PP.fGotoControl)
-											 {$ENDIF}
-											 and C.PP.fGotoControl( @Self, Msg.wParam,
-													 (Msg.message <> WM_KEYDOWN) and
-													 (Msg.message <> WM_SYSKEYDOWN) ) then
-											 begin
-														Msg.wParam := 0;
-														Result := 0;
-											 end
-											 else Default;
-									 end else
-									 //+++++++++++++++++++++++++++++++++++++++++++++//
-									 if Msg.wParam = 9 then // prevent system beep  //
-									 begin                                          //
-													Msg.wParam := 0;                        //
-													Result := 0;                            //
-									 end                                            //
-									 //+++++++++++++++++++++++++++++++++++++++++++++//
-									 else Default;
-								 end
-								 else Default;
-							 end;
-						 end;
-						 WM_NOTIFYFORMAT:
-						 begin
-							 if Msg.lParam = NF_QUERY then
-							 begin
-								 {$IFNDEF UNICODE_CTRLS}
-								 Result := NFR_ANSI;
-								 {$ELSE}
-								 Result := NFR_UNICODE;
-								 {$ENDIF}
-							 end;
-						 end;
-						 else begin
-							 {$IFDEF DEBUG_MCK} mck_Log( 'else' ); {$ENDIF}
-							 Default;
-							 {$IFDEF INPACKAGE}
-							 LogOK;
-							 {$ENDIF INPACKAGE}
-							 Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
-						 end;
+             WM_SysCommand:
+             begin
+              if ((Msg.wParam and $FFF0) = SC_MINIMIZE) and
+                 IsMainWindow and (@Self <> Applet) then begin
+                 PostMessage( Applet.Handle, WM_SYSCOMMAND, SC_MINIMIZE, 0 );
+                 Result := 0;
+              end else 
+                Default;
+             end;
+             WM_SETFOCUS:
+             begin
+               if not DoSetFocus then begin
+                 Result := 0;
+               end else begin
+                 Inc( fClickDisabled );
+                 Default;
+                 Dec( fClickDisabled );
+                 {$IFDEF INPACKAGE}
+                 LogOK;
+                 {$ENDIF INPACKAGE}
+                 Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
+               end;
+             end;
+             WM_CTLCOLORMSGBOX..WM_CTLCOLORSTATIC:
+             begin
+               Result := SendMessage(Msg.LParam, CN_BASE + Msg.message, Msg.WParam, Msg.LParam);
+             end;
+             WM_COMMAND:
+             begin
+               {$IFDEF USE_PROP}
+               C := Pointer( GetProp( Msg.lParam, ID_SELF ) );
+               {$ELSE}
+               C := Pointer( GetWindowLongPtr( Msg.lParam, GWLP_USERDATA ) );
+               {$ENDIF}
+               if C <> nil then
+               begin
+                 Result := SendMessage( Msg.lParam, CM_COMMAND, Msg.wParam, Msg.lParam );
+               end
+               else Default;
+             end;
+             WM_KEYFIRST..WM_KEYLAST:
+             begin
+               F := GetFocus;
+               if {(F <> fFocusHandle) and} (F <> fHandle)
+                  {$IFDEF USE_GRAPHCTLS} and
+                      {$IFDEF USE_FLAGS} not(G6_GraphicCtl in fFlagsG6)
+                      {$ELSE} fWindowed {$ENDIF} {$ENDIF}
+               {$IFDEF KEY_PREVIEW}
+                and {$IFDEF USE_FLAGS} not(G4_Pushed in fFlagsG4)
+                    {$ELSE}  not fKeyPreviewing {$ENDIF}
+               {$ENDIF}
+               then begin
+                 Result := 0;
+                 // Jump to PassFun here. Prevents beep in case when WM_KEYDOWN
+                 // called another form and focus is changed, so WM_KEYUP failed
+                 // to handle.
+               end else begin
+                 {$IFDEF KEY_PREVIEW} //ADDITION JUST FOR CORRECT KEYPREVIEWING
+                 {$IFDEF USE_FLAGS} exclude( fFlagsG4, G4_Pushed );
+                 {$ELSE} fKeyPreviewing:=false; {$ENDIF}
+                 {$ENDIF}
+                 if  fGlobalProcKeybd( @Self, Msg, Result ) then begin
+                     {$IFDEF INPACKAGE}
+                     LogOK;
+                     {$ENDIF INPACKAGE}
+                     Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
+                 end;
+                 if  PP.fWndProcKeybd( @Self, Msg, Result ) then begin
+                     {$IFDEF INPACKAGE}
+                     LogOK;
+                     {$ENDIF INPACKAGE}
+                     Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
+                 end;
+                if ((GetKeystate( VK_CONTROL ) or GetKeyState( VK_MENU )) >= 0) then begin
+                  // v1.02 Tabulate AND " in EditBox fix
+                  if (Msg.message <> WM_CHAR) then begin
+                    C := ParentForm;
+                    if  (C <> nil)
+                    {$IFDEF NIL_EVENTS}
+                    and Assigned(C.PP.fGotoControl)
+                    {$ENDIF}
+                    and C.PP.fGotoControl( @Self, Msg.wParam,
+                    (Msg.message <> WM_KEYDOWN) and
+                    (Msg.message <> WM_SYSKEYDOWN) ) then begin
+                      Msg.wParam := 0;
+                      Result := 0;
+                   end else
+                     Default;
+                end else if Msg.wParam = 9 then begin // prevent system beep  //
+                  Msg.wParam := 0;                        //
+                  Result := 0;                            //
+                end else
+                  Default;
+                end else
+                  Default;
+               end;
+             end;
+             WM_NOTIFYFORMAT:
+             begin
+               if Msg.lParam = NF_QUERY then begin
+                 {$IFNDEF UNICODE_CTRLS}
+                 Result := NFR_ANSI;
+                 {$ELSE}
+                 Result := NFR_UNICODE;
+                 {$ENDIF}
+               end;
+             end;
+             else begin
+               {$IFDEF DEBUG_MCK} mck_Log( 'else' ); {$ENDIF}
+               Default;
+               {$IFDEF INPACKAGE}
+               LogOK;
+               {$ENDIF INPACKAGE}
+               Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
+             end;
         end;
       end;
     end;
@@ -33668,51 +33160,48 @@ end;
 {$ELSE PAS_VERSION} //Pascal
 procedure TControl.SetParent( Value: PControl );
 begin
-   if Value = fParent then Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
-   if fParent <> nil then begin
-     {$IFDEF USE_GRAPHCTLS}
-     Invalidate; // necessary for graphic controls
-     {$ENDIF}
-     {$IFDEF DEBUG_MCK}
-     if ( fParent.fChildren <> nil ) then begin
-       mck_Log( 'remove from old parent children 1st' );
-       fParent.fChildren.Remove( @Self );
-       mck_Log( 'removed ok' );
-     end;
-     {$ELSE not DEBUG_MCK}
-     fParent.fChildren.Remove( @Self );
-     {$IFDEF NOT_USE_AUTOFREE4CONTROLS}
-     {$ELSE}
-     fParent.RemoveFromAutoFree( @Self );
-     {$ENDIF}
-     {$IFDEF NIL_EVENTS}
-     if  Assigned( fParent.PP.fNotifyChild ) then
-     {$ENDIF}
-         fParent.PP.fNotifyChild( fParent, nil );
-     {$ENDIF not DEBUG_MCK}
-   end;
-   fParent := Value;
-   if fParent <> nil then begin
-     fParent.fChildren.Add( @Self );
-     {$IFDEF USE_AUTOFREE4CHILDREN}
-     fParent.Add2AutoFree( @ Self );
-     {$ENDIF}
-     {$IFNDEF INPACKAGE} //-----------------------------------------------------
-     if FHandle <> 0 then
-       Windows.SetParent( FHandle, Value.GetWindowHandle );
-     {$ENDIF not INPACKAGE} //--------------------------------------------------
-     {$IFDEF NIL_EVENTS}
-     if  Assigned( fParent.PP.fNotifyChild ) then
-     {$ENDIF}
-         fParent.PP.fNotifyChild( fParent, @ Self );
-     {$IFDEF NIL_EVENTS}
-     if  Assigned( PP.fNotifyChild ) then
-     {$ENDIF}
-         PP.fNotifyChild( fParent, @ Self );
-     {$IFDEF USE_GRAPHCTLS}
-     Invalidate; // necessary for graphic controls
-     {$ENDIF}
-   end;
+  if Value = fParent then Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
+  if fParent <> nil then begin
+    {$IFDEF USE_GRAPHCTLS}
+    Invalidate; // necessary for graphic controls
+    {$ENDIF}
+    {$IFDEF DEBUG_MCK}
+    if ( fParent.fChildren <> nil ) then begin
+    mck_Log( 'remove from old parent children 1st' );
+    fParent.fChildren.Remove( @Self );
+    mck_Log( 'removed ok' );
+    end;
+    {$ELSE not DEBUG_MCK}
+    fParent.fChildren.Remove( @Self );
+    fParent.RemoveFromAutoFree( @Self );
+    {$IFDEF NIL_EVENTS}
+    if Assigned( fParent.PP.fNotifyChild ) then
+    {$ENDIF}
+    fParent.PP.fNotifyChild( fParent, nil );
+    {$ENDIF not DEBUG_MCK}
+  end;
+  fParent := Value;
+  if fParent <> nil then begin
+    fParent.fChildren.Add( @Self );
+    {$IFDEF USE_AUTOFREE4CHILDREN}
+    fParent.Add2AutoFree( @ Self );
+    {$ENDIF}
+    {$IFNDEF INPACKAGE} //-----------------------------------------------------
+    if FHandle <> 0 then
+    Windows.SetParent( FHandle, Value.GetWindowHandle );
+    {$ENDIF not INPACKAGE} //--------------------------------------------------
+    {$IFDEF NIL_EVENTS}
+    if  Assigned( fParent.PP.fNotifyChild ) then
+    {$ENDIF}
+     fParent.PP.fNotifyChild( fParent, @ Self );
+    {$IFDEF NIL_EVENTS}
+    if  Assigned( PP.fNotifyChild ) then
+    {$ENDIF}
+     PP.fNotifyChild( fParent, @ Self );
+    {$IFDEF USE_GRAPHCTLS}
+    Invalidate; // necessary for graphic controls
+    {$ENDIF}
+  end;
 end;
 {$ENDIF PAS_VERSION}
 function TControl.ChildIndex(Child: PControl): Integer;
@@ -36029,10 +35518,8 @@ end;
 
 procedure TControl.SetItems(Idx: Integer; const Value: KOLString);
 var Strt, L : DWORD;
-    {$IFNDEF NOT_FIX_CURINDEX}
     TmpCurIdx: Integer; // AK - Andrzey Kubasek
     TmpData: PtrInt;
-    {$ENDIF NOT_FIX_CURINDEX}
 begin
   if fCommandActions.aSetItemText <> 0 then begin
     Strt := Item2Pos( Idx );
@@ -36042,16 +35529,12 @@ begin
     Perform( fCommandActions.aSetItemText, 0, LPARAM( PKOLChar( Value ) ) );
   end else
   if fCommandActions.aDeleteItem <> 0 then begin
-    {$IFNDEF NOT_FIX_CURINDEX}
     TmpCurIdx := CurIndex; // +AK
     TmpData := ItemData[ Idx ];
-    {$ENDIF}
     Delete( Idx );
     Insert( Idx, Value );
-    {$IFNDEF NOT_FIX_CURINDEX}
     CurIndex := TmpCurIdx; //+AK
     ItemData[ Idx ] := TmpData;
-    {$ENDIF}
   end;
 end;
 {$ENDIF PAS_VERSION}
@@ -36488,6 +35971,7 @@ begin
   Result := R;
 end;
 {$ENDIF PAS_VERSION}
+
 {$IFDEF ASM_TLIST}
 procedure Tabulate2Next( Form: PControl; Dir: Integer );
 asm
@@ -37710,13 +37194,13 @@ end;
 procedure TStrList.Clear;
 var I: Integer;
 begin
-  if fCount > 0 then
-  for I := fList.Count - 1 downto 0 do
-    Delete( I );
+  if (fCount > 0) then
+    for I := fList.Count - 1 downto 0 do
+      Delete( I );
   fList.Free;
   fList := nil;
   fCount := 0;
-  if fTextBuf <> nil then begin
+  if Assigned(fTextBuf) then begin
     FreeMem( fTextBuf );
     fTextBuf := nil;
     fTextSiz := 0;
@@ -37732,17 +37216,36 @@ procedure TStrList.Delete(Idx: integer);
 var P: PtrUInt;
     El:Pointer;
 begin
-  P := PtrUInt( fList.Items[ Idx ] );
-  if (fTextBuf <> nil) and ( P >= PtrUInt( fTextBuf )) and
-     ( P < PtrUInt( fTextBuf ) + fTextSiz ) then
+  P := PtrUInt(fList.Items[Idx]);
+  if Assigned(fTextBuf) and (P >= PtrUInt(fTextBuf)) and ( P < PtrUInt( fTextBuf ) + fTextSiz ) then
   else begin
-    El := FList.Items[ Idx ];
-    FreeMem( El );
+    El := FList.Items[Idx];
+    FreeMem(El);
   end;
-  fList.Delete( Idx );
-  Dec( fCount );
+  fList.Delete(Idx);
+  Dec(fCount);
 end;
 {$ENDIF PAS_VERSION}
+
+procedure TStrList.DeleteRange(Idx, Len: Integer); //dufa
+var
+  i: Integer;
+  P: Pointer;
+begin
+  // free mem
+  for i := Idx to Pred(Idx + Len) do begin
+    if (i >= fCount) then
+      Break
+    else begin
+      P := fList.Items[i];
+      if not (Assigned(fTextBuf) and (P >= fTextBuf) and (P < fTextBuf + fTextSiz)) then
+        FreeMem(P);
+    end;
+  end;
+  // delete range from fList
+  fList.DeleteRange(Idx, Len);
+  Dec(fCount, Len);
+end;
 
 procedure TStrList.Remove(Value: Ansistring); //dufa
 var
@@ -37779,23 +37282,24 @@ end;
 {$IFDEF ASM_VERSION}{$ELSE PAS_VERSION} //Pascal
 function TStrList.Get(Idx: integer): Ansistring;
 begin
-  if fList <> nil then
-    Result := PAnsiChar( fList.Items[ Idx ] )
-  else Result := '';
+  if Assigned(fList) then
+    Result := PAnsiChar(fList.Items[Idx])
+  else
+    Result := '';
 end;
 {$ENDIF PAS_VERSION}
 
 {$IFDEF ASM_TLIST}
 function TStrList.GetPChars(Idx: Integer): PAnsiChar;
 asm
-        MOV      EAX, [EAX].fList
-        MOV      EAX, [EAX].TList.fItems
-        MOV      EAX, [EAX+EDX*4]
+  MOV      EAX, [EAX].fList
+  MOV      EAX, [EAX].TList.fItems
+  MOV      EAX, [EAX+EDX*4]
 end;
 {$ELSE PAS_VERSION} //Pascal
 function TStrList.GetPChars(Idx: Integer): PAnsiChar;
 begin
-  Result := PAnsiChar( fList.{$IFDEF TLIST_FAST}Items{$ELSE}fItems{$ENDIF}[ Idx ] )
+  Result := PAnsiChar(fList.{$IFDEF TLIST_FAST}Items{$ELSE}fItems{$ENDIF}[Idx])
 end;
 {$ENDIF PAS_VERSION}
 
@@ -37853,7 +37357,7 @@ asm
         POP      ESI
 end;
 {$ELSE PAS_VERSION} //Pascal
-function TStrList.GetTextStr: Ansistring;
+function TStrList.GetTextStr: AnsiString;
 var
    I, Len, Size: integer;
    P: PAnsiChar;
@@ -37864,7 +37368,7 @@ begin
 
   SetString(Result, nil, Size);
   P := Pointer(Result);
-  for I := 0 to Count - 1 do begin
+  for I := 0 to fCount - 1 do begin
     Len := StrLen(PAnsiChar(fList.{$IFDEF TLIST_FAST} Items {$ELSE} fItems {$ENDIF} [I]));
     if (Len > 0) then begin
       System.Move(PAnsiChar(fList.{$IFDEF TLIST_FAST} Items {$ELSE} fItems {$ENDIF}[I])^, P^, Len);
@@ -37877,6 +37381,18 @@ begin
   end;
 end;
 {$ENDIF PAS_VERSION}
+
+{$IFDEF TLIST_FAST}
+function TStrList.GetUseBlocks: Boolean;
+begin
+  Result := fList.UseBlocks;
+end;
+
+procedure TStrList.SetUseBlocks(const Value: Boolean);
+begin
+  fList.UseBlocks := Value;
+end;
+{$ENDIF TLIST_FAST}
 
 {$IFDEF ASM_TLIST}
 function TStrList.IndexOf(const S: Ansistring): integer;
@@ -37912,15 +37428,15 @@ end;
 function TStrList.IndexOf(const S: AnsiString): integer;
 var Word1: Word;
 begin
-  if  S = '' then begin
-      for Result := 0 to fCount - 1 do
-        if  PAnsiChar(fList.Items[Result])^ = #0 then Exit; {>>>>>>>>>>>>>>>>>>}
+  if (S = '') then begin
+    for Result := 0 to fCount - 1 do
+      if (PAnsiChar(fList.Items[Result])^ = #0 )then
+        Exit; {>>>>>>>>>>>>>>>>>>}
   end else begin
-      Word1 := PWord(PAnsiChar( S ))^;
-  	  for Result := 0 to fCount - 1 do
-          if  (PWord(fList.Items[Result])^ = Word1)
-          and (StrComp( fList.Items[Result], PAnsiChar( S ) ) = 0) then
-          Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
+    Word1 := PWord(PAnsiChar( S ))^;
+    for Result := 0 to fCount - 1 do
+      if (PWord(fList.Items[Result])^ = Word1) and (StrComp(fList.Items[Result], PAnsiChar(S)) = 0) then
+        Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
   end;
   Result := -1;
 end;
@@ -37930,18 +37446,19 @@ function TStrList.IndexOf_NoCase(const S: AnsiString): integer;
 var tmp: PAnsiChar;
     c: AnsiChar;
 begin
-  if  S = '' then begin
-      for Result := 0 to fCount - 1 do
-              if  PAnsiChar( fList.Items[Result] )^ = #0 then Exit; {>>>>>>>>>>}
+  if S = '' then begin
+    for Result := 0 to fCount - 1 do
+      if  PAnsiChar( fList.Items[Result] )^ = #0 then Exit; {>>>>>>>>>>}
   end else begin
-      if  not Upper_initialized then
-          Init_Upper;
-      for Result := 0 to fCount - 1 do begin
-        tmp := fList.Items[Result];
-        c := Upper[S[1]];
-        if  (c = Upper[tmp^]) and
-            (_AnsiCompareStrNoCaseA( PAnsiChar( S ), tmp ) = 0) then Exit; {>>>}
-      end;
+    if not Upper_initialized then
+      Init_Upper;
+    for Result := 0 to fCount - 1 do begin
+      tmp := fList.Items[Result];
+      c := Upper[S[1]];
+      if (c = Upper[tmp^]) and
+        (_AnsiCompareStrNoCaseA( PAnsiChar( S ), tmp ) = 0) then
+          Exit; {>>>}
+    end;
   end;
   Result := -1;
 end;
@@ -37949,38 +37466,39 @@ end;
 function TStrList.IndexOfStrL_NoCase( Str: PAnsiChar; L: Integer ): integer;
 begin
   if  L = 0 then
-      Result := 0
+    Result := 0
   else begin
-      for Result := 0 to fCount - 1 do
-        if (StrLen( PAnsiChar( fList.
-          {$IFDEF TLIST_FAST} Items {$ELSE} fItems {$ENDIF}[ Result ]
-          ) ) = PtrUInt( L )) and
-           (StrLComp_NoCase( Str, PAnsiChar(
-           fList.{$IFDEF TLIST_FAST} Items {$ELSE} fItems {$ENDIF}[ Result ]
-           ), L ) = 0) then Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
-      Result := -1;
+    for Result := 0 to fCount - 1 do begin
+      if (StrLen( PAnsiChar( fList.{$IFDEF TLIST_FAST} Items {$ELSE} fItems {$ENDIF}[ Result ]) ) = PtrUInt( L )) and
+      (StrLComp_NoCase( Str, PAnsiChar(
+      fList.{$IFDEF TLIST_FAST} Items {$ELSE} fItems {$ENDIF}[ Result ]), L ) = 0) then
+        Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
+    end;
+    Result := -1;
   end;
 end;
 
 function CompareAnsiCase( const S1, S2: PAnsiChar ): Integer;
 begin
-	Result := _AnsiCompareStrA( S1, S2 );
+  Result := _AnsiCompareStrA( S1, S2 );
 end;
 
 function CompareAnsiNoCase( const S1, S2: PAnsiChar ): Integer;
 begin
-	Result := _AnsiCompareStrNoCaseA( S1, S2 );
+  Result := _AnsiCompareStrNoCaseA( S1, S2 );
 end;
 
 function TStrList.Find(const S: AnsiString; var Index: Integer): Boolean;
 var
   L, H, C: Integer;
 begin
-  Result := FALSE;
-  Index := 0;
-  L := 0;
-  H := FCount - 1;
-  if  H < 0 then Exit; // === if FCount = 0 then Exit; {>>>>>>>>>>>>>>>>>>>>>>>}
+  Result := False;
+  Index  := 0;
+  L      := 0;
+  H      := FCount - 1;
+  if (H < 0) then
+    Exit; // === if FCount = 0 then Exit; {>>>>>>>>>>>>>>>>>>>>>>>}
+
   if  fAnsiSort then begin
       if  fCaseSensitiveSort then
           fCompareStrListFun := CompareAnsiCase
@@ -37993,16 +37511,16 @@ begin
           fCompareStrListFun := StrComp_NoCase;
   end;
   C := 0;
-  while L <= H do begin
+  while (L <= H) do begin
     Index := (L + H) shr 1;
-    C := fCompareStrListFun( PAnsiChar( fList.Items[ Index ] ),
-                             PAnsiChar( S ) );
+    C := fCompareStrListFun( PAnsiChar( fList.Items[ Index ] ), PAnsiChar( S ) );
     if C < 0 then 
-		  L := Index + 1 
-		else begin
+      L := Index + 1 
+    else begin
       H := Index - 1;
       if C = 0 then begin
-        Result := TRUE; {Index := I;} Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
+        Result := TRUE; {Index := I;}
+        Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
       end;
     end;
   end;
@@ -38011,18 +37529,16 @@ end;
 
 function TStrList.FindFirst(const S: AnsiString; var Index: Integer): Boolean;
 begin
-  Result := Find( S, Index );
-  if  Result then begin
-      while (Index > 0)
-      and   (fCompareStrListFun( PAnsiChar( fList.Items[ Index-1 ] ),
-                                 PAnsiChar( S )) = 0) do
-            dec( Index );
+  Result := Find(S, Index);
+  if Result then begin
+    while (Index > 0) and (fCompareStrListFun( PAnsiChar( fList.Items[ Index-1 ] ), PAnsiChar( S )) = 0) do
+      Dec( Index );
   end;
 end;
 
 procedure TStrList.Move(CurIndex, NewIndex: integer);
 begin
-  fList.MoveItem( CurIndex, NewIndex );
+  fList.MoveItem(CurIndex, NewIndex);
 end;
 
 {$IFDEF ASM_VERSION}{$ELSE PAS_VERSION} //Pascal
@@ -38216,6 +37732,7 @@ begin
      end;
 end;
 {$ENDIF PAS_VERSION}
+
 procedure TStrList.SetUnixText(const S: AnsiString; Append2List: Boolean);
 var S1: AnsiString;
 begin
@@ -38649,43 +38166,41 @@ begin
   end;
 end;
 
-
-{$IFDEF ASM_UNICODE}{$ELSE PAS_VERSION} //Pascal
 function TStrList.AppendToFile(const FileName: KOLString): Boolean;
-var F: HFile;
-    Buf: AnsiString;
-    L: Integer;
+var
+  F:   HFile;
+  L:   Integer;
+  Buf: AnsiString;
 begin
-  F := FileCreate( FileName, ofOpenWrite or ofOpenAlways );
-  Result := F <> INVALID_HANDLE_VALUE;
+  F      := FileCreate(FileName, ofOpenWrite or ofOpenAlways);
+  Result := (F <> INVALID_HANDLE_VALUE);
   if Result then begin
-    FileSeek( F, 0, spEnd );
+    FileSeek(F, 0, spEnd);
     Buf := Text;
-    L := Length( Buf );
-    FileWrite( F, Buf[ 1 ], L );
-    FileClose( F );
+    L   := Length(Buf);
+    FileWrite(F, Buf[1], L);
+    FileClose(F);
   end;
-end;
+end; 
 
 function TStrList.LoadFromFile(const FileName: KOLString): Boolean;
-var Buf: AnsiString;
-    F: HFile;
-    Sz: Integer;
+var
+  F:   HFile;
+  Sz:  Integer;
+  Buf: AnsiString;
 begin
-  F := FileCreate( FileName, ofOpenRead or ofShareDenyWrite or ofOpenExisting );
-  Result := F <> INVALID_HANDLE_VALUE;
+  F      := FileCreate(FileName, ofOpenRead or ofShareDenyWrite or ofOpenExisting);
+  Result := (F <> INVALID_HANDLE_VALUE);
   if Result then begin
-    Sz := GetFileSize( F, nil );
-    if Sz > 0 then //dmiko
-    begin
-      SetString( Buf, nil, Sz );
-      FileRead( F, Buf[1], Sz );
-      SetText( Buf, False );
+    Sz := GetFileSize(F, nil);
+    if (Sz > 0) then begin      // dmiko
+      SetLength(Buf, Sz);       // dufa
+      FileRead(F, Buf[1], Sz);
+      SetText(Buf, False);
     end;
-    FileClose( F );
+    FileClose(F);
   end;
 end;
-{$ENDIF PAS_VERSION}
 
 {$IFDEF dufa_buggedASM_STREAM}
 procedure TStrList.LoadFromStream(Stream: PStream; Append2List: boolean);
@@ -38725,8 +38240,8 @@ end;
 {$ELSE PAS_VERSION} //Pascal //dufa
 procedure TStrList.LoadFromStream(Stream: PStream; Append2List: Boolean);
 var
+  Sz:  Integer;
   Buf: AnsiString;
-  Sz: Integer;
 begin
   if (Stream.Size > 0) then begin
     Sz  := Stream.Size - Stream.Position;
@@ -38736,17 +38251,14 @@ begin
 end;
 {$ENDIF PAS_VERSION}
 
-{$IFDEF dufa_buggedASM_VERSION}{$ELSE PAS_VERSION} //Pascal
 procedure TStrList.MergeFromFile(const FileName: KOLString);
 var TmpStream: PStream;
 begin
-  TmpStream := NewReadFileStream( FileName );
-  LoadFromStream( TmpStream, True );
+  TmpStream := NewReadFileStream(FileName);
+  LoadFromStream(TmpStream, True);
   TmpStream.Free;
 end;
-{$ENDIF PAS_VERSION}
 
-{$IFDEF dufa_maybebuggedASM_UNICODE}{$ELSE PAS_VERSION} //Pascal
 function TStrList.SaveToFile(const FileName: KOLString): Boolean;
 var
   L:   Integer;                //dufa
@@ -38764,26 +38276,24 @@ begin
     FileClose(F);
   end;
 end;
-{$ENDIF PAS_VERSION}
 
-{$IFDEF ASM_VERSION}{$ELSE PAS_VERSION} //Pascal
 procedure TStrList.SaveToStream(Stream: PStream);
-var S: Ansistring;
-    L: Integer;
+var
+  S: Ansistring;
+  L: Integer;
 begin
-   S := GetTextStr;
-   L := Length( S );
-   if L <> 0 then
-   Stream.Write( S[1], L );
+  S := GetTextStr;
+  L := Length(S);
+  if (L <> 0) then
+    Stream.Write(S[1], L);
 end;
-{$ENDIF PAS_VERSION}
 
 procedure TStrList.OptimizeForRead;
 begin
-    {$IFDEF TLIST_FAST}
-    if  fList <> nil then
-        fList.OptimizeForRead;
-    {$ENDIF}
+{$IFDEF TLIST_FAST}
+  if Assigned(fList) then
+    fList.OptimizeForRead;
+{$ENDIF}
 end;
 
 function TStrList.Count2: Integer; // * by dufa
@@ -38902,6 +38412,39 @@ begin
   end;
   // not found
   Result := -1;
+end;
+
+procedure TStrList.ItemFirst; //dufa
+begin
+  FItemIndex := 0;
+end;
+
+procedure TStrList.ItemLast;  //dufa
+begin
+  FItemIndex := Pred(fCount);
+end;
+
+function TStrList.ItemEOL: Boolean; //dufa
+begin
+  Result := (FItemIndex >= fCount);
+end;
+
+function TStrList.ItemNext(var Item: AnsiString): Boolean; //dufa
+begin
+  Result := not ItemEOL;
+  if Result then begin
+    Item := Items[FItemIndex];
+    Inc(FItemIndex);
+  end;
+end;
+
+function TStrList.ItemPrev(var Item: AnsiString): Boolean; //dufa
+begin
+  Result := (FItemIndex >= 0);
+  if Result then begin
+    Item := Items[FItemIndex];
+    Dec(FItemIndex);
+  end;
 end;
 
 ////////////////////////////////// EXTENDED STRING LIST OBJECT ////////////////
@@ -39351,6 +38894,15 @@ begin
   GetMem( P, (Length( W ) + 1) * Sizeof(WideChar) );
   fList.Insert( Idx, P );
   WStrCopy( P, PWideChar( W ) );
+end;
+
+function TWStrList.Join(const Sep: KOLWideString): KOLWideString;
+var
+  I: Integer;
+begin
+  Result := '';
+  for I := 0 to Pred(Count) do
+    Result := Result + Items[I] + Sep;
 end;
 
 function TWStrList.LoadFromFile(const Filename: KOLString): Boolean;
@@ -41285,15 +40837,15 @@ end;
 function TControl.Perform(msgcode: DWORD; wParam: WPARAM; lParam: LPARAM): LRESULT; stdcall;
 begin
   {$IFDEF INPACKAGE}
-  Log( '->TControl.Perform' );
-  TRY
+    Log( '->TControl.Perform' );
+    TRY
   {$ENDIF INPACKAGE}
-  Result := SendMessage( GetWindowHandle, msgcode, wParam, lParam );
+      Result := SendMessage( GetWindowHandle, msgcode, wParam, lParam );
   {$IFDEF INPACKAGE}
-    LogOK;
-  FINALLY
-    Log( '<-TControl.Perform' );
-  END;
+      LogOK;
+    FINALLY
+      Log( '<-TControl.Perform' );
+    END;
   {$ENDIF INPACKAGE}
 end;
 
@@ -41305,6 +40857,17 @@ end;
 function TControl.GetChildCount: Integer;
 begin
   Result := fChildren.Count;
+end;
+
+procedure TControl.SetItemVal(Item: Integer; const Index: Integer; const Value: Integer);
+var MsgCode: Integer;
+begin
+  MsgCode := HiWord( Index );
+  if MsgCode = 0 then
+    MsgCode := Index + 1;
+  Perform( MsgCode and $7FFF, Item, Value );
+  if (MsgCode and $8000) <> 0 then
+    Invalidate;
 end;
 {$ENDIF PAS_VERSION}
 
@@ -41414,8 +40977,7 @@ begin
   Perform( LVM_ENSUREVISIBLE, Item, Integer( PartiallyOK ) );
 end;
 
-procedure TControl.LVSetColorByIdx(const Index: Integer;
-  const Value: TColor);
+procedure TControl.LVSetColorByIdx(const Index: Integer; const Value: TColor);
 var MsgCode: Integer;
     ColorValue: TColor;
 begin
@@ -41443,19 +41005,6 @@ function TControl.GetItemVal(Item: Integer; const Index: Integer): Integer;
 begin
   Result := Perform( LoWord(Index), Item, 0 );
 end;
-
-{$IFDEF ASM_VERSION}{$ELSE PAS_VERSION} //Pascal
-procedure TControl.SetItemVal(Item: Integer; const Index: Integer; const Value: Integer);
-var MsgCode: Integer;
-begin
-  MsgCode := HiWord( Index );
-  if MsgCode = 0 then
-    MsgCode := Index + 1;
-  Perform( MsgCode and $7FFF, Item, Value );
-  if (MsgCode and $8000) <> 0 then
-    Invalidate;
-end;
-{$ENDIF PAS_VERSION}
 
 function TControl.GetSBMinMax: TPoint;
 begin
@@ -41488,9 +41037,9 @@ var
 begin
   DF.fSBMinMax.Y := Value;
   if  (Handle <> 0) then begin
-      P := SBMinMax;
-      P.Y := Value;
-      SBMinMax := P;
+    P := SBMinMax;
+    P.Y := Value;
+    SBMinMax := P;
   end;
 end;
 
@@ -41500,9 +41049,9 @@ var
 begin
   DF.fSBMinMax.X := Value;
   if  (Handle <> 0) then begin
-      P := SBMinMax;
-      P.X := Value;
-      SBMinMax := P;
+    P := SBMinMax;
+    P.X := Value;
+    SBMinMax := P;
   end;
 end;
 
@@ -41511,38 +41060,30 @@ var
   SI: TScrollInfo;
 begin
   DF.fSBPageSize := Value;
-  if  fHandle <> 0 then begin
-      ZeroMemory(@SI, SizeOf(SI));
-      SI.cbSize := SizeOf(SI);
-      SI.fMask := SIF_PAGE or SIF_RANGE;
-      SBGetScrollInfo(SI);
-      {$IFDEF SCROLL_OLD} // by QAZ
-          {$IFDEF SCROLL_OLD_MAX1}
-          if (SI.nMax = 0) and (SI.nMin = 0) then
-            SI.nMax := 1;
-          {$ENDIF}
-          SI.nMax := SI.nMax - Integer(SI.nPage) + Value;
-      {$ENDIF}
-      SI.nPage := Value;
-      SBSetScrollInfo(SI);
+  if (fHandle <> 0) then begin
+    ZeroMemory(@SI, SizeOf(SI));
+    SI.cbSize := SizeOf(SI);
+    SI.fMask := SIF_PAGE or SIF_RANGE;
+    SBGetScrollInfo(SI);
+    SI.nPage := Value;
+    SBSetScrollInfo(SI);
   end;
 end;
 
 procedure TControl.SetSBPosition(Value: Integer);
 begin
   DF.fSBPosition := Value;
-  if  (Handle <> 0) then
-      SetScrollPos(Handle, SB_CTL, Value, True);
+  if (Handle <> 0) then
+    SetScrollPos(Handle, SB_CTL, Value, True);
 end;
 
 procedure TControl.SetSBMinMax(const Value: TPoint);
 begin
   GetSBMinMax;
-  if  (Handle <> 0) then
-      SetScrollRange(Handle, SB_CTL, Value.X,
-          Value.Y {$IFDEF SCROLL_OLD} + SBPageSize - 1{$ENDIF (by QAZ)} , True)
+  if (Handle <> 0) then
+    SetScrollRange(Handle, SB_CTL, Value.X, Value.Y, True)
   else
-      DF.fSBMinMax := Value;
+    DF.fSBMinMax := Value;
 end;
 
 function TControl.SBSetScrollInfo(const SI: TScrollInfo): Integer;
@@ -44468,88 +44009,6 @@ begin
   Strm.Free;
 end;
 
-{$IFDEF ASM_STREAM}
-procedure TBitmap.SaveToStream(Strm: PStream);
-type  tBFH = TBitmapFileHeader;
-      tBIH = TBitmapInfoHeader;
-const szBIH = Sizeof( tBIH );
-      szBFH = Sizeof( tBFH );
-asm
-        PUSH     EBX
-        PUSH     ESI
-        MOV      EBX, EAX
-        MOV      ESI, EDX
-        CALL     GetEmpty
-        JZ       @@exit
-        MOV      EAX, ESI
-        CALL     TStream.GetPosition
-        PUSH     EAX
-
-        MOV      EAX, EBX
-        XOR      EDX, EDX // EDX = bmDIB
-        CALL     SetHandleType
-        XOR      EAX, EAX
-        MOV      EDX, [EBX].fDIBHeader
-        MOVZX    ECX, [EDX].TBitmapInfoHeader.biBitCount
-        CMP      CL, 8
-        JG       @@1
-        MOV      AL, 4
-        SHL      EAX, CL
-@@1:
-          PUSH     EAX                        // ColorsSize
-        LEA      ECX, [EAX + szBFH + szBIH]
-        CMP      [EDX].TBitmapInfoHeader.biCompression, 0
-        JZ       @@10
-        ADD      ECX, 74
-@@10:
-        PUSH     ECX                        // BFH.bfOffBits
-        PUSH     0
-        ADD      ECX, [EBX].fDIBSize
-        PUSH     ECX
-        MOV      CX, $4D42
-        PUSH     CX
-        XOR      ECX, ECX
-        MOV      EDX, ESP
-        MOV      CL, szBFH
-          PUSH     ECX
-        MOV      EAX, ESI
-        CALL     TStream.Write
-          POP      ECX
-        ADD      ESP, szBFH
-        XOR      EAX, ECX
-          POP      ECX  // ColorsSize
-        JNZ      @@ewrite
-          MOV      EDX, [EBX].fDIBHeader
-          CMP      [EDX].TBitmapInfoHeader.biCompression, 0
-          JZ       @@11
-          ADD      ECX, 74
-@@11:
-        ADD      ECX, szBIH
-        PUSH     ECX
-        MOV      EAX, ESI
-        CALL     TStream.Write
-        POP      ECX
-        XOR      EAX, ECX
-        JNZ      @@ewrite
-
-        MOV      ECX, [EBX].fDIBSize
-        MOV      EDX, [EBX].fDIBBits
-        MOV      EAX, ESI
-        PUSH     ECX
-        CALL     TStream.Write
-        POP      ECX
-        XOR      EAX, ECX
-@@ewrite:
-        POP      EDX
-        JZ       @@exit
-        XCHG     EAX, ESI
-        XOR      ECX, ECX
-        CALL     TStream.Seek
-@@exit:
-        POP      ESI
-        POP      EBX
-end;
-{$ELSE PAS_VERSION} //Pascal
 procedure TBitmap.SaveToStream(Strm: PStream);
 var BFH : TBitmapFileHeader;
     Pos : Integer;
@@ -44583,7 +44042,7 @@ begin
   if not WriteBitmap then
      Strm.Seek( Pos, spBegin );
 end;
-{$ENDIF PAS_VERSION}
+
 procedure TBitmap.CoreSaveToStream(Strm: PStream);
 type TRGBTriple = packed record
          bRed, bGreen, bBlue: Byte;
@@ -45423,44 +44882,6 @@ begin
   fTransMaskBmp := nil;
 end;
 
-{$IFDEF USE_OLDCONVERT2MASK}
-procedure TBitmap.Convert2Mask(TranspColor: TColor);
-var MonoHandle: HBitmap;
-    SaveMono, SaveFrom: THandle;
-    MonoDC, DCfrom: HDC;
-    SaveBkColor: TColorRef;
-begin
-  if GetHandle = 0 then Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
-  fDetachCanvas( @Self );
-  MonoHandle := CreateBitmap( fWidth, fHeight, 1, 1, nil );
-  {$IFDEF KOL_ASSERTIONS}
-  ASSERT( MonoHandle <> 0, 'Can not create monochrome bitmap' );
-  {$ENDIF KOL_ASSERTIONS}
-  MonoDC := CreateCompatibleDC( 0 );
-  SaveMono := SelectObject( MonoDC, MonoHandle );
-  {$IFDEF KOL_ASSERTIONS}
-  ASSERT( SaveMono <> 0, 'Can not select bitmap to DC' );
-  {$ENDIF KOL_ASSERTIONS}
-  DCfrom := CreateCompatibleDC( 0 );
-  SaveFrom := SelectObject( DCfrom, fHandle );
-  {$IFDEF KOL_ASSERTIONS}
-  ASSERT( SaveFrom <> 0, 'Can not select source bitmap to DC' );
-  {$ENDIF KOL_ASSERTIONS}
-  TranspColor := Color2RGB( TranspColor );
-  SaveBkColor := Windows.SetBkColor( DCfrom, TranspColor );
-  BitBlt( MonoDC, 0, 0, fWidth, fHeight, DCfrom, 0, 0, SRCCOPY );
-  {$IFDEF CHK_BITBLT} Chk_BitBlt; {$ENDIF}
-  Windows.SetBkColor( DCfrom, SaveBkColor );
-  SelectObject( DCfrom, SaveFrom );
-  DeleteDC( DCfrom );
-  SelectObject( MonoDC, SaveMono );
-  DeleteDC( MonoDC );
-  ///ReleaseDC( 0, DC0 );
-  ClearData;
-  fHandle := MonoHandle;
-  fHandleType := bmDDB;
-end;
-{$ELSE NOT USE_OLDCONVERT2MASK} //Pascal
 procedure TBitmap.Convert2Mask(TranspColor: TColor);
 var Y, X, i: Integer;
     Src, Dst: PByte;
@@ -45593,7 +45014,6 @@ begin
   Assign( TmpMsk );
   TmpMsk.Free;
 end;
-{$ENDIF USE_OLDCONVERT2MASK} //Pascal
 {$ENDIF PAS_VERSION}
 
 procedure TBitmap.Invert;
@@ -51406,17 +50826,12 @@ end;
 
 procedure TControl.SetOnLVData(const Value: TOnLVData);
 begin
-  {$IFDEF EVENTS_DYNAMIC} ProvideUniqueEvents {$ELSE} EV {$ENDIF}
-  .fOnLVData := Value;
+  {$IFDEF EVENTS_DYNAMIC} ProvideUniqueEvents {$ELSE} EV {$ENDIF}.fOnLVData := Value;
   AttachProc( @WndProc_LVData );
   Perform( LVM_SETCALLBACKMASK, LVIS_OVERLAYMASK or LVIS_STATEIMAGEMASK, 0 );
 end;
 
-{$IFDEF ENABLE_DEPRECATED}
-{$DEFINE implementation} {$I KOL_deprecated.inc} {$UNDEF implementation}
-{$ENDIF DISABLE_DEPRECATED}
-function WndProc_LVCustomDraw( Sender: PControl; var Msg: TMsg;
-                               var Rslt: LRESULT ): Boolean;
+function WndProc_LVCustomDraw( Sender: PControl; var Msg: TMsg; var Rslt: LRESULT ): Boolean;
 var NMCustDraw: PNMLVCustomDraw;
     NMHdr: PNMHdr;
     ItemIdx, SubItemIdx: Integer;

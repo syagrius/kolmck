@@ -9765,43 +9765,27 @@ end;
 
 destructor TStrList.Destroy;
 asm
-        PUSH     EAX
-        CALL     Clear
-        POP      EAX
-        CALL     TObj.Destroy
+  PUSH     EAX
+  CALL     Clear
+  POP      EAX
+  CALL     TObj.Destroy
 end;
 
 function TStrList.Add(const S: Ansistring): integer;
 asm
-        MOV      ECX, EDX
-        MOV      EDX, [EAX].fCount
-        PUSH     EDX
-        CALL     Insert
-        POP      EAX
+  MOV      ECX, EDX
+  MOV      EDX, [EAX].fCount
+  PUSH     EDX
+  CALL     Insert
+  POP      EAX
 end;
-
-//dufa
-//procedure TStrList.AddStrings(Strings: PStrList);
-//asm
-//        PUSH     EAX
-//        XCHG     EAX, EDX
-//        PUSH     0
-//        MOV      EDX, ESP
-//        CALL     GetTextStr
-//        POP      EDX
-//        POP      EAX
-//        MOV      CL, 1
-//        PUSH     EDX
-//        CALL     SetText
-//        CALL     RemoveStr
-//end;
 
 procedure TStrList.Assign(Strings: PStrList);
 asm
-        PUSHAD
-        CALL     Clear
-        POPAD
-        JMP      AddStrings
+  PUSHAD
+  CALL     Clear
+  POPAD
+  JMP      AddStrings
 end;
 
 procedure TStrList.Clear;
@@ -9913,6 +9897,55 @@ asm
         JMP      Delete
 end;
 
+(* bugged dufa
+procedure TStrList.AddStrings(Strings: PStrList);
+asm
+        PUSH     EAX
+        XCHG     EAX, EDX
+        PUSH     0
+        MOV      EDX, ESP
+        CALL     GetTextStr
+        POP      EDX
+        POP      EAX
+        MOV      CL, 1
+        PUSH     EDX
+        CALL     SetText
+        CALL     RemoveStr
+end;
+
+procedure TStrList.MergeFromFile(const FileName: KOLString);
+asm
+        PUSH     EAX
+        XCHG     EAX, EDX
+        CALL     NewReadFileStream
+        XCHG     EDX, EAX
+        POP      EAX
+        MOV      CL, 1
+        PUSH     EDX
+        CALL     LoadFromStream
+        POP      EAX
+        JMP      TObj.RefDec
+end;
+
+procedure TStrList.SaveToStream(Stream: PStream);
+asm
+        PUSH     EDX
+        PUSH     0
+        MOV      EDX, ESP
+        CALL     GetTextStr
+        POP      EAX
+        PUSH     EAX
+        CALL     System.@LStrLen
+        XCHG     ECX, EAX
+        POP      EDX
+        POP      EAX
+        PUSH     EDX
+        JECXZ    @@1
+        CALL     TStream.Write
+@@1:
+        CALL     RemoveStr
+end;*)
+
 procedure LowerCaseStrFromPCharEDX;
 asm
           { <- EDX = PChar string
@@ -9972,40 +10005,6 @@ asm
         CALL     SortData
         {$ENDIF}
 @@exit:
-end;
-
-{// bugged.dufa
-procedure TStrList.MergeFromFile(const FileName: KOLString);
-asm
-        PUSH     EAX
-        XCHG     EAX, EDX
-        CALL     NewReadFileStream
-        XCHG     EDX, EAX
-        POP      EAX
-        MOV      CL, 1
-        PUSH     EDX
-        CALL     LoadFromStream
-        POP      EAX
-        JMP      TObj.RefDec
-end;}
-
-procedure TStrList.SaveToStream(Stream: PStream);
-asm
-        PUSH     EDX
-        PUSH     0
-        MOV      EDX, ESP
-        CALL     GetTextStr
-        POP      EAX
-        PUSH     EAX
-        CALL     System.@LStrLen
-        XCHG     ECX, EAX
-        POP      EDX
-        POP      EAX
-        PUSH     EDX
-        JECXZ    @@1
-        CALL     TStream.Write
-@@1:
-        CALL     RemoveStr
 end;
 
 procedure SortData( const Data: Pointer; const uNElem: Dword;
@@ -12948,68 +12947,6 @@ asm
         CALL     TObj.RefDec
 end;
 
-{$IFDEF USE_OLDCONVERT2MASK}
-procedure TBitmap.Convert2Mask(TranspColor: TColor);
-asm
-        PUSH     EBX
-        PUSH     ESI
-        MOV      EBX, EAX
-        MOV      ESI, EDX
-        CALL     GetHandle
-        TEST     EAX, EAX
-        JZ       @@exit
-
-        PUSH     0
-        PUSH     1
-        PUSH     1
-        PUSH     [EBX].fHeight
-        PUSH     [EBX].fWidth
-        CALL     CreateBitmap
-        PUSH     EAX                // MonoHandle
-        PUSH     0
-        CALL     CreateCompatibleDC
-        POP      EDX
-        PUSH     EDX
-        PUSH     EAX                // MonoDC
-
-        PUSH     EDX
-        PUSH     EAX
-        CALL     SelectObject
-        PUSH     EAX                // SaveMono
-
-        CALL     StartDC            // DCfrom, SaveFrom
-        XCHG     EAX, ESI
-        CALL     Color2RGB
-        PUSH     EAX // Color2RGB(TranspColor)
-        PUSH     dword ptr [ESP+8] //DCfrom
-        CALL     Windows.SetBkColor
-        PUSH     EAX                // SaveBkColor
-
-        PUSH     SRCCOPY
-        PUSH     0
-        PUSH     0
-        PUSH     dword ptr [ESP+12+4+4] //DCfrom
-        PUSH     [EBX].fHeight
-        PUSH     [EBX].fWidth
-        PUSH     0
-        PUSH     0
-        PUSH     dword ptr [ESP+32+16] //MonoDC
-        CALL     BitBlt
-
-        PUSH     dword ptr [ESP+8] //DCfrom
-        CALL     Windows.SetBkColor // ESP-> SaveFrom
-        CALL     FinishDC           // ESP-> SaveMono
-        CALL     FinishDC           // ESP-> MonoHandle
-
-        MOV      EAX, EBX
-        CALL     ClearData
-        POP      [EBX].fHandle
-        MOV      [EBX].fHandleType, bmDDB
-@@exit:
-        POP      ESI
-        POP      EBX
-end;
-{$ELSE USE_OLDCONVERT2MASK} //Pascal
 procedure TBitmap.Convert2Mask(TranspColor: TColor);
 asm
         PUSH EBX
@@ -13248,7 +13185,6 @@ asm
         POP  ESI
         POP  EBX
 end;
-{$ENDIF USE_OLDCONVERT2MASK} //Pascal
 
 procedure _PrepareBmp2Rotate;
 const szBIH = sizeof(TBitmapInfoHeader);
