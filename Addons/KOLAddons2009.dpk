@@ -39,11 +39,16 @@ requires
   vclx;
 
 contains
+  KolZLibBzip in 'KolZLibBzip.pas',
+  tinyPNG in 'tinyPNG.pas',
+  tinyJPGGIFBMP in 'tinyJPGGIFBMP.pas',
+  KOLFontEditor in 'KOLFontEditor.pas',
+  mckWebBrowser in 'mckWebBrowser.pas',
+  mckDHTML in 'mckDHTML.pas',
   KOLCCtrls in 'KOLCCtrls.pas',
   mckCCtrls in 'mckCCtrls.pas',
   KOLHashs in 'KOLHashs.PAS',
   mckHashs in 'mckHashs.pas',
-  KOLFontEditor in 'KOLFontEditor.pas',
   KOLmhxp in 'KOLmhxp.pas',
   MCKMHXP in 'MCKMHXP.pas',
   mckEcmListEdit in 'mckEcmListEdit.pas',
@@ -51,11 +56,6 @@ contains
   mckBlockCipher in 'mckBlockCipher.pas',
   KOLBlockCipher in 'KOLBlockCipher.pas',
   mckXPMenus in 'mckXPMenus.pas',
-  XPMenus in 'XPMenus.pas',
-  tinyPNG in 'tinyPNG.pas',
-  tinyJPGGIFBMP in 'tinyJPGGIFBMP.pas',
-  mckWebBrowser in 'mckWebBrowser.pas',
-  mckDHTML in 'mckDHTML.pas',
-  KolZLibBzip in 'KolZLibBzip.pas';
+  XPMenus in 'XPMenus.pas';
 
 end.

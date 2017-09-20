@@ -144,7 +144,7 @@ type
     Options:   TEditOptions;
   end;
 
-  TOnEditText  = procedure(Sender: PControl; ACol, ARow: Integer; var Value: string) of object;
+  TOnEditText  = procedure(Sender: PControl; ACol, ARow: Integer; var Value: KOLString) of object;
   TOnEditChar  = procedure(Sender: PControl; ACol, ARow: Integer; var Key: KOLChar; Shift: DWORD) of object;
   TOnEndEdit   = procedure(Sender: PControl; ACol, ARow: Integer; CellChanged: Boolean) of object;
   TOnCreateEdit = procedure(Sender: PControl; ACol: Integer; var Editor: PControl; var ReadOnly: Boolean; var AutoHide: Boolean) of object;
@@ -170,20 +170,20 @@ type
     procedure EditOnChar(Sender: PControl; var Key: KOLChar; Shift: DWORD);
     procedure SetCurIdx(const Value: Integer);
   protected
-    fOwner: PControl;
-    fColOptions: PList;
-    fCurIdx: Integer;
-    fCurLine: Integer;
-    fScroll: Integer;
-    fOnPutText: TOnEditText;
-    fOnGetText: TOnEditText;
-    fOnEndEdit: TOnEndEdit;
+    fOwner:       PControl;
+    fColOptions:  PList;
+    fCurIdx:      Integer;
+    fCurLine:     Integer;
+    fScroll:      Integer;
+    fOnPutText:   TOnEditText;
+    fOnGetText:   TOnEditText;
+    fOnEndEdit:   TOnEndEdit;
     FOnColAdjust: TOnColAdjust;
-    fStarted: Boolean;
-    fOnEditChar: TOnEditChar;
-    fShift: Integer;
-    fEmbedEd: Boolean;
-    fAutoHide: Boolean;
+    fStarted:     Boolean;
+    fOnEditChar:  TOnEditChar;
+    fShift:       Integer;
+    fEmbedEd:     Boolean;
+    fAutoHide:    Boolean;
     function NewInPlaceEdit(Options: TEditOptions; Align: TTextAlign): PControl;
     procedure DestroyInPlaceEditor;
     procedure SetEditPos;
@@ -192,7 +192,7 @@ type
     procedure DoColAdjust(ColCount: Integer);
     procedure InternalStopEdit(const Store: Boolean);
     procedure HideInplaceEd(ActivateOwner: Boolean);
-    function LVDrawItem(Sender: PObj; DC: HDC; const Rect: TRect; ItemIdx: Integer; DrawAction: TDrawAction; ItemState: TDrawState): Boolean;
+    function  LVDrawItem(Sender: PObj; DC: HDC; const Rect: TRect; ItemIdx: Integer; DrawAction: TDrawAction; ItemState: TDrawState): Boolean;
     procedure ComboBox_CloseUp(Sender: PObj);
   public
     fInPlaceEd:     PControl;
@@ -304,11 +304,13 @@ begin
   with PEcmListEdit(Sender.CustomObj)^ do begin
     case Msg.message of
       LVM_INSERTCOLUMNA, LVM_INSERTCOLUMNW, LVM_DELETECOLUMN:
+      begin
         PostMessage(Msg.hwnd, LEN_COL_ADJUST, 0, 0);
-
+      end;
       LEN_COL_ADJUST:
+      begin
         DoColAdjust(Sender.LVColCount);
-
+      end;
       WM_LBUTTONDOWN{$IFDEF rbutton_sel}, WM_RBUTTONDOWN{$ENDIF}:
       begin
         NewLine := GetLVItemAtPos(TSmallPoint(Msg.lParam), NewCurIdx);
@@ -316,16 +318,15 @@ begin
         Sender.Focused := True;
         Result := True;
       end;
-
       WM_LBUTTONDBLCLK{$IFDEF rbutton_sel}, WM_RBUTTONDBLCLK{$ENDIF}:
       begin
         NewLine := GetLVItemAtPos(TSmallPoint(Msg.lParam), NewCurIdx);
         SetCurLVPos(NewLine, NewCurIdx);
-        if (NewLine <> -1) and (NewCurIdx <> -1) then StartEdit;
+        if (NewLine <> -1) and (NewCurIdx <> -1) then
+          StartEdit;
         Sender.Tabstop := False;
-        Result := True;
+        Result         := True;
       end;
-
       WM_KEYDOWN:
       begin
         if (Msg.WParam = VK_RETURN) then
@@ -340,25 +341,23 @@ begin
           end;
           SetEditPos;
         end;
-        //fInPlaceEd.Click; //.DroppedDown := True;
       end;
-
-      // by SeM
-      WM_CHAR:
-      if (GetKeyState(VK_CONTROL) >= 0) then begin // ! by Matveev Dmitry
-        case Msg.wParam of
-          VK_ESCAPE, VK_RETURN, VK_TAB:
-            ;
-          else begin
-            StartEdit;
-            Sender.Tabstop := False;
-            if Assigned(fInPlaceEd) then
-              PostMessage(fInPlaceEd.Handle, Msg.message, Msg.wParam, Msg.lParam);
-            Result := True;
+      WM_CHAR: // by SeM
+      begin
+        if (GetKeyState(VK_CONTROL) >= 0) then begin // ! by Matveev Dmitry
+          case Msg.wParam of
+            VK_ESCAPE, VK_RETURN, VK_TAB:
+              ;
+            else begin
+              StartEdit;
+              Sender.Tabstop := False;
+              if Assigned(fInPlaceEd) then
+                fInPlaceEd.Postmsg(Msg.message, Msg.wParam, Msg.lParam);
+              Result := True;
+            end;
           end;
         end;
       end;
-
       WM_NCPAINT, WM_PAINT:
       begin
 {$IFDEF _LE_DEBUG_}
@@ -366,9 +365,6 @@ begin
 {$ENDIF}
         SetEditPos();
       end;
-
-//      WM_ERASEBKGND: Result := True;
-
       //  ака€-то б€ка с прорисовкой сетки в режиме lvoGridLines при использовании
       // темы XP - при прокрутке ScrollBar(только кнопками "вверх","вниз") происходит
       // лишн€€ прорисовка линий  - в результате некотрые строки получаютс€ перечеркнутыми
@@ -390,8 +386,8 @@ begin
 {$IFDEF _LE_DEBUG_}
               AddLog(Sender, 'ListEdit:NM_KILLFOCUS');
 {$ENDIF}
-              R := fOwner.ClientRect;
-              InvalidateRect(fOwner.Handle, @R, False); //UpdateRow(fCurLine);
+            R := fOwner.ClientRect;
+            InvalidateRect(fOwner.Handle, @R, False); //UpdateRow(fCurLine);
           end;
           NM_SETFOCUS:
           begin
@@ -423,22 +419,20 @@ begin
   case Msg.message of
     WM_KEYDOWN:
     begin
-      if Msg.wParam = VK_ESCAPE then
+      if (Msg.wParam = VK_ESCAPE) then
         PEcmListEdit(Sender.Parent.CustomObj).StopEdit(False);
     end;
     WM_KILLFOCUS:
     begin
       pLE := PEcmListEdit(Sender.Parent.CustomObj);
       if Assigned(pLE) then begin
-        with pLE^ do
-          if (fEmbedEd and fAutoHide) then begin
-            InternalStopEdit(True);
-            HideInPlaceEd(True);
-          end;
+        if pLE.fEmbedEd and pLE.fAutoHide then begin
+          pLE.InternalStopEdit(True);
+          pLE.HideInPlaceEd(True);
+        end;
       end;
     end;
-    // D[u]fa
-    WM_CHAR:
+    WM_CHAR: //+dufa
     if (Msg.wParam = VK_RETURN) then begin
       Msg.message := WM_KILLFOCUS;
       WndProcInPlaceEd(Sender, Msg, Rslt);
@@ -447,7 +441,7 @@ begin
   end;
 end;
 
-// ѕозвол€ет в некорых случа€х избавитьс€ от лишнего "мограни€" при изменении
+// ѕозвол€ет в некорых случа€х избавитьс€ от лишнего "моргани€" при изменении
 // размеров. ћожет использоватьс€ дл€ стандартного KOLListView.
 // ƒл€ применени€ после создани€ ListView-а (ListEdit-а) необходимо присоединить
 // данную функцию вызовом ListViewXXX.AttachProc(@WndProcListViewWOResizeFlicks);
@@ -471,6 +465,7 @@ begin
       FillRect(Msg.wParam, rRight, Sender.Canvas.Brush.Handle);
     end else
       rUnder := rClient;
+      
     FillRect(Msg.wParam, rUnder, Sender.Canvas.Brush.Handle);
     Result := True;
   end;
@@ -484,7 +479,9 @@ var
   mOpt: TListViewOptions;
 begin
   mOpt := Options + [lvoHideSel, lvoOwnerDrawFixed];
-  if ((Style <> lvsDetail) and (Style <> lvsDetailNoHeader)) then Style := lvsDetail;
+  if ((Style <> lvsDetail) and (Style <> lvsDetailNoHeader)) then
+    Style := lvsDetail;
+    
   Result := NewListView(AParent, Style, mOpt, ImageListSmall, ImageListNormal, ImageListState);
   New(pLD, Create);
   pLD.fOwner        := Result;
@@ -512,7 +509,8 @@ end;
 procedure TEcmListEdit.EditOnKeyDown(Sender: PControl; var Key: Longint; Shift: DWORD);
 begin
   if (fScroll <> 0) then
-    PostMessage(fOwner.Handle, LVM_SCROLL, fScroll, 0);
+    fOwner.Postmsg(LVM_SCROLL, fScroll, 0);
+  
   case key of
 //    VK_RETURN:
 //      StoreEditValues;
@@ -541,8 +539,7 @@ begin
   AddLog(Self.fOwner, 'DestroyInPlaceEditor');
 {$ENDIF}
   if fEmbedEd and Assigned(fInPlaceEd) then
-    fInPlaceEd.Free;
-  fInPlaceEd := nil;
+    Free_And_Nil(fInPlaceEd);
 end;
 
 procedure TEcmListEdit.SetEditPos;
@@ -564,13 +561,13 @@ begin
     GetWindowRect(Header, Re);
     HeaderHeight := Re.Bottom - Re.Top;
     if (R.Top >= HeaderHeight) then begin
-      if fEmbedEd and (fInPlaceEd.Perform(EM_GETRECT, 0, Integer(@Re)) > 0) then begin
+      if fEmbedEd and (fInPlaceEd.Perform(EM_GETRECT, 0, LPARAM(@Re)) > 0) then begin
         if (R.Bottom - R.Top) > (Re.Bottom - Re.Top) then begin
           cw := ((R.Bottom - R.Top) - (Re.Bottom - Re.Top)) div 2;
           Inc(R.Top, cw);
           Dec(R.Bottom, cw);
         end;
-        Inc(R.Left, fShift - Re.Left);
+        Inc(R.Left,  fShift - Re.Left);
         Dec(R.Right, fShift - Re.Left);
       end;
       pEO := fColOptions.Items[fCurIdx];
@@ -579,8 +576,7 @@ begin
         Dec(R.Right, Right);
         Inc(R.Top, Top);
         Dec(R.Bottom, Bottom);
-        //
-        if fEmbedEd then
+        if fEmbedEd then //?
           Dec(R.Left, 2);
       end;
     end else
@@ -604,8 +600,8 @@ end;
 procedure TEcmListEdit.LoadEditValues;
 var
   i: Integer;
-  S: String;
-  V: String;
+  S: KOLString;
+  V: KOLString;
 begin
 {$IFDEF _LE_DEBUG_}
   AddLog(Self.fOwner, 'LoadEditValues');
@@ -617,7 +613,7 @@ begin
   if IsComboEditor then begin
     IsComboEditor       := False; 
     fInPlaceEd.CurIndex := fInPlaceEd.IndexOf(S);
-    //fInPlaceEd.DroppedDown := True;
+    //fInPlaceEd.DroppedDown := True; <-- unfortunly don'work... combobox force close after open
   end else begin //if fEmbedEd then begin
     if (fInPlaceEd.SubClassName = 'obj_COMBOBOX') then begin
       i := fInPlaceEd.IndexOf(S);
@@ -671,7 +667,7 @@ begin
       Result.OnKeyDown := EditOnKeyDown;
       Result.AttachProc(WndProcInPlaceEd); //by Matveev Dmitry
     end else begin
-      Result.Parent := fOwner;
+      Result.Parent  := fOwner;
       //Result.Focused := True;
       Result.Visible := True;
     end;
@@ -690,25 +686,28 @@ begin
 {$IFDEF _LE_DEBUG_}
   AddLog(Self.fOwner, 'StartEdit');
 {$ENDIF}
-  if (fOwner.LVColCount = 0) or (fOwner.LVCount = 0) or fStarted or (fCurIdx = -1) then Exit;
+  if (fOwner.LVColCount = 0) or (fOwner.LVCount = 0) or fStarted or (fCurIdx = -1) then
+    Exit;
+    
   fCurLine := fOwner.LVCurItem;
   if (fCurLine = -1) then begin
-    fCurLine := 0;
+    fCurLine         := 0;
     fOwner.LVCurItem := 0;
   end;
-  //CreateInPlaceEditor(fOwner.LVColCount);
+  
   if not fStarted then begin
     DestroyInPlaceEditor;
     if (fOwner.LVColCount > 0) then begin
-      pEO := fColOptions.Items[fCurIdx];
+      pEO        := fColOptions.Items[fCurIdx];
       fInPlaceEd := NewInPlaceEdit(pEO.Options, pEO.TextAlign);
     end;
   end;
+  
   if Assigned(fInPlaceEd) then begin
     fStarted := True;
     SetEditPos;
     LoadEditValues;
-    fOwner.Tabstop := False;
+    fOwner.Tabstop     := False;
     fInPlaceEd.Visible := True;
     fInPlaceEd.Focused := True;
     UpdateRow(fCurLine);
@@ -734,7 +733,7 @@ begin
   HTI.pt.x := Pt.X;
   HTI.pt.y := Pt.Y;
   fOwner.Perform(LVM_SUBITEMHITTEST, 0, Integer(@HTI));
-  Result := HTI.iItem;
+  Result  := HTI.iItem;
   SubItem := HTI.iSubItem;
 end;
 
@@ -748,11 +747,9 @@ begin
     end;
   end;
   if Assigned(fOnEditChar) then begin
-    case Key of
-      #08: // BackSpace! - всегда обрабатывать
-    else
+    // BackSpace! - всегда обрабатывать
+    if (Key <> #08) then // wtf? backspace is 9!
       fOnEditChar(fInPlaceEd, fCurIdx, fOwner.LVCurItem, Key, Shift);
-    end;
   end;
 end;
 
@@ -761,83 +758,79 @@ var
   fBr: HBRUSH;
   cBr: TColor;
   i:   Integer;
-  S:   String;
+  S:   KOLString;
   P:   TPoint;
   R:   TRect;
   dt:  DWORD;
   pEO: PEditorOptions;
 begin
-  with fOwner^ do begin
-    fShift := 0;
-    for i := 0 to LVColCount - 1 do begin
-      R := LVSubItemRect(ItemIdx, i);
-      P := LVItemPos[i];
-      if (i = 0) then begin
-        R.Right := R.Left + LVColWidth[0];
-        fShift  := P.X - R.Left + 1; // dufa. 9.05.13, раньше было 2. с 1 копи€ ListView + LVSCW_AUTOSIZE работает как надо;
-      end;
-      if (Perform(LVM_GETEXTENDEDLISTVIEWSTYLE, 0, 0) and LVS_EX_GRIDLINES) <> 0 then begin
-        Inc(R.Left);
-        Dec(R.Bottom);
-      end;
-      if Assigned(FOnDrawCell) then
-        if FOnDrawCell(Sender, DC, R, i, ItemIdx, DrawAction, ItemState) then Continue; //by Matveev Dmitry
+  fShift := 0;
+  for i := 0 to fOwner.LVColCount - 1 do begin
+    R := fOwner.LVSubItemRect(ItemIdx, i);
+    P := fOwner.LVItemPos[i];
+    if (i = 0) then begin
+      R.Right := R.Left + fOwner.LVColWidth[0];
+      fShift  := P.X - R.Left + 1; // dufa. 9.05.13, раньше было 2. с 1 копи€ ListView + LVSCW_AUTOSIZE работает как надо;
+    end;
+    if (fOwner.Perform(LVM_GETEXTENDEDLISTVIEWSTYLE, 0, 0) and LVS_EX_GRIDLINES) <> 0 then begin
+      Inc(R.Left);
+      Dec(R.Bottom);
+    end;
+    if Assigned(FOnDrawCell) then
+      if FOnDrawCell(Sender, DC, R, i, ItemIdx, DrawAction, ItemState) then Continue; //by Matveev Dmitry
 
-      if fOwner.Enabled then
-        cBr := fOwner.LVTextBkColor
-      else
-        cBr := clBtnFace;
+    if fOwner.Enabled then
+      cBr := fOwner.LVTextBkColor
+    else
+      cBr := clBtnFace;
 
-      if (ItemIdx = fCurLine) then begin
-        if (fOwner.Focused or (Assigned(fInPlaceEd) and fInPlaceEd.Visible)) and Enabled then begin
+    if (ItemIdx = fCurLine) then begin
+      if (fOwner.Focused or (Assigned(fInPlaceEd) and fInPlaceEd.Visible)) and fOwner.Enabled then begin
+        if (i = fCurIdx) then begin
+          if fStarted then
+            cBr := fOwner.LVTextBkColor
+          else
+            cBr := clHighlight;
+          SetTextColor(DC, Color2RGB(clHighlightText));
+        end else begin
+          if (fOwner.Perform(LVM_GETEXTENDEDLISTVIEWSTYLE, 0, 0) and LVS_EX_FULLROWSELECT) <> 0 then
+            cBr := $F3E6CD;
+          SetTextColor(DC, Color2RGB(fOwner.Font.Color));
+        end
+      end else begin
+        SetTextColor(DC, Color2RGB(fOwner.Font.Color));
+        if fOwner.Enabled then begin
           if (i = fCurIdx) then begin
             if fStarted then
               cBr := fOwner.LVTextBkColor
             else
-              cBr := clHighlight;
-            SetTextColor(DC, Color2RGB(clHighlightText));
+              cBr := clInactiveBorder;
           end else begin
-            if (Perform(LVM_GETEXTENDEDLISTVIEWSTYLE, 0, 0) and LVS_EX_FULLROWSELECT) <> 0 then
-              cBr := $F3E6CD;
-            SetTextColor(DC, Color2RGB(fOwner.Font.Color));
+            cBr := $F0F0F0;
           end
-        end else begin
-          SetTextColor(DC, Color2RGB(fOwner.Font.Color));
-          if Enabled then begin
-            if (i = fCurIdx) then begin
-              if fStarted then
-                cBr := fOwner.LVTextBkColor
-              else
-                cBr := clInactiveBorder;
-            end else begin
-              cBr := $F0F0F0;
-            end
-          end;
         end;
-      end else
-        SetTextColor(DC, Color2RGB(fOwner.Font.Color));
-
-      fBr := CreateSolidBrush(Color2RGB(cBr));
-      FillRect(DC, R, fBr);
-      DeleteObject(fBr);
-
-      if not ((ItemIdx = LVCurItem) and (fStarted) and (i = fCurIdx)) then begin
-        S := fOwner.LVItems[ItemIdx, i];
-        dt := DT_END_ELLIPSIS or DT_SINGLELINE or DT_VCENTER or DT_NOPREFIX;
-
-        if (fColOptions.Count <> LVColCount) then
-          DoColAdjust(LVColCount);
-        pEO := fColOptions.Items[i];
-        case pEO.TextAlign of
-          taRight:
-            dt := dt or DT_RIGHT;
-          taCenter:
-            dt := dt or DT_CENTER;
-        end;
-        Dec(R.Right, fShift);
-        Inc(R.Left, fShift);
-        DrawText(DC, @S[1], Length(S), R, dt);
       end;
+    end else
+      SetTextColor(DC, Color2RGB(fOwner.Font.Color));
+
+    fBr := CreateSolidBrush(Color2RGB(cBr));
+    FillRect(DC, R, fBr);
+    DeleteObject(fBr);
+
+    if not ((ItemIdx = fOwner.LVCurItem) and (fStarted) and (i = fCurIdx)) then begin
+      S := fOwner.LVItems[ItemIdx, i];
+      dt := DT_END_ELLIPSIS or DT_SINGLELINE or DT_VCENTER or DT_NOPREFIX;
+
+      if (fColOptions.Count <> fOwner.LVColCount) then
+        DoColAdjust(fOwner.LVColCount);
+      pEO := fColOptions.Items[i];
+      case pEO.TextAlign of
+        taRight:  dt := dt or DT_RIGHT;
+        taCenter: dt := dt or DT_CENTER;
+      end;
+      Dec(R.Right, fShift);
+      Inc(R.Left, fShift);
+      DrawText(DC, @S[1], Length(S), R, dt);
     end;
   end;
   Result := True;
@@ -849,11 +842,12 @@ var
   pEO: PEditorOptions;
 begin
   if (ColCount <> fColOptions.Count) then begin
-    for i := fColOptions.Count - 1 downto 0 do                                  // downto - for what?
-      FreeMem(fColOptions.Items[i]);
-    fColOptions.Clear;
+    //for i := fColOptions.Count - 1 downto 0 do                               // downto - for what?
+    //  FreeMem(fColOptions.Items[i]);
+    //fColOptions.Clear;
+    fColOptions.ReleaseItems;
 
-    for i := 0 to ColCount - 1 do begin
+    for i := 0 to Pred(ColCount) do begin
       New(pEO);
       ZeroMemory(pEO, SizeOf(TEditorOptions));
       pEO.TextAlign := fOwner.LVColAlign[i];
@@ -904,7 +898,7 @@ end;
 procedure TEcmListEdit.InternalStopEdit(const Store: Boolean);
 var
   i:            Integer;
-  newValue:     String;
+  newValue:     KOLString;
   fCellChanged: Boolean;
 begin
   if fStarted then begin
