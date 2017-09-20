@@ -73,8 +73,7 @@ type
   TFindFirstFileExW = function(lpFileName: PWideChar; fInfoLevelId: TFindexInfoLevels;
     lpFindFileData: Pointer; fSearchOp: TFindexSearchOps; lpSearchFilter: Pointer;
     dwAdditionalFlags: DWORD): THandle; stdcall;
-  TFindNextFileW = function( hFindFile: THandle; lpFindFileData: Pointer ):
-    BOOL; stdcall;
+  TFindNextFileW = function( hFindFile: THandle; lpFindFileData: Pointer ): BOOL; stdcall;
 
   POpenDirDialogEx = ^TOpenDirDialogEx;
   TOpenDirDialogEx = object( TObj )
@@ -331,7 +330,7 @@ begin
                   HasSubDirs := TRUE;
                   break;
                 end;
-                if not FindNextFileW( F, Find32W ) then break;
+                if not FFindNextFileW( F, @Find32W ) then break;
             end;
             if not FindClose( F ) then
             {begin
@@ -715,10 +714,10 @@ begin
         if NMCustomDraw.dwDrawStage = CDDS_ITEMPOSTPAINT then
         begin
           i := NMCustomDraw.dwItemSpec;
-          if DirTree.TVItemData[ i ] = nil then // узел еще не проверялся
+          if (DirTree.TVItemData[ i ] = 0) then // узел еще не проверялся
           begin
-            CheckNodeHasChildren( i );          // проверить узел
-            DirTree.TVItemData[ i ] := Pointer( 1 ); // флаг = "проверен"
+            CheckNodeHasChildren( i );    // проверить узел
+            DirTree.TVItemData[ i ] := 1; // флаг = "проверен"
           end;
           Rslt := CDRF_DODEFAULT; // пусть рисует себя сам как обычно
         end
@@ -1027,7 +1026,7 @@ var p, s: KOLString;
     F: THandle;
     {$ENDIF}
     SL: PStrListEx;
-    disk: AnsiChar;
+    disk: KOLChar;
     //test: String;
 begin
   if AppletTerminated or not AppletRunning then Exit;
@@ -1043,15 +1042,16 @@ begin
     TRY
       if node = 0 then
       begin
-        for disk := 'A' to 'Z' do
-        begin
-          case GetDriveTypeA( PAnsiChar( disk + AnsiString(':\') ) ) of
-          DRIVE_FIXED, DRIVE_RAMDISK:   ii := 0;
-          DRIVE_REMOVABLE, DRIVE_CDROM: ii := 1;
-          DRIVE_REMOTE:                 ii := 2;
-          else ii := -1;
+        for disk := 'A' to 'Z' do begin
+          case GetDriveType(PKOLChar(disk + ':\')) of
+            DRIVE_FIXED, DRIVE_RAMDISK:   ii := 0;
+            DRIVE_REMOVABLE, DRIVE_CDROM: ii := 1;
+            DRIVE_REMOTE:                 ii := 2;
+            else
+              ii := -1;
           end;
-          if ii >= 0 then SL.AddObject( disk + AnsiString(':'), ii );
+          if (ii >= 0) then
+            SL.AddObject(disk + ':', ii);
         end;
       end else
       {$IFnDEF DONTTRY_FINDFILEEXW}
@@ -1122,8 +1122,8 @@ begin
               d := 0; break; // есть такая в списке, не удалять
             end;
           if d = 0 then
-            DirTree.TVItemData[ n ] := nil; // сброс флажка "дочерние проверены"
-          n := DirTree.TVItemNext[ n ];     // переход к следующему узлу дерева
+            DirTree.TVItemData[ n ] := 0; // сброс флажка "дочерние проверены"
+          n := DirTree.TVItemNext[ n ];   // переход к следующему узлу дерева
           if d <> 0 then  // удаляется узел несуществуюшей директории
             //DirTree.TVDelete( d );
             DeleteNode( d );
@@ -1132,8 +1132,8 @@ begin
         if  (n <> 0) and
             (AnsiCompareStrNoCase( SL.Items[ i ], DirTree.TVItemText[ n ] ) = 0) then
         begin
-            DirTree.TVItemData[ n ] := nil; // сброс флажка "дочерние проверены"
-            n := DirTree.TVItemNext[ n ];   // переход к следующему узлу дерева
+            DirTree.TVItemData[ n ] := 0; // сброс флажка "дочерние проверены"
+            n := DirTree.TVItemNext[ n ]; // переход к следующему узлу дерева
             continue;
         end;
         // остается случай, когда (новое) имя директории меньше чем имя в

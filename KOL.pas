@@ -230,7 +230,6 @@ unit KOL;
   ESC_CLOSE_DIALOGS     - to allow closing all dialogs with ESCAPE.
   KEY_PREVIEW           - form also receive WM_KEYDOWN (OnKeyDown event fired)
   SUPPORT_ONDEADCHAR    - to support OnKeyDeadChar event in response to WM_DEADCHAR, WM_SYSDEADCHAR
-  OpenSaveDialog_Extended - to allow using custom extensions for OpenSaveDialog.
   AUTO_CONTEXT_HELP     - to use automatic respond to WM_CONTEXTMENU to call context help.
   NOT_FIX_MODAL         - not to fix modal (if fixed, click on any window
                           activates the application. If not fixed, code is
@@ -484,15 +483,15 @@ var
 {$IFNDEF FPC}
 type
 {$IFDEF WIN64}
-  PtrUInt = NativeUInt;
-  PtrInt = NativeInt;
+  PtrUInt  = NativeUInt;
+  PtrInt   = NativeInt;
   PPtrUInt = PNativeUInt;
-  PPtrInt = PNativeInt;
+  PPtrInt  = PNativeInt;
 {$ELSE}
-  PtrUInt = Cardinal;
-  PtrInt = Integer;
+  PtrUInt  = Cardinal;
+  PtrInt   = Integer;
   PPtrUInt = ^Cardinal;
-  PPtrInt = ^Integer;
+  PPtrInt  = ^Integer;
 {$ENDIF}
 {$ENDIF}
 
@@ -508,21 +507,21 @@ const
   SizeOfKOLChar = SizeOf(WideChar);
 
 type
-  KOLString = KOLWideString;
-  KOL_String = type KOLWideString;
-  KOLChar = type WideChar;
-  PKOLChar = PWideChar;
-  PKOL_Char = type PWideChar;
+  KOLString   = KOLWideString;
+  KOL_String  = type KOLWideString;
+  KOLChar     = type WideChar;
+  PKOLChar    = PWideChar;
+  PKOL_Char   = type PWideChar;
 {$ELSE}
 const
   SizeOfKOLChar = SizeOf(AnsiChar);
 
 type
-  KOLString = AnsiString;
-  KOL_String = type AnsiString;
-  KOLChar = type AnsiChar;
-  PKOLChar = PAnsiChar;
-  PKOL_Char = type PAnsiChar;
+  KOLString   = AnsiString;
+  KOL_String  = type AnsiString;
+  KOLChar     = type AnsiChar;
+  PKOLChar    = PAnsiChar;
+  PKOL_Char   = type PAnsiChar;
   {$IFDEF ASM_VERSION}
     {$IFNDEF ASM_NOUNICODE}
       {$DEFINE ASM_UNICODE}
@@ -544,14 +543,10 @@ type
 
 {$IFDEF FPC}
   {$DEFINE interface_part} {$I KOL_FPC.inc} {$UNDEF interface_part}
-  {$INCLUDE delphicommctrl.inc}
+  {$I delphicommctrl.inc}
 {$ELSE}
-  {$INCLUDE delphicommctrl.inc}
-  {$IFDEF UNICODE_CTRLS}
-    {$DEFINE interface_part} {$I KOL_unicode.inc} {$UNDEF interface_part}
-  {$ELSE} // ANSI_CTRLS
-    {$DEFINE interface_part} {$I KOL_ansi.inc} {$UNDEF interface_part}
-  {$ENDIF UNICODE_CTRLS}
+  {$I delphicommctrl.inc}
+  {$I KOL_API.inc.pas}
 {$ENDIF FPC}
 
 type
@@ -1398,52 +1393,48 @@ type
     procedure SetUseBlocks(const Value: Boolean);
     {$ENDIF TLIST_FAST}
     function Get(Idx: integer): Ansistring;
-    function GetTextStr: Ansistring;
     procedure Put(Idx: integer; const Value: Ansistring);
+    function GetTextStr: Ansistring;
     procedure SetTextStr(const Value: Ansistring);
     destructor Destroy; virtual;
-    // by Dod:
-    procedure SetValue(const AName, Value: Ansistring);
     function GetValue(const AName: Ansistring): Ansistring;
-    //dufa
-    function GetValueNoCaseFast(const AName: AnsiString): AnsiString;
-    procedure SetValueNoCaseFast(const AName, Value: AnsiString);
-    function GetValueFast(const AName: AnsiString): AnsiString;
-    procedure SetValueFast(const AName, Value: AnsiString);
+    function GetValueNoCase(const AName: AnsiString): AnsiString;
+    procedure SetValue(const AName, Value: Ansistring);
+    procedure SetValueNoCase(const AName, Value: AnsiString);
   public
-    // by Dod:
-    function IndexOfName(AName: Ansistring): Integer;
-    {* by Dod. Returns index of line starting like Name=... }
-    function IndexOfName_NoCase(AName: Ansistring): Integer;
-    property Values[const AName: Ansistring]: Ansistring read GetValue write SetValue;
-    {* by Dod. Returns right side of a line starting like Name=... }
-    function IndexOfName_NoCaseFast(AName: AnsiString): Integer;
-    function IndexOfName_Fast(AName: AnsiString): Integer;
-    property Values_NocaseFast[const AName: AnsiString]: AnsiString read GetValueNocaseFast write SetValueNoCaseFast;
-    property Values_Fast[const AName: AnsiString]: AnsiString read GetValueFast write SetValueFast;
-    { dufa }
-    function Add(const S: Ansistring): integer;
+    function IndexOfName(const AName: AnsiString): Integer;
+    {* Returns index of line starting like Name=... }
+    function IndexOfName_NoCase(const AName: AnsiString): Integer;
+    {* Returns index of line starting like Name=... (case insensitive) }
+    property Values[const AName: Ansistring]: AnsiString read GetValue write SetValue;
+    {* Returns right side of a line starting like Name=... }
+    property Values_Nocase[const AName: AnsiString]: AnsiString read GetValueNocase write SetValueNoCase;
+    {* Returns right side of a line starting like Name=... (case insensitive) }
+    function Add(const S: Ansistring): Integer;
     {* Adds a string to list. }
+    function AddSorted(const S: Ansistring): Integer;
+    {* Adds a string to sorted list. }
     procedure AddStrings(Strings: PStrList);
-    {* Merges string list with given one. Very fast - more preferable to
-       use than any loop with calling Add method. }
+    {* Merges string list with given one. Very fast - more preferable to use than any loop with calling Add method. }
     procedure Assign(Strings: PStrList);
     {* Fills string list with strings from other one. The same as AddStrings, but Clear is called first. }
     procedure Clear;
     {* Makes string list empty. }
     procedure Delete(Idx: integer);
     {* Deletes string with given index (it *must* exist). }
-    procedure Remove(Value: AnsiString);//dufa
+    procedure Remove(Value: AnsiString);
     {* Removes first entry of a Value in the list. }
-    procedure RemoveNoCase(Value: AnsiString);//dufa
+    procedure RemoveNoCase(Value: AnsiString);
     {* Removes first entry of a Value in the list. }
     procedure RemoveByName(AName: Ansistring);
     {* Removes first entry of a line starting like "AName=" in the list. }
     procedure DeleteLast;
     {* Deletes the last string (it *must* exist). }
-    function IndexOf(const S: AnsiString): integer;
+    function IndexOf(const S: AnsiString): Integer;
+    function IndexOf_Fast(const S: AnsiString): Integer;
     {* Returns index of first string, equal to given one. }
-    function IndexOf_NoCase(const S: Ansistring): integer;
+    function IndexOf_NoCase(const S: Ansistring): Integer;
+    function IndexOf_Fast_NoCase(const S: AnsiString): Integer;
     {* Returns index of first string, equal to given one (while comparing it
        without case sensitivity). }
     function IndexOfStrL_NoCase( Str: PAnsiChar; L: Integer ): integer;
@@ -1477,7 +1468,7 @@ type
     property Items[Idx: integer]: Ansistring read Get write Put; default;
     {* Strings array items. If item does not exist, empty string is returned.
        But for assign to property, string with given index *must* exist. }
-    property ItemPtrs[ Idx: Integer ]: PAnsiChar read GetPChars;
+    property ItemPtrs[Idx: Integer]: PAnsiChar read GetPChars;
     {* Fast access to item strings as PChars. }
     function Last: AnsiString;
     {* Last item (or '', if string list is empty). }
@@ -1491,6 +1482,10 @@ type
     {* Call it to sort ANSI string list. }
     procedure SortEx(const CompareFun: TCompareEvent);
     {* Call it to sort via your own compare procedure. Dufa }
+    property IsAnsiSorted: Boolean read fAnsiSort write fAnsiSort;
+    {* TODO DESC }
+    property IsCaseSensitiveSorted: Boolean read fCaseSensitiveSort write fCaseSensitiveSort;
+    {* TODO DESC }
   protected // by Alexander Pravdin:
     fNameDelim: AnsiChar;
     function GetLineName( Idx: Integer ): AnsiString;
@@ -1548,7 +1543,7 @@ type
     {* For Matrix-Items access, like IndexOf. dufa}
     function IsEmpty: Boolean;
     {* Is list empty? dufa }
-    function GetRandomItem: String;
+    function GetRandomItem: AnsiString;
     {* Get random item. dufa }
     procedure ItemFirst;
     {* Select first item - ItemIndex = 0, Dufa }
@@ -2463,10 +2458,9 @@ var
        when rotated fonts are used only (to take into consideration
        Font.Orientation property in TextArea method). }
 
-{ ------------------------------ Image list object --------------------------- }
+// ------------------------------ Image list object --------------------------- 
 type
-  TImageListColors = (ilcColor,ilcColor4,ilcColor8,ilcColor16,
-                      ilcColor24,ilcColor32,ilcColorDDB,ilcDefault);
+  TImageListColors = (ilcColor,ilcColor4,ilcColor8,ilcColor16,ilcColor24,ilcColor32,ilcColorDDB,ilcDefault);
   {* ImageList color schemes available. }
   TDrawingStyles = ( dsBlend25, dsBlend50, dsMask, dsTransparent );
   {* ImageList drawing styles available. }
@@ -2478,9 +2472,7 @@ type
   {* }
   TImgLOVrlayIdx = 1..15;
 
-{ ---------------------------------------------------------------------
-                TImageList - images container
------------------------------------------------------------------------ }
+// ------------------------------ TImageList - images container ------------------------------
   TImageList = object( TObj )
   private
     fOverlayIdx: Integer;
@@ -2593,8 +2585,6 @@ type
     property OverlayIdx: Integer read fOverlayIdx write fOverlayIdx;
     {* Set this value to 1..15 to draw images overlaid (using Draw or DrawEx). }
   end;
-	
-  HImageList = THandle;
 
 const
   CLR_NONE                = $FFFFFFFF;
@@ -2623,56 +2613,14 @@ const
   ILD_BLEND               = ILD_BLEND50;
   CLR_HILIGHT             = CLR_DEFAULT;
 
-function ImageList_Create(CX, CY: Integer; Flags: UINT; Initial, Grow: Integer): HImageList; stdcall;
-function ImageList_Destroy(ImageList: HImageList): Bool; stdcall;
-function ImageList_GetImageCount(ImageList: HImageList): Integer; stdcall;
-function ImageList_SetImageCount(ImageList: HImageList; Count: Integer): Integer; stdcall;
-function ImageList_Add(ImageList: HImageList; Image, Mask: HBitmap): Integer; stdcall;
-function ImageList_ReplaceIcon(ImageList: HImageList; Index: Integer; Icon: HIcon): Integer; stdcall;
-function ImageList_SetBkColor(ImageList: HImageList; ClrBk: TColorRef): TColorRef; stdcall;
-function ImageList_GetBkColor(ImageList: HImageList): TColorRef; stdcall;
-function ImageList_SetOverlayImage(ImageList: HImageList; Image: Integer; Overlay: Integer): Bool; stdcall;
-function ImageList_AddIcon(ImageList: HImageList; Icon: HIcon): Integer;
 function Index2OverlayMask(Index: Integer): Integer;
-function ImageList_Draw(ImageList: HImageList; Index: Integer; Dest: HDC; X, Y: Integer; Style: UINT): Bool; stdcall;
-function ImageList_Replace(ImageList: HImageList; Index: Integer; Image, Mask: HBitmap): Bool; stdcall;
-function ImageList_AddMasked(ImageList: HImageList; Image: HBitmap; Mask: TColorRef): Integer; stdcall;
-function ImageList_DrawEx(ImageList: HImageList; Index: Integer; Dest: HDC; X, Y, DX, DY: Integer; Bk, Fg: TColorRef; Style: Cardinal): Bool; stdcall;
-function ImageList_Remove(ImageList: HImageList; Index: Integer): Bool; stdcall;
-function ImageList_GetIcon(ImageList: HImageList; Index: Integer; Flags: Cardinal): HIcon; stdcall;
 
-{$IFDEF UNICODE_CTRLS}
-function ImageList_LoadImage(Instance: HINST; Bmp: PWideChar; CX, Grow: Integer; Mask: TColorRef; pType, Flags: Cardinal): HImageList; stdcall;
-{$ELSE}
-function ImageList_LoadImage(Instance: HINST; Bmp: PAnsiChar; CX, Grow: Integer; Mask: TColorRef; pType, Flags: Cardinal): HImageList; stdcall;
-{$ENDIF}
-function ImageList_BeginDrag(ImageList: HImageList; Track: Integer; XHotSpot, YHotSpot: Integer): Bool; stdcall;
-function ImageList_EndDrag: Bool; stdcall;
-function ImageList_DragEnter(LockWnd: HWnd; X, Y: Integer): Bool; stdcall;
-function ImageList_DragLeave(LockWnd: HWnd): Bool; stdcall;
-function ImageList_DragMove(X, Y: Integer): Bool; stdcall;
-function ImageList_SetDragCursorImage(ImageList: HImageList; Drag: Integer; XHotSpot, YHotSpot: Integer): Bool; stdcall;
-function ImageList_DragShowNolock(Show: Bool): Bool; stdcall;
-function ImageList_GetDragImage(Point, HotSpot: PPoint): HImageList; stdcall;
 { macros }
+function ImageList_AddIcon(ImageList: HImageList; Icon: HIcon): Integer;
 procedure ImageList_RemoveAll(ImageList: HImageList); stdcall;
 function ImageList_ExtractIcon(Instance: HINST; ImageList: HImageList; Image: Integer): HIcon; stdcall;
 function ImageList_LoadBitmap(Instance: HINST; Bmp: PKOLChar; CX, Grow: Integer; MasK: TColorRef): HImageList; stdcall;
 
-type
-  PImageInfo = ^TImageInfo;
-  TImageInfo = {packed} record
-    hbmImage: HBitmap;
-    hbmMask: HBitmap;
-    Unused1: Integer;
-    Unused2: Integer;
-    rcImage: TRect;
-  end;
-
-function ImageList_GetIconSize(ImageList: HImageList; var CX, CY: Integer): Bool; stdcall;
-function ImageList_SetIconSize(ImageList: HImageList; CX, CY: Integer): Bool; stdcall;
-function ImageList_GetImageInfo(ImageList: HImageList; Index: Integer; var ImageInfo: TImageInfo): Bool; stdcall;
-function ImageList_Merge(ImageList1: HImageList; Index1: Integer; ImageList2: HImageList; Index2: Integer; DX, DY: Integer): HImageList; stdcall;
 function LoadBmp( Instance: HINST; Rsrc: PKOLChar; MasterObj: PObj ): HBitmap;
 function LoadBmp32( Instance: HINST; Rsrc: PKOLChar; MasterObj: PObj ): HBitmap;
 
@@ -2993,8 +2941,7 @@ function CalcScanLineSize( Header: PBitmapInfoHeader ): Integer;
 var
   DefaultPixelFormat: TPixelFormat = pf32bit; //pf16bit;
 
-function LoadMappedBitmap( hInst: HINST; BmpResID: Integer; const Map: array of TColor )
-         : HBitmap;
+function LoadMappedBitmap(hInst: HINST; BmpResID: Integer; const Map: array of TColor): HBitmap;
 {* This function can be used to load bitmap and replace some it colors to
    desired ones. This function especially useful when loaded by the such way
    bitmap is used as toolbar bitmap - to replace some original colors to
@@ -3003,28 +2950,20 @@ function LoadMappedBitmap( hInst: HINST; BmpResID: Integer; const Map: array of 
    create a new 16-color bitmap with needed dimensions in Borland Image Editor
    and paste a bitmap image, copied in another graphic tool, and then save it.
    If this is not done, bitmap will not be loaded correctly! }
-function LoadMappedBitmapEx( MasterObj: PObj; hInst: THandle; BmpResName: PKOLChar;
-         const Map: array of TColor ): HBitmap;
+function LoadMappedBitmapEx(MasterObj: PObj; hInst: THandle; BmpResName: PKOLChar;
+  const Map: array of TColor ): HBitmap;
 {* by Alex Pravdin: like LoadMappedBitmap, but much powerful. It uses
    CreateMappedBitmapEx, so it understands any bitmap color format, including
    pf24bit. Also, LoadMappedBitmapEx provides auto-destroying loaded resource
    when MasterObj is destroyed. }
-function CreateMappedBitmap(Instance: HINST; Bitmap: PtrInt;
-  Flags: UINT; ColorMap: PColorMap; NumMaps: Integer): HBitmap; stdcall;
-{* Creates mapped bitmap replacing colors correspondently to the
-   ColorMap (each pare of colors defines color replaced and a color
-   used for replace it in the bitmap). See also CreateMappedBitmapEx. }
-function CreateMappedBitmapEx(Instance: HINST; BmpRsrcName: PKOLChar; Flags:
-  Cardinal; ColorMap: PColorMap; NumMaps: Integer): HBitmap;
+function CreateMappedBitmapEx(Instance: HINST; BmpRsrcName: PKOLChar; Flags: DWORD;
+  ColorMap: PColorMap; NumMaps: Integer): HBitmap;
 {* By Alex Pravdin.
 Creates mapped bitmap independently from bitmap color format (works
 correctly with bitmaps having format deeper than 8bit per pixel). }
 type
   PIcon = ^TIcon;
-{ ----------------------------------------------------------------------
-                          TIcon - icon image
------------------------------------------------------------------------ }
-  TIcon = object( TObj )
+  TIcon = object(TObj) // ---------- TIcon - icon image ----------
   {* Object type to encapsulate icon or cursor image. }
   protected
     {$IFDEF ICON_DIFF_WH}
@@ -3224,21 +3163,21 @@ const
 
 
 const
-  ID_SELF: array[ 0..5 ] of KOLChar = ( 'S','E','L','F','_',#0 );
+  ID_SELF:      array[ 0..5 ] of KOLChar = ('S','E','L','F','_',#0 );
   {* Identifier for window property "Self", stored directly in window, when
      it is created. This property is used to [fast] find TControl object,
      correspondent to given window handle (using API call GetProp). }
 
-  ID_PREVPROC: array[ 0..9 ] of KOLChar = ( 'P','R','E','V','_','P','R','O','C',#0 );
+  ID_PREVPROC:  array[ 0..9 ] of KOLChar = ('P','R','E','V','_','P','R','O','C',#0 );
   {$IFNDEF USE_FLAGS}
-  RADIO_LAST: array[ 0..7 ] of KOLChar = ( 'R','A','D','_','L','S','T',#0 );
-  RADIO_1ST: array[ 0..7 ] of KOLChar = ( 'R','A','D','_','1','S','T',#0 );
+  RADIO_LAST:   array[ 0..7 ] of KOLChar = ('R','A','D','_','L','S','T',#0 );
+  RADIO_1ST:    array[ 0..7 ] of KOLChar = ('R','A','D','_','1','S','T',#0 );
   {$ENDIF}
-  MIN_WND: array[ 0..7 ] of KOLChar = ( 'M','I','N','_','W','N','D',#0 );
-  DFLT_BTN: array[ 0..7 ] of KOLChar = ( 'D','F','L','T','_','B','T',#0 );
-  CNCL_BTN: array[ 0..7 ] of KOLChar = ( 'C','N','C','L','_','B','T',#0 );
-  DRAG_XY: array[ 0..7 ] of KOLChar = ( 'D','R','A','G','_','X','Y',#0 );
-  MDI_CHLDRN: array[ 0..10 ] of KOLChar = ( 'M','D','I','_','C','H','L','D','R','N',#0 );
+  MIN_WND:      array[ 0..7 ] of KOLChar = ('M','I','N','_','W','N','D',#0 );
+  DFLT_BTN:     array[ 0..7 ] of KOLChar = ('D','F','L','T','_','B','T',#0 );
+  CNCL_BTN:     array[ 0..7 ] of KOLChar = ('C','N','C','L','_','B','T',#0 );
+  DRAG_XY:      array[ 0..7 ] of KOLChar = ('D','R','A','G','_','X','Y',#0 );
+  MDI_CHLDRN:   array[0..10 ] of KOLChar = ('M','D','I','_','C','H','L','D','R','N',#0 );
 
 
 const
@@ -3608,17 +3547,14 @@ type
   TOnTVEndEdit = function( Sender: PControl; Item: THandle; const NewTxt: KOL_String )
                : Boolean of object;
   {* Event type for TOnTVEndEdit event. }
-  TOnTVExpanding = function( Sender: PControl; Item: THandle; Expand: Boolean )
-                 : Boolean of object;
+  TOnTVExpanding = function( Sender: PControl; Item: THandle; Expand: Boolean ): Boolean of object;
   {* Event type for TOnTVExpanding event. }
-  TOnTVExpanded = procedure( Sender: PControl; Item: THandle; Expand: Boolean )
-                of object;
+  TOnTVExpanded = procedure( Sender: PControl; Item: THandle; Expand: Boolean ) of object;
   {* Event type for OnTVExpanded event. }
   TOnTVDelete = procedure( Sender: PControl; Item: THandle ) of object;
   {* Event type for OnTVDelete event. }
   //--------- by Sergey Shisminzev :
-  TOnTVSelChanging = function(Sender: PControl; oldItem, newItem: THandle): Boolean  //~ss
-                  of object;
+  TOnTVSelChanging = function(Sender: PControl; oldItem, newItem: THandle): Boolean of object;
   {* When the handler returns False, selection is not changed. }
   //-------------------------------
   TOnDrag = function( Sender: PControl; ScrX, ScrY: Integer; var CursorShape: Integer;
@@ -3636,7 +3572,7 @@ type
 
   TCreateParams = {packed} record
   {* Record to pass it through CreateSubClass method. }
-	Caption: PKOLChar;
+    Caption: PKOLChar;
     Style: cardinal;
     ExStyle: cardinal;
     X, Y: Integer;
@@ -4766,18 +4702,16 @@ type
     function TVGetItemVisible(Item: THandle): Boolean;
     procedure TVSetITemVisible(Item: THandle; const Value: Boolean);
     function TVGetItemStateFlg(Item: THandle; const Index: Integer): Boolean;
-    procedure TVSetItemStateFlg(Item: THandle; const Index: Integer;
-      const Value: Boolean);
+    procedure TVSetItemStateFlg(Item: THandle; const Index: Integer; const Value: Boolean);
     function TVGetItemImage(Item: THandle; const Index: Integer): Integer;
-    procedure TVSetItemImage(Item: THandle; const Index: Integer;
-      const Value: Integer);
+    procedure TVSetItemImage(Item: THandle; const Index: Integer; const Value: Integer);
     function TVGetItemText(Item: THandle): KOLString;
     procedure TVSetItemText(Item: THandle; const Value: KOLString);
     function TV_GetItemHasChildren(Item: THandle): Boolean;
     procedure TV_SetItemHasChildren(Item: THandle; const Value: Boolean);
     function TV_GetItemChildCount(Item: THandle): Integer;
-    function TVGetItemData(Item: THandle): Pointer;
-    procedure TVSetItemData(Item: THandle; const Value: Pointer);
+    function TVGetItemData(Item: THandle): LPARAM;
+    procedure TVSetItemData(Item: THandle; const Value: LPARAM);
     function GetToBeVisible: Boolean;
     procedure SetAlphaBlend(const Value: Byte);
     procedure SetMaxProgress(const Index, Value: Integer);
@@ -6748,8 +6682,7 @@ type
        in lvsDetail or lvsDetailNoHeader style. Empty rectangle (0,0,0,0) is
        returned if the item is not viewing currently. Left or/and right bounds
        of the rectangle returned can be outbound item rectangle if only a part
-       of the subitem is visible or the subitem is not visible in the item,
-       which is visible itself. }
+       of the subitem is visible or the subitem is not visible in the item, which is visible itself. }
     property LVItemPos[ Idx: Integer ]: TPoint read LVGetItemPos write LVSetItemPos;
     {* |<#listview>
        Position of List View item (can be changed in icon or small icon view). }
@@ -6759,8 +6692,7 @@ type
     function LVItemAtPosEx( X, Y: Integer; var Where: TWherePosLVItem ): Integer;
     {* |<#listview>
        Retrieves index of item and sets in Where, what part of item is under
-       given coordinates. If there are no items at the specified position,
-       -1 is returned. }
+       given coordinates. If there are no items at the specified position, -1 is returned. }
     function LVSubItemAtPos(X, Y: Integer): Integer;
     {* |<#listview>
        Return index of subitem at the given position.dufa }
@@ -6802,25 +6734,22 @@ type
        Returns index of topmost visible item of ListView in lvsList view style. }
     property LVPerPage: Integer index LVM_GETCOUNTPERPAGE read GetIntVal; //LVGetPerPage;
     {* |<#listview>
-       Returns the number of fully-visible items if successful. If the current
-       view is icon or small icon view, the return value is the total number
-       of items in the list view control. }
+       Returns the number of fully-visible items if successful. If the current view is icon or
+       small icon view, the return value is the total number of items in the list view control. }
     //======== List View specific events:
     property OnEndEditLVItem: TOnEditLVItem
              read {$IFDEF EVENTS_DYNAMIC} Get_OnEndEditLVItem {$ELSE} EV.fOnEndEditLVItem {$ENDIF}
              write SetOnEndEditLVItem;
     {* |<#listview>
-       Called when edit of an item label in ListView control finished. Return
-       True to accept new label text, or false - to not accept it (item label
-       will not be changed). If handler not set to an event, all changes are
-       accepted. }
+       Called when edit of an item label in ListView control finished. Return True to accept
+       new label text, or false - to not accept it (item label will not be changed).
+       If handler not set to an event, all changes are accepted. }
     property OnLVDelete: TOnDeleteLVItem
              read {$IFDEF EVENTS_DYNAMIC} Get_OnDeleteLVItem {$ELSE} EV.fOnDeleteLVItem {$ENDIF}
              write SetOnDeleteLVItem;
     {* |<#listview>
        This event is called when an item is deleted in the listview.
-       Do not add, delete, or rearrange items in the list view while processing
-       this notification. }
+       Do not add, delete, or rearrange items in the list view while processing this notification. }
     property OnDeleteLVItem: TOnDeleteLVItem
              read {$IFDEF EVENTS_DYNAMIC} Get_OnDeleteLVItem {$ELSE} EV.fOnDeleteLVItem {$ENDIF}
              write SetOnDeleteLVItem;
@@ -6832,8 +6761,7 @@ type
        returning from this event handler event OnDeleteLVItem is yet assigned,
        an event OnDeleteLVItem will be called for every deleted item. }
     property OnLVData: TOnLVData
-             read {$IFDEF EVENTS_DYNAMIC} Get_OnLVData {$ELSE} EV.fOnLVData {$ENDIF}
-             write SetOnLVData;
+        read {$IFDEF EVENTS_DYNAMIC} Get_OnLVData {$ELSE} EV.fOnLVData {$ENDIF} write SetOnLVData;
     {* |<#listview>
        Called to provide virtual list view with actual data. To use list view as
        virtual list view, define also lvsOwnerData style and set Count property
@@ -6848,8 +6776,7 @@ type
        LVSort method call). Do not send any messages to the list view control
        while it is sorting - results can be unpredictable! }
     property OnColumnClick: TOnLVColumnClick
-             read {$IFDEF EVENTS_DYNAMIC} Get_OnColumnClick {$ELSE} EV.fOnColumnClick {$ENDIF}
-             write SetOnColumnClick;
+      read {$IFDEF EVENTS_DYNAMIC} Get_OnColumnClick {$ELSE} EV.fOnColumnClick {$ENDIF} write SetOnColumnClick;
     {* |<#listview>
        This event handler is called when column of the list view control is clicked.
        You can use this event to initiate sorting of list view items by this column. }
@@ -6860,18 +6787,14 @@ type
        This event occurs when an item or items range in list view control are
        changing its state (e.g. selected or unselected). }
     property OnDrawItem: TOnDrawItem
-             read {$IFDEF EVENTS_DYNAMIC} Get_OnDrawItem {$ELSE} EV.fOnDrawItem {$ENDIF}
-             write SetOnDrawItem;
-    {* |<#listview>
-       |<#listbox>
-       |<#combo>
+      read {$IFDEF EVENTS_DYNAMIC} Get_OnDrawItem {$ELSE} EV.fOnDrawItem {$ENDIF} write SetOnDrawItem;
+    {* |<#listview> <#listbox> <#combo>
        This event can be used to implement custom drawing for list view, list box, dropped
        list of a combobox. For a list view, custom drawing using this event is possible
        only in lvsDetail and lvsDetailNoHeader styles, and OnDrawItem is called to draw
        entire row at once only. See also OnLVCustomDraw event. }
     property OnLVCustomDraw: TOnLVCustomDraw
-             read {$IFDEF EVENTS_DYNAMIC} Get_OnLVCustomDraw {$ELSE} EV.FOnLVCustomDraw {$ENDIF}
-             write SetOnLVCustomDraw;
+      read {$IFDEF EVENTS_DYNAMIC} Get_OnLVCustomDraw {$ELSE} EV.FOnLVCustomDraw {$ENDIF} write SetOnLVCustomDraw;
     {* |<#listview>
        Custom draw event for listview. For every item to be drawn, this event
        can be called several times during a single drawing cycle - depending on
@@ -6918,18 +6841,12 @@ type
        the application for each subitem to be drawn in the listview and only
        notifications will be sent about entire items.
        |<br>
-       See also NM_CUSTOMDRAW in API Help.
-    }
-    property OnLVSubitemDraw: TOnLVSubitemDraw
-             read Get_OnLVSubitemDraw
-             write SetOnLVSubitemDraw;
-
+       See also NM_CUSTOMDRAW in API Help. }
+    property OnLVSubitemDraw: TOnLVSubitemDraw read Get_OnLVSubitemDraw write SetOnLVSubitemDraw;
     procedure Set_LVItemHeight(Value: Integer);
     function SetLVItemHeight(Value: Integer): PControl;
     property LVItemHeight: Integer read DF.fLVItemHeight write Set_LVItemHeight;
-    {* |<#listview>
-       |<#listbox>
-       |#combo>
+    {* |<#listview> <#listbox> #<combo>
        It is possible to assign a value to LVItemHeight property only to
        control with "owner-draw" style (lvoOwnerDrawFixed for listview,
        loOwnerDrawFixed or loOwnerDrawVariable for listbox and
@@ -6944,17 +6861,16 @@ type
        inserted at the root of tree view. It is possible to pass following special
        values as nAfter parameter:
        |<pre>
-       TVI_FIRST        Inserts the item at the beginning of the list.
-       TVI_LAST	        Inserts the item at the end of the list.
-       TVI_SORT	        Inserts the item into the list in alphabetical order.
+       TVI_FIRST       Inserts the item at the beginning of the list.
+       TVI_LAST        Inserts the item at the end of the list.
+       TVI_SORT        Inserts the item into the list in alphabetical order.
        |</pre> }
-    function TVItemInsert(nParent, nAfter: THandle; const Txt: KOLString; iImage, iSelImage: Integer; pItemData: Pointer): THandle;
+    function TVItemInsert(nParent, nAfter: THandle; const Txt: KOLString; iImage, iSelImage: Integer; iItemData: LPARAM): THandle;
     {* |<#treeview>
        TVInsert + set images + set ItemData. dufa}
     procedure TVDelete( Item: THandle );
     {* |<#treeview>
-       Removes an item from the tree view. If value TVI_ROOT is passed, all items
-       are removed. }
+       Removes an item from the tree view. If value TVI_ROOT is passed, all items are removed. }
     property TVSelected: THandle index TVGN_CARET read TVGetItemIdx write TVSetItemIdx;
     {* |<#treeview>
        Returns or sets currently selected item handle in tree view. }
@@ -6986,8 +6902,7 @@ type
        subnodes added to the node yet. }
     property TVItemChildCount[ Item: THandle ]: Integer read TV_GetItemChildCount;
     {* |<#treeview>
-       Returns number of node child items in tree view.
-    }
+       Returns number of node child items in tree view. }
     property TVItemNext[ Item: THandle ]: THandle index TVGN_NEXT read TVGetItemNext;
     {* |<#treeview>
        Returns next sibling item handle for given one (or 0, if passed item is
@@ -7013,10 +6928,9 @@ type
        Returns full path from the root item to given item. Path is calculated
        as a concatenation of all parent nodes text strings, separated by
        given delimiter character.
-       |<br>Please note, that returned path has no trailing delimiter, this
-       character is only separating different parts of the path.
-       |<br>If Item is not specified ( =0 ), path is returned
-       for Selected item. }
+       Please note, that returned path has no trailing delimiter, this character is only separating
+        different parts of the path.
+       If Item is not specified ( =0 ), path is returned for Selected item. }
     property TVItemRect[ Item: THandle; TextOnly: Boolean ]: TRect read TVGetItemRect;
     {* |<#treeview>
        Returns rectangle, occupied by an item in tree view. }
@@ -7032,7 +6946,6 @@ type
        Variable Where receives additional flags combination, describing more
        detailed, on which part of item or tree view given point is located,
        such as:
-       |<pre>
        TVHT_ABOVE              Above the client area
        TVHT_BELOW              Below the client area
        TVHT_NOWHERE            In the client area, but below the last item
@@ -7044,8 +6957,7 @@ type
        TVHT_ONITEMRIGHT        In the area to the right of an item
        TVHT_ONITEMSTATEICON    On the state icon for a tree-view item that is in a user-defined state
        TVHT_TOLEFT             To the right of the client area
-       TVHT_TORIGHT            To the left of the client area
-       |</pre> }
+       TVHT_TORIGHT            To the left of the client area }
     property TVRightClickSelect: Boolean read DF.fTVRightClickSelect write SetTVRightClickSelect;
     {* |<#treeview>  Set this property to True to allow change selection to an item, clicked with right mouse button. }
     property TVEditing: Boolean read GetTVEditing;
@@ -7066,19 +6978,15 @@ type
     {* |<#treeview>  True, if item is selected. }
     procedure TVExpand( Item: THandle; Flags: DWORD );
     {* |<#treeview>
-       Call it to expand/collapse item's child nodes. Possible values for Flags
-       parameter are:
-       <pre>
-       TVE_COLLAPSE         Collapses the list.
-       TVE_COLLAPSERESET    Collapses the list and removes the child items. Note
+       Call it to expand/collapse item's child nodes. Possible values for Flags parameter are:
+       TVE_COLLAPSE      - Collapses the list.
+       TVE_COLLAPSERESET - Collapses the list and removes the child items. Note
                             that TVE_COLLAPSE must also be specified.
-       TVE_EXPAND	    Expands the list.
-       TVE_TOGGLE	    Collapses the list if it is currently expanded or
-                            expands it if it is currently collapsed.
-       </pre> }
+       TVE_EXPAND        - Expands the list.
+       TVE_TOGGLE        - Collapses the list if it is currently expanded or expands if collapsed. }
     procedure TVSort( N: THandle );
     {* |<#treeview>  By Alex Mokrov. Sorts treeview. If N = 0, entire treeview is sorted.  Otherwise, children of the given node only. }
-    function TVSortChildrenCB(hParent: THandle; const aSort: TCompareEvent; recurse: Integer): BOOL;
+    function TVSortChildrenCB(hParent: THandle; const aSort: TCompareEvent; fRecurse: Integer): BOOL;
     {* |<#treeview>  Sorts tree-view items using an application-defined callback function that compares the items. dufa. }
     property TVItemImage[ Item: THandle ]: Integer index TVIF_IMAGE read TVGetItemImage write TVSetItemImage;
     {* |<#treeview>  Image index for an item of tree view. To tell that there are no image set, use index -2 (value -1 is reserved for callback image). }
@@ -7090,7 +6998,7 @@ type
     {* |<#treeview>
        State image index for an item in tree view. Use 1-based index of the image
        in image list ImageListState. Value 0 reserved to use as "no state image". }
-    property TVItemData[ Item: THandle ]: Pointer read TVGetItemData write TVSetItemData;
+    property TVItemData[Item: THandle]: LPARAM read TVGetItemData write TVSetItemData;
     {* |<#treeview>  Stores any program-defined pointer with the item. }
     procedure TVEditItem( Item: THandle );
     {* |<#treeview>  Begins editing given item label in tree view. }
@@ -7147,17 +7055,14 @@ type
        call defined in KOL function LoadMappedBitmap to do the same more easy.
        Unfortunately, resource identifier for bitmap to pass it to LoadMappedBitmap
        or to CreateMappedBitmap seems must be integer, so it is necessary to
-       create rc-file manually and compile using Borland Resource Compiler to
-       figure it out. }
-    function TBAddButtons( const Buttons: array of PKOLChar;
-             const BtnImgIdxArray: array of Integer ): Integer;
+       create rc-file manually and compile using Borland Resource Compiler to figure it out. }
+    function TBAddButtons( const Buttons: array of PKOLChar; const BtnImgIdxArray: array of Integer ): Integer;
     {* |<#toolbar>
-       Adds buttons to toolbar. Last string in Buttons array *must* be empty
-       ('' or nil), so to add buttons without text, pass ' ' string (one space
-       char). It is not necessary to provide image indexes for all
-       buttons (it is sufficient to assign index for first button only).
-       But in place, correspondent to separator button (defined by string '-'),
-       any integer must be passed to assign follow image indexes correctly. See example.
+       Adds buttons to toolbar. Last string in Buttons array *must* be empty ('' or nil),
+       so to add buttons without text, pass ' ' string (one space char). It is not necessary to
+       provide image indexes for all buttons (it is sufficient to assign index for first button only).
+       But in place, correspondent to separator button (defined by string '-'), any integer must be
+       passed to assign follow image indexes correctly. See example.
        |*Toolbar adding buttons sample.
        Code below shows how to call TBAddButtons method to add two buttons with
        a separator between these buttons. idxNew and idxOld are integer
@@ -7166,9 +7071,8 @@ type
        in creating toolbar by call of NewToolbar or later in call of TBAddBitmap).
        !     TBAddButtons( [ '&New', '-', '&Old', '' ], [ idxNew, 0, idxOld ] );
        |*
-       To add check buttons, use prefix '+' or '-' in button definition
-       string. If next character is '!', such buttons are grouped to a
-       radio-group. Also, it is possible to use '^' prefix (must be first) to
+       To add check buttons, use prefix '+' or '-' in button definition string. If next character
+       is '!', such buttons are grouped to a radio-group. Also, it is possible to use '^' prefix (must be first) to
        define button with small drop-down section (use also OnTBDropDown event
        to respond to clicking drop down section of such buttons).
        This function returns command id for first added button (other
@@ -7433,9 +7337,7 @@ type
        control only - in such case only given control and its children will
        be resizing without flicks (e.g., using splitter control). } //{-2.95}
     property Checked: Boolean read GetChecked write Set_Checked;
-    {* |<#checkbox>
-       |<#radiobox>
-       |<#bitbtn>
+    {* |<#checkbox> <#radiobox> <#bitbtn>
        For checkbox and radiobox - if it is checked. Do not assign
        value for radiobox - use SetRadioChecked instead. }
     function SetChecked(const Value: Boolean): PControl;
@@ -7452,9 +7354,7 @@ type
     {* |<#checkbox>
        State of checkbox with BS_AUTO3STATE style. }
     procedure Click;
-    {* |<#button>
-       |<#checkbox>
-       |<#radiobox>
+    {* |<#button> <#checkbox> <#radiobox>
        Emulates click on control programmatically, sending WM_COMMAND
        message with BN_CLICKED code. This method is sensible only for
        buttons, checkboxes and radioboxes. }
@@ -7479,8 +7379,7 @@ type
     procedure DetachProc( Proc: TWindowFunc );
     {* Detaches procedure attached earlier using AttachProc. }
     property OnDropFiles: TOnDropFiles
-             read {$IFDEF EVENTS_DYNAMIC} Get_OnDropFiles {$ELSE} EV.FOnDropFiles {$ENDIF}
-             write SetOnDropFiles;
+      read {$IFDEF EVENTS_DYNAMIC} Get_OnDropFiles {$ELSE} EV.FOnDropFiles {$ENDIF} write SetOnDropFiles;
     {* Assign this event to your handler, if You want to accept drag and drop
        files from other applications such as explorer onto your control. When
        this event is assigned to a control or form, this has effect also for
@@ -7498,8 +7397,7 @@ type
     {* This method provides supporting mnemonic keys in menus, buttons, checkboxes,
        toolbar buttons. }
     property OnScroll: TOnScroll
-             read {$IFDEF EVENTS_DYNAMIC} Get_OnScroll {$ELSE} EV.FOnScroll {$ENDIF}
-             write SetOnScroll;
+      read {$IFDEF EVENTS_DYNAMIC} Get_OnScroll {$ELSE} EV.FOnScroll {$ENDIF} write SetOnScroll;
     {* }
   public
     {$IFDEF USE_DROPDOWNCOUNT}
@@ -7649,8 +7547,7 @@ type
        By default, this property is raSelection. Changing it, You determine in
        for which area characters format is applied, when changing
        character formatting properties below (not paragraph formatting).
-       |&A=<a href=#RE_CharFmtArea target=main>%0</a>
-    }
+       |&A=<a href=#RE_CharFmtArea target=main>%0</a> }
     property RE_CharFormat: TCharFormat read REGetCharformat write RESetCharFormat;
     {* |<#richedit>
        In differ to follow properties, which allow to control certain formatting
@@ -7723,7 +7620,6 @@ type
     {* |<#richedit>
        Returns True, if the first selected character is a part of link (URL). }
        // by Sergey Shisminzev
-
     property RE_FmtLinkValid: Boolean index $20 {CFM_LINK} read REGetFontMask;
     {* }
     property RE_FmtFontSize: Integer index (12 shl 16) or CFM_SIZE read REGetFontAttr write RESetFontAttr;
@@ -7920,7 +7816,6 @@ type
        True, if current paragraph is a part of table (row, cell or cell end).
        seems working as read only property. }
     // end of experiment section
-
     function RE_FmtStandard: PControl;
     {* |<#richedit>
        "Transparent" method (returns @Self as a result), which (when called)
@@ -7977,8 +7872,7 @@ type
        !        RichEd1.SelectAll;
        !        RichEd1.RE_Font := RichEd1.RE_Font;
        !        RichEd1.RE_Font.FontName := 'Arial';
-       !        RichEd1.SelLength := 0;
-    }
+       !        RichEd1.SelLength := 0; }
     procedure RE_CancelFmtStandard;
     {* Cancels RE_FmtStandard (detaching window procedure handler). }
     property RE_AutoKeyboard: Boolean index 1 read REGetLangOptions write RESetLangOptions;
@@ -8079,8 +7973,7 @@ type
        during RE_SaveToFile, RE_LoadFromFile and while accessing or changing
        RE_Text property). To calculate relative progress, it is possible to
        examine current position in stream/file with its total size while reading,
-       or with rich edit text size, while writing (property RE_TextSize[ rsBytes ]).
-    }
+       or with rich edit text size, while writing (property RE_TextSize[ rsBytes ]). }
     function RE_LoadFromFile( const Filename: KOLString; Format: TRETextFormat;
              {} SelectionOnly: Boolean ): Boolean;
     {* |<#richedit>
@@ -8210,16 +8103,16 @@ type
      {$ENDIF}
   end;
 
-  {$IFDEF USE_MHTOOLTIP}
+{$IFDEF USE_MHTOOLTIP}
   {$DEFINE interface_part}
   {$I KOLMHToolTip_interface.inc}
   {$UNDEF interface_part}
-  {$ENDIF}
-  {$IFDEF USE_MHTOOLTIP}
+
   {$DEFINE interface_2}
   {$I KOLMHToolTip_intf2.inc}
   {$UNDEF interface_2}
-  {$ENDIF}
+{$ENDIF}
+
 {$IFDEF EVENTS_DYNAMIC}
 var EmptyEvents: TEvents;
 {$ENDIF}
@@ -8641,9 +8534,8 @@ const
   IDTB_TOC_PREV           = 224;
 
   { Notification codes }
-const
-  HHN_FIRST       = (0-860);
-  HHN_LAST        = (0-879);
+  HHN_FIRST         = (0-860);
+  HHN_LAST          = (0-879);
 
   HHN_NAVCOMPLETE   = (HHN_FIRST-0);
   HHN_TRACK         = (HHN_FIRST-1);
@@ -8662,7 +8554,6 @@ type
   HH_LAST_ERROR = tagHH_LAST_ERROR;
   THHLastError = tagHH_LAST_ERROR;
 
-type
   {*** Notify event info for HHN_NAVCOMPLETE, HHN_WINDOW_CREATE }
   PHHNNotify = ^THHNNotify;
   tagHHN_NOTIFY = {packed} record
@@ -8712,7 +8603,6 @@ const
   HHWIN_NAVTYPE_AUTHOR       = 5;
   HHWIN_NAVTYPE_CUSTOM_FIRST = 11;
 
-const
   IT_INCLUSIVE = 0;
   IT_EXCLUSIVE = 1;
   IT_HIDDEN    = 2;
@@ -9007,8 +8897,6 @@ procedure RegisterIdleHandler( const OnIdle: TOnEvent );
 procedure UnRegisterIdleHandler( const OnIdle: TOnEvent );
 {* Unregisters Idle handler. }
 {YS-}
-{* ComCtrl32 controls initialization. }
-procedure InitCommonControls; stdcall;
 procedure DoInitCommonControls( dwICC: DWORD );
 {* Calls extended initialization for Common Controls (from ComCtrl32).
    Pass one of following constants:
@@ -9058,9 +8946,6 @@ var OleInitCount: Integer;
 
 function StringToOleStr(const Source: Ansistring): PWideChar;
 {* }
-function SysAllocStringLen(psz: PWideChar; len: Integer): PWideChar; stdcall;
-procedure SysFreeString( psz: PWideChar ); stdcall;
-
 
 { -- Constructors for visual controls -- }
 {$IFDEF COMMANDACTIONS_OBJ}
@@ -9824,55 +9709,57 @@ function GetBitsL( N: DWORD; from, len: Byte ): DWord;
 //[MulDiv DECLARATION]
 {/$IFNDEF FPC}
 function MulDiv( A, B, C: Integer ): Integer;
-{* Returns A * B div C. Small and fast. }
+{* Returns A * B div C. Small and fast. AND WRONG!}
 {/$ENDIF}
-   function MakeRect( Left, Top, Right, Bottom: Integer ): TRect; stdcall;
-   {* Use it instead of VCL Rect function }
-   function RectsEqual( const R1, R2: TRect ): Boolean;
-   {* Returns True if rectangles R1 and R2 have the same bounds }
-   function RectsIntersected( const R1, R2: TRect ): Boolean;
-   {* Returns TRUE if rectangles R1 and R2 have at least one common point.
-      Note, that right and bottom bounds of rectangles are not their part,
-      so, if such points are lying on that bounds, FALSE is returned. }
-   function PointInRect( const P: TPoint; const R: TRect ): Boolean;
-   {* Returns True if point P is located in rectangle R (including
-      left and top bounds but without right and bottom bounds of the
-      rectangle). }
-   function OffsetPoint( const T: TPoint; dX, dY: Integer ): TPoint;
-   {* }
-   function OffsetSmallPoint( const T: TSmallPoint; dX, dY: SmallInt ): TSmallPoint;
-   {* }
-   function Point2SmallPoint( const T: TPoint ): TSmallPoint;
-   {* }
-   function SmallPoint2Point( const T: TSmallPoint ): TPoint;
-   {* }
-   function MakePoint( X, Y: Integer ): TPoint;
-   {* Use instead of VCL function Point }
-   function MakeSmallPoint( X, Y: Integer ): TSmallPoint;
-   {* Use to construct TSmallPoint }
-   function MakeFlags( FlgSet: PDWORD; FlgArray: array of Integer): Integer;
-   {* }
-   function MakeDateTimeRange( D1, D2: TDateTime ): TDateTimeRange;
-   {* Returns TDateTimeRange from two TDateTime bounds. }
-   procedure Swap( var X, Y: PtrInt );
-   {* exchanging values }
-   function Min( X, Y: Integer ): Integer;
-   {* minimum of two integers }
-   function Max( X, Y: Integer ): Integer;
-   {* maximum of two integers }
+function MakeRect( Left, Top, Right, Bottom: Integer ): TRect; stdcall;
+{* Use it instead of VCL Rect function }
+function RectsEqual( const R1, R2: TRect ): Boolean;
+{* Returns True if rectangles R1 and R2 have the same bounds }
+function RectsIntersected( const R1, R2: TRect ): Boolean;
+{* Returns TRUE if rectangles R1 and R2 have at least one common point.
+  Note, that right and bottom bounds of rectangles are not their part,
+  so, if such points are lying on that bounds, FALSE is returned. }
+function PointInRect( const P: TPoint; const R: TRect ): Boolean;
+{* Returns True if point P is located in rectangle R (including
+  left and top bounds but without right and bottom bounds of the
+  rectangle). }
+function OffsetPoint( const T: TPoint; dX, dY: Integer ): TPoint;
+{* }
+function OffsetSmallPoint( const T: TSmallPoint; dX, dY: SmallInt ): TSmallPoint;
+{* }
+function Point2SmallPoint( const T: TPoint ): TSmallPoint;
+{* }
+function SmallPoint2Point( const T: TSmallPoint ): TPoint;
+{* }
+function MakePoint( X, Y: Integer ): TPoint;
+{* Use instead of VCL function Point }
+function MakeSmallPoint( X, Y: Integer ): TSmallPoint;
+{* Use to construct TSmallPoint }
+function MakeFlags( FlgSet: PDWORD; FlgArray: array of Integer): Integer;
+{* }
+function MakeDateTimeRange( D1, D2: TDateTime ): TDateTimeRange;
+{* Returns TDateTimeRange from two TDateTime bounds. }
+procedure Swap(var X, Y: PtrInt); overload;
+procedure Swap(var X, Y: Byte); overload;
+procedure Swap(var X, Y: KOLString); overload;
+procedure Swap(var X, Y: Extended); overload;
+procedure Swap(var X, Y: Pointer); overload;
+{* exchanging values }
+function Min( X, Y: Integer ): Integer;
+{* minimum of two integers }
+function Max( X, Y: Integer ): Integer;
+{* maximum of two integers }
 {$IFDEF REDEFINE_ABS}
-   function Abs( X: Integer ): Integer;
-   {* absolute value }
+function Abs( X: Integer ): Integer;
+{* absolute value }
 {$ENDIF}
-   function Sgn( X: Integer ): Integer;
-   {* sign of X: if X < 0, -1 is returned, if > 0, then +1, otherwise 0. }
-   function iSqrt( X: Integer ): Integer;
-   {* square root }
-   function iCbrt( X: DWORD ): Integer;
-   {* cubic root
-   |<hr>
-  <R String to number and number to string conversions>
-}
+function Sgn( X: Integer ): Integer;
+{* sign of X: if X < 0, -1 is returned, if > 0, then +1, otherwise 0. }
+function iSqrt( X: Integer ): Integer;
+{* square root }
+function iCbrt( X: DWORD ): Integer;
+{* cubic root
+ <R String to number and number to string conversions> }
 function Int2Hex( Value : PtrUInt; Digits : Integer ) : KOLString;
 {* Converts integer Value into string with hex number. Digits parameter
    determines minimal number of digits (will be completed by adding
@@ -10083,25 +9970,21 @@ function AnsiEq( const S1, S2 : KOLString ) : Boolean;
 //    even if UNICODE_CTRLS symbol is defined ----------------------------------
 function AnsiCompareStrA(const S1, S2: AnsiString): Integer;
 {* AnsiCompareStr compares S1 to S2, with case-sensitivity. The compare
-  operation is controlled by the current Windows locale. The return value
-  is the same as for CompareStr. }
-function _AnsiCompareStrA_Slow(S1, S2: PAnsiChar): Integer;
-function _AnsiCompareStrA_Fast(S1, S2: PAnsiChar): Integer;
-var _AnsiCompareStrA: function(S1, S2: PAnsiChar): Integer = {$IFDEF SPEED_FASTER} _AnsiCompareStrA_Fast {$ELSE} _AnsiCompareStrA_Slow {$ENDIF};
+  operation is controlled by the current Windows locale. The return value is the same as for CompareStr. }
+function _AnsiCompareStrA_Slow(const S1, S2: PAnsiChar): Integer;
+function _AnsiCompareStrA_Fast(const S1, S2: PAnsiChar): Integer;
+var _AnsiCompareStrA: TCompareStrListFun = {$IFDEF SPEED_FASTER} _AnsiCompareStrA_Fast {$ELSE} _AnsiCompareStrA_Slow {$ENDIF};
 {* The same, but for PChar ANSI strings }
-function _AnsiCompareStrA_Fast2(S1, S2: PAnsiChar): Integer;
-function _AnsiCompareStrNoCaseA_Fast2(S1, S2: PAnsiChar): Integer;
+function _AnsiCompareStrA_Fast2(const S1, S2: PAnsiChar): Integer;
+function _AnsiCompareStrNoCaseA_Fast2(const S1, S2: PAnsiChar): Integer;
 function AnsiCompareStrNoCaseA(const S1, S2: AnsiString): Integer;
 {* AnsiCompareStr compares S1 to S2, with case-sensitivity. The compare
   operation is controlled by the current Windows locale. The return value is the same as for CompareStr. }
-function _AnsiCompareStrNoCaseA_Slow(S1, S2: PAnsiChar): Integer;
-function _AnsiCompareStrNoCaseA_Fast(S1, S2: PAnsiChar): Integer;
-var _AnsiCompareStrNoCaseA: function(S1, S2: PAnsiChar): Integer = {$IFDEF SPEED_FASTER} _AnsiCompareStrNoCaseA_Fast{$ELSE}_AnsiCompareStrNoCaseA_Slow {$ENDIF};
+function _AnsiCompareStrNoCaseA_Slow(const S1, S2: PAnsiChar): Integer;
+function _AnsiCompareStrNoCaseA_Fast(const S1, S2: PAnsiChar): Integer;
+var _AnsiCompareStrNoCaseA: TCompareStrListFun = {$IFDEF SPEED_FASTER} _AnsiCompareStrNoCaseA_Fast{$ELSE}_AnsiCompareStrNoCaseA_Slow {$ENDIF};
 {* The same, but for PChar ANSI strings }
 function AnsiCompareTextA( const S1, S2: AnsiString ): Integer;
-{* }
-function CompareAnsiCase( const S1, S2: PAnsiChar ): Integer;
-function CompareAnsiNoCase( const S1, S2: PAnsiChar ): Integer;
 {$IFNDEF _FPC}
 function LStrFromPWCharLen(Source: PWideChar; Length: Integer): AnsiString;
 {* from Delphi5 - because D2 does not contain it. }
@@ -10979,12 +10862,9 @@ type
                       OSOverwritePrompt,
                       OSPathMustExist,
                       OSReadonly,
-                      OSNoValidate
-  //{$IFDEF OpenSaveDialog_Extended}
-                      ,
+                      OSNoValidate,
                       OSTemplate,
                       OSHook
-  //{$ENDIF}
                     );
   TOpenSaveOptions = set of TOpenSaveOption;
   {* Options available for TOpenSaveDialog. }
@@ -11007,12 +10887,9 @@ type
     fWnd: THandle;
     fOpenReadOnly: Boolean;
   public
-    TemplateName: KOLString; // do not forget to add OpenSaveDialog_Extended
-    HookProc: Pointer;    // to project options conditionals!
-    NoPlaceBar: Boolean;  // TRUE, if place bar is disabled in the new style
-                          // dialogs (if the symbol OpenSaveDialog_Extended is
-                          // not added in project options, place bar is always
-                          // enabled in Windows 2000 and higher).
+    TemplateName: KOLString;
+    HookProc: Pointer;
+    NoPlaceBar: Boolean;  // TRUE, if place bar is disabled in the new style dialogs.
     destructor Destroy; virtual;
     {* destructor }
     Function Execute : Boolean;
@@ -11170,16 +11047,116 @@ type  TKOLOpenDirDialog = POpenDirDialog;
 function NewColorDialog( FullOpen: TColorCustomOption ): PColorDialog;
 {* Creates color choosing dialog object. }
 
+{ ----------------------------------------------------------------------
+                               TFontDialog
+----------------------------------------------------------------------- }
+// from CommDlg
+const
+  commdlg32 = 'comdlg32.dll';
 
+  { strings used to obtain unique window message for communication
+    between dialog and caller }
+  LBSELCHSTRING = 'commdlg_LBSelChangedNotify';
+  SHAREVISTRING = 'commdlg_ShareViolation';
+  FILEOKSTRING  = 'commdlg_FileNameOK';
+  COLOROKSTRING = 'commdlg_ColorOK';
+  SETRGBSTRING  = 'commdlg_SetRGBColor';
+  FINDMSGSTRING = 'commdlg_FindReplace';
+  HELPMSGSTRING = 'commdlg_help';
+
+  WM_CHOOSEFONT_GETLOGFONT = WM_USER + 1;
+  WM_CHOOSEFONT_SETLOGFONT = WM_USER + 101; { removed in 4.0 SDK }
+  WM_CHOOSEFONT_SETFLAGS   = WM_USER + 102; { removed in 4.0 SDK }
+
+  CF_SCREENFONTS          = $00000001;
+  CF_PRINTERFONTS         = $00000002;
+  CF_BOTH                 = CF_SCREENFONTS OR CF_PRINTERFONTS;
+  CF_SHOWHELP             = $00000004;
+  CF_ENABLEHOOK           = $00000008;
+  CF_ENABLETEMPLATE       = $00000010;
+  CF_ENABLETEMPLATEHANDLE = $00000020;
+  CF_INITTOLOGFONTSTRUCT  = $00000040;
+  CF_USESTYLE             = $00000080;
+  CF_EFFECTS              = $00000100;
+  CF_APPLY                = $00000200;
+  CF_ANSIONLY             = $00000400;
+  CF_SCRIPTSONLY          = CF_ANSIONLY;
+  CF_NOVECTORFONTS        = $00000800;
+  CF_NOOEMFONTS           = CF_NOVECTORFONTS;
+  CF_NOSIMULATIONS        = $00001000;
+  CF_LIMITSIZE            = $00002000;
+  CF_FIXEDPITCHONLY       = $00004000;
+  CF_WYSIWYG              = $00008000; { must also have CF_SCREENFONTS & CF_PRINTERFONTS }
+  CF_FORCEFONTEXIST       = $00010000;
+  CF_SCALABLEONLY         = $00020000;
+  CF_TTONLY               = $00040000;
+  CF_NOFACESEL            = $00080000;
+  CF_NOSTYLESEL           = $00100000;
+  CF_NOSIZESEL            = $00200000;
+  CF_SELECTSCRIPT         = $00400000;
+  CF_NOSCRIPTSEL          = $00800000;
+  CF_NOVERTFONTS          = $01000000;
+
+  { these are extra nFontType bits that are added to what is returned to the
+   EnumFonts callback routine }
+
+  SIMULATED_FONTTYPE  = $8000;
+  PRINTER_FONTTYPE    = $4000;
+  SCREEN_FONTTYPE     = $2000;
+  BOLD_FONTTYPE       = $0100;
+  ITALIC_FONTTYPE     = $0200;
+  REGULAR_FONTTYPE    = $0400;
+
+  // id for color dialog
+  IDAPPLYBTN          = $402;
+  IDCOLORCMB          = $473;
+
+type
+  TFontDialogOption = (fdAnsiOnly, fdTrueTypeOnly, fdEffects, fdFixedPitchOnly,
+    fdForceFontExist, fdNoFaceSel, fdNoOEMFonts, fdNoSimulations,
+    fdNoSizeSel, fdNoStyleSel, fdNoVectorFonts, {fdShowHelp,}
+    fdWysiwyg, fdLimitSize, fdScalableOnly, { fdApplyButton,} fdInitFont);
+  TFontDialogOptions = set of TFontDialogOption;
+
+  TFontDialogDevice  = (fdBoth, fdScreen, fdPrinter);
+  TFontIgnoreInit    = (fiiName, fiiStyle, fiiSize);
+  TFontIgnoreInits   = set of TFontIgnoreInit;
+
+  PFontDialog = ^TFontDialog;
+  TFontDialog = object(TObj)
+  private
+    FParent:      PControl;
+    FFont:        PGraphicTool;
+    FColorDlg:    PColorDialog;
+    FCBColorWnd:  THandle;
+    FCBItemIdx:   Integer;
+    FOnHelp:      TOnEvent;
+    FOnApply:     TOnEvent;
+  public
+    Device:       TFontDialogDevice;
+    MinFontSize:  Integer;
+    MaxFontSize:  Integer;
+    Options:      TFontDialogOptions;
+  public
+    function Execute: Boolean;
+    property Font:    PGraphicTool read FFont;
+    property OnHelp:  TOnEvent read FOnHelp write FOnHelp;
+    property OnApply: TOnEvent read FOnApply write FOnApply;
+  end;
+  TKOLFontDialog = PFontDialog;
+
+function NewFontDialog(AParent: PControl): PFontDialog;
+function Str2Font(const S: KOLString; outFont: PGraphicTool): Boolean;
+function Font2Str(const Font: PGraphicTool): KOLString;
+
+{ ----------------------------------------------------------------------
+                TIniFile - store/load data to ini-files
+----------------------------------------------------------------------- }
 type
   TIniFileMode = (ifmRead, ifmWrite);
   {* ifmRead is default mode (means "read" data from ini-file.
      Set mode to ifmWrite to write data to ini-file, correspondent to TIniFile. }
   PIniFile = ^TIniFile;
-
-{ ----------------------------------------------------------------------
-                TIniFile - store/load data to ini-files
------------------------------------------------------------------------ }
   TIniFile = object( TObj )
   {* Ini file encapsulation. The main feature is what the same block of
      read-write operations could be defined (difference must be only in
@@ -12638,6 +12615,7 @@ function WndProcCMExec( Sender: PControl; var Msg: TMsg; var Rslt: LRESULT ): Bo
 {$IFDEF _D2006orHigher}
   {$I MCKfakeClasses200x.inc} // Dufa
 {$ENDIF}
+
 implementation
 {$UNDEF CALL_INHERITED}
 {$IFnDEF NIL_EVENTS} {$DEFINE CALL_INHERITED} {$ENDIF}
@@ -12659,13 +12637,7 @@ uses ToGRush;
   {$ENDIF INPACKAGE}
 {$ENDIF USE_GRUSH}
 
-{$IFNDEF FPC}
-  {$IFDEF UNICODE_CTRLS}
-    {$DEFINE implementation_part} {$I KOL_unicode.inc} {$UNDEF implementation_part}
-  {$ELSE} // ANSI_CTRLS
-    {$DEFINE implementation_part} {$I KOL_ansi.inc} {$UNDEF implementation_part}
-  {$ENDIF UNICODE_CTRLS}
-{$ELSE}
+{$IFDEF FPC}
   {$DEFINE implementation_part} {$I KOL_FPC.inc} {$UNDEF implementation_part}
 {$ENDIF FPC}
 
@@ -12675,32 +12647,6 @@ begin
   //
 end;
 {$ENDIF}
-
-type
-  PSHFileInfoA = ^TSHFileInfoA;
-  PSHFileInfoW = ^TSHFileInfoW;
-  PSHFileInfo = PSHFileInfoA;
-  _SHFILEINFOA = record
-    hIcon: HICON;                      { out: icon }
-    iIcon: Integer;                    { out: icon index }
-    dwAttributes: DWORD;               { out: SFGAO_ flags }
-    szDisplayName: array [0..MAX_PATH-1] of  AnsiChar; { out: display name (or path) }
-    szTypeName: array [0..79] of AnsiChar;             { out: type name }
-  end;
-  _SHFILEINFOW = record
-    hIcon: HICON;                      { out: icon }
-    iIcon: Integer;                    { out: icon index }
-    dwAttributes: DWORD;               { out: SFGAO_ flags }
-    szDisplayName: array [0..MAX_PATH-1] of WideChar; { out: display name (or path) }
-    szTypeName: array [0..79] of WideChar;             { out: type name }
-  end;
-  _SHFILEINFO = {$IFDEF UNICODE_CTRLS} _SHFILEINFOW {$ELSE} _SHFILEINFOA {$ENDIF};
-  TSHFileInfoA = _SHFILEINFOA;
-  TSHFileInfoW = _SHFILEINFOW;
-  TSHFileInfo = {$IFDEF UNICODE_CTRLS} TSHFileInfoW {$ELSE} TSHFileInfoA {$ENDIF};
-  SHFILEINFOA = _SHFILEINFOA;
-  SHFILEINFOW = _SHFILEINFOW;
-  SHFILEINFO = {$IFDEF UNICODE_CTRLS} SHFILEINFOW {$ELSE} SHFILEINFOA {$ENDIF};
 
 const
   SHGFI_ICON              = $000000100;     { get icon }
@@ -12718,48 +12664,6 @@ const
   SHGFI_SHELLICONSIZE     = $000000004;     { get shell size icon }
   SHGFI_PIDL              = $000000008;     { pszPath is a pidl }
   SHGFI_USEFILEATTRIBUTES = $000000010;     { use passed dwFileAttribute }
-function SHGetFileInfoA(pszPath: PAnsiChar; dwFileAttributes: DWORD;
-  var psfi: TSHFileInfo; cbFileInfo, uFlags: UINT): PtrUInt; stdcall;
-  external 'shell32.dll' name 'SHGetFileInfoA';
-{$IFDEF UNICODE_CTRLS}
-function SHGetFileInfoW(pszPath: PWideChar; dwFileAttributes: DWORD;
-  var psfi: TSHFileInfo; cbFileInfo, uFlags: UINT): PtrUInt; stdcall;
-  external 'shell32.dll' name 'SHGetFileInfoW';
-{$ENDIF UNICODE_CTRLS}
-type
-  FILEOP_FLAGS = Word;
-  PRINTEROP_FLAGS = Word;
-
-  PSHFileOpStructA = ^TSHFileOpStructA;
-  PSHFileOpStructW = ^TSHFileOpStructW;
-  PSHFileOpStruct = PSHFileOpStructA;
-  _SHFILEOPSTRUCTA = {packed} record
-    Wnd: HWND;
-    wFunc: UINT;
-    pFrom: PAnsiChar;
-    pTo: PAnsiChar;
-    fFlags: FILEOP_FLAGS;
-    fAnyOperationsAborted: BOOL;
-    hNameMappings: Pointer;
-    lpszProgressTitle: PAnsiChar; { only used if FOF_SIMPLEPROGRESS }
-  end;
-  _SHFILEOPSTRUCTW = {packed} record
-    Wnd: HWND;
-    wFunc: UINT;
-    pFrom: PWideChar;
-    pTo: PWideChar;
-    fFlags: FILEOP_FLAGS;
-    fAnyOperationsAborted: BOOL;
-    hNameMappings: Pointer;
-    lpszProgressTitle: PWideChar; { only used if FOF_SIMPLEPROGRESS }
-  end;
-  _SHFILEOPSTRUCT = _SHFILEOPSTRUCTA;
-  TSHFileOpStructA = _SHFILEOPSTRUCTA;
-  TSHFileOpStructW = _SHFILEOPSTRUCTW;
-  TSHFileOpStruct = TSHFileOpStructA;
-  SHFILEOPSTRUCTA = _SHFILEOPSTRUCTA;
-  SHFILEOPSTRUCTW = _SHFILEOPSTRUCTW;
-  SHFILEOPSTRUCT = SHFILEOPSTRUCTA;
 
 const
   FO_MOVE           = $0001;
@@ -12779,44 +12683,7 @@ const
   FOF_SIMPLEPROGRESS         = $0100;  { means don't show names of files }
   FOF_NOCONFIRMMKDIR         = $0200;  { don't confirm making any needed dirs }
   FOF_NOERRORUI              = $0400;  { don't put up error UI }
-{$IFDEF UNICODE_CTRLS}
-function SHFileOperationW(const lpFileOp: TSHFileOpStructW): Integer; stdcall;
-         external 'shell32.dll' name 'SHFileOperationW';
-{$ENDIF}
-function SHFileOperationA(const lpFileOp: TSHFileOpStructA): Integer; stdcall;
-         external 'shell32.dll' name 'SHFileOperationA';
 
-type
-  PNotifyIconDataA = ^TNotifyIconDataA;
-  PNotifyIconDataW = ^TNotifyIconDataW;
-  PNotifyIconData = PNotifyIconDataA;
-  _NOTIFYICONDATAA = record
-    cbSize: DWORD;
-    Wnd: HWND;
-    uID: UINT;
-    uFlags: UINT;
-    uCallbackMessage: UINT;
-    hIcon: HICON;
-    szTip: array [0..63] of AnsiChar;
-  end;
-  _NOTIFYICONDATAW = record
-    cbSize: DWORD;
-    Wnd: HWND;
-    uID: UINT;
-    uFlags: UINT;
-    uCallbackMessage: UINT;
-    hIcon: HICON;
-    szTip: array [0..63] of WideChar;
-  end;
-  _NOTIFYICONDATA = _NOTIFYICONDATAA;
-  TNotifyIconDataA = _NOTIFYICONDATAA;
-  TNotifyIconDataW = _NOTIFYICONDATAW;
-  TNotifyIconData = TNotifyIconDataA;
-  NOTIFYICONDATAA = _NOTIFYICONDATAA;
-  NOTIFYICONDATAW = _NOTIFYICONDATAW;
-  NOTIFYICONDATA = NOTIFYICONDATAA;
-
-const
   NIM_ADD         = $00000000;
   NIM_MODIFY      = $00000001;
   NIM_DELETE      = $00000002;
@@ -12825,42 +12692,6 @@ const
   NIF_ICON        = $00000002;
   NIF_TIP         = $00000004;
 
-{$IFDEF UNICODE_CTRLS}
-function Shell_NotifyIcon(dwMessage: DWORD; lpData: PNotifyIconDataW): BOOL; stdcall;
-         external 'shell32.dll' name 'Shell_NotifyIconW';
-{$ELSE}
-function Shell_NotifyIcon(dwMessage: DWORD; lpData: PNotifyIconData): BOOL; stdcall;
-         external 'shell32.dll' name 'Shell_NotifyIconA';
-{$ENDIF UNICODE_CTRLS}
-{$IFDEF UNICODE_CTRLS}
-function ExtractIcon(hInst: HINST; lpszExeFileName: PKOLChar;
-  nIconIndex: UINT): HICON; stdcall;
-  external 'shell32.dll' name 'ExtractIconW';
-{$ELSE}
-function ExtractIcon(hInst: HINST; lpszExeFileName: PKOLChar;
-  nIconIndex: UINT): HICON; stdcall;
-  external 'shell32.dll' name 'ExtractIconA';
-{$ENDIF UNICODE_CTRLS}
-
-
-type
-  HDROP = THandle;
-
-function DragQueryPoint(Drop: HDROP; var Point: TPoint): BOOL; stdcall;
-         external 'shell32.dll' name 'DragQueryPoint';
-{$IFDEF UNICODE_CTRLS}
-function DragQueryFile(Drop: HDROP; FileIndex: UINT; FileName: PWideChar; cb: UINT): UINT; stdcall;
-         external 'shell32.dll' name 'DragQueryFileW';
-{$ELSE}
-function DragQueryFile(Drop: HDROP; FileIndex: UINT; FileName: PAnsiChar; cb: UINT): UINT; stdcall;
-         external 'shell32.dll' name 'DragQueryFileA';
-{$ENDIF UNICODE_CTRLS}
-procedure DragFinish(Drop: HDROP); stdcall;
-          external 'shell32.dll' name 'DragFinish';
-procedure DragAcceptFiles(Wnd: HWND; Accept: BOOL); stdcall;
-          external 'shell32.dll' name 'DragAcceptFiles';
-
-const
   OFN_READONLY = $00000001;
   OFN_OVERWRITEPROMPT = $00000002;
   OFN_HIDEREADONLY = $00000004;
@@ -12891,87 +12722,7 @@ const
   OFN_SHAREFALLTHROUGH = 2;
   OFN_SHARENOWARN = 1;
   OFN_SHAREWARN = 0;
-type
-  POpenFilename = ^TOpenFilename;
-  tagOFN = {packed} record
-    lStructSize: DWORD;
-    hWndOwner: HWND;
-    hInstance: HINST;
-    lpstrFilter: PKOLChar;
-    lpstrCustomFilter: PKOLChar;
-    nMaxCustFilter: DWORD;
-    nFilterIndex: DWORD;
-    lpstrFile: PKOLChar;
-    nMaxFile: DWORD;
-    lpstrFileTitle: PKOLChar;
-    nMaxFileTitle: DWORD;
-    lpstrInitialDir: PKOLChar;
-    lpstrTitle: PKOLChar;
-    Flags: DWORD;
-    nFileOffset: Word;
-    nFileExtension: Word;
-    lpstrDefExt: PKOLChar;
-    lCustData: LPARAM;
-    lpfnHook: function(Wnd: HWND; Msg: UINT; wParam: WPARAM; lParam: LPARAM): PtrUInt stdcall;
-    lpTemplateName: PKOLChar;
-    {$IFDEF OpenSaveDialog_Extended}
-    //---------- added from Windows2000:
-    pvReserved: Pointer;
-    dwReserved: DWORD;
-    FlagsEx: DWORD;
-    {$ENDIF}
-  end;
-  TOpenFilename = tagOFN;
-  OPENFILENAME = tagOFN;
-  ofnext = record
-    pvReserved: Pointer;
-    dwReserved: DWORD;
-    FlagsEx: DWORD;
-  end;
 
-{$IFDEF UNICODE_CTRLS}
-function GetOpenFileName(var OpenFile: TOpenFilename): Bool; stdcall;
-         external 'comdlg32.dll'  name 'GetOpenFileNameW';
-function GetSaveFileName(var OpenFile: TOpenFilename): Bool; stdcall;
-         external 'comdlg32.dll'  name 'GetSaveFileNameW';
-{$ELSE}
-function GetOpenFileName(var OpenFile: TOpenFilename): Bool; stdcall;
-         external 'comdlg32.dll'  name 'GetOpenFileNameA';
-function GetSaveFileName(var OpenFile: TOpenFilename): Bool; stdcall;
-         external 'comdlg32.dll'  name 'GetSaveFileNameA';
-{$ENDIF UNICODE_CTRLS}
-type
-  PChooseColorA = ^TChooseColorA;
-  PChooseColorW = ^TChooseColorW;
-  PChooseColor = PChooseColorA;
-  tagCHOOSECOLORA = {packed} record
-    lStructSize: DWORD;
-    hWndOwner: HWND;
-    hInstance: HWND;
-    rgbResult: COLORREF;
-    lpCustColors: ^COLORREF;
-    Flags: DWORD;
-    lCustData: LPARAM;
-    lpfnHook: function(Wnd: HWND; Message: UINT; wParam: WPARAM; lParam: LPARAM): LRESULT stdcall;
-    lpTemplateName: PAnsiChar;
-  end;
-  tagCHOOSECOLORW = {packed} record
-    lStructSize: DWORD;
-    hWndOwner: HWND;
-    hInstance: HWND;
-    rgbResult: COLORREF;
-    lpCustColors: ^COLORREF;
-    Flags: DWORD;
-    lCustData: LPARAM;
-    lpfnHook: function(Wnd: HWND; Message: UINT; wParam: WPARAM; lParam: LPARAM): LRESULT stdcall;
-    lpTemplateName: PWideChar;
-  end;
-  tagCHOOSECOLOR = tagCHOOSECOLORA;
-  TChooseColorA = tagCHOOSECOLORA;
-  TChooseColorW = tagCHOOSECOLORW;
-  TChooseColor = TChooseColorA;
-
-const
   CC_RGBINIT = $00000001;
   CC_FULLOPEN = $00000002;
   CC_PREVENTFULLOPEN = $00000004;
@@ -12982,8 +12733,7 @@ const
   CC_SOLIDCOLOR = $00000080;
   CC_ANYCOLOR = $00000100;
 
-function ChooseColor(var CC: TChooseColor): Bool; stdcall;
-         external 'comdlg32.dll'  name 'ChooseColorA';
+
 {$IFDEF CHK_BITBLT}
 procedure Chk_BitBlt_ShowError;
 var Rslt: Integer;
@@ -13025,8 +12775,6 @@ asm
 end;
 {$ENDIF}
 {$ENDIF}
-
-procedure InitCommonControls; external cctrl name 'InitCommonControls';
 
 type
   TInitCommonControlsEx = record
@@ -13164,22 +12912,16 @@ function CollectTabControls( Form: PControl ): PList; forward;
 {$IFNDEF NOT_USE_RICHEDIT}
 function WndProc_RE_LinkNotify( Self_: PControl; var Msg: TMsg; var Rslt: LRESULT ): Boolean; forward;
 {$ENDIF NOT_USE_RICHEDIT}
-function WndProc_DrawItem( Sender: PControl; var Msg: TMsg; var Rslt: LRESULT )
-                          : Boolean; forward;
-function WndProcTabControl( Self_: PControl; var Msg: TMsg; var Rslt: LRESULT ): Boolean;
-  forward;
-function WndProcSplitter( Self_: PControl; var Msg: TMsg; var Rslt: LRESULT ): Boolean;
-  forward;
-function Tabulate2ControlEx( Self_: PControl; Key: DWORD; checkOnly: Boolean ): Boolean;
-  forward;
+function WndProc_DrawItem( Sender: PControl; var Msg: TMsg; var Rslt: LRESULT ): Boolean; forward;
+function WndProcTabControl( Self_: PControl; var Msg: TMsg; var Rslt: LRESULT ): Boolean; forward;
+function WndProcSplitter( Self_: PControl; var Msg: TMsg; var Rslt: LRESULT ): Boolean; forward;
+function Tabulate2ControlEx( Self_: PControl; Key: DWORD; checkOnly: Boolean ): Boolean; forward;
 procedure Tabulate2Next( Form: PControl; Dir: Integer ); forward;
-function Tabulate2Control( Self_: PControl; Key: DWORD; checkOnly: Boolean ): Boolean;
-  forward;
+function Tabulate2Control( Self_: PControl; Key: DWORD; checkOnly: Boolean ): Boolean; forward;
 function GetPrevCtrlBoundsRect( P: PControl; var R: TRect ): Boolean; forward;
 
 ////////////---------------------------------------------------/////////////////
-function WndProcDateTimePickerNotify( Self_: PControl; var Msg: TMsg;
-         var Rslt: LRESULT ): Boolean; forward;
+function WndProcDateTimePickerNotify( Self_: PControl; var Msg: TMsg; var Rslt: LRESULT ): Boolean; forward;
 
 ////////////////////////////////////////////////////////////////////////////////
 {$IFNDEF PAS_ONLY}
@@ -13467,7 +13209,7 @@ begin
     if FoundMsgBoxWnd <> 0 then begin
       W := GetWindow( FoundMsgBoxWnd, GW_CHILD );
       while W <> 0 do begin
-        if GetWindowLongPtr( W, GWL_STYLE ) and BS_DEFPUSHBUTTON <> 0 then begin
+        if (GetWindowLongPtr( W, GWL_STYLE ) and BS_DEFPUSHBUTTON <> 0) then begin
           GetWindowRect( W, R );
           P.X := (R.Left + R.Right) div 2;
           P.Y := (R.Top + R.Bottom) div 2;
@@ -13740,7 +13482,7 @@ begin
   Result.ToDate   := D2;
 end;
 
-procedure Swap( var X, Y: PtrInt );
+procedure Swap(var X, Y: PtrInt);
 {$IFNDEF PAS_ONLY}
 asm
   MOV  ECX, [EDX]
@@ -13748,13 +13490,49 @@ asm
   MOV  [EDX], ECX
 end;
 {$ELSE}
-var Tmp: PtrInt;
+var T: PtrInt;
 begin
-  Tmp := X;
+  T := X;
   X := Y;
-  Y := Tmp;
+  Y := T;
 end;
 {$ENDIF}
+
+procedure Swap(var X, Y: Byte); overload;
+var
+  T: Byte;
+begin
+  T := X;
+  X := Y;
+  Y := T;
+end;
+
+procedure Swap(var X, Y: KOLString); overload;
+var
+  T: KOLString;
+begin
+  T := X;
+  X := Y;
+  Y := T;
+end;
+
+procedure Swap(var X, Y: Extended); overload;
+var
+  T: Extended;
+begin
+  T := X;
+  X := Y;
+  Y := T;
+end;
+
+procedure Swap(var X, Y: Pointer); overload;
+var
+  P: Pointer;
+begin
+  P := X;
+  X := Y;
+  Y := P;
+end;
 
 {$IFNDEF PAS_ONLY}
 function Min( X, Y: Integer ): Integer;
@@ -14058,8 +13836,8 @@ const InitEventsTable: array[ 0..idx_LastEvent ] of Byte = (
 procedure Free_And_Nil( var Obj );
 var Obj1: PObj;
 begin
-  Obj1 := PObj( Obj );
-  Pointer( Obj ) := nil;
+  Obj1         := PObj(Obj);
+  Pointer(Obj) := nil;
   Obj1.Free;
 end;
 
@@ -14158,6 +13936,7 @@ begin
   {$ENDIF}
 end;
 {$ENDIF PAS_VERSION}
+
 procedure TObj.RefInc;
 begin
   Inc(fRefCount, 2);
@@ -14172,6 +13951,7 @@ asm
   MOV    RAX, [RCX]
 {$ENDIF}
 end;
+
 function TObj.InstanceSize: Integer;
 asm
 {$IFNDEF WIN64}
@@ -14770,8 +14550,7 @@ var i: Integer;
     CountBefore, CountCurrent: Integer;
 {$ENDIF}
 begin
-   if Idx < 0 then Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
-   if Idx >= Count then Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
+   if (Idx < 0) or (Idx >= Count) then Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
    {$IFDEF TLIST_FAST}
    if fUseBlocks and ( fBlockList <> nil ) then begin
     CountBefore := 0;
@@ -15960,6 +15739,7 @@ begin
    end;
    Pt := Pts[ 1 ];
 end;
+
 procedure TGraphicTool.SetFontOrientation(Value: Integer);
 begin
   GlobalGraphics_UseFontOrient := True;
@@ -15978,17 +15758,18 @@ begin
   if fData.Font.Underline     then include( Result, fsUnderline );
   if fData.Font.StrikeOut     then include( Result, fsStrikeOut );
 end;
+
 procedure TGraphicTool.SetFontStyle(const Value: TFontStyle);
 begin
   if FontStyle = Value then Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
-  if  fsBold in Value then begin
-      if fData.Font.Weight < 700 then
-        fData.Font.Weight := 700;
+  if (fsBold in Value) then begin
+    if fData.Font.Weight < 700 then
+      fData.Font.Weight := 700;
   end else begin
-      if fData.Font.Weight >= 700 then
-        fData.Font.Weight := 0;
+    if fData.Font.Weight >= 700 then
+      fData.Font.Weight := 0;
   end;
-  fData.Font.Italic := fsItalic in Value;
+  fData.Font.Italic    := fsItalic in Value;
   fData.Font.Underline := fsUnderline in Value;
   fData.Font.StrikeOut := fsStrikeOut in Value;
   Changed;
@@ -16239,10 +16020,9 @@ begin
   Changed;
 end;
 
-
 procedure TGraphicTool.SetLogFontStruct(const Value: TLogFont);
 begin
-  if  CompareMem(@fData.Font, @Value, SizeOf(TLogFont)) then Exit; {>>>>>>>>>>>}
+  if CompareMem(@fData.Font, @Value, SizeOf(TLogFont)) then Exit; {>>>>>>>>>>>}
   Move(Value, fData.Font, SizeOF(TLogFont));
   Changed;
 end;
@@ -16547,7 +16327,7 @@ begin
          SolidBr := CreateSolidBrush( PControl(fOwnerControl).fColor )
     else SolidBr := CreateSolidBrush( clWhite );
     Windows.FrameRect(FHandle, Rect, SolidBr);
-    DeleteObject( SolidBr );
+    DeleteObject( SolidBr ); 
 end;
 
 procedure TCanvas.LineTo(X, Y: Integer);
@@ -16822,7 +16602,7 @@ begin
      SetHandle( DC );
   end;
   RequiredState( HandleValid or FontValid );
-  Windows.GetTextExtentPoint32W( fHandle, PWideChar(WText), Length(WText), Result);
+  GetTextExtentPoint32W( fHandle, PWideChar(WText), Length(WText), Result);
   if ClearHandle then
     SetHandle( 0 );
 end;
@@ -17819,12 +17599,12 @@ end;
 {$ENDIF PAS_VERSION}
 
 {$IFDEF PAS_ONLY}
-function StrCopy( Dest, Source: PAnsiChar ): PAnsiChar;
+function StrCopy(Dest, Source: PAnsiChar): PAnsiChar;
 var L: Integer;
 begin
-    L := StrLen(Source);
-    Move(Source^, Dest^, L+1);
-    Result := Dest;
+  L := StrLen(Source);
+  Move(Source^, Dest^, L + 1);
+  Result := Dest;
 end;
 {$ELSE}
 function StrCopy( Dest, Source: PAnsiChar ): PAnsiChar; assembler;
@@ -18298,25 +18078,25 @@ end;
 {$ENDIF PAS_VERSION}
 
 {$IFDEF ASM_UNICODE}{$ELSE PAS_VERSION} //Pascal
-function Parse( var S : KOLString; const Separators : KOLString ) : KOLString;
-var Pos : Integer;
+function Parse(var S: KOLString; const Separators: KOLString): KOLString;
+var p: Integer;
 begin
-  Pos := IndexOfCharsMin( S, Separators );
-  if Pos <= 0 then
-     Pos := Length( S )+1;
-  Result := Copy( S, 1, Pos-1 );
-  Delete( S, 1, Pos );
+  p := IndexOfCharsMin(S, Separators);
+  if (p <= 0) then
+    p := Length(S) + 1;
+  Result := Copy(S, 1, p - 1);
+  Delete( S, 1, p );
 end;
 {$ENDIF PAS_VERSION}
 
-function ParseW( var S : KOLWideString; const Separators : KOLWideString ) : KOLWideString;
-var Pos : Integer;
+function ParseW(var S: KOLWideString; const Separators: KOLWideString): KOLWideString;
+var p: Integer;
 begin
-  Pos := WIndexOfCharsMin( S, Separators );
-  if Pos <= 0 then
-     Pos := Length( S )+1;
-  Result := Copy( S, 1, Pos-1 );
-  Delete( S, 1, Pos );
+  p := WIndexOfCharsMin(S, Separators);
+  if (p <= 0) then
+    p := Length(S) + 1;
+  Result := Copy(S, 1, p - 1);
+  Delete(S, 1, p);
 end;
 
 {$IFNDEF _FPC}
@@ -18324,8 +18104,8 @@ function WParse( var S : KOLWideString; const Separators : KOLWideString ) : KOL
 var Pos : Integer;
 begin
   Pos := IndexOfWideCharsMin( S, Separators );
-  if Pos <= 0 then
-     Pos := Length( S ) + 1;
+  if (Pos <= 0) then
+    Pos := Length(S) + 1;
   Result := S;
   S := Copy( Result, Pos + 1, MaxInt );
   Result := Copy( Result, 1, Pos - 1 );
@@ -18501,20 +18281,20 @@ end;
 {$IFDEF ASM_VERSION}{$ELSE PAS_VERSION} //Pascal
 function AllocMem( Size : Integer ) : Pointer;
 begin
-   Result := nil;
-   if Size > 0 then begin
-     GetMem( Result, Size );
-     //FillChar( Result^, Size, 0 );
-     ZeroMemory( Result, Size );
-   end;
+  Result := nil;
+  if (Size > 0) then begin
+    GetMem( Result, Size );
+    //FillChar( Result^, Size, 0 );
+    ZeroMemory( Result, Size );
+  end;
 end;
 {$ENDIF PAS_VERSION}
 
-procedure DisposeMem( var Addr : Pointer );
+procedure DisposeMem(var Addr: Pointer);
 begin
-   if Addr <> nil then
-      FreeMem( Addr );
-   Addr := nil;
+  if Assigned(Addr) then
+    FreeMem(Addr);
+  Addr := nil;
 end;
 
 function AnsiUpperCase(const S: AnsiString): AnsiString;
@@ -18645,7 +18425,8 @@ end;
 
 function WStrScan(Str: PWideChar; Chr: WideChar): PWideChar;
 begin
-  while (Str^ <> Chr) and (Str^ <> #0) do inc( Str );
+  while (Str^ <> Chr) and (Str^ <> #0) do
+    inc( Str );
   Result := Str;
 end;
 
@@ -18678,14 +18459,15 @@ begin
 end;
 
 type
-	TSortAnsiRec = record
-	  A: array[ AnsiChar ] of PAnsiChar;
-	end;
   PSortAnsiRec = ^TSortAnsiRec;
+  TSortAnsiRec = record
+    A: array[ AnsiChar ] of PAnsiChar;
+  end;
+
 var SortAnsiOrderNoCase: array[ AnsiChar ] of SmallInt;
     SortAnsiOrder: array[ AnsiChar ] of SmallInt;
 
-function _AnsiCompareStrA_Slow(S1, S2: PAnsiChar): Integer;
+function _AnsiCompareStrA_Slow(const S1, S2: PAnsiChar): Integer;
 begin
   Result := CompareStringA( LOCALE_USER_DEFAULT, 0, S1, -1, S2, -1) - 2;
 end;
@@ -18700,34 +18482,44 @@ procedure SwapAnsiRec( R: PSortAnsiRec; const e1, e2: Integer );
 var a: PAnsiChar;
 {$ENDIF}
 begin
-	{$IFDEF PAS_ONLY}
-	a := R.A[AnsiChar(e1)];
-	R.A[AnsiChar(e1)] := R.A[AnsiChar(e2)];
-	R.A[AnsiChar(e2)] := a;
-	{$ELSE}
-	Swap( PtrInt( R.A[AnsiChar(e1)] ), PtrInt( R.A[AnsiChar(e2)] ) );
-	{$ENDIF}
+  {$IFDEF PAS_ONLY}
+  a := R.A[AnsiChar(e1)];
+  R.A[AnsiChar(e1)] := R.A[AnsiChar(e2)];
+  R.A[AnsiChar(e2)] := a;
+  {$ELSE}
+  Swap( PtrInt( R.A[AnsiChar(e1)] ), PtrInt( R.A[AnsiChar(e2)] ) );
+  {$ENDIF}
 end;
 
 {$IFDEF ASM_VERSION}{$ELSE PAS_VERSION}
-function _AnsiCompareStrA_Fast2(S1, S2: PAnsiChar): Integer;
+function _AnsiCompareStrA_Fast2(const S1, S2: PAnsiChar): Integer;
+var
+  P1: PAnsiChar;
+  P2: PAnsiChar;
 begin
-    if  S1 = nil then
-        S1 := '';
-    if  S2 = nil then
-        S2 := '';
-    Result := 0;
-    while TRUE do begin
-        Result := SortAnsiOrder[ S1^ ] - SortAnsiOrder[ S2^ ];
-        if  Result <> 0 then break;
-        if  (S1^ = #0) or (S2^ = #0) then break;
-        inc( S1 );
-        inc( S2 );
-    end;
+  if Assigned(S1) then
+    P1 := S1
+  else
+    P1 := '';
+
+  if Assigned(S2) then
+    P2 := S2
+  else
+    P2 := '';
+
+  Result := 0;
+  while True do begin
+    Result := SortAnsiOrder[P1^] - SortAnsiOrder[P2^];
+    if (Result <> 0) or (P1^ = #0) or (P2^ = #0) then
+      Break;
+      
+    Inc(P1);
+    Inc(P2);
+  end;
 end;
 {$ENDIF PAS_VERSION}
 
-function _AnsiCompareStrA_Fast(S1, S2: PAnsiChar): Integer;
+function _AnsiCompareStrA_Fast(const S1, S2: PAnsiChar): Integer;
 var c: AnsiChar;
     R: TSortAnsiRec;
     Buf: array[ 0..511 ] of AnsiChar;
@@ -18763,7 +18555,7 @@ begin
   Result := CompareString( LOCALE_USER_DEFAULT, NORM_IGNORECASE, S1, -1, S2, -1) - 2;
 end;
 
-function _AnsiCompareStrNoCaseA_Slow(S1, S2: PAnsiChar): Integer;
+function _AnsiCompareStrNoCaseA_Slow(const S1, S2: PAnsiChar): Integer;
 begin
   Result := CompareStringA( LOCALE_USER_DEFAULT, NORM_IGNORECASE, S1, -1, S2, -1) - 2;
 end;
@@ -18774,46 +18566,34 @@ begin
 end;
 
 {$IFDEF ASM_VERSION}{$ELSE PAS_VERSION}
-//{$DEFINE DEBUG_SORTFAST}
-{$IFDEF DEBUG_SORTFAST}
-var DBSF: Integer;
-{$ENDIF}
-function _AnsiCompareStrNoCaseA_Fast2(S1, S2: PAnsiChar): Integer;
-{$IFDEF DEBUG_SORTFAST}
-var S01, S02: PChar;
-{$ENDIF}
+function _AnsiCompareStrNoCaseA_Fast2(const S1, S2: PAnsiChar): Integer;
+var
+  P1: PAnsiChar;
+  P2: PAnsiChar;
 begin
-    if  S1 = nil then
-        S1 := '';
-    if  S2 = nil then
-        S2 := '';
-    {$IFDEF DEBUG_SORTFAST}
-    S01 := S1;
-    S02 := S2;
-    {$ENDIF}
-    Result := 0;
-    while TRUE do begin
-        Result := SortAnsiOrderNoCase[ S1^ ] - SortAnsiOrderNoCase[ S2^ ];
-        if  Result <> 0 then break;
-        if  (S1^ = #0) or (S2^ = #0) then break;
-        inc( S1 );
-        inc( S2 );
-    end;
-    {$IFDEF DEBUG_SORTFAST}
-    inc( DBSF );
-    if   Result < 0 then
-         LogFileOutput( GetStartDir + 'LT.txt', Int2Str( DBSF ) + ': ' +
-             '"' + S01 + '" < "' + S02 + '"' )
-    else if  Result > 0 then
-         LogFileOutput( GetStartDir + 'GT.txt', Int2Str( DBSF ) + ': ' +
-             '"' + S01 + '" > "' + S02 + '"' )
-    else LogFileOutput( GetStartDir + 'EQ.txt', Int2Str( DBSF ) + ': ' +
-            '"' + S01 + '" = "' + S02 + '"' )
-    {$ENDIF}
+  if Assigned(S1) then
+    P1 := S1
+  else
+    P1 := '';
+
+  if Assigned(S2) then
+    P2 := S2
+  else
+    P2 := '';
+
+  Result := 0;
+  while True do begin
+    Result := SortAnsiOrderNoCase[P1^] - SortAnsiOrderNoCase[P2^];
+    if (Result <> 0) or (P1^ = #0) or (P2^ = #0) then
+      Break;
+      
+    Inc(P1);
+    Inc(P2);
+  end;
 end;
 {$ENDIF PAS_VERSION}
 
-function _AnsiCompareStrNoCaseA_Fast(S1, S2: PAnsiChar): Integer;
+function _AnsiCompareStrNoCaseA_Fast(const S1, S2: PAnsiChar): Integer;
 var c: AnsiChar;
     R: TSortAnsiRec;
     Buf: array[ 0..767 ] of AnsiChar;
@@ -19272,20 +19052,20 @@ asm
 end;
 {$ENDIF PAS_ONLY}
 
-var Upper: array[ AnsiChar ] of AnsiChar;
+var Upper: array[AnsiChar] of AnsiChar;
     Upper_initialized: Boolean;
 
 procedure Init_Upper;
 var c: AnsiChar;
     s: AnsiString;
 begin
-    if  not Upper_initialized then begin
-        for c := Low(c) to High(c) do begin
-            s := c + AnsiChar( ' ' );
-            Upper[c] := AnsiUpperCase( s )[1];
-        end;
-        Upper_initialized := TRUE;
+  if not Upper_initialized then begin
+    for c := Low(c) to High(c) do begin
+      s := c + AnsiChar( ' ' );
+      Upper[c] := AnsiUpperCase( s )[1];
     end;
+    Upper_initialized := True;
+  end;
 end;
 
 {$IFDEF PAS_ONLY}
@@ -20099,14 +19879,13 @@ begin
     if (Result = '') and (Length( S ) = 2) and (S[ 2 ] = ':') then
       Result := S
     else begin
-      {$IFDEF UNICODE_CTRLS} ShGetFileInfoW {$ELSE} ShGetFileInfoA {$ENDIF}
-        ( PKOLChar( Result + S ), 0, SFI, Sizeof( SFI ), SHGFI_DISPLAYNAME );
-      if SFI.szDisplayName[ 0 ] <> #0 then
+      ShGetFileInfo( PKOLChar( Result + S ), 0, SFI, Sizeof( SFI ), SHGFI_DISPLAYNAME );
+      if (SFI.szDisplayName[ 0 ] <> #0) then
         S := SFI.szDisplayName;
       Result := Result + S;
     end;
   end;
-  if ExtractFileExt( Result ) = '' then
+  if (ExtractFileExt( Result ) = '') then
   // case when flag 'Hide extensions for registered file types' is set on
   // in the Explorer:
     Result := Result + ExtractFileExt( FileName );
@@ -20125,8 +19904,7 @@ function FileIconSystemIdx( const Path: KOLString ): Integer;
 var SFI: TShFileInfo;
 begin
   SFI.iIcon := 0; // Bartov
-  {$IFDEF UNICODE_CTRLS} ShGetFileInfoW {$ELSE} ShGetFileInfoA {$ENDIF}
-    ( PKOLChar( Path ), 0, SFI, sizeof( SFI ), SHGFI_SMALLICON or SHGFI_SYSICONINDEX );
+  ShGetFileInfo( PKOLChar( Path ), 0, SFI, sizeof( SFI ), SHGFI_SMALLICON or SHGFI_SYSICONINDEX );
   Result := SFI.iIcon;
 end;
 
@@ -20134,9 +19912,7 @@ function FileIconSysIdxOffline( const Path: KOLString ): Integer;
 var SFI: TShFileInfo;
 begin
   SFI.iIcon := 0; // Bartov
-  {$IFDEF UNICODE_CTRLS} ShGetFileInfoW {$ELSE} ShGetFileInfoA {$ENDIF}
-    ( PKOLChar( Path ), FILE_ATTRIBUTE_NORMAL, SFI, sizeof( SFI ),
-    SHGFI_SMALLICON or SHGFI_SYSICONINDEX or SHGFI_USEFILEATTRIBUTES );
+  ShGetFileInfo( PKOLChar( Path ), FILE_ATTRIBUTE_NORMAL, SFI, sizeof( SFI ), SHGFI_SMALLICON or SHGFI_SYSICONINDEX or SHGFI_USEFILEATTRIBUTES );
   Result := SFI.iIcon;
 end;
 
@@ -20680,9 +20456,7 @@ begin
   if  DC = 0 then
       Result := Length( Text )
   else begin
-    {$IFDEF UNICODE_CTRLS}Windows.GetTextExtentPoint32W
-    {$ELSE}               Windows.GetTextExtentPoint32A
-    {$ENDIF}( DC, PKOLChar( Text ), Length( Text ), Sz );
+    GetTextExtentPoint32( DC, PKOLChar( Text ), Length( Text ), Sz );
     Result := Sz.cx;
   end;
 end;
@@ -20888,9 +20662,9 @@ begin
   end;
 end;
 {$ENDIF}
-function DoFileOp( const FromList, ToList: KOLString; FileOp: UINT; Flags: Word;
-  Title: PKOLChar): Boolean;
-var FOS : {$IFDEF UNICODE_CTRLS}TSHFileOpStructW{$ELSE}TSHFileOpStruct{$ENDIF};
+
+function DoFileOp(const FromList, ToList: KOLString; FileOp: UINT; Flags: Word; Title: PKOLChar): Boolean;
+var FOS : TSHFileOpStruct;
     Buf : PKOLChar;
     L : Integer;
     ToList0: KOLString;
@@ -20898,11 +20672,13 @@ begin
   L := Length( FromList );
   Buf := AllocMem( (L+2) * Sizeof( KOLChar ) );
   Move( FromList[ 1 ], Buf^, L * Sizeof( KOLChar ) );
-  for L := L downto 0 do
-    if Buf[ L ] = FileOpSeparator then Buf[ L ] := #0;
+  for L := L downto 0 do begin
+    if (Buf[ L ] = FileOpSeparator) then
+      Buf[ L ] := #0;
+  end;
   //FillChar( FOS, Sizeof( FOS ), #0 );
   ZeroMemory( @FOS, Sizeof( FOS ) );
-  if Applet <> nil then
+  if Assigned(Applet) then
     FOS.Wnd := Applet.Handle;
   FOS.wFunc := FileOp;
   FOS.lpszProgressTitle := Title;
@@ -20911,20 +20687,17 @@ begin
   FOS.pTo := PKOLChar( ToList0 );
   FOS.fFlags := Flags;
   FOS.fAnyOperationsAborted := True;
-  Result := {$IFDEF UNICODE_CTRLS}SHFileOperationW{$ELSE}SHFileOperationA{$ENDIF}( FOS ) = 0;
+  Result := (SHFileOperation(FOS) = 0);
   if Result then
     Result := not FOS.fAnyOperationsAborted;
   FreeMem( Buf );
 end;
 
-
 function DirIconSysIdxOffline( const Path: KOLString ): Integer;
 var SFI: TShFileInfo;
 begin
   SFI.iIcon := 0; // Bartov
-  {$IFDEF UNICODE_CTRLS} ShGetFileInfoW {$ELSE} ShGetFileInfoA {$ENDIF}
-    ( PKOLChar( Path ), FILE_ATTRIBUTE_DIRECTORY, SFI, sizeof( SFI ),
-    SHGFI_SMALLICON or SHGFI_SYSICONINDEX or SHGFI_USEFILEATTRIBUTES );
+  ShGetFileInfo( PKOLChar( Path ), FILE_ATTRIBUTE_DIRECTORY, SFI, sizeof( SFI ), SHGFI_SMALLICON or SHGFI_SYSICONINDEX or SHGFI_USEFILEATTRIBUTES );
   Result := SFI.iIcon;
 end;
 
@@ -22889,10 +22662,6 @@ begin
   end;
 end;
 
-{$IFDEF PSEUDO_THREADS}
-function timeBeginPeriod(uPeriod: UINT): UINT; stdcall; external 'winmm.dll' name 'timeBeginPeriod';
-function timeEndPeriod(uPeriod: UINT): UINT; stdcall; external 'winmm.dll' name 'timeEndPeriod';
-{$ENDIF}
 procedure TThread.Init;
 begin
   {$IFDEF CALL_INHERITED}
@@ -26604,14 +26373,16 @@ begin
     Msg.wParam := 32;
 end;
 {$ENDIF}
+
 {$IFNDEF BUTTON_DBLCLICK}
 function WndProcBtnDblClkAsClk( Self_: PControl; var Msg: TMsg; var Rslt: LRESULT ): Boolean;
 begin
   Result := FALSE;
-  if Msg.message = WM_LBUTTONDBLCLK then
+  if (Msg.message = WM_LBUTTONDBLCLK) then
     Msg.message := WM_LBUTTONDOWN;
 end;
 {$ENDIF}
+
 function AutoMinimizeApplet(Self_: PControl; var Msg: TMsg; var Rslt: LRESULT): Boolean;
 begin
   if (msg.Message=WM_SYSCOMMAND) and ((msg.wParam and not 15)=SC_MINIMIZE) then begin
@@ -26661,27 +26432,28 @@ begin
 end;
 {$ENDIF PAS_VERSION}
 
-//----------------- BitBtn -----------------------
 {$IFDEF ASM_VERSION}{$ELSE PAS_VERSION} //Pascal
 function WndProc_DrawItem( Sender: PControl; var Msg: TMsg; var Rslt: LRESULT ): Boolean;
 var DI: PDrawItemStruct;
     Control: PControl;
 begin
   Result := FALSE;
-  if Msg.message = WM_DRAWITEM then begin
+  if (Msg.message = WM_DRAWITEM) then begin
     DI := Pointer( Msg.lParam );
     {$IFDEF USE_PROP}
-    Control := Pointer( GetProp( DI.hwndItem, ID_SELF ) );
+      Control := Pointer( GetProp( DI.hwndItem, ID_SELF ) );
     {$ELSE}
-    Control := Pointer( GetWindowLongPtr( DI.hwndItem, GWLP_USERDATA ) );
+      Control := Pointer( GetWindowLongPtr( DI.hwndItem, GWLP_USERDATA ) );
     {$ENDIF}
-    if Control <> nil then begin
+    if Assigned(Control) then begin
       Rslt := Control.Perform( CN_DRAWITEM, Msg.wParam, Msg.lParam );
       Result := TRUE;
     end;
   end;
 end;
 {$ENDIF PAS_VERSION}
+
+//----------------- BitBtn -----------------------
 function ExcludeAmpersands( Self_: PControl; const S: KOLString ): KOLString;
 var I: Integer;
 begin
@@ -26693,8 +26465,7 @@ begin
   end;
 end;
 
-procedure BitBtnExtDraw( Self_: PControl; DC: HDC; X, Y: Integer; const R: TRect;
-          const CapText, CapTxtOrig: KOLString; Color: TColor );
+procedure BitBtnExtDraw( Self_: PControl; DC: HDC; X, Y: Integer; const R: TRect; const CapText, CapTxtOrig: KOLString; Color: TColor );
 var I, J, W, H: Integer;
     Sz: TSize;
     Pen, OldPen: HPen;
@@ -26707,15 +26478,15 @@ begin
     else begin
       GetTextExtentPoint32( DC, PKOLChar( CapText ), J, Sz );
       W := Sz.cx;
-      Windows.GetTextExtentPoint32( DC, '_', 1, Sz ); // A/W KOL_ANSI
+      GetTextExtentPoint32( DC, '_', 1, Sz ); // A/W KOL_ANSI
       H := Sz.cy - 1;
-      {Windows.}GetTextExtentPoint32( DC, @ CapTxtOrig[ I + 1 ], 1, Sz );
+      GetTextExtentPoint32( DC, @ CapTxtOrig[ I + 1 ], 1, Sz );
       Windows.MoveToEx( DC, X + W, Y + H, nil );
 
       Pen := CreatePen( PS_SOLID, 0, Color2RGB( Color ) );
       OldPen := SelectObject( DC, Pen );
 
-      Windows.LineTo( DC, X + W + Sz.cx, Y + H );
+      LineTo( DC, X + W + Sz.cx, Y + H );
 
       SelectObject( DC, OldPen );
       DeleteObject( Pen );
@@ -27468,10 +27239,7 @@ begin
           OldFont := SelectObject( DIS.hDC, Self_.fFont.Handle );
       OldTextColor := SetTextColor( DIS.hDC, Color2RGB( Self_.fTextColor ) );
 
-      {$IFDEF UNICODE_CTRLS}Windows.GetTextExtentPoint32W
-      {$ELSE}               Windows.GetTextExtentPoint32A
-      {$ENDIF}( DIS.hDC, PKOLChar( CapText ), Length( CapText ),
-        TextSz );
+      GetTextExtentPoint32( DIS.hDC, PKOLChar( CapText ), Length( CapText ), TextSz );
       W := TxRect.Right - TxRect.Left;
       H := TxRect.Bottom - TxRect.Top;
       Y := TxRect.Top + (H - TextSz.cy) div 2;
@@ -29256,71 +29024,70 @@ begin
 end;
 
 function WndProcCombo( Sender: PControl; var Msg: TMsg; var Rslt: LRESULT ): Boolean;
-{$IFDEF UNICODE_CTRLS}
-var s: KOLString;
-    w: PWideChar;
-    L: Integer;
-{$ENDIF}
+//{$IFDEF UNICODE_CTRLS} -dufa
+//var
+//  S: KOLString;
+//  W: PWideChar;
+//{$ENDIF}
 begin
   Result := FALSE;
   if (Msg.message >= WM_CTLCOLORMSGBOX) and (Msg.message <= WM_CTLCOLORSTATIC) then begin
-    Rslt := Sender.Perform( Msg.message + CN_BASE, Msg.wParam, Msg.lParam );
+    Rslt   := Sender.Perform( Msg.message + CN_BASE, Msg.wParam, Msg.lParam );
     Result := TRUE;
-  end else
-  if (Msg.message >= CN_CTLCOLORMSGBOX) and (Msg.message <= CN_CTLCOLORSTATIC) then begin
-    if  {$IFDEF USE_FLAGS} G2_Transparent in Sender.fFlagsG2
-        {$ELSE} Sender.fTransparent {$ENDIF} then
-    case Msg.message of
-    CN_CTLCOLORLISTBOX:
-      begin
-        SetBkMode( Msg.wParam, Windows.OPAQUE );
-        SetBkColor(Msg.WParam, Color2RGB( Sender.fColor ) );
-        Rslt := Global_GetCtlBrushHandle( Sender );
-        Result := TRUE;
-      end;
-    end;
-  end else
-  if (Msg.message = CM_COMMAND) and Sender.ToBeVisible then begin
-    case HiWord( Msg.wParam ) of
-    CBN_DROPDOWN:
-         begin
-           Sender.DF.fCurIdxAtDrop := Sender.CurIndex;
-           //Sender.fDropDownProc( Sender );
-           ComboboxDropDown( Sender );
-         end;
-    CBN_CLOSEUP:
-         begin
-           {$IFDEF NIL_EVENTS}
-           if  Assigned( Sender.EV.fOnCloseUp ) then
-           {$ENDIF}
-               Sender.EV.fOnCloseUp( Sender );
-         end;
-    CBN_SELCHANGE:
-         begin
-           PostMessage( Sender.fHandle, CM_COMMAND, CM_CBN_SELCHANGE shl 16, 0 );
-         end;
-    end;
-  end else
-  if Msg.message = WM_DESTROY then
-    RemoveChldPrevProc( Sender.Handle )
-  {$IFDEF UNICODE_CTRLS}
-    else
-  if  (Msg.message = CB_INSERTSTRING)
-  or  (Msg.message = CB_ADDSTRING) then begin
-      if  {$IFDEF USE_FLAGS} not(G5_IsButton in Sender.fFlagsG5)
-          {$ELSE} not Sender.fIsButton {$ENDIF} then begin
-          {$IFDEF USE_FLAGS} Include( Sender.fFlagsG5, G5_IsButton );
-          {$ELSE} Sender.fIsButton := TRUE; {$ENDIF}
-          w := Pointer( Msg.lParam );
-          L := WStrLen( w );
-          SetLength( s, L );
-          move( w^, Pointer(s)^{[1]}, L * SizeOf(KOLChar) );
-          Rslt := SendMessageW( Msg.hwnd, Msg.message, Msg.wParam,
-               LPARAM( PWideChar(S){@s[1]} ) );
+  end else if (Msg.message >= CN_CTLCOLORMSGBOX) and (Msg.message <= CN_CTLCOLORSTATIC) then begin
+    if {$IFDEF USE_FLAGS} G2_Transparent in Sender.fFlagsG2
+    {$ELSE} Sender.fTransparent {$ENDIF} then begin
+      case Msg.message of
+        CN_CTLCOLORLISTBOX:
+        begin
+          SetBkMode( Msg.wParam, Windows.OPAQUE );
+          SetBkColor(Msg.WParam, Color2RGB( Sender.fColor ) );
+          Rslt := Global_GetCtlBrushHandle( Sender );
           Result := TRUE;
-          {$IFDEF USE_FLAGS} Exclude( Sender.fFlagsG5, G5_IsButton );
-          {$ELSE} Sender.fIsButton := FALSE; {$ENDIF}
+        end;
       end;
+    end;
+  end else if (Msg.message = CM_COMMAND) and Sender.ToBeVisible then begin
+    case HiWord(Msg.wParam) of
+      CBN_DROPDOWN:
+      begin
+        Sender.DF.fCurIdxAtDrop := Sender.CurIndex;
+        //Sender.fDropDownProc( Sender );
+        ComboboxDropDown(Sender);
+      end;
+      CBN_CLOSEUP:
+      begin
+        {$IFDEF NIL_EVENTS}
+        if Assigned( Sender.EV.fOnCloseUp ) then
+        {$ENDIF}
+        Sender.EV.fOnCloseUp(Sender);
+      end;
+      CBN_SELCHANGE:
+      begin
+        PostMessage(Sender.fHandle, CM_COMMAND, CM_CBN_SELCHANGE shl 16, 0);
+      end;
+    end;
+  end else if (Msg.message = WM_DESTROY) then
+    RemoveChldPrevProc(Sender.Handle)
+  {$IFDEF UNICODE_CTRLS}
+  else if (Msg.message = CB_INSERTSTRING) or (Msg.message = CB_ADDSTRING) then begin
+    if {$IFDEF USE_FLAGS} not (G5_IsButton in Sender.fFlagsG5)
+    {$ELSE} not Sender.fIsButton {$ENDIF} then begin
+      {$IFDEF USE_FLAGS}
+        Include(Sender.fFlagsG5, G5_IsButton);
+      {$ELSE}
+        Sender.fIsButton := TRUE;
+      {$ENDIF}
+//-dufa      W := Pointer(Msg.lParam);
+//-dufa      SetString(S, W, WStrLen(W));                      -dufa                 +dufa
+      Rslt   := SendMessage(Msg.hwnd, Msg.message, Msg.wParam, {LPARAM(PWideChar(S))}Msg.lParam);
+      Result := TRUE;
+      {$IFDEF USE_FLAGS}
+        Exclude(Sender.fFlagsG5, G5_IsButton);
+      {$ELSE}
+        Sender.fIsButton := FALSE;
+      {$ENDIF}
+    end;
   end;
   {$ENDIF}
 end;
@@ -29495,18 +29262,18 @@ var NMhdr: PNMHdr;
     Child: PControl;
 begin
   Result := False;
-  if Msg.message = WM_NOTIFY then begin
+  if (Msg.message = WM_NOTIFY) then begin
     NMhdr := Pointer( Msg.lParam );
     {$IFDEF USE_PROP}
     Child := Pointer( GetProp( NMhdr.hwndFrom, ID_SELF ) );
     {$ELSE}
     Child := Pointer( GetWindowLongPtr( NMhdr.hwndFrom, GWLP_USERDATA ) );
     {$ENDIF}
-    if (Child <> nil)
+    if Assigned(Child)
        and (Child <> Self_) //+ by Galkov, Jun-2009
     then begin
       Msg.hwnd := Child.fHandle;
-      Result := EnumDynHandlers( Child, Msg, Rslt );
+      Result   := EnumDynHandlers( Child, Msg, Rslt );
     end;
   end;
 end;
@@ -29515,21 +29282,27 @@ function WndProcCommonNotify( Self_: PControl; var Msg: TMsg; var Rslt: LRESULT 
 var NMhdr: PNMHdr;
 begin
   Result := False;
-  if Msg.message = WM_NOTIFY then begin
+  if (Msg.message = WM_NOTIFY) then begin
     NMHdr := Pointer( Msg.lParam );
-    case Integer(NMHdr.code) of
+    case NMHdr.code of
       NM_RCLICK,
-      NM_CLICK:  {$IFDEF NIL_EVENTS}
-                 if assigned( Self_.EV.fOnClick ) then
-                 {$ENDIF}
-                 begin
-                    {$IFDEF USE_FLAGS}
-                        if   Integer(NMHdr.code) = NM_RCLICK then
-                             include( Self_.fFlagsG6, G6_RightClick )
-                        else exclude( Self_.fFlagsG6, G6_RightClick );
-                    {$ELSE} Self_.fRightClick := Longint(NMHdr.code)=NM_RCLICK; {$ENDIF}
-                    Self_.EV.fOnClick( Self_ );
-                 end;
+      NM_CLICK:
+      begin
+        {$IFDEF NIL_EVENTS}
+        if assigned( Self_.EV.fOnClick ) then
+        {$ENDIF}
+        begin
+          {$IFDEF USE_FLAGS}
+            if   Integer(NMHdr.code) = NM_RCLICK then
+              include( Self_.fFlagsG6, G6_RightClick )
+            else
+              exclude( Self_.fFlagsG6, G6_RightClick );
+          {$ELSE}
+            Self_.fRightClick := Longint(NMHdr.code)=NM_RCLICK;
+          {$ENDIF}
+          Self_.EV.fOnClick( Self_ );
+        end;
+      end;
       NM_KILLFOCUS: {$IFDEF NIL_EVENTS}
                     if  assigned( Self_.EV.fOnLeave ) then
                     {$ENDIF}
@@ -29688,15 +29461,15 @@ begin
           {$ENDIF}
               Self_.EV.fOnTVExpanded( Self_, NM.itemNew.hItem, NM.action=TVE_EXPAND );
       TVN_SELCHANGING:
-          begin //------------------ TVN_SELCHANGING by Sergey Shisminzev
-            {$IFDEF NIL_EVENTS}
-            if  Assigned( Self_.EV.fOnTVSelChanging ) then
-            {$ENDIF}
-            begin
-                Rslt := Integer( not Self_.EV.fOnTVSelChanging( Self_, NM.itemOld.hItem, NM.itemNew.hItem ) );
-                //Result := TRUE; //Exit;
-            end;
-          end;  //----------------------------------------
+      begin //------------------ TVN_SELCHANGING by Sergey Shisminzev
+        {$IFDEF NIL_EVENTS}
+        if  Assigned( Self_.EV.fOnTVSelChanging ) then
+        {$ENDIF}
+        begin
+          Rslt := Integer( not Self_.EV.fOnTVSelChanging( Self_, NM.itemOld.hItem, NM.itemNew.hItem ) );
+          //Result := TRUE; //Exit;
+        end;
+      end;  //----------------------------------------
       TVN_SELCHANGED:
           Self_.DoSelChange;
       end;
@@ -31074,9 +30847,6 @@ end;
 {$ENDIF PAS_VERSION}
 {$ENDIF NOT_USE_RICHEDIT}
 
-function OleInitialize(pwReserved: Pointer): HResult; stdcall; external 'ole32.dll' name 'OleInitialize';
-procedure OleUninitialize; stdcall; external 'ole32.dll' name 'OleUninitialize';
-
 {$IFDEF ASM_VERSION}{$ELSE PAS_VERSION} //Pascal
 function OleInit: Boolean;
 begin
@@ -31098,9 +30868,6 @@ begin
 end;
 {$ENDIF PAS_VERSION}
 
-function SysAllocStringLen(psz: PWideChar; len: Integer): PWideChar; external 'oleaut32.dll' name 'SysAllocStringLen';
-procedure SysFreeString( psz: PWideChar ); stdcall; external 'oleaut32.dll' name 'SysFreeString';
-
 function StringToOleStr(const Source: Ansistring): PWideChar;
 var
   SourceLen, ResultLen: Integer;
@@ -31111,11 +30878,9 @@ begin
     Result := SysAllocStringLen(Buffer, MultiByteToWideChar(0, 0,
       PAnsiChar(Source), SourceLen, Buffer, SizeOf(Buffer) div 2))
   else begin
-    ResultLen := MultiByteToWideChar(0, 0,
-      Pointer(Source), SourceLen, nil, 0);
+    ResultLen := MultiByteToWideChar(0, 0, Pointer(Source), SourceLen, nil, 0);
     Result := SysAllocStringLen(nil, ResultLen);
-    MultiByteToWideChar(0, 0, Pointer(Source), SourceLen,
-      Result, ResultLen);
+    MultiByteToWideChar(0, 0, Pointer(Source), SourceLen, Result, ResultLen);
   end;
 end;
 
@@ -31495,11 +31260,10 @@ var TempClass: TWndClass;
     {$IFDEF _FPC}
     SClassName: AnsiString;
     {$ENDIF PAS_VERSION}
-    {$IFDEF UNICODE_CTRLS}
-    TempOleStr : PWideChar;
-    {$ENDIF}
-    {$IFDEF CREATE_HIDDEN}
-    {$ELSE}
+//    {$IFDEF UNICODE_CTRLS}
+//    TempOleStr : PWideChar;
+//    {$ENDIF UNICODE_CTRLS}
+    {$IFNDEF CREATE_HIDDEN}
     lock: Boolean;
     {$ENDIF}
 begin
@@ -31559,17 +31323,19 @@ begin
    Params.WindowClass.lpfnWndProc := FDefWndProc;
    Params.WindowClass.style := fClsStyle;
    {$IFDEF _FPC}
-   SClassName := SubClassName;
-   StrCopy( Params.WinClsNamBuf, @ SClassName[ 1 ] );
+     SClassName := SubClassName;
+     StrCopy(Params.WinClsNamBuf, @SClassName[1]);
    {$ELSE}
-   {$IFNDEF UNICODE_CTRLS}
-   StrCopy( Params.WinClsNamBuf, @ SubClassName[ 1 ] );
-   {$ELSE}
-   TempOleStr := StringToOleStr(AnsiString(SubClassName));
-   lstrcpyW(Params.WinClsNamBuf, TempOleStr); // vampir_infernal 15.10.2008
-   SysFreeString( TempOleStr );
-   {$ENDIF}
-   {$ENDIF}
+     {$IFNDEF UNICODE_CTRLS}
+       StrCopy(Params.WinClsNamBuf, @SubClassName[1]);
+     {$ELSE}
+       //dufa:
+       WStrCopy(Params.WinClsNamBuf, Pointer(SubClassName));
+       //-TempOleStr := StringToOleStr(AnsiString(SubClassName));
+       //-lstrcpyW(Params.WinClsNamBuf, TempOleStr); // vampir_infernal 15.10.2008
+       //-SysFreeString(TempOleStr);
+     {$ENDIF UNICODE_CTRLS}
+   {$ENDIF _FPC}
    Params.Param := nil;
    Params.Inst := hInstance;
    Params.Menu := fMenu;
@@ -32051,9 +31817,6 @@ end;
   {$UNDEF ASM_LOCAL}
 {$ENDIF}
 {$IFDEF ASM_LOCAL}{$ELSE ASM_LOCAL} //Pascal
-{$IFDEF DEBUG_CREATEWINDOW}
-var DbgCWCount: Integer = 0;
-{$ENDIF DEBUG_CREATEWINDOW}
 function TControl.WndProc( var Msg: TMsg ): LRESULT;
 var C : PControl;
     F: HWnd;
@@ -32065,246 +31828,183 @@ var C : PControl;
     end;
 
 begin
-  {$IFDEF INPACKAGE}
-  Log( '->TControl.WndProc' );
-  TRY
-  {$ENDIF INPACKAGE}
-  {$IFDEF DEBUG_CREATEWINDOW}
-  Inc( DbgCWCount );
-  if (DbgCWCount < 10) then
-    LogFileOutput( GetStartDir + 'Session.log', 'TControl.WndProc: ' +
-      ' Msg.hwnd=' + Int2Str( Msg.hwnd ) +
-      ' Msg.message=' + Int2Hex( Msg.message, 2 ) +
-      ' Msg.wParam=' + Int2Str( Msg.wParam ) + '=$' + Int2Hex( Msg.wParam, 4 ) +
-      ' Msg.lParam=' + Int2Str( Msg.lParam ) + '=$' + Int2Hex( Msg.lParam, 4 ) );
-  {$ENDIF DEBUG_CREATEWINDOW}
   if (Msg.hwnd <> 0) and (fHandle = 0)
-  {$IFDEF USE_GRAPHCTLS} and {$IFDEF USE_FLAGS} not(G6_GraphicCtl in fFlagsG6)
-  {$ELSE} fWindowed {$ENDIF} {$ENDIF} then
+  {$IFDEF USE_GRAPHCTLS}
+    and {$IFDEF USE_FLAGS} not (G6_GraphicCtl in fFlagsG6) {$ELSE} fWindowed {$ENDIF}
+  {$ENDIF}
+  then
     fHandle := Msg.hwnd;
 
-  {$IFDEF DEBUG_MCK} mck_Log( '01' ); {$ENDIF}
   PassFun := PP.fPass2DefProc;
-  {$IFDEF DEBUG_MCK} mck_Log( '01' ); {$ENDIF}
-  if not (AppletRunning and (Applet <> @Self) and ( Applet <> nil ) and
-  {$IFDEF NIL_EVENTS} Assigned( Applet.EV.fOnMessage ) and {$ENDIF}
-  Applet.EV.fOnMessage( Msg, Result )) then begin 
-    {$IFDEF DEBUG_MCK} mck_Log( '02' ); {$ENDIF}
-        if not ({$IFDEF NIL_EVENTS} Assigned( EV.fOnMessage ) and {$ENDIF}
-        EV.fOnMessage( Msg, Result )) then begin 
-          {$IFDEF DEBUG_MCK} mck_Log( '03' ); {$ENDIF}
-          if not PP.fOnDynHandlers( @Self, Msg, Result ) then begin 
-            {$IFDEF DEBUG_MCK} mck_Log( '04' ); {$ENDIF}
-            {$IFDEF DEBUG_MCK} mck_Log( '05' ); {$ENDIF}
-            case Msg.message of
-              WM_CLOSE:
-              begin // handler by default - simple:
-                if (Applet = @ Self) or IsMainWindow then begin
-                  PostQuitMessage( 0 );
-                  AppletTerminated := TRUE;
-                end;
-                Default;
-              end;
-             (*
-             {$IFDEF USE_PROP}
-             WM_NCDESTROY:
-                       begin
-                         RemoveProp( fHandle, ID_SELF ); //********* Added By M.Gerasimov
-                         //RefDec;
-                       end;
-             {$ENDIF}
-             *)
-             WM_NCDESTROY:
-             begin
-               {$IFnDEF SMALLER_CODE}
-               if fHandle = Msg.hwnd then
-               {$ENDIF}
-               begin
-                   {$IFnDEF SMALLER_CODE}
-                       {$IFDEF USE_PROP}
-                       RemoveProp( fHandle, ID_SELF ); //********* Added By M.Gerasimov
-                       {$ELSE}
-                       SetWindowLongPtr( fHandle, GWLP_USERDATA, 0 ); // VK + Alexey Kirov, 23.02.2012
-                       {$ENDIF}
-                   {$ENDIF} //-------------------------------------------
-                   Default;
-                   Exit;
-               end;
-             end;
-             WM_DESTROY:
-                 {$IFnDEF SMALLER_CODE}
-                 if  fHandle = Msg.hwnd then
-                 {$ENDIF}
-                 begin
-                     {$IFDEF USE_FLAGS} include( fFlagsG2, G2_BeginDestroying );
-                     {$ELSE} fBeginDestroying := TRUE; {$ENDIF}
-                     Default;
-                     {$IFDEF INPACKAGE} LogOK; {$ENDIF INPACKAGE}
-                     Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
-                 end;
-             WM_SIZE:  begin
-                          {$IFDEF INPACKAGE}
-                          Log( 'WM_SIZE >>> Default' );
-                          {$ENDIF INPACKAGE}
-                          Default;
-                          {$IFDEF INPACKAGE}
-                          Log( '//// Default called' );
-                          {$ENDIF INPACKAGE}
-                         {$IFDEF OLD_ALIGN}
-                          if  {$IFDEF USE_FLAGS} not(G3_IsForm in fFlagsG3)
-                              {$ELSE} not fIsForm {$ENDIF} then
-                              Global_Align( fParent );
-                         {$ENDIF}
-                         {$IFDEF INPACKAGE}
-                         Log( '//// Before Global_Align' );
-                         {$ENDIF INPACKAGE}
-                          Global_Align( @Self );
-                         {$IFDEF INPACKAGE}
-                         LogOK;
-                         {$ENDIF INPACKAGE}
-                          Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
-                       end;
-             WM_SysCommand:
-             begin
-              if ((Msg.wParam and $FFF0) = SC_MINIMIZE) and
-                 IsMainWindow and (@Self <> Applet) then begin
-                 PostMessage( Applet.Handle, WM_SYSCOMMAND, SC_MINIMIZE, 0 );
-                 Result := 0;
-              end else 
-                Default;
-             end;
-             WM_SETFOCUS:
-             begin
-               if not DoSetFocus then begin
-                 Result := 0;
-               end else begin
-                 Inc( fClickDisabled );
-                 Default;
-                 Dec( fClickDisabled );
-                 {$IFDEF INPACKAGE}
-                 LogOK;
-                 {$ENDIF INPACKAGE}
-                 Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
-               end;
-             end;
-             WM_CTLCOLORMSGBOX..WM_CTLCOLORSTATIC:
-             begin
-               Result := SendMessage(Msg.LParam, CN_BASE + Msg.message, Msg.WParam, Msg.LParam);
-             end;
-             WM_COMMAND:
-             begin
-               {$IFDEF USE_PROP}
-               C := Pointer( GetProp( Msg.lParam, ID_SELF ) );
-               {$ELSE}
-               C := Pointer( GetWindowLongPtr( Msg.lParam, GWLP_USERDATA ) );
-               {$ENDIF}
-               if C <> nil then
-               begin
-                 Result := SendMessage( Msg.lParam, CM_COMMAND, Msg.wParam, Msg.lParam );
-               end
-               else Default;
-             end;
-             WM_KEYFIRST..WM_KEYLAST:
-             begin
-               F := GetFocus;
-               if {(F <> fFocusHandle) and} (F <> fHandle)
-                  {$IFDEF USE_GRAPHCTLS} and
-                      {$IFDEF USE_FLAGS} not(G6_GraphicCtl in fFlagsG6)
-                      {$ELSE} fWindowed {$ENDIF} {$ENDIF}
-               {$IFDEF KEY_PREVIEW}
-                and {$IFDEF USE_FLAGS} not(G4_Pushed in fFlagsG4)
-                    {$ELSE}  not fKeyPreviewing {$ENDIF}
-               {$ENDIF}
-               then begin
-                 Result := 0;
-                 // Jump to PassFun here. Prevents beep in case when WM_KEYDOWN
-                 // called another form and focus is changed, so WM_KEYUP failed
-                 // to handle.
-               end else begin
-                 {$IFDEF KEY_PREVIEW} //ADDITION JUST FOR CORRECT KEYPREVIEWING
-                 {$IFDEF USE_FLAGS} exclude( fFlagsG4, G4_Pushed );
-                 {$ELSE} fKeyPreviewing:=false; {$ENDIF}
-                 {$ENDIF}
-                 if  fGlobalProcKeybd( @Self, Msg, Result ) then begin
-                     {$IFDEF INPACKAGE}
-                     LogOK;
-                     {$ENDIF INPACKAGE}
-                     Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
-                 end;
-                 if  PP.fWndProcKeybd( @Self, Msg, Result ) then begin
-                     {$IFDEF INPACKAGE}
-                     LogOK;
-                     {$ENDIF INPACKAGE}
-                     Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
-                 end;
-                if ((GetKeystate( VK_CONTROL ) or GetKeyState( VK_MENU )) >= 0) then begin
-                  // v1.02 Tabulate AND " in EditBox fix
-                  if (Msg.message <> WM_CHAR) then begin
-                    C := ParentForm;
-                    if  (C <> nil)
-                    {$IFDEF NIL_EVENTS}
-                    and Assigned(C.PP.fGotoControl)
-                    {$ENDIF}
-                    and C.PP.fGotoControl( @Self, Msg.wParam,
-                    (Msg.message <> WM_KEYDOWN) and
-                    (Msg.message <> WM_SYSKEYDOWN) ) then begin
-                      Msg.wParam := 0;
-                      Result := 0;
-                   end else
-                     Default;
-                end else if Msg.wParam = 9 then begin // prevent system beep  //
-                  Msg.wParam := 0;                        //
-                  Result := 0;                            //
+
+  if not (AppletRunning and (Applet <> @Self) and Assigned(Applet) 
+  {$IFDEF NIL_EVENTS}and Assigned(Applet.EV.fOnMessage){$ENDIF}
+  and Applet.EV.fOnMessage(Msg, Result))
+  then begin
+    if not ({$IFDEF NIL_EVENTS} Assigned( EV.fOnMessage ) and {$ENDIF}
+    EV.fOnMessage( Msg, Result )) then begin 
+      if not PP.fOnDynHandlers(@Self, Msg, Result) then begin
+        case Msg.message of
+          WM_CLOSE:
+          begin // handler by default - simple:
+            if (Applet = @Self) or IsMainWindow then begin
+              PostQuitMessage(0);
+              AppletTerminated := TRUE;
+            end;
+            Default;
+          end;
+          WM_NCDESTROY:
+          begin
+            if (fHandle = Msg.hwnd) then begin
+              {$IFnDEF SMALLER_CODE}
+                {$IFDEF USE_PROP}
+                  RemoveProp( fHandle, ID_SELF ); //********* Added By M.Gerasimov
+                {$ELSE}
+                  SetWindowLongPtr( fHandle, GWLP_USERDATA, 0 ); // VK + Alexey Kirov, 23.02.2012
+                {$ENDIF}
+              {$ENDIF} //-------------------------------------------
+              Default;
+              Exit;
+            end;
+          end;
+          WM_DESTROY:
+          begin
+            if (fHandle = Msg.hwnd) then begin
+              {$IFDEF USE_FLAGS}
+                include( fFlagsG2, G2_BeginDestroying );
+              {$ELSE}
+                fBeginDestroying := TRUE;
+              {$ENDIF}
+              Default;
+              {$IFDEF INPACKAGE} LogOK; {$ENDIF INPACKAGE}
+              Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
+            end;
+          end;
+          WM_SIZE:
+          begin
+            Default;
+            {$IFDEF OLD_ALIGN}
+              if {$IFDEF USE_FLAGS} not(G3_IsForm in fFlagsG3)
+                 {$ELSE} not fIsForm {$ENDIF}
+              then
+                Global_Align( fParent );
+            {$ENDIF}
+
+            Global_Align( @Self );
+            Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
+          end;
+          WM_SYSCOMMAND:
+          begin
+            if ((Msg.wParam and $FFF0) = SC_MINIMIZE) and IsMainWindow and (@Self <> Applet) then begin
+              PostMessage( Applet.Handle, WM_SYSCOMMAND, SC_MINIMIZE, 0 );
+              Result := 0;
+            end else
+              Default;
+          end;
+          WM_SETFOCUS:
+          begin
+            if not DoSetFocus then
+              Result := 0
+            else begin
+              Inc( fClickDisabled );
+              Default;
+              Dec( fClickDisabled );
+              Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
+            end;
+          end;
+          WM_CTLCOLORMSGBOX..WM_CTLCOLORSTATIC:
+          begin
+            Result := SendMessage(Msg.LParam, CN_BASE + Msg.message, Msg.WParam, Msg.LParam);
+          end;
+          WM_COMMAND:
+          begin
+            {$IFDEF USE_PROP}
+              C := Pointer( GetProp( Msg.lParam, ID_SELF ) );
+            {$ELSE}
+              C := Pointer( GetWindowLongPtr( Msg.lParam, GWLP_USERDATA ) );
+            {$ENDIF}
+            if Assigned(C) then
+              Result := SendMessage( Msg.lParam, CM_COMMAND, Msg.wParam, Msg.lParam )
+            else
+              Default;
+          end;
+          WM_KEYFIRST..WM_KEYLAST:
+          begin
+            F := GetFocus;
+            if {(F <> fFocusHandle) and} (F <> fHandle)
+              {$IFDEF USE_GRAPHCTLS} and
+                  {$IFDEF USE_FLAGS} not(G6_GraphicCtl in fFlagsG6)
+                  {$ELSE} fWindowed {$ENDIF} {$ENDIF}
+            {$IFDEF KEY_PREVIEW}
+            and {$IFDEF USE_FLAGS} not(G4_Pushed in fFlagsG4)
+                {$ELSE}  not fKeyPreviewing {$ENDIF}
+            {$ENDIF}
+            then begin
+              Result := 0;
+              // Jump to PassFun here. Prevents beep in case when WM_KEYDOWN
+              // called another form and focus is changed, so WM_KEYUP failed
+              // to handle.
+            end else begin
+              {$IFDEF KEY_PREVIEW} //ADDITION JUST FOR CORRECT KEYPREVIEWING
+                {$IFDEF USE_FLAGS}
+                  exclude( fFlagsG4, G4_Pushed );
+                {$ELSE}
+                  fKeyPreviewing := false;
+                {$ENDIF}
+              {$ENDIF}
+              if fGlobalProcKeybd( @Self, Msg, Result )
+              or PP.fWndProcKeybd( @Self, Msg, Result ) then
+                Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
+
+              if ((GetKeystate( VK_CONTROL ) or GetKeyState( VK_MENU )) >= 0) then begin
+                // v1.02 Tabulate AND " in EditBox fix
+                if (Msg.message <> WM_CHAR) then begin
+                  C := ParentForm;
+                  if Assigned(C) {$IFDEF NIL_EVENTS}and Assigned(C.PP.fGotoControl){$ENDIF}
+                  and C.PP.fGotoControl(@Self, Msg.wParam,
+                  (Msg.message <> WM_KEYDOWN) and (Msg.message <> WM_SYSKEYDOWN)) then begin
+                    Msg.wParam := 0;
+                    Result     := 0;
+                  end else
+                    Default;
+                end else if (Msg.wParam = 9) then begin // prevent system beep  //
+                  Msg.wParam := 0;                      //
+                  Result     := 0;                      //
                 end else
                   Default;
-                end else
-                  Default;
-               end;
-             end;
-             WM_NOTIFYFORMAT:
-             begin
-               if Msg.lParam = NF_QUERY then begin
-                 {$IFNDEF UNICODE_CTRLS}
-                 Result := NFR_ANSI;
-                 {$ELSE}
-                 Result := NFR_UNICODE;
-                 {$ENDIF}
-               end;
-             end;
-             else begin
-               {$IFDEF DEBUG_MCK} mck_Log( 'else' ); {$ENDIF}
-               Default;
-               {$IFDEF INPACKAGE}
-               LogOK;
-               {$ENDIF INPACKAGE}
-               Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
-             end;
+              end else
+                Default;
+            end;
+          end;
+//this break listview column resize
+//-          WM_NOTIFYFORMAT:
+//-          begin
+//-            if (Msg.lParam = NF_QUERY) then
+//-              Result := {$IFNDEF UNICODE_CTRLS}NFR_ANSI{$ELSE}NFR_UNICODE{$ENDIF};
+//-          end;
+          else begin
+            Default;
+            Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
+          end;
         end;
       end;
     end;
   end;
-  {$IFDEF DEBUG_MCK} mck_Log( '06' ); {$ENDIF}
-  if not AppletTerminated {$IFDEF USE_fNCDestroyed} and not fNCDestroyed {$ENDIF} then begin
-    {$IFDEF DEBUG_MCK} mck_Log( '07' ); {$ENDIF}
+
+  if not AppletTerminated {$IFDEF USE_fNCDestroyed} and not fNCDestroyed {$ENDIF} then
     PassFun( @Self, Msg, Result ); //+-+
-    {$IFDEF DEBUG_MCK} mck_Log( '08' ); {$ENDIF}
-  end;
-  {$IFDEF INPACKAGE}
-    LogOK;
-  FINALLY
-    Log( '<-TControl.WndProc' );
-  END;
-  {$ENDIF INPACKAGE}
 end;
 {$ENDIF ASM_LOCAL}
 {$UNDEF ASM_LOCAL}
+
 procedure SetMouseEvent( Self_: PControl );
 begin
   Self_.AttachProc( WndProcMouse );
 end;
+
 function TControl.Get_OnMouseEvent(const Index: Integer): TOnMouse;
 begin
-    Result := TOnMouse( EV.MethodEvents[Index] );
+  Result := TOnMouse( EV.MethodEvents[Index] );
 end;
 
 procedure TControl.SetOnMouseEvent(const Index: Integer; const Value: TOnMouse);
@@ -32951,55 +32651,24 @@ end;
 {$IFDEF ASM_VERSION}{$ELSE PAS_VERSION} //Pascal
 function TControl.CallDefWndProc(var Msg: TMsg): LResult;
 begin
-  {$IFDEF INPACKAGE}
-  Result := 0;
-  Log( '->TControl.CallDefWndProc FHandle = ' + Int2Str( FHandle ) +
-    ', Msg.hwd = ' + Int2Str( Msg.hwnd ) );
-  TRY
-  {$ENDIF INPACKAGE}
-    if FDefWndProc <> nil then begin
-      {$IFDEF INPACKAGE}
-      Log( '//// CallWindowProc, FDefWndProc = ' + Int2Hex( PtrUInt( FDefWndProc ), 6 ) );
-      TRY
-      TRY
-      {$ENDIF INPACKAGE}
-       Result := CallWindowProc(
-           FDefWndProc, FHandle, Msg.message, Msg.wParam, Msg.lParam );
-      {$IFDEF INPACKAGE}
-      EXCEPT on E: Exception do
-        Log( '*** Exception in CallWindowProc, msg = ' + E.Message );
-      END;
-      EXCEPT
-        Log( '*** Exception handled' );
-      END;
-      {$ENDIF INPACKAGE}
-    end else begin
-      {$IFDEF INPACKAGE}
-      Log( '//// DefWindowProc' );
-      {$ENDIF INPACKAGE}
-       Result := DefWindowProc( Msg.hwnd, Msg.message, Msg.wParam, Msg.lParam );
-    end;
-  {$IFDEF INPACKAGE}
-    LogOK;
-  FINALLY
-    Log( '<-TControl.CallDefWndProc' );
-  END;
-  {$ENDIF INPACKAGE}
+  if Assigned(FDefWndProc) then
+    Result := CallWindowProc(FDefWndProc, FHandle, Msg.message, Msg.wParam, Msg.lParam )
+  else
+    Result := DefWindowProc( Msg.hwnd, Msg.message, Msg.wParam, Msg.lParam );
 end;
 
 function TControl.GetWindowState: TWindowState;
 begin
-	Result := DF.fWindowState;
-	if Handle <> 0 then begin
-		if IsIconic( Handle ) then
-			 Result := wsMinimized
-		else
-		if IsZoomed( Handle ) then
-			 Result := wsMaximized
-		else
-			 Result := wsNormal;
-		//DF.fWindowState := Result;
-	end;
+  Result := DF.fWindowState;
+  if (Handle <> 0) then begin
+    if IsIconic( Handle ) then
+       Result := wsMinimized
+    else if IsZoomed( Handle ) then
+       Result := wsMaximized
+    else
+       Result := wsNormal;
+    //DF.fWindowState := Result;
+  end;
 end;
 
 function TControl.DoSetFocus: Boolean;
@@ -33757,7 +33426,7 @@ begin
   Result := FALSE;
   with Self_^ do
   case Msg.message of
-  CN_CTLCOLORMSGBOX..CN_CTLCOLORSTATIC:
+    CN_CTLCOLORMSGBOX..CN_CTLCOLORSTATIC:
        begin
          DC := HDC(Msg.WParam);
          SetTextColor(DC, Color2RGB(fTextColor));
@@ -33772,7 +33441,7 @@ begin
          end;
          Result := TRUE;
        end;
-  CM_COMMAND:
+    CM_COMMAND:
        begin
          Result := True;
          Cmd := HiWord( Msg.wParam );
@@ -35027,11 +34696,11 @@ end;
 
 function TControl.ResizeParent: PControl;
 begin
-            ResizeParentBottom;
-            ResizeParentRight;
-            // Once again, to fix Windows (or my???) bug with
-            // incorrect calculating of GetClientRect after
-            // SetWindowLongPtr( GWL_[EX}STYLE,... )
+  ResizeParentBottom;
+  ResizeParentRight;
+  // Once again, to fix Windows (or my???) bug with
+  // incorrect calculating of GetClientRect after
+  // SetWindowLongPtr( GWL_[EX}STYLE,... )
   Result := ResizeParentBottom;
 end;
 
@@ -35437,13 +35106,11 @@ end;
 
 procedure TControl.Click;
 begin
-  if (fCommandActions.aClick <> 0) or
-     (fCommandActions.aEnter = BN_SETFOCUS) then
-    Perform( WM_COMMAND, (fCommandActions.aClick shl 16) or fMenu,
-             GetWindowHandle )
+  if (fCommandActions.aClick <> 0) or (fCommandActions.aEnter = BN_SETFOCUS) then
+    Perform(WM_COMMAND, (fCommandActions.aClick shl 16) or fMenu, GetWindowHandle)
   else begin
-    Perform( WM_LBUTTONDOWN, MK_LBUTTON, 0 );
-    Perform( WM_LBUTTONUP, MK_LBUTTON, 0 );
+    Perform(WM_LBUTTONDOWN, MK_LBUTTON, 0);
+    Perform(WM_LBUTTONUP, MK_LBUTTON, 0);
   end;
 end;
 
@@ -36975,7 +36642,7 @@ begin
 end;
 
 function TTrayIcon.SetTrayIcon(const Value: DWORD): Boolean;
-var NID : {$IFDEF UNICODE_CTRLS} TNotifyIconDataW {$ELSE} TNotifyIconData {$ENDIF};
+var NID : TNotifyIconData;
     L : Integer;
     V : DWORD;
 begin
@@ -37020,6 +36687,12 @@ begin
   end;
 end;
 {$ENDIF PAS_VERSION}
+
+// NT 4.0 bug workaround - NT 4.0 doesn't test bInitialOwner for zero/nonzero, it tests for 1
+function CreateMutex(lpMutexAttributes: PSecurityAttributes; bInitialOwner: BOOL; lpName: PKOLChar): THandle;
+begin
+  Result := KOLCreateMutex(lpMutexAttributes, Integer(Boolean(bInitialOwner)), lpName);
+end;
 
 {$IFDEF ASM_noUNICODE}
 function JustOne( Wnd: PControl; const Identifier : KOLString ) : Boolean;
@@ -37114,37 +36787,30 @@ begin
 end;
 {$ENDIF PAS_VERSION}
 
-// Redefine here incorrectly declared BroadcastSystemMessage API function.
-// It should not refer to BroadcastSystemMessageA, which is not present in
-// earlier versions of Windows95, but to BroadcastSystemMessage, which is
-// present in all Windows95/98/Me and NT/2K/XP.
-function BroadcastSystemMessage(Flags: DWORD; Recipients: PDWORD; uiMessage: UINT; wParam: WPARAM; lParam: LPARAM): Longint; stdcall; external user32 name 'BroadcastSystemMessage';
-
 {$IFDEF ASM_UNICODE}{$ELSE PAS_VERSION} //Pascal
 function JustOneNotify( Wnd: PControl; const Identifier : KOLString; const aOnAnotherInstance: TOnAnotherInstance ) : Boolean;
 var Recipients : DWord;
     OldCap: KOLString;
 begin
-   Result := False;
-   JustOneMsg := RegisterWindowMessage( PKOLChar( 'Message.' + Identifier ) );
-   if JustOneMsg = 0 then Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
-   Result := JustOne( Wnd, Identifier );
-   if not Result then begin
-      // Send a message to the first instance of applet
-      OldCap := Wnd.Caption;
-      Wnd.Caption := GetCommandLine;
-      if Wnd.GetWindowHandle <> 0 then begin
-         Recipients := BSM_APPLICATIONS;
-         BroadcastSystemMessage( BSF_QUERY or BSF_IGNORECURRENTTASK, @Recipients,
-                                 JustOneMsg, 0, Wnd.fHandle );
-      end;
-      Wnd.Caption := OldCap;
-   end else begin
-      // Store event handler to notify this instance about another
-      // instance staring:
-      OnAnotherInstance := aOnAnotherInstance;
-      Wnd.AttachProc( WndProcJustOneNotify );
-   end;
+  Result := False;
+  JustOneMsg := RegisterWindowMessage( PKOLChar( 'Message.' + Identifier ) );
+  if (JustOneMsg = 0) then Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
+  Result := JustOne( Wnd, Identifier );
+  if not Result then begin
+    // Send a message to the first instance of applet
+    OldCap := Wnd.Caption;
+    Wnd.Caption := GetCommandLine;
+    if (Wnd.GetWindowHandle <> 0) then begin
+      Recipients := BSM_APPLICATIONS;
+      BroadcastSystemMessage(BSF_QUERY or BSF_IGNORECURRENTTASK, @Recipients, JustOneMsg, 0, Wnd.fHandle);
+    end;
+    Wnd.Caption := OldCap;
+  end else begin
+    // Store event handler to notify this instance about another
+    // instance staring:
+    OnAnotherInstance := aOnAnotherInstance;
+    Wnd.AttachProc( WndProcJustOneNotify );
+  end;
 end;
 {$ENDIF PAS_VERSION}
 
@@ -37165,12 +36831,10 @@ begin
   fNameDelim := DefaultNameDelimiter;
 end;
 
-{$IFDEF ASM_VERSION_bugged_dufa}{$ELSE PAS_VERSION} //Pascal
 procedure TStrList.AddStrings(Strings: PStrList);
 begin
-  SetText( Strings.Text, True );
+  SetText(Strings.Text, True);
 end;
-{$ENDIF PAS_VERSION}
 
 {$IFDEF ASM_VERSION}{$ELSE PAS_VERSION} //Pascal
 destructor TStrList.Destroy;
@@ -37179,32 +36843,59 @@ begin
   inherited;
 end;
 
-function TStrList.Add(const S: Ansistring): integer;
+function TStrList.Add(const S: Ansistring): Integer;
 begin
   Result := fCount;
-  Insert( Result, S );
+  Insert(Result, S);
 end;
 
 procedure TStrList.Assign(Strings: PStrList);
 begin
   Clear;
-  AddStrings( Strings );
+  AddStrings(Strings);
 end;
 
 procedure TStrList.Clear;
 var I: Integer;
 begin
-  if (fCount > 0) then
+  if (fCount > 0) then begin
     for I := fList.Count - 1 downto 0 do
       Delete( I );
+  end;
   fList.Free;
-  fList := nil;
+  fList  := nil;
   fCount := 0;
   if Assigned(fTextBuf) then begin
-    FreeMem( fTextBuf );
+    FreeMem(fTextBuf);
     fTextBuf := nil;
     fTextSiz := 0;
   end;
+end;
+
+function TStrList.Get(Idx: Integer): AnsiString;
+begin
+  if Assigned(fList) then
+    Result := PAnsiChar(fList.Items[Idx])
+  else
+    Result := '';
+end;
+
+procedure TStrList.Insert(Idx: integer; const S: Ansistring);
+var Mem: PAnsiChar;
+    L: Integer;
+begin
+  if not Assigned(fList) then
+    fList := NewList;
+    
+  L := Succ(Length(S));
+  GetMem(Mem, L);
+  if (L > 1) then
+    System.Move(S[1], Mem[0], L)
+  else
+    Mem[0] := #0;
+
+  fList.Insert(Idx, Mem);
+  Inc(fCount);
 end;
 {$ENDIF PAS_VERSION}
 
@@ -37213,15 +36904,13 @@ end;
 
 {$IFDEF TStrList_Delete_ASM}{$ELSE PAS_VERSION} //Pascal
 procedure TStrList.Delete(Idx: integer);
-var P: PtrUInt;
-    El:Pointer;
+var
+  P: Pointer;
 begin
-  P := PtrUInt(fList.Items[Idx]);
-  if Assigned(fTextBuf) and (P >= PtrUInt(fTextBuf)) and ( P < PtrUInt( fTextBuf ) + fTextSiz ) then
-  else begin
-    El := FList.Items[Idx];
-    FreeMem(El);
-  end;
+  P := fList.Items[Idx];
+  if not (Assigned(fTextBuf) and (P >= fTextBuf) and (P < fTextBuf + fTextSiz)) then
+    FreeMem(P);
+
   fList.Delete(Idx);
   Dec(fCount);
 end;
@@ -37276,18 +36965,14 @@ end;
 
 procedure TStrList.DeleteLast;
 begin
-  Delete(Pred(Count));
+  Delete(Pred(fCount));
 end;
 
-{$IFDEF ASM_VERSION}{$ELSE PAS_VERSION} //Pascal
-function TStrList.Get(Idx: integer): Ansistring;
+function TStrList.AddSorted(const S: Ansistring): Integer; //dufa
 begin
-  if Assigned(fList) then
-    Result := PAnsiChar(fList.Items[Idx])
-  else
-    Result := '';
+  Find(S, Result);
+  Insert(Result, S);
 end;
-{$ENDIF PAS_VERSION}
 
 {$IFDEF ASM_TLIST}
 function TStrList.GetPChars(Idx: Integer): PAnsiChar;
@@ -37296,14 +36981,7 @@ asm
   MOV      EAX, [EAX].TList.fItems
   MOV      EAX, [EAX+EDX*4]
 end;
-{$ELSE PAS_VERSION} //Pascal
-function TStrList.GetPChars(Idx: Integer): PAnsiChar;
-begin
-  Result := PAnsiChar(fList.{$IFDEF TLIST_FAST}Items{$ELSE}fItems{$ENDIF}[Idx])
-end;
-{$ENDIF PAS_VERSION}
 
-{$IFDEF ASM_TLIST}
 function TStrList.GetTextStr: Ansistring;
 asm
         PUSH     ESI
@@ -37356,45 +37034,7 @@ asm
 @@exit: POP      EDI
         POP      ESI
 end;
-{$ELSE PAS_VERSION} //Pascal
-function TStrList.GetTextStr: AnsiString;
-var
-   I, Len, Size: integer;
-   P: PAnsiChar;
-begin
-  Size := 0;
-  for I := 0 to fCount - 1 do
-    Inc(Size, StrLen(PAnsiChar(fList.{$IFDEF TLIST_FAST} Items {$ELSE} fItems {$ENDIF}[I])) + 2);
 
-  SetString(Result, nil, Size);
-  P := Pointer(Result);
-  for I := 0 to fCount - 1 do begin
-    Len := StrLen(PAnsiChar(fList.{$IFDEF TLIST_FAST} Items {$ELSE} fItems {$ENDIF} [I]));
-    if (Len > 0) then begin
-      System.Move(PAnsiChar(fList.{$IFDEF TLIST_FAST} Items {$ELSE} fItems {$ENDIF}[I])^, P^, Len);
-      Inc(P, Len);
-    end;
-    P^ := #13;
-    Inc(P);
-    P^ := #10;
-    Inc(P);
-  end;
-end;
-{$ENDIF PAS_VERSION}
-
-{$IFDEF TLIST_FAST}
-function TStrList.GetUseBlocks: Boolean;
-begin
-  Result := fList.UseBlocks;
-end;
-
-procedure TStrList.SetUseBlocks(const Value: Boolean);
-begin
-  fList.UseBlocks := Value;
-end;
-{$ENDIF TLIST_FAST}
-
-{$IFDEF ASM_TLIST}
 function TStrList.IndexOf(const S: Ansistring): integer;
 asm
         PUSH     EDI
@@ -37425,6 +37065,30 @@ asm
         POP      EDI
 end;
 {$ELSE PAS_VERSION} //Pascal
+function TStrList.GetTextStr: AnsiString;
+var
+   I, Len, Size: integer;
+   P: PAnsiChar;
+begin
+  Size := 0;
+  for I := 0 to fCount - 1 do
+    Inc(Size, StrLen(PAnsiChar(fList.{$IFDEF TLIST_FAST} Items {$ELSE} fItems {$ENDIF}[I])) + 2);
+
+  SetString(Result, nil, Size);
+  P := Pointer(Result);
+  for I := 0 to fCount - 1 do begin
+    Len := StrLen(PAnsiChar(fList.{$IFDEF TLIST_FAST} Items {$ELSE} fItems {$ENDIF} [I]));
+    if (Len > 0) then begin
+      System.Move(PAnsiChar(fList.{$IFDEF TLIST_FAST} Items {$ELSE} fItems {$ENDIF}[I])^, P^, Len);
+      Inc(P, Len);
+    end;
+    P^ := #13;
+    Inc(P);
+    P^ := #10;
+    Inc(P);
+  end;
+end;
+
 function TStrList.IndexOf(const S: AnsiString): integer;
 var Word1: Word;
 begin
@@ -37433,16 +37097,33 @@ begin
       if (PAnsiChar(fList.Items[Result])^ = #0 )then
         Exit; {>>>>>>>>>>>>>>>>>>}
   end else begin
-    Word1 := PWord(PAnsiChar( S ))^;
+    Word1 := PWord(PAnsiChar(S))^;
     for Result := 0 to fCount - 1 do
       if (PWord(fList.Items[Result])^ = Word1) and (StrComp(fList.Items[Result], PAnsiChar(S)) = 0) then
         Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
   end;
   Result := -1;
 end;
+
+function TStrList.GetPChars(Idx: Integer): PAnsiChar;
+begin
+  Result := PAnsiChar(fList.{$IFDEF TLIST_FAST}Items{$ELSE}fItems{$ENDIF}[Idx])
+end;
 {$ENDIF PAS_VERSION}
 
-function TStrList.IndexOf_NoCase(const S: AnsiString): integer;
+{$IFDEF TLIST_FAST}
+function TStrList.GetUseBlocks: Boolean;
+begin
+  Result := fList.UseBlocks;
+end;
+
+procedure TStrList.SetUseBlocks(const Value: Boolean);
+begin
+  fList.UseBlocks := Value;
+end;
+{$ENDIF TLIST_FAST}
+
+function TStrList.IndexOf_NoCase(const S: AnsiString): Integer;
 var tmp: PAnsiChar;
     c: AnsiChar;
 begin
@@ -37463,6 +37144,55 @@ begin
   Result := -1;
 end;
 
+function TStrList.IndexOf_Fast(const S: AnsiString): Integer;
+var
+  i: Integer;
+  P: PAnsiChar;
+  N: PAnsiChar;
+  O: PAnsiChar;
+begin
+  O := PAnsiChar(S);
+  for i := 0 to Pred(fCount) do begin
+    P := {ItemPtrs[i]; //}fList.{$IFDEF TLIST_FAST}Items{$ELSE}fItems{$ENDIF}[i]; // more speed, but safe?
+    N := O;
+    while (P^ <> #0) and (N^ <> #0) and (P^ = N^) do begin
+      Inc(P);
+      Inc(N);
+    end;
+    if (P^ = #0) and (N^ = #0) then begin
+      Result := i;
+      Exit;
+    end;
+  end;
+  Result := -1;
+end;
+
+function TStrList.IndexOf_Fast_NoCase(const S: AnsiString): Integer;
+var
+  i: Integer;
+  P: PAnsiChar;
+  N: PAnsiChar;
+  O: PAnsiChar;
+begin
+  if not Upper_Initialized then
+    Init_Upper;
+
+  O := PAnsiChar(S);
+  for i := 0 to Pred(fCount) do begin
+    P := {ItemPtrs[i]; //}fList.{$IFDEF TLIST_FAST}Items{$ELSE}fItems{$ENDIF}[i]; // more speed, but safe?
+    N := O;
+    while (P^ <> #0) and (N^ <> #0) and (Upper[P^] = Upper[N^]) do begin
+      Inc(P);
+      Inc(N);
+    end;
+    if (P^ = #0) and (N^ = #0) then begin
+      Result := i;
+      Exit;
+    end;
+  end;
+  Result := -1;
+end;
+
 function TStrList.IndexOfStrL_NoCase( Str: PAnsiChar; L: Integer ): integer;
 begin
   if  L = 0 then
@@ -37478,61 +37208,56 @@ begin
   end;
 end;
 
-function CompareAnsiCase( const S1, S2: PAnsiChar ): Integer;
-begin
-  Result := _AnsiCompareStrA( S1, S2 );
-end;
-
-function CompareAnsiNoCase( const S1, S2: PAnsiChar ): Integer;
-begin
-  Result := _AnsiCompareStrNoCaseA( S1, S2 );
-end;
-
 function TStrList.Find(const S: AnsiString; var Index: Integer): Boolean;
 var
   L, H, C: Integer;
+  K: PAnsiChar;
 begin
   Result := False;
   Index  := 0;
   L      := 0;
-  H      := FCount - 1;
+  H      := Pred(FCount);
   if (H < 0) then
     Exit; // === if FCount = 0 then Exit; {>>>>>>>>>>>>>>>>>>>>>>>}
 
-  if  fAnsiSort then begin
-      if  fCaseSensitiveSort then
-          fCompareStrListFun := CompareAnsiCase
-      else
-          fCompareStrListFun := CompareAnsiNoCase;
+  if fAnsiSort then begin
+    if fCaseSensitiveSort then
+      fCompareStrListFun := _AnsiCompareStrA       //CompareAnsiCase
+    else
+      fCompareStrListFun := _AnsiCompareStrNoCaseA //CompareAnsiNoCase;
   end else begin
-      if  fCaseSensitiveSort then
-          fCompareStrListFun := StrComp
-      else
-          fCompareStrListFun := StrComp_NoCase;
+    if fCaseSensitiveSort then
+      fCompareStrListFun := StrComp
+    else
+      fCompareStrListFun := StrComp_NoCase;
   end;
+  
   C := 0;
+  K := PAnsiChar(S);
   while (L <= H) do begin
     Index := (L + H) shr 1;
-    C := fCompareStrListFun( PAnsiChar( fList.Items[ Index ] ), PAnsiChar( S ) );
-    if C < 0 then 
-      L := Index + 1 
+    C     := fCompareStrListFun(fList.Items[Index], K);
+    if (C < 0) then 
+      L := Succ(Index)
     else begin
-      H := Index - 1;
-      if C = 0 then begin
-        Result := TRUE; {Index := I;}
+      if (C = 0) then begin
+        Result := True; {Index := I;}
         Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
       end;
+      H := Pred(Index);
     end;
   end;
-  if  C < 0 then Index := -L;
+
+  if (C < 0) then
+    Index := L; // "-L" => "L" (why minus, wtf?)
 end;
 
 function TStrList.FindFirst(const S: AnsiString; var Index: Integer): Boolean;
 begin
   Result := Find(S, Index);
   if Result then begin
-    while (Index > 0) and (fCompareStrListFun( PAnsiChar( fList.Items[ Index-1 ] ), PAnsiChar( S )) = 0) do
-      Dec( Index );
+    while (Index > 0) and (fCompareStrListFun(PAnsiChar(fList.Items[Pred(Index)]), PAnsiChar(S)) = 0) do
+      Dec(Index);
   end;
 end;
 
@@ -37541,28 +37266,29 @@ begin
   fList.MoveItem(CurIndex, NewIndex);
 end;
 
-{$IFDEF ASM_VERSION}{$ELSE PAS_VERSION} //Pascal
-procedure TStrList.Insert(Idx: integer; const S: Ansistring);
-var Mem: PAnsiChar;
-    L: Integer;
+procedure TStrList.Put(Idx: Integer; const Value: AnsiString);
+var
+  L: Integer;
+  P: PAnsiChar;
 begin
-  if fList = nil then
-     fList := NewList;
-  L := Length( S ) + 1;
-  GetMem( Mem, L );
-  Mem[0] := #0;
-  if L > 1 then
-     System.Move( S[1], Mem[0], L );
-  fList.Insert( Idx, Mem );
-  Inc( fCount );
-end;
+  if not Assigned(fList) then
+    fList := NewList;
 
-procedure TStrList.Put(Idx: integer; const Value: Ansistring);
-begin
-  Delete( Idx );
-  Insert( Idx, Value );
+  //Delete(Idx);
+  P := fList.Items[Idx];
+  if not (Assigned(fTextBuf) and (P >= fTextBuf) and (P < fTextBuf + fTextSiz)) then
+    FreeMem(P);
+
+  //Insert(Idx, Value);
+  L := Succ(Length(Value));
+  GetMem(P, L);
+  if (L > 1) then
+    System.Move(Value[1], P^, L)
+  else
+    P^ := #0;
+  
+  fList.Items[Idx] := P;
 end;
-{$ENDIF PAS_VERSION}
 
 {$IFDEF ASM_TLIST}
 procedure TStrList.SetText(const S: Ansistring; Append2List: boolean);
@@ -37703,33 +37429,37 @@ var
     end;
   end;
 begin
-     if not Append2List then Clear;
-     if S = '' then Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
-     L := fTextSiz;
-     AddTextBuf( PAnsiChar( S ), Length( S ) + 1 );
-     P := PAnsiChar( PtrUInt( fTextBuf ) + PtrUInt( L ) );
-     if  fList = nil then fList := NewList;
-     I := 0;
-     TheLast := P + Length( S );
-     while P^ <> #0 do begin
-       Inc( I );
-       P := StrScanLen( P, #13, TheLast - P );
-       if P^ = #10 then
-         Inc( P );
-     end;
-     Inc( fCount, I );
-     {$IFNDEF TLIST_FAST}
-     if fList.fCapacity < fCount  then
-        fList.Capacity := fCount;
-     {$ENDIF}
-     P := PAnsiChar( PtrUInt( fTextBuf ) + PtrUInt( L ) );
-     while P^ <> #0 do begin
-       fList.Add( P );
-       P := StrScanLen( P, #13, TheLast - P );
-       if PAnsiChar( P - 1 )^ = #13 then
-         PAnsiChar( P - 1 )^ := #0;
-       if P^ = #10 then Inc(P);
-     end;
+  if not Append2List then
+    Clear;
+  if (S = '') then
+    Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
+  L := fTextSiz;
+  AddTextBuf( PAnsiChar( S ), Length( S ) + 1 );
+  P := PAnsiChar( PtrUInt( fTextBuf ) + PtrUInt( L ) );
+  if fList = nil then
+    fList := NewList;
+  I := 0;
+  TheLast := P + Length( S );
+  while P^ <> #0 do begin
+    Inc( I );
+    P := StrScanLen( P, #13, TheLast - P );
+    if P^ = #10 then
+      Inc( P );
+  end;
+  Inc( fCount, I );
+  {$IFNDEF TLIST_FAST}
+  if fList.fCapacity < fCount  then
+    fList.Capacity := fCount;
+  {$ENDIF}
+  P := PAnsiChar( PtrUInt( fTextBuf ) + PtrUInt( L ) );
+  while P^ <> #0 do begin
+    fList.Add( P );
+    P := StrScanLen( P, #13, TheLast - P );
+    if PAnsiChar( P - 1 )^ = #13 then
+      PAnsiChar( P - 1 )^ := #0;
+    if P^ = #10 then
+      Inc(P);
+  end;
 end;
 {$ENDIF PAS_VERSION}
 
@@ -37743,7 +37473,7 @@ end;
 
 procedure TStrList.SetTextStr(const Value: Ansistring);
 begin
-  SetText( Value, False );
+  SetText(Value, False);
 end;
 
 {$IFDEF ASM_TLIST}
@@ -37756,16 +37486,7 @@ asm
         XCHG     EAX, EDX
         JMP      StrComp_NoCase
 end;
-{$ELSE PAS_VERSION} //Pascal
-function CompareStrListItems_NoCase( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
-var S1, S2 : PAnsiChar;
-begin
-  S1 := PStrList( Sender ).fList.Items[ e1 ];
-  S2 := PStrList( Sender ).fList.Items[ e2 ];
-  Result := StrComp_NoCase( S1, S2 );
-end;
-{$ENDIF PAS_VERSION}
-{$IFDEF ASM_TLIST}
+
 function CompareStrListItems_Case( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
 asm
         MOV      EAX, [EAX].TStrList.fList
@@ -37775,16 +37496,7 @@ asm
         XCHG     EAX, EDX
         JMP      StrComp
 end;
-{$ELSE PAS_VERSION} //Pascal
-function CompareStrListItems_Case( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
-var S1, S2 : PAnsiChar;
-begin
-  S1 := PStrList( Sender ).fList.Items[ e1 ];
-  S2 := PStrList( Sender ).fList.Items[ e2 ];
-  Result := StrComp( S1, S2 );
-end;
-{$ENDIF PAS_VERSION}
-{$IFDEF ASM_TLIST}
+
 function CompareAnsiStrListItems( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
 asm
         MOV      EAX, [EAX].TStrList.fList
@@ -37794,16 +37506,7 @@ asm
         XCHG     EAX, EDX
         JMP      _AnsiCompareStrNoCase
 end;
-{$ELSE PAS_VERSION} //Pascal
-function CompareAnsiStrListItems( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
-var S1, S2 : PAnsiChar;
-begin
-  S1 := PStrList( Sender ).fList.Items[ e1 ];
-  S2 := PStrList( Sender ).fList.Items[ e2 ];
-  Result := _AnsiCompareStrNoCaseA( S1, S2 );
-end;
-{$ENDIF PAS_VERSION}
-{$IFDEF ASM_TLIST}
+
 function CompareAnsiStrListItems_Case( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
 asm
         MOV      EAX, [EAX].TStrList.fList
@@ -37814,6 +37517,30 @@ asm
         JMP      _AnsiCompareStr
 end;
 {$ELSE PAS_VERSION} //Pascal
+function CompareStrListItems_NoCase( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
+var S1, S2 : PAnsiChar;
+begin
+  S1 := PStrList( Sender ).fList.Items[ e1 ];
+  S2 := PStrList( Sender ).fList.Items[ e2 ];
+  Result := StrComp_NoCase( S1, S2 );
+end;
+
+function CompareStrListItems_Case( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
+var S1, S2 : PAnsiChar;
+begin
+  S1 := PStrList( Sender ).fList.Items[ e1 ];
+  S2 := PStrList( Sender ).fList.Items[ e2 ];
+  Result := StrComp( S1, S2 );
+end;
+
+function CompareAnsiStrListItems( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
+var S1, S2 : PAnsiChar;
+begin
+  S1 := PStrList( Sender ).fList.Items[ e1 ];
+  S2 := PStrList( Sender ).fList.Items[ e2 ];
+  Result := _AnsiCompareStrNoCaseA( S1, S2 );
+end;
+
 function CompareAnsiStrListItems_Case( const Sender : Pointer; const e1, e2 : DWORD ) : Integer;
 var S1, S2 : PAnsiChar;
 begin
@@ -37908,107 +37635,41 @@ begin
   end;
 end;
 {$ENDIF PAS_VERSION}
+
 procedure TStrList.SortEx(const CompareFun: TCompareEvent);
 begin
-  SortData( @Self, Count, CompareFun, @TStrList.Swap );
+  SortData(@Self, Count, CompareFun, @TStrList.Swap);
 end;
 
 procedure TStrList.Swap(Idx1, Idx2: Integer);
 begin
-  fList.Swap( Idx1, Idx2 );
+  fList.Swap(Idx1, Idx2);
 end;
 
 function TStrList.Last: AnsiString;
 begin
-  if Count = 0 then
+  if (fCount = 0) then
     Result := ''
   else
-    Result := Items[ Count - 1 ];
+    Result := Items[Pred(fCount)];
 end;
 
-//-- code by Dod:
-(*function TStrList.IndexOfName(AName: Ansistring): Integer;
-var i: Integer;
-    L: Integer;
-begin
-    Result:=-1;
-    // Do not start search if empty string
-    L := Length( AName );
-    if L > 0 then begin
-      AName := LowerCase( AName ) + fNameDelim;
-      Inc( L );
-      for i := 0 to fCount - 1 do begin
-        // For optimization, check only list entry that begin with same letter as searched name
-        if StrLComp( PAnsiChar( LowerCase( ItemPtrs[ i ] ) ), PAnsiChar( AName ), L ) = 0 then begin
-          Result:=i; exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
-        end;
-      end;
-    end;
-end;*)
-
-//dufa
-function TStrList.IndexOfName(AName: AnsiString): Integer;
+function TStrList.IndexOfName(const AName: AnsiString): Integer; //dufa
 var
   i: Integer;
-  L: Integer;
-  s: PAnsiChar;
-  p: PAnsiChar;
+  S: PAnsiChar;
+  N: PAnsiChar;
+  O: PAnsiChar;
 begin
-  Result := -1;
-  L      := Length(AName);
-  if (L > 0) then begin
-    s := PAnsiChar(AName);
-    for i := 0 to Pred(fCount) do begin
-      p := ItemPtrs[i];
-      if (StrLComp(p, s, L) = 0) then begin
-        Inc(p, L);
-        if (p^ = fNameDelim) then begin
-          Result := i;
-          Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
-        end;
-      end;
+  O := PAnsiChar(AName);
+  for i := 0 to Pred(fCount) do begin
+    S := {ItemPtrs[i]; //}fList.{$IFDEF TLIST_FAST}Items{$ELSE}fItems{$ENDIF}[i]; // more speed, but safe?
+    N := O;
+    while (S^ = N^) and (S^ <> fNameDelim) and (S^ <> #0) and (N^ <> #0) do begin
+      Inc(S);
+      Inc(N);
     end;
-  end;
-end;
-
-function TStrList.IndexOfName_NoCase(AName: Ansistring): Integer;
-var i: Integer;
-    L: Integer;
-    s, p: PAnsiChar;
-begin
-  Result := -1;
-  L      := Length(AName);
-  if (L > 0) then begin
-    s := PAnsiChar(AName);
-    for i := 0 to Pred(fCount) do begin
-      p := ItemPtrs[i];
-      if (StrLComp_NoCase(p, s, L) = 0) then begin
-        Inc( p, L );
-/// WTF?? Dufa            while (p^ <> #0) and (p^ <= ' ') do inc( p );
-        if (p^ = fNameDelim) then begin
-          Result := i;
-          Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
-        end;
-      end;
-    end;
-  end;
-end;
-
-//dufa
-function TStrList.IndexOfName_NoCaseFast(AName: AnsiString): Integer;
-var i: Integer;
-    s, n: PAnsiChar;
-begin
-  if not Upper_Initialized then
-    Init_Upper;
-  for i := 0 to fCount - 1 do begin
-    s := ItemPtrs[i];
-    n := PAnsiChar(AName);
-    while (Upper[ s^ ] = Upper[ n^ ]){(s^ = n^)} and (s^ <> fNameDelim) and (s^ <> #0) and (n^ <> #0) do begin
-      Inc( s );
-      Inc( n );
-    end;
-    if (s^ = fNameDelim) and (n^ = #0) then begin
+    if (S^ = fNameDelim) and (N^ = #0) then begin
       Result := i;
       Exit;
     end;
@@ -38016,130 +37677,119 @@ begin
   Result := -1;
 end;
 
-//dufa
-function TStrList.GetValueNoCaseFast(const AName: AnsiString): AnsiString;
+function TStrList.IndexOfName_NoCase(const AName: AnsiString): Integer; //dufa
 var
-  I: Integer;
+  i: Integer;
+  S: PAnsiChar;
+  N: PAnsiChar;
+  O: PAnsiChar;
 begin
-  I := IndexOfName_NoCaseFast(AName);
-  if (I > -1) then
-    Result := GetLineValue(I)
-  else
+  if not Upper_Initialized then
+    Init_Upper;
+
+  O := PAnsiChar(AName);
+  for i := 0 to Pred(fCount) do begin
+    S := {ItemPtrs[i]; //}fList.{$IFDEF TLIST_FAST}Items{$ELSE}fItems{$ENDIF}[i]; // more speed, but safe?
+    N := O;
+    while (Upper[S^] = Upper[N^]) and (S^ <> fNameDelim) and (S^ <> #0) and (N^ <> #0) do begin
+      Inc(S);
+      Inc(N);
+    end;
+    if (S^ = fNameDelim) and (N^ = #0) then begin
+      Result := i;
+      Exit;
+    end;
+  end;
+  Result := -1;
+end;
+
+function TStrList.GetValue(const AName: AnsiString): AnsiString; // by Dod (edited)
+var
+  i: Integer;
+  L: Integer;
+  S: AnsiString;
+begin
+  I := IndexOfName(AName);
+  if (I >= 0) then begin
+    S      := Items[i];
+    L      := Length(AName);
+    Result := Copy(S, L + 2, Length(S) - L - 1);
+    //^Result := GetLineValue(I)
+  end else
     Result := '';
 end;
 
-//dufa
-procedure TStrList.SetValueNoCaseFast(const AName, Value: AnsiString);
+function TStrList.GetValueNoCase(const AName: AnsiString): AnsiString; //dufa
+var
+  i: Integer;
+  L: Integer;
+  S: AnsiString;
+begin
+  I := IndexOfName_NoCase(AName);
+  if (I >= 0) then begin
+    S      := Items[i];
+    L      := Length(AName);
+    Result := Copy(S, L + 2, Length(S) - L - 1);
+    //^Result := GetLineValue(I)
+  end else
+    Result := '';
+end;
+
+procedure TStrList.SetValue(const AName, Value: AnsiString); // by Dod (edited)
 var
   I: Integer;
   S: AnsiString;
 begin
   S := AName + fNameDelim + Value;
-  I := IndexOfName_NoCaseFast(AName);
+  I := IndexOfName(AName);
+  if (i = -1) then
+    Add(S)
+  else
+    Items[i] := S;
+end;
+
+procedure TStrList.SetValueNoCase(const AName, Value: AnsiString); //dufa
+var
+  I: Integer;
+  S: AnsiString;
+begin
+  S := AName + fNameDelim + Value;
+  I := IndexOfName_NoCase(AName);
   if (I = -1) then
     Add(S)
   else
     Items[I] := S;
 end;
 
-//dufa
-function TStrList.IndexOfName_Fast(AName: AnsiString): Integer;
-var
-  i: Integer;
-  s: PAnsiChar;
-  n: PAnsiChar;
-begin
-  for i := 0 to fCount - 1 do begin
-    s := ItemPtrs[i];
-    n := PAnsiChar(AName);
-    while (s^ = n^) and (s^ <> fNameDelim) and (s^ <> #0) and (n^ <> #0) do begin
-      Inc( s );
-      Inc( n );
-    end;
-    if (s^ = fNameDelim) and (n^ = #0) then begin
-      Result := i;
-      Exit;
-    end;
-  end;
-  Result := -1;
-end;
-
-//dufa
-function TStrList.GetValueFast(const AName: AnsiString): AnsiString;
-var
-  I: Integer;
-begin
-  I := IndexOfName_Fast(AName);
-  if (I > -1) then
-    Result := GetLineValue(I)
-  else
-    Result := '';
-end;
-
-//dufa
-procedure TStrList.SetValueFast(const AName, Value: AnsiString);
-var
-  I: Integer;
-  s: AnsiString;
-begin
-  s := AName + fNameDelim + Value;
-  I := IndexOfName_Fast(AName);
-  if (I = -1) then
-    Add(s)
-  else
-    Items[I] := s;
-end;
-
-//-- code by Dod:
-function TStrList.GetValue(const AName: Ansistring): Ansistring;
-var
-  i: Integer;
-begin
-  I := IndexOfName(AName);
-  if I >= 0
-  then Result := Copy(Items[i], Length(AName) + 2, Length(Items[i])-Length(AName)-1)
-  else Result := '';
-end;
-
-//-- code by Dod:
-procedure TStrList.SetValue(const AName, Value: Ansistring);
-var
-  I: Integer;
-begin
-  I := IndexOfName(AName);
-  if i=-1
-  then Add( AName + fNameDelim + Value )
-  else Items[i] := AName + fNameDelim + Value;
-end;
-
 function TStrList.GetLineName(Idx: Integer): AnsiString;
-var s: AnsiString;
+var S: AnsiString;
     Q: PAnsiChar;
 begin
-  s := ItemPtrs[ Idx ];
-  Q := StrScan( PAnsiChar(s), fNameDelim );
-  if  Assigned(Q) {by Dufa} then Q^ := #0;
-  Result := PAnsiChar(s);
-end;
-
-procedure TStrList.SetLineName(Idx: Integer; const NV: AnsiString);
-begin
-  Items[ Idx ] := NV + fNameDelim + LineValue[ Idx ];
+  S := ItemPtrs[Idx];
+  Q := StrScan(PAnsiChar(S), fNameDelim);
+  if Assigned(Q) then // by Dufa
+    Q^ := #0;
+  Result := PAnsiChar(S);
 end;
 
 function TStrList.GetLineValue(Idx: Integer): AnsiString;
 var Q: PAnsiChar;
 begin
-  Q := ItemPtrs[ Idx ];
-  Q := StrScan( Q, fNameDelim );
-  if  Q <> nil then
-      inc( Q );
+  Q := ItemPtrs[Idx];
+  Q := StrScan(Q, fNameDelim);
+  if Assigned(Q) then
+    Inc(Q);
   Result := Q;
 end;
 
-procedure TStrList.SetLineValue(Idx: Integer; const Value: Ansistring);
+procedure TStrList.SetLineName(Idx: Integer; const NV: AnsiString);
 begin
-  Items[ Idx ] := LineName[ Idx ] + fNameDelim + Value;
+  Items[Idx] := NV + fNameDelim + LineValue[Idx];
+end;
+
+procedure TStrList.SetLineValue(Idx: Integer; const Value: AnsiString);
+begin
+  Items[Idx] := LineName[Idx] + fNameDelim + Value;
 end;
 
 function TStrList.Join( const sep: AnsiString ): AnsiString;
@@ -38301,24 +37951,6 @@ begin
   Result := fCount div ColsCount;
 end;
 
-function TStrList.Add2(const S: array of AnsiString): Integer; // * by dufa
-var
-  i: Integer;
-  L: Integer;
-  k: AnsiString;
-begin
-  L := Length(S);
-  for i := 0 to Pred(ColsCount) do begin
-    if (i < L) then
-      k := S[i]
-    else
-      k := '';
-    // add
-    Add(k);
-  end;
-  Result := Pred(Count2);
-end;
-
 procedure TStrList.Insert2(Idx: Integer; const S: array of AnsiString); // * by dufa
 var
   i: Integer;
@@ -38336,55 +37968,38 @@ begin
   end;
 end;
 
-function TStrList.IsEmpty: Boolean; // * by dufa
+function TStrList.Add2(const S: array of AnsiString): Integer; // * by dufa
 begin
-  Result := (Count = 0);
+  Result := Count2;
+  Insert2(Result, S);
 end;
 
-function TStrList.GetRandomItem: String; // * by dufa
+function TStrList.IsEmpty: Boolean;
 begin
-  Result := Items[Random(Count)];
+  Result := (fCount = 0);
 end;
 
-procedure TStrList.Delete2(Idx: integer); // * by dufa
-var
-  Col: Integer;
+function TStrList.GetRandomItem: AnsiString;
 begin
-  for Col := 0 to Pred(ColsCount) do
-    Delete(Idx * ColsCount);
+  Result := Items[Random(fCount)];
 end;
 
-function TStrList.Get2(Idx, Col: Integer): AnsiString; // * by dufa
+procedure TStrList.Delete2(Idx: integer);
+begin
+  DeleteRange(Idx * ColsCount, ColsCount);
+end;
+
+function TStrList.Get2(Idx, Col: Integer): AnsiString;
 begin
   Result := Items[Idx * ColsCount + Col];
 end;
 
-procedure TStrList.Put2(Idx, Col: Integer; const Value: AnsiString); // * by dufa
-var
-  L:   DWORD;
-  i:   Integer;
-  Mem: PAnsiChar;
+procedure TStrList.Put2(Idx, Col: Integer; const Value: AnsiString);
 begin
-  if not Assigned(fList) then
-    Exit;
-  // idx
-  i := Idx * ColsCount + Col;
-//  Items[i] := Value;
-  // free
-  Mem := fList.Items[i];
-  if Assigned(fTextBuf) and (DWORD(Mem) >= DWORD(fTextBuf)) and (DWORD(Mem) < DWORD(fTextBuf) + fTextSiz) then
-  else
-    FreeMem(Mem);
-  // set
-  L := Succ(Length(Value));
-  GetMem(Mem, L);
-  Mem[0] := #0;
-  if (L > 1) then
-    System.Move(Value[1], Mem[0], L);
-  fList.Items[i] := Mem;
+  Items[Idx * ColsCount + Col] := Value;
 end;
 
-procedure TStrList.Swap2(Idx1, Idx2: Integer); // * by dufa
+procedure TStrList.Swap2(Idx1, Idx2: Integer);
 var
   Col: Integer;
 begin
@@ -38392,44 +38007,47 @@ begin
     Swap(Idx1 * ColsCount + Col, Idx2 * ColsCount + Col);
 end;
 
-function TStrList.IndexOf2(const S2: array of AnsiString): Integer; // * by dufa
+function TStrList.IndexOf2(const S2: array of AnsiString): Integer;
 var
+  i:     Integer;
   z:     Integer;
   found: Boolean;
 begin
   // find
-  for Result := 0 to Pred(Count2) do begin
+  for i := 0 to Pred(Count2) do begin
     found := True;
     for z := 0 to Pred(ColsCount) do begin
-      if (Items2[Result, z] <> S2[z]) then begin
+      if (Items2[i, z] <> S2[z]) then begin
         found := False;
         Break;
       end;
     end;
     // found
-    if found then
+    if found then begin
+      Result := i;
       Exit;
+    end;
   end;
   // not found
   Result := -1;
 end;
 
-procedure TStrList.ItemFirst; //dufa
+procedure TStrList.ItemFirst;
 begin
   FItemIndex := 0;
 end;
 
-procedure TStrList.ItemLast;  //dufa
+procedure TStrList.ItemLast;
 begin
   FItemIndex := Pred(fCount);
 end;
 
-function TStrList.ItemEOL: Boolean; //dufa
+function TStrList.ItemEOL: Boolean;
 begin
   Result := (FItemIndex >= fCount);
 end;
 
-function TStrList.ItemNext(var Item: AnsiString): Boolean; //dufa
+function TStrList.ItemNext(var Item: AnsiString): Boolean;
 begin
   Result := not ItemEOL;
   if Result then begin
@@ -38438,13 +38056,216 @@ begin
   end;
 end;
 
-function TStrList.ItemPrev(var Item: AnsiString): Boolean; //dufa
+function TStrList.ItemPrev(var Item: AnsiString): Boolean;
 begin
   Result := (FItemIndex >= 0);
   if Result then begin
     Item := Items[FItemIndex];
     Dec(FItemIndex);
   end;
+end;
+
+///////////////////////////////// TFontDialog
+
+var
+  HelpMessageIndex: UINT = 0;
+
+function WndProcFontDialog(Control: PControl; var Msg: TMsg; var Rslt: Integer): Boolean;
+var
+  Self: PFontDialog;
+begin
+  Self := PFontDialog(GetProp(Msg.wParam, ID_SELF));
+  if (Msg.message = HelpMessageIndex) and Assigned(Self) then begin
+    if Assigned(Self.FOnHelp) then
+      Self.FOnHelp(@Self);
+
+    Rslt   := 0;
+    Result := True;
+  end else
+    Result := False;
+end;
+
+function NewFontDialog(AParent: PControl): PFontDialog;
+begin
+  New(Result, Create);
+  Result.FParent   := AParent;
+  Result.Device    := fdScreen;
+  Result.FFont     := NewFont;
+  Result.FColorDlg := NewColorDialog(ccoFullOpen);
+  Result.Add2AutoFree(Result.FFont);
+  Result.Add2AutoFree(Result.FColorDlg);
+  AParent.AttachProc(WndProcFontDialog);
+end;
+
+function FontDialogHook(Wnd: HWND; Msg: UINT; wParam: WPARAM; aLParam: LPARAM): UINT; stdcall;
+const
+  CB_ITEMNAME: PKOLChar = 'Custom';
+
+var
+  id:         Integer;
+  Self:       PFontDialog;
+  TMPLogFont: TLogFont;
+begin
+  Result := 0;
+  case Msg of
+    WM_INITDIALOG:
+    begin
+      Self := PFontDialog(PChooseFont(aLParam).lCustData);
+      SetProp(Wnd, ID_SELF, THandle(Self));
+
+      Self.FCBColorWnd := 0;
+      repeat
+        Self.FCBColorWnd := FindWindowEx(Wnd, Self.FCBColorWnd, 'COMBOBOX', nil);
+        id               := GetWindowLong(Self.FCBColorWnd, GWL_ID);
+        if (id = IDCOLORCMB) then begin
+          Self.FCBItemIdx := SendMessage(Self.FCBColorWnd, CB_ADDSTRING, 0, LPARAM(CB_ITEMNAME));
+          Break;
+        end;
+      until (Self.FCBColorWnd = 0);
+    end;
+    WM_COMMAND:
+    begin
+      Self := PFontDialog(GetProp(Wnd, ID_SELF));
+      case HiWord(wParam) of
+        CBN_SELCHANGE:
+        begin
+          if (aLParam = LPARAM(Self.FCBColorWnd)) then begin
+            if (SendMessage(Self.FCBColorWnd, CB_GETCURSEL, 0, 0) = Self.FCBItemIdx) then begin
+              Self.FColorDlg.OwnerWindow := Wnd;
+              if Self.FColorDlg.Execute then
+                SendMessage(Self.FCBColorWnd, CB_SETITEMDATA, Self.FCBItemIdx, Self.FColorDlg.Color);
+            end;
+          end;
+        end;
+        BN_CLICKED:
+        begin
+          if (LoWord(wParam) = IDAPPLYBTN) then begin
+            SendMessage(Wnd, WM_CHOOSEFONT_GETLOGFONT, 0, LPARAM(@TMPLogFont));
+            Self.FFont.LogFontStruct := TMPLogFont;
+
+            id := SendDlgItemMessage(Wnd, IDCOLORCMB, CB_GETCURSEL, 0, 0);
+            if (id <> CB_ERR) then
+              Self.FFont.Color := SendDlgItemMessage(Wnd, IDCOLORCMB, CB_GETITEMDATA, id, 0);
+
+            if Assigned(Self.OnApply) then
+              Self.OnApply(@Self);
+
+            Result := 1;
+          end;
+        end;
+      end;
+    end;
+  end;                    
+end;
+
+function TFontDialog.Execute: Boolean;
+const
+  FontOptions: array[TFontDialogOption] of Integer = (
+    CF_ANSIONLY, CF_TTONLY, CF_EFFECTS, CF_FIXEDPITCHONLY, CF_FORCEFONTEXIST,
+    CF_NOFACESEL, CF_NOOEMFONTS, CF_NOSIMULATIONS, CF_NOSIZESEL,
+    CF_NOSTYLESEL, CF_NOVECTORFONTS, {CF_SHOWHELP,}
+    CF_WYSIWYG or CF_BOTH or CF_SCALABLEONLY, CF_LIMITSIZE,
+    CF_SCALABLEONLY, {CF_APPLY,} CF_INITTOLOGFONTSTRUCT);
+  Device2Flag: array[TFontDialogDevice] of Integer = (CF_BOTH, CF_SCREENFONTS, CF_PRINTERFONTS);
+
+var
+  TMPCF:      TChooseFont;
+  TMPLogFont: TLogFont;  
+begin
+  ZeroMemory(@TMPCF, Sizeof(TMPCF)); // hDC = 0 - None Full Correct
+  // font inits
+  TMPLogFont      := FFont.LogFontStruct;
+  TMPCF.lpLogFont := @TMPLogFont;
+  if (fsBold in FFont.FontStyle) then
+    TMPCF.nFontType := BOLD_FONTTYPE;
+  if (fsItalic in FFont.FontStyle) then
+    TMPCF.nFontType := TMPCF.nFontType or ITALIC_FONTTYPE;
+  // owner
+  if Assigned(FParent) then
+    TMPCF.hWndOwner := FParent.Handle;
+  // other 
+  TMPCF.lStructSize := Sizeof(TMPCF);
+  TMPCF.nSizeMin    := MinFontSize;
+  TMPCF.nSizeMax    := MaxFontSize;
+  TMPCF.rgbColors   := FFont.Color;
+  TMPCF.lpfnHook    := FontDialogHook;
+  TMPCF.lCustData   := DWORD(@Self);
+  TMPCF.Flags       := MakeFlags(@Options, FontOptions) or CF_ENABLEHOOK or Device2Flag[Device];
+  // opt. flag apply btn
+  if Assigned(OnApply) then
+    TMPCF.Flags := TMPCF.Flags or CF_APPLY;
+  // opt. help flag
+  if Assigned(OnHelp) then begin
+    TMPCF.Flags := TMPCF.Flags or CF_SHOWHELP;
+    if (HelpMessageIndex = 0) then
+      HelpMessageIndex := RegisterWindowMessage(HELPMSGSTRING);
+  end;
+  // choose
+  Result := ChooseFont(TMPCF);
+  if Result then begin
+    FFont.LogFontStruct := TMPLogFont;
+    FFont.Color         := TMPCF.rgbColors;
+  end;
+end;
+
+function Str2Font(const S: KOLString; outFont: PGraphicTool): Boolean;
+var
+  FontQualy: KOLString;
+  FontNamez: KOLString;
+  FontSizez: KOLString;
+  FontStyle: KOLString;
+begin
+  //Segoe UI, 9, Quality:Cleartype
+  //Segoe UI, 9, Bold, Quality:Antialiased
+  //Segoe UI, 9, Italic, Quality:ClearType
+  //Segoe UI, 9, Underline, Quality:ClearType
+  FontQualy := S;
+  FontNamez := Parse(FontQualy, ',');
+  FontSizez := Trim(Parse(FontQualy, ','));
+  FontStyle := LowerCase(Trim(Parse(FontQualy, ',')));
+  // no style
+  if (FontQualy = '') then
+    Swap(FontQualy, FontStyle);
+  // check fields
+  Result := (FontNamez <> '') and (FontSizez <> '') and (FontQualy <> '');
+  if Result then begin
+    outFont.FontName   := FontNamez;
+    outFont.FontHeight := -MulDiv(Str2Int(FontSizez), GetDeviceCaps(GetDC(0), LOGPIXELSY), 72);
+    // styles
+    if (FontStyle = 'bold') then
+      outFont.FontStyle := [fsBold]
+    else if (FontStyle = 'italic') then
+      outFont.FontStyle := [fsItalic]
+    else if (FontStyle = 'underline') then
+      outFont.FontStyle := [fsUnderline];
+    // quality
+    FontQualy := LowerCase(FontQualy);
+    if (FontQualy = 'quality:antialiased') then
+      outFont.FontQuality := fqAntialiased
+    else //!if (FontQualy = 'quality:cleartype') then
+      outFont.FontQuality := fqClearType
+  end;
+end;
+
+function Font2Str(const Font: PGraphicTool): KOLString;
+begin
+  //Segoe UI, 9, Quality:Cleartype
+  //Segoe UI, 9, Bold, Quality:Antialiased
+  //Segoe UI, 9, Italic, Quality:ClearType
+  //Segoe UI, 9, Underline, Quality:ClearType
+  Result := Font.FontName + ', ' + Int2Str(-Windows.MulDiv(Font.FontHeight, 72, GetDeviceCaps(GetDC(0), LOGPIXELSY)));
+  // styles
+  if (fsBold in Font.FontStyle) then
+    Result := Result + ', Bold'
+  else if (fsItalic in Font.FontStyle) then
+    Result := Result + ', Italic'
+  else if (fsUnderline in Font.FontStyle) then
+    Result := Result + ', Underline';
+  // quality
+  if (Font.FontQuality = fqAntialiased) then
+    Result := Result + ', Quality:Antialiased'
+  else //!if (Font.FontQuality = fqClearType) then
+    Result := Result + ', Quality:ClearType';
 end;
 
 ////////////////////////////////// EXTENDED STRING LIST OBJECT ////////////////
@@ -38687,6 +38508,7 @@ begin
   inherited;
   if  FObjects.fCount >= C then FObjects.Delete( C );
 end;
+
 function TStrListEx.LastObj: PtrUInt;
 begin
   if Count = 0 then
@@ -38712,6 +38534,29 @@ function TStrListEx.IndexOfObj( Obj: Pointer ): Integer;
 begin
   Result := FObjects.IndexOf( Obj );
 end;
+
+procedure TStrListEx.OptimizeForRead;
+begin
+    {$IFDEF TLIST_FAST}
+    if  fList <> nil then
+        fList.OptimizeForRead;
+    if  FObjects <> nil then
+        FObjects.OptimizeForRead;
+    {$ENDIF}
+end;
+
+function UTF8_2KOLWideString( const s: AnsiString ): KOLWideString;
+var Buffer: PWideChar;
+    L: Integer;
+begin
+  L := Length( s ) + 1;
+  GetMem( Buffer, L * 2 );
+  MultiByteToWideChar( CP_UTF8, 0, PAnsiChar( s ), L-1,
+    Buffer, L );
+  Result := Buffer;
+  FreeMem( Buffer );
+end;
+
 {$IFNDEF PAS_ONLY}
 function WStrLen( W: PWideChar ): Integer;
 asm
@@ -38738,28 +38583,6 @@ begin
   end;
 end;
 {$ENDIF}
-procedure TStrListEx.OptimizeForRead;
-begin
-    {$IFDEF TLIST_FAST}
-    if  fList <> nil then
-        fList.OptimizeForRead;
-    if  FObjects <> nil then
-        FObjects.OptimizeForRead;
-    {$ENDIF}
-end;
-
-function UTF8_2KOLWideString( const s: AnsiString ): KOLWideString;
-var Buffer: PWideChar;
-    L: Integer;
-begin
-  L := Length( s ) + 1;
-  GetMem( Buffer, L * 2 );
-  MultiByteToWideChar( CP_UTF8, 0, PAnsiChar( s ), L-1,
-    Buffer, L );
-  Result := Buffer;
-  FreeMem( Buffer );
-end;
-
 {------------------------------------------------------------------------------)
 |                                                                              |
 |                         T W S t r L i s t                                    |
@@ -39958,66 +39781,36 @@ begin
   AOwner.fImageList := Result;
 end;
 
-function ImageList_Create; stdcall; external cctrl name 'ImageList_Create';
-function ImageList_Destroy; external cctrl name 'ImageList_Destroy';
-function ImageList_GetImageCount; external cctrl name 'ImageList_GetImageCount';
-function ImageList_SetImageCount; external cctrl name 'ImageList_SetImageCount';
-function ImageList_Add; external cctrl name 'ImageList_Add';
-function ImageList_ReplaceIcon; external cctrl name 'ImageList_ReplaceIcon';
-function ImageList_SetBkColor; external cctrl name 'ImageList_SetBkColor';
-function ImageList_GetBkColor; external cctrl name 'ImageList_GetBkColor';
-function ImageList_SetOverlayImage; external cctrl name 'ImageList_SetOverlayImage';
-function ImageList_Draw; external cctrl name 'ImageList_Draw';
-function ImageList_Replace; external cctrl name 'ImageList_Replace';
-function ImageList_AddMasked; external cctrl name 'ImageList_AddMasked';
-function ImageList_DrawEx; external cctrl name 'ImageList_DrawEx';
-function ImageList_Remove; external cctrl name 'ImageList_Remove';
-function ImageList_GetIcon; external cctrl name 'ImageList_GetIcon';
-function ImageList_LoadImage; external cctrl name {$IFDEF UNICODE_CTRLS}'ImageList_LoadImageW'{$ELSE}'ImageList_LoadImageA'{$ENDIF};
-function ImageList_BeginDrag; external cctrl name 'ImageList_BeginDrag';
-function ImageList_EndDrag; external cctrl name 'ImageList_EndDrag';
-function ImageList_DragEnter; external cctrl name 'ImageList_DragEnter';
-function ImageList_DragLeave; external cctrl name 'ImageList_DragLeave';
-function ImageList_DragMove; external cctrl name 'ImageList_DragMove';
-function ImageList_SetDragCursorImage; external cctrl name 'ImageList_SetDragCursorImage';
-function ImageList_DragShowNolock; external cctrl name 'ImageList_DragShowNolock';
-function ImageList_GetDragImage; external cctrl name 'ImageList_GetDragImage';
-function ImageList_GetIconSize; external cctrl name 'ImageList_GetIconSize';
-function ImageList_SetIconSize; external cctrl name 'ImageList_SetIconSize';
-function ImageList_GetImageInfo; external cctrl name 'ImageList_GetImageInfo';
-function ImageList_Merge; external cctrl name 'ImageList_Merge';
-
-function ImageList_AddIcon(ImageList: HImageList; Icon: HIcon): Integer;
-begin
-  Result := ImageList_ReplaceIcon(ImageList, -1, Icon);
-end;
-
 function Index2OverlayMask(Index: Integer): Integer;
 begin
   Result := Index shl 8;
 end;
 
 { macros }
+
+function ImageList_AddIcon(ImageList: HImageList; Icon: HIcon): Integer;
+begin
+  Result := ImageList_ReplaceIcon(ImageList, -1, Icon);
+end;
+
 procedure ImageList_RemoveAll(ImageList: HImageList); stdcall;
 begin
   ImageList_Remove(ImageList, -1);
 end;
 
-function ImageList_ExtractIcon(Instance: HINST; ImageList: HImageList;
-  Image: Integer): HIcon; stdcall;
+function ImageList_ExtractIcon(Instance: HINST; ImageList: HImageList; Image: Integer): HIcon; stdcall;
 begin
   Result := ImageList_GetIcon(ImageList, Image, 0);
 end;
 
-function ImageList_LoadBitmap(Instance: HINST; Bmp: PKOLChar;
-  CX, Grow: Integer; Mask: TColorRef): HImageList; stdcall;
+function ImageList_LoadBitmap(Instance: HINST; Bmp: PKOLChar; CX, Grow: Integer; Mask: TColorRef): HImageList; stdcall;
 begin
   Result := ImageList_LoadImage(Instance, Bmp, CX, Grow, Mask, IMAGE_BITMAP, 0);
 end;
 
-procedure FreeBmp( Bmp: HBitmap );
+procedure FreeBmp(Bmp: HBitmap);
 begin
-  DeleteObject( Bmp );
+  DeleteObject(Bmp);
 end;
 
 function LoadBmp( Instance: HINST; Rsrc: PKOLChar; MasterObj: PObj ): HBitmap;
@@ -40344,7 +40137,7 @@ begin
                LR_LOADFROMFILE or LR_CREATEDIBSECTION or TranspFlag );
   Result := NewHandle <> 0;
   if Result then
-     Handle := NewHandle;
+    Handle := NewHandle;
 end;
 
 function TImageList.LoadSystemIcons(SmallIcons: Boolean): Boolean;
@@ -40355,13 +40148,12 @@ begin
   OleInit;
   Flags := SHGFI_SYSICONINDEX;
   if SmallIcons then
-     Flags := Flags or SHGFI_SMALLICON;
-  NewHandle := {$IFDEF UNICODE_CTRLS} SHGetFileInfoW {$ELSE} SHGetFileInfoA {$ENDIF}
-    ( '', 0, FileInfo, Sizeof( FileInfo ), Flags );
-  Result := NewHandle <> 0;
+    Flags := Flags or SHGFI_SMALLICON;
+  NewHandle := SHGetFileInfo( '', 0, FileInfo, Sizeof( FileInfo ), Flags );
+  Result    := (NewHandle <> 0);
   if Result then begin
-     Handle := NewHandle;
-     FShareImages := True;
+    Handle := NewHandle;
+    FShareImages := True;
   end;
 end;
 
@@ -40414,14 +40206,15 @@ end;
 {$IFDEF ASM_VERSION}{$ELSE PAS_VERSION} //Pascal
 procedure TImageList.SetHandle(const Value: THandle);
 begin
-  if FHandle = Value then Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
+  if FHandle = Value then
+    Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
   if (FHandle <> 0) and not FShareImages then
-     ImageList_Destroy( FHandle );
+    ImageList_Destroy( FHandle );
   FHandle := Value;
   if FHandle <> 0 then
      ImageList_GetIconSize( FHandle, FImgWidth, FImgHeight )
   else begin
-    FImgWidth := 0;
+    FImgWidth  := 0;
     FImgHeight := 0;
   end;
 end;
@@ -40429,31 +40222,31 @@ end;
 
 procedure TImageList.SetImgHeight(const Value: Integer);
 begin
-  if FHandle <> 0 then Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
-  FImgHeight := Value;
+  if (FHandle = 0) then
+    FImgHeight := Value;
 end;
 
 procedure TImageList.SetImgWidth(const Value: Integer);
 begin
-  if FHandle <> 0 then Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
-  FImgWidth := Value;
+  if (FHandle = 0) then
+    FImgWidth := Value;
 end;
 
 procedure TImageList.SetMasked(const Value: Boolean);
 begin
-  if FHandle <> 0 then Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
-  FMasked := Value;
+  if (FHandle = 0) then
+    FMasked := Value;
 end;
 
 function TImageList.GetOverlay(Idx: TImgLOVrlayIdx): Integer;
 begin
-  Result := fOverlay[ Idx ];
+  Result := fOverlay[Idx];
 end;
 
 procedure TImageList.SetOverlay(Idx: TImgLOVrlayIdx; const Value: Integer);
 begin
-  if ImageList_SetOverlayImage( fHandle, Value, Idx shl 8 ) then
-    fOverlay[ Idx ] := Value;
+  if ImageList_SetOverlayImage(fHandle, Value, Idx{ shl 8 -dufa}) then
+    fOverlay[Idx] := Value;
 end;
 
 procedure TImageList.StretchDraw(Idx: Integer; DC: HDC; const Rect: TRect);
@@ -40662,42 +40455,35 @@ begin
   Perform( LVM_SETCOLUMN, Idx, LPARAM( @ LC ) );
 end;
 
-function TControl.LVAdd(const aText: KOLString; ImgIdx: Integer;
-  State: TListViewItemState; StateImgIdx, OverlayImgIdx: Integer;
-  Data: PtrUInt): Integer;
+function TControl.LVAdd(const aText: KOLString; ImgIdx: Integer; State: TListViewItemState; StateImgIdx, OverlayImgIdx: Integer; Data: PtrUInt): Integer;
 begin
   Result := LVInsert( MaxInt {Count}, aText, ImgIdx, State, StateImgIdx, OverlayImgIdx, Data );
 end;
 
-function TControl.LVInsert(Idx: Integer; const aText: KOLString;
-  ImgIdx: Integer; State: TListViewItemState;  StateImgIdx, OverlayImgIdx: DWORD;
-  Data: PtrUInt): Integer;
-const
-  LVM_REDRAWITEMS         = LVM_FIRST + 21;
+function TControl.LVInsert(Idx: Integer; const aText: KOLString; ImgIdx: Integer; State: TListViewItemState;  StateImgIdx, OverlayImgIdx: DWORD; Data: PtrUInt): Integer;
 var LVI: TLVItem;
 begin
-  LVI.mask := LVIF_TEXT or LVIF_IMAGE or LVIF_PARAM or LVIF_STATE
-              or LVIF_DI_SETITEM;
-  LVI.iItem := Idx;
-  LVI.iSubItem := 0;
-  LVI.state := 0;
-  if lvisBlend in State then
-     LVI.state := LVIS_CUT;
-  if lvisHighlight in State then
-     LVI.state := LVI.state or LVIS_DROPHILITED;
-  if lvisFocus in State then
-     LVI.state := LVI.state or LVIS_FOCUSED;
-  if lvisSelect in State then
-     LVI.state := LVI.state or LVIS_SELECTED;
+  LVI.mask      := LVIF_TEXT or LVIF_IMAGE or LVIF_PARAM or LVIF_STATE or LVIF_DI_SETITEM;
+  LVI.iItem     := Idx;
+  LVI.iSubItem  := 0;
   LVI.stateMask := $FFFF;
-  if StateImgIdx <> 0 then
-     LVI.state := LVI.state or ((StateImgIdx and $F) shl 12);
+  LVI.state     := 0;
+  if (lvisBlend in State) then
+     LVI.state := LVIS_CUT;
+  if (lvisHighlight in State) then
+     LVI.state := LVI.state or LVIS_DROPHILITED;
+  if (lvisFocus in State) then
+     LVI.state := LVI.state or LVIS_FOCUSED;
+  if (lvisSelect in State) then
+     LVI.state := LVI.state or LVIS_SELECTED;
+  if (StateImgIdx <> 0) then
+    LVI.state := LVI.state or ((StateImgIdx and $F) shl 12);
   if OverlayImgIdx <> 0 then
-     LVI.state := LVI.state or ((OverlayImgIdx and $F) shl 8);
-  LVI.pszText := PKOL_Char( aText );
-  LVI.iImage := ImgIdx;
-  LVI.lParam := Data;
-  Result := Perform( LVM_INSERTITEM, 0, LPARAM( @LVI ) );
+    LVI.state := LVI.state or ((OverlayImgIdx and $F) shl 8);
+  LVI.pszText := PKOL_Char(aText);
+  LVI.iImage  := ImgIdx;
+  LVI.lParam  := Data;
+  Result      := Perform(LVM_INSERTITEM, 0, LPARAM(@LVI));
 end;
 
 procedure TControl.LVSetItem(Idx, Col: Integer; const aText: KOLString;
@@ -40895,7 +40681,7 @@ var Hdr: HWnd;
     ClassNameBuf: array[ 0..31 ] of KOLChar;
     HdItem: THDItem;
 begin
-  Result.Top := ColIdx;  // 1-based index of subitem
+  Result.Top  := ColIdx;  // 1-based index of subitem
   Result.Left := LVIR_BOUNDS;
   if Perform( LVM_GETSUBITEMRECT, Idx, LPARAM( @Result ) ) <> 0 then
     Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
@@ -41116,14 +40902,12 @@ end;
 {$IFDEF ASM_VERSION}{$ELSE PAS_VERSION} //Pascal
 destructor TOpenSaveDialog.Destroy;
 begin
-  FFilter := '';
-  FInitialDir := '';
+  FFilter       := '';
+  FInitialDir   := '';
   FDefExtension := '';
-  FFileName := '';
-  FTitle := '';
-  {$IFDEF OpenSaveDialog_Extended}
-  TemplateName := '';
-  {$ENDIF}
+  FFileName     := '';
+  FTitle        := '';
+  TemplateName  := '';
   inherited;
 end;
 {$ENDIF PAS_VERSION}
@@ -41145,12 +40929,13 @@ const OpenSaveFlags: array[ TOpenSaveOption ] of Integer = (
       OFN_READONLY,
       OFN_NOVALIDATE,
       OFN_ENABLETEMPLATE,
-      OFN_ENABLEHOOK );
+      OFN_ENABLEHOOK);
 var
-  Ofn : TOpenFilename;
-  Fltr : KOLString;
-  TempFilename : KOLString;
-  Function MakeFilter(s : KOLString) : KOLString;
+  Ofn:          TOpenFilename;
+  Fltr:         KOLString;
+  TempFilename: KOLString;
+
+  function MakeFilter(S : KOLString): KOLString;
   {  format of filter for API call is following:
     'text files'#0'*.txt'#0
     'bitmap files'#0'*.bmp'#0#0 }
@@ -41160,84 +40945,66 @@ var
     if Result='' then exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
     Result:=Result+#0; {Delphi string always end on #0 is this is #0#0}
     Str := PKOLChar( Result );
-    while Str^ <> #0 do begin
-      if Str^ = '|' then
+    while (Str^ <> #0) do begin
+      if (Str^ = '|') then
         Str^ := #0;
-      Inc( Str );
+      Inc(Str);
     end;
   end;
 
 var m: Integer;
 begin
-  ZeroMemory( @ofn, sizeof( ofn ) );
+  ZeroMemory(@ofn, sizeof(ofn));
   ofn.lStructSize := SizeOf(ofn);
-  {$IFDEF OpenSaveDialog_Extended}
-  if (WinVer <= wvNT) and (WinVer <> wvME) then
-    ofn.lStructSize := ofn.lStructSize - SizeOf(ofnext)//76
-  else begin
-//    ofn.lStructSize := Sizeof( ofn );
-    ofn.FlagsEx := Integer( NoPlaceBar );
-  end;
-//  {$ELSE}
-//  ofn.lStructSize:= ofn.lStructSize;//76; //to provide correct work in Win9x
-  {$ENDIF}
-  if fWnd <> 0 then
+  ofn.FlagsEx     := Integer(NoPlaceBar);
+  if (fWnd <> 0) then
     ofn.hWndOwner := fWnd
-  else
-  if  Applet <> nil then
-      ofn.hwndOwner := applet.Handle;
+  else if Assigned(Applet) then
+    ofn.hwndOwner := Applet.Handle;
 
-  ofn.hInstance:=HInstance;
+  ofn.hInstance := HInstance;
 
   Fltr := MakeFilter(FFilter);
-  if Fltr <> '' then
+  if (Fltr <> '') then
     ofn.lpstrFilter := PKOLchar(Fltr);
   ofn.nFilterIndex := FFilterIndex;
 
-  if OSAllowMultiSelect in FOptions then
-    ofn.nMaxFile := High(word)-14    // by V.K. (exchanged condition)
+  if (OSAllowMultiSelect in FOptions) then
+    ofn.nMaxFile := High(Word) - 14    // by V.K. (exchanged condition)
   else
-    ofn.nMaxFile := MAX_PATH+2;
+    ofn.nMaxFile := MAX_PATH + 2;
 
   SetLength( TempFileName, ofn.nMaxFile );
   ZeroMemory( @TempFileName[ 1 ], ofn.nMaxFile * sizeof( KOLChar ) );
   m := Min( ofn.nMaxFile, Length(fFileName) );
   {$IFDEF UNICODE_CTRLS}
-  ofn.lpstrFile := PKOLchar( TempFileName );
-  WStrLCopy(PWideChar(TempFileName), PWideChar(fFileName), m );
+    ofn.lpstrFile := PKOLchar( TempFileName );
+    WStrLCopy(PWideChar(TempFileName), PWideChar(fFileName), m );
   {$ELSE}
-  ofn.lpstrFile := StrLCopy(PKOLChar(TempFileName), PKOLchar(fFileName), m );
+    ofn.lpstrFile := StrLCopy(PKOLChar(TempFileName), PKOLchar(fFileName), m );
   {$ENDIF}
-  ofn.lpstrInitialDir:=Pointer(FInitialDir);
-  ofn.lpstrTitle := Pointer(FTitle);
-  ofn.Flags := MakeFlags( @FOptions, OpenSaveFlags )
-            or OFN_EXPLORER or OFN_LONGNAMES or OFN_ENABLESIZING;
+  ofn.lpstrInitialDir := Pointer(FInitialDir);
+  ofn.lpstrTitle      := Pointer(FTitle);
+  ofn.Flags           := MakeFlags(@FOptions, OpenSaveFlags) or OFN_EXPLORER or OFN_LONGNAMES or OFN_ENABLESIZING;
+  ofn.lpstrDefExt     := PKOLChar(FDefExtension);
+  ofn.lCustData       := PtrInt(@self);
+  ofn.lpTemplateName  := PKOLChar(TemplateName);
+  ofn.lpfnHook        := HookProc;
 
-  ofn.lpstrDefExt := PKOLChar(FDefExtension);
-  ofn.lCustData := PtrInt(@self);
-  {$IFDEF OpenSaveDialog_Extended}
-  ofn.lpTemplateName := PKOLChar( TemplateName );
-  ofn.lpfnHook := HookProc;
-  {$ELSE}
-  ofn.lpTemplateName := nil;
-  ofn.lpfnHook := nil;
-  {$ENDIF}
   if fOpenDialog then
-    result := GetOpenFileName(POpenFileName( @ofn )^)
+    Result := GetOpenFileName(ofn)
   else
-    result := GetSaveFileName(POpenFileName( @ofn )^);
-  if result then begin
-    fFilterIndex := ofn.nFilterIndex; // by Vadim
+    Result := GetSaveFileName(ofn);
+
+  if Result then begin
+    fFilterIndex  := ofn.nFilterIndex; // by Vadim
     fOpenReadOnly := OFN_READONLY and ofn.Flags <> 0; // by ECM (in my redaction)
-    if OSAllowMultiSelect in foptions then begin
-      FFileName := copy(TempFileName, 1, pos(KOLString(#0#0), tempfilename)-1);
-      while pos(KOLString(#0), ffilename) > 0 do begin
-        FFilename[pos(KOLString(#0), ffilename)]:=#13;
-      end;
-    end else
-      FFileName := copy(tempFileName, 1, pos(KOLString(#0), TempFilename)
-      -1 // by X.Y.B.
-      );
+    if (OSAllowMultiSelect in foptions) then begin
+      FFileName := Copy(TempFileName, 1, Pos(KOLString(#0#0), tempfilename)-1);
+      while (Pos(KOLString(#0), ffilename) > 0) do
+        FFilename[Pos(KOLString(#0), ffilename)] := #13;
+    end else                                                             // by X.Y.B.
+      FFileName := Copy(tempFileName, 1, Pos(KOLString(#0), TempFilename) - 1);
   end else
     FFilename:='';
 end;
@@ -41264,56 +41031,6 @@ begin
   inherited;
 end;
 {$ENDIF PAS_VERSION}
-
-type
-  PSHItemID = ^TSHItemID;
-  TSHItemID = {packed} record
-    cb: Word;                         { Size of the ID (including cb itself) }
-    abID: array[0..0] of Byte;        { The item ID (variable length) }
-  end;
-
-  PItemIDList = ^TItemIDList;
-  TItemIDList = record
-     mkid: TSHItemID;
-  end;
-
-  PBrowseInfo = ^TBrowseInfo;
-  TBrowseInfoA = record
-    hwndOwner: HWND;
-    pidlRoot: PItemIDList;
-    pszDisplayName: PAnsiChar;  { Return display name of item selected. }
-    lpszTitle: PAnsiChar;      { text to go in the banner over the tree. }
-    ulFlags: UINT;           { Flags that control the return stuff }
-    lpfn: Pointer; //TFNBFFCallBack;
-    lParam: LPARAM;          { extra info that's passed back in callbacks }
-    iImage: Integer;         { output var: where to return the Image index. }
-  end;
-  TBrowseInfoW = record
-    hwndOwner: HWND;
-    pidlRoot: PItemIDList;
-    pszDisplayName: PWideChar;  { Return display name of item selected. }
-    lpszTitle: PWideChar;      { text to go in the banner over the tree. }
-    ulFlags: UINT;           { Flags that control the return stuff }
-    lpfn: Pointer; //TFNBFFCallBack;
-    lParam: LPARAM;          { extra info that's passed back in callbacks }
-    iImage: Integer;         { output var: where to return the Image index. }
-  end;
-  TBrowseInfo = {$IFDEF UNICODE_CTRLS} TBrowseInfoW {$ELSE} TBrowseInfoA {$ENDIF};
-
-function SHBrowseForFolderA(var lpbi: TBrowseInfoA): PItemIDList; stdcall;
-  external 'shell32.dll' name 'SHBrowseForFolderA';
-{$IFDEF UNICODE_CTRLS}
-function SHBrowseForFolderW(var lpbi: TBrowseInfoW): PItemIDList; stdcall;
-  external 'shell32.dll' name 'SHBrowseForFolderW';
-{$ENDIF UNICODE_CTRLS}
-function SHGetPathFromIDListA(pidl: PItemIDList; pszPath: PAnsiChar): BOOL; stdcall;
-  external 'shell32.dll' name 'SHGetPathFromIDListA';
-{$IFDEF UNICODE_CTRLS}
-function SHGetPathFromIDListW(pidl: PItemIDList; pszPath: PKOLChar): BOOL; stdcall;
-  external 'shell32.dll' name 'SHGetPathFromIDListW';
-{$ENDIF UNICODE_CTRLS}
-procedure CoTaskMemFree(pv: Pointer); stdcall; external 'ole32.dll'
-  name 'CoTaskMemFree';
 
 const
   BIF_RETURNONLYFSDIRS   = $0001;  { For finding a folder to start document searching }
@@ -41358,11 +41075,10 @@ begin
   BI.ulFlags   := MakeFlags( @FOptions, FlagsArray );
   BI.lpfn := FCallBack;
   BI.lParam := LPARAM( @Self );
-  Browse := {$IFDEF UNICODE_CTRLS} SHBrowseForFolderW {$ELSE} SHBrowseForFolderA {$ENDIF}
-    ( BI );
-  if Browse <> nil then begin
-    {$IFDEF UNICODE_CTRLS}SHGetPathFromIDListW{$ELSE} SHGetPathFromIDListA{$ENDIF}( Browse, @FBuf[ 0 ] );
-    CoTaskMemFree( Browse );
+  Browse := SHBrowseForFolder(BI);
+  if Assigned(Browse) then begin
+    SHGetPathFromIDList(Browse, @FBuf[0]);
+    CoTaskMemFree(Browse);
     Result := True;
   end;
 end;
@@ -41385,7 +41101,7 @@ var _Self_: POpenDirDialog;
 begin
   _Self_ := Pointer( lpData );
   if Assigned( _Self_.FOnSelChanged ) then begin
-    {$IFDEF UNICODE_CTRLS} SHGetPathFromIDListW {$ELSE} SHGetPathFromIDListA {$ENDIF}( PItemIDList( lParam ), @ _Self_.FBuf[ 0 ] );
+    SHGetPathFromIDList(PItemIDList(lParam), @_Self_.FBuf[0]);
     EnableOK := 0;
     _Self_.FOnSelChanged( _Self_, _Self_.FBuf, EnableOK,
       KOL_String( KOLString( _Self_.FStatusText ) ) );
@@ -41496,12 +41212,7 @@ type
   PByteArray = ^TByteArray;
   TByteArray = array[Word]of Byte;
 
-function CreateMappedBitmap(Instance: HINST; Bitmap: PtrInt;
-  Flags: UINT; ColorMap: PColorMap; NumMaps: Integer): HBitmap; stdcall;
-  external cctrl name 'CreateMappedBitmap';
-
-function CreateMappedBitmapEx(Instance: HINST; BmpRsrcName: PKOLChar; Flags:
-Cardinal; ColorMap: PColorMap; NumMaps: Integer): HBitmap;
+function CreateMappedBitmapEx(Instance: HINST; BmpRsrcName: PKOLChar; Flags: Cardinal; ColorMap: PColorMap; NumMaps: Integer): HBitmap;
 var bi: TBITMAPINFO;
     DC:HDC; tmcl: Cardinal;
     Bits: PByteArray;
@@ -42768,16 +42479,12 @@ end;
 { TMMTimer }
 { ------------ declarations moved here from MMSystem -------------------- }
 const
-  TIME_ONESHOT    = 0;   { program timer for single event }
-  TIME_PERIODIC   = 1;   { program for continuous periodic event }
+  TIME_ONESHOT              = 0;      { program timer for single event }
+  TIME_PERIODIC             = 1;      { program for continuous periodic event }
   TIME_CALLBACK_FUNCTION    = $0000;  { callback is function }
   TIME_CALLBACK_EVENT_SET   = $0010;  { callback is event - use SetEvent }
   TIME_CALLBACK_EVENT_PULSE = $0020;  { callback is event - use PulseEvent }
-type
-  TFNTimeCallBack = procedure(uTimerID, uMessage: UINT; dwUser, dw1, dw2: DWORD_PTR) stdcall;
-function timeSetEvent(uDelay, uResolution: UINT; lpFunction: TFNTimeCallBack; dwUser: DWORD_PTR; uFlags: UINT): THandle; stdcall; external 'winmm.dll' name 'timeSetEvent';
-function timeKillEvent(uTimerID: UINT): THandle; stdcall; external 'winmm.dll' name 'timeKillEvent';
-{ ----------------------------------------------------------------------- }
+
 procedure MMTimerCallback(uTimerID, uMessage: UINT; dwUser, dw1, dw2: DWORD_PTR); stdcall;
 var MMTimer: PMMTimer;
 begin
@@ -43003,7 +42710,7 @@ TRYAgain:
     {$IFDEF KOL_ASSERTIONS}
     ASSERT( oldHeight > 0, 'oldHeight must be > 0' );
     {$ENDIF KOL_ASSERTIONS}
-    DC0 := GetDC( 0 );
+    DC0    := GetDC( 0 );
     DCfrom := CreateCompatibleDC( DC0 );
     ReleaseDC( 0, DC0 );
 
@@ -43015,8 +42722,7 @@ TRYAgain:
     {$IFDEF CHK_BITBLT} Chk_BitBlt; {$ENDIF}
     SelectObject( DCfrom, oldBmp );
     DeleteDC( DCfrom );
-  end else
-  if fDIBBits <> nil then begin
+  end else if Assigned(fDIBBits) then begin
     oldHeight := Abs(fDIBHeader.bmiHeader.biHeight);
     {$IFDEF KOL_ASSERTIONS}
     ASSERT( oldHeight > 0, 'oldHeight must be > 0' );
@@ -48281,13 +47987,11 @@ end;
 
 procedure TControl.SelectAll;
 begin
-  SelStart := 0;
+  SelStart  := 0;
   SelLength := -1; // this can be not working for some controls... //*//*
 end;
 
 {$IFnDEF NOT_USE_RICHEDIT}
-function RevokeDragDrop(wnd: HWnd): HResult; stdcall;
-  external 'ole32.dll' name 'RevokeDragDrop';
 
 function TControl.RE_NoOLEDragDrop: PControl;
 begin
@@ -48295,6 +47999,7 @@ begin
   Result := @Self;
 end;
 {$ENDIF NOT_USE_RICHEDIT}
+
 function WndProcOnResize( Self_: PControl; var Msg: TMsg; var Rslt: LRESULT ): Boolean;
 begin
   if Msg.message = WM_SIZE then begin
@@ -48649,10 +48354,12 @@ begin
         PostMessage( Self_.fHandle, CM_INVALIDATE, 0, 0 );
     end;
   WM_ERASEBKGND:
-    if  Msg.wParam = 0 then begin
+  begin
+    if (Msg.wParam = 0) then begin
         Inc( Self_.DF.fREUpdCount );
         PostMessage( Self_.fHandle, CM_NCUPDATE, Self_.DF.fREUpdCount, Msg.message );
     end;
+  end;
   WM_HSCROLL, WM_VSCROLL:
     begin
         Self_.DF.fREScrolling := LoWord( Msg.wParam ) <> SB_ENDSCROLL;
@@ -49193,20 +48900,19 @@ begin
   end;
 end;
 
-procedure TControl.TVSetItemImage(Item: THandle; const Index: Integer;
-  const Value: Integer);
+procedure TControl.TVSetItemImage(Item: THandle; const Index: Integer; const Value: Integer);
 var TVI: TTVItem;
 begin
-  TVI.mask := TVIF_HANDLE or Loword( Index );
-  TVI.hItem := Item;
-  TVI.iImage := Value;
+  TVI.mask           := TVIF_HANDLE or LoWord(Index);
+  TVI.hItem          := Item;
+  TVI.iImage         := Value;
   TVI.iSelectedImage := Value;
-  if Hiword( Index ) <> 0 then begin
-    TVI.mask := TVIF_STATE or TVIF_HANDLE;
-    TVI.stateMask := Loword( Index );
-    TVI.state := Value shl Hiword( Index );
+  if (HiWord(Index) <> 0) then begin
+    TVI.mask      := TVIF_STATE or TVIF_HANDLE;
+    TVI.stateMask := LoWord(Index);
+    TVI.state     := Value shl HiWord(Index);
   end;
-  Perform( TVM_SETITEM, 0, LPARAM( @TVI ) );
+  Perform(TVM_SETITEM, 0, LPARAM(@TVI));
 end;
 
 function TControl.TVGetItemText(Item: THandle): KOLString;
@@ -49295,20 +49001,19 @@ type
     item: TTVItemEx;
   end;
 
-function TControl.TVInsert(nParent, nAfter: THandle;
-  const Txt: KOLString): THandle;
+function TControl.TVInsert(nParent, nAfter: THandle; const Txt: KOLString): THandle;
 var TVIns: TTVInsertStruct;
 begin
-  TVIns.hParent := nParent;
-  TVIns.hAfter := nAfter;
-  TVIns.item.mask := TVIF_TEXT;
+  TVIns.hParent      := nParent;
+  TVIns.hAfter       := nAfter;
+  TVIns.item.mask    := TVIF_TEXT;
   TVIns.item.pszText := PKOLChar( Txt );
   Result := Perform( TVM_INSERTITEM, 0, LPARAM( @TVIns ) );
   if fUpdateCount <= 0 then
      Invalidate;
 end;
 
-function TControl.TVItemInsert(nParent, nAfter: THandle; const Txt: KOLString; iImage, iSelImage: Integer; pItemData: Pointer): THandle;
+function TControl.TVItemInsert(nParent, nAfter: THandle; const Txt: KOLString; iImage, iSelImage: Integer; iItemData: LPARAM): THandle;
 var
   TVIns: TTVInsertStruct;
 begin
@@ -49316,7 +49021,7 @@ begin
   TVIns.hAfter              := nAfter;
   TVIns.item.iImage         := iImage;
   TVIns.item.iSelectedImage := iSelImage;
-  TVIns.item.lParam         := Integer(pItemData);
+  TVIns.item.lParam         := iItemData;
   TVIns.item.pszText        := PKOLChar(Txt);
   TVIns.item.mask           := TVIF_TEXT or TVIF_IMAGE or TVIF_SELECTEDIMAGE or TVIF_PARAM;
   Result := Perform(TVM_INSERTITEM, 0, Integer(@TVIns));
@@ -49326,39 +49031,37 @@ end;
 
 procedure TControl.TVExpand(Item: THandle; Flags: DWORD);
 begin
-  Perform( TVM_EXPAND, Flags, Item );
+  Perform(TVM_EXPAND, Flags, Item);
 end;
 
-procedure TControl.TVSort( N: THandle );
+procedure TControl.TVSort(N: THandle);
 var a: Cardinal;
     b: Boolean;
 begin
-  b := N = 0;
-  if  b then
-      N := TVRoot;
-  while N <> 0 do begin
-      a := TVItemChild[N];
-      if  a > 0 then TVSort(a);
-      Perform(TVM_SORTCHILDREN, 0, N);
-      N := TVItemNext[N];
+  b := (N = 0);
+  if b then
+    N := TVRoot;
+
+  while (N <> 0) do begin
+    a := TVItemChild[N];
+    if (a > 0) then
+      TVSort(a);
+    Perform(TVM_SORTCHILDREN, 0, N);
+    N := TVItemNext[N];
   end;
-  if  b then //moved by Tr"]f
-      Perform(TVM_SORTCHILDREN, 0, 0);  //+ by YS
+  
+  if b then //moved by Tr"]f
+    Perform(TVM_SORTCHILDREN, 0, 0);  //+ by YS
 end;
 
 //dufa
 type
   PFNTVCOMPARE = function(lParam1, lParam2, lParamSort: LPARAM): Integer; stdcall;
-  TTVCompare = PFNTVCOMPARE;
-
-  tagTVSORTCB = packed record
+  tagTVSORTCB  = packed record
     hParent:      THandle;//HTreeItem;
-    lpfnCompare:  TTVCompare;
+    lpfnCompare:  PFNTVCOMPARE;
     lParam:       LPARAM;
   end;
-  _TV_SORTCB = tagTVSORTCB;
-  TTVSortCB = tagTVSORTCB;
-  TV_SORTCB = tagTVSORTCB;
 
 function TVCOMPARE(lParam1, lParam2, lParamSort: LPARAM): Integer; stdcall;
 var
@@ -49371,17 +49074,17 @@ begin
     Result := 0;
 end;
 
-function TControl.TVSortChildrenCB(hParent: THandle; const aSort: TCompareEvent; recurse: Integer): BOOL;
+function TControl.TVSortChildrenCB(hParent: THandle; const aSort: TCompareEvent; fRecurse: Integer): BOOL;
 var
-  a: TTVSortCB;
-  m: TMethod;
+  clb: TMethod;
+  tvs: tagTVSORTCB;
 begin
-  m.Code        := @aSort;
-  m.Data        := @Self;
-  a.hParent     := hParent;
-  a.lpfnCompare := TVCOMPARE;
-  a.lParam      := LPARAM(@m);
-  Result := BOOL(Perform(TVM_SORTCHILDRENCB, recurse, LPARAM(@a)));
+  clb.Code        := @aSort;
+  clb.Data        := @Self;
+  tvs.lpfnCompare := TVCOMPARE;
+  tvs.lParam      := LPARAM(@clb);
+  tvs.hParent     := hParent;
+  Result          := BOOL(Perform(TVM_SORTCHILDRENCB, fRecurse, LPARAM(@tvs)));
 end;
 
 procedure TControl.TVDelete(Item: THandle);
@@ -49390,23 +49093,24 @@ begin
   Invalidate;
 end;
 
-function TControl.TVGetItemData(Item: THandle): Pointer;
+function TControl.TVGetItemData(Item: THandle): LPARAM;
 var TVI: TTVItem;
 begin
-  TVI.mask := TVIF_HANDLE or TVIF_PARAM;
+  TVI.mask  := TVIF_HANDLE or TVIF_PARAM;
   TVI.hItem := Item;
-  Result := nil;
-  if Perform( TVM_GETITEM, 0, LPARAM( @TVI ) ) <> 0 then
-    Result := Pointer( TVI.lParam );
+  if (Perform(TVM_GETITEM, 0, LPARAM(@TVI)) <> 0) then
+    Result := TVI.lParam
+  else
+    Result := 0;
 end;
 
-procedure TControl.TVSetItemData(Item: THandle; const Value: Pointer);
+procedure TControl.TVSetItemData(Item: THandle; const Value: LPARAM);
 var TVI: TTVItem;
 begin
-  TVI.mask := TVIF_HANDLE or TVIF_PARAM;
-  TVI.hItem := Item;
-  TVI.lParam := PtrInt( Value );
-  Perform( TVM_SETITEM, 0, LPARAM( @TVI ) );
+  TVI.mask   := TVIF_HANDLE or TVIF_PARAM;
+  TVI.hItem  := Item;
+  TVI.lParam := Value;
+  Perform(TVM_SETITEM, 0, LPARAM(@TVI));
 end;
 
 procedure TControl.TVEditItem(Item: THandle);
@@ -49708,67 +49412,29 @@ begin
   end;
 end;
 {$ENDIF PAS_VERSION}
-///////////////////////////////////////////////////////////////////////
-//                         W  I  N  D  O  W  S
-///////////////////////////////////////////////////////////////////////
-{ -- Set of window-related utility functions. -- }
-type
-  PGUIThreadInfo = ^TGUIThreadInfo;
-  tagGUITHREADINFO = record
-    cbSize: DWORD;
-    flags: DWORD;
-    hwndActive: HWND;
-    hwndFocus: HWND;
-    hwndCapture: HWND;
-    hwndMenuOwner: HWND;
-    hwndMoveSize: HWND;
-    hwndCaret: HWND;
-    rcCaret: TRect;
-  end;
-  TGUIThreadInfo = tagGUITHREADINFO;
+//////////////////////////////////////////////////////////////////////////////////////////
+//                         W  I  N  D  O  W  S  (Set of window-related utility functions.)
+//////////////////////////////////////////////////////////////////////////////////////////
 
-const
-  GUI_CARETBLINKING  = $00000001;
-  GUI_INMOVESIZE     = $00000002;
-  GUI_INMENUMODE     = $00000004;
-  GUI_SYSTEMMENUMODE = $00000008;
-  GUI_POPUPMENUMODE  = $00000010;
-
-{function GetGUIThreadInfo (idThread: DWORD; var pgui: TGUIThreadinfo): BOOL; stdcall;
-         external user32 name 'GetGUIThreadInfo';}
-type TGUIThreadInfo_Proc = function( ThreadID: THandle; var GTI: TGUIThreadInfo )
-                          : Boolean; stdcall;
-
-var Proc_GetGUIThreadInfo: TGuiThreadInfo_Proc;
-
-function GetWindowChild( Wnd: HWnd; Kind: TWindowChildKind ): HWnd;
+function GetWindowChild(Wnd: HWnd; Kind: TWindowChildKind): HWnd;
 var GTI: TGuiThreadInfo;
     ThreadID: THandle;
-    Module: THandle;
 begin
-  if not Assigned( Proc_GetGUIThreadInfo ) then begin
-    Module := GetModuleHandle( 'User32' );
-    Proc_GetGUIThreadInfo := GetProcAddress( Module, 'GetGUIThreadInfoA' );
-    if not Assigned( Proc_GetGUIThreadInfo ) then
-      Proc_GetGUIThreadInfo := Pointer( -1 );
-  end;
-  Result := Wnd;
-  if PtrUInt( @Proc_GetGUIThreadInfo ) = PtrUInt(-1) then Exit; {>>>>>>>>>>>>>>>>>>>>>>>}
   Result := 0;
-  if Wnd = 0 then
+  if (Wnd = 0) then
     ThreadID := GetCurrentThreadID
   else
-    ThreadID := GetWindowThreadProcessID( Wnd, nil );
-  if ThreadID = 0 then Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
+    ThreadID := GetWindowThreadProcessID(Wnd, nil);
+  if (ThreadID = 0) then Exit; {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
   GTI.cbSize := Sizeof( GTI );
-  if Proc_GetGUIThreadInfo( ThreadId, GTI ) then begin
+  if GetGUIThreadInfo(ThreadId, GTI) then begin
     case Kind of
-    wcActive:  Result := GTI.hwndActive;
-    wcFocus:   Result := GTI.hwndFocus;
-    wcCapture: Result := GTI.hwndCapture;
-    wcMenuOwner: Result := GTI.hwndMenuOwner;
-    wcMoveSize:  Result := GTI.hwndMoveSize;
-    wcCaret:     Result := GTI.hwndCaret;
+      wcActive:     Result := GTI.hwndActive;
+      wcFocus:      Result := GTI.hwndFocus;
+      wcCapture:    Result := GTI.hwndCapture;
+      wcMenuOwner:  Result := GTI.hwndMenuOwner;
+      wcMoveSize:   Result := GTI.hwndMoveSize;
+      wcCaret:      Result := GTI.hwndCaret;
     end;
   end;
 end;
@@ -50581,6 +50247,8 @@ begin
   Result := @Self;
 end;
 
+{ TColorDialog }
+
 function NewColorDialog( FullOpen: TColorCustomOption ): PColorDialog;
 var I: Integer;
 begin
@@ -50593,21 +50261,20 @@ begin
     Result.CustomColors[ I ] := clWhite;
 end;
 
-{ TColorDialog }
 function TColorDialog.Execute: Boolean;
 var CD: TChooseColor;
 begin
-  CD.lStructSize := Sizeof( CD );
-  CD.hWndOwner := OwnerWindow;
-  //CD.hInstance := 0;
-  CD.rgbResult := Color2RGB( Color );
-  CD.lpCustColors := @CustomColors[ 1 ];
-  CD.Flags := CC_RGBINIT;
+  CD.lStructSize  := Sizeof(CD);
+  CD.hWndOwner    := OwnerWindow;
+  CD.hInstance    := 0;
+  CD.rgbResult    := Color2RGB(Color);
+  CD.lpCustColors := @CustomColors[1];
+  CD.Flags        := CC_RGBINIT;
   case ColorCustomOption of
-  ccoFullOpen: CD.Flags := CD.Flags or CC_FULLOPEN;
-  ccoPreventFullOpen: CD.Flags := CD.Flags or CC_PREVENTFULLOPEN;
+    ccoFullOpen:        CD.Flags := CD.Flags or CC_FULLOPEN;
+    ccoPreventFullOpen: CD.Flags := CD.Flags or CC_PREVENTFULLOPEN;
   end;
-  Result := ChooseColor( CD );
+  Result := ChooseColor(CD);
   if Result then
     Color := CD.rgbResult;
 end;
@@ -50629,8 +50296,7 @@ type
   PListViewItemState = ^TListViewItemState;
 var I: Byte;
 begin
-  I := Perform( LVM_GETITEMSTATE, Idx,
-                LVIS_CUT or LVIS_DROPHILITED or LVIS_FOCUSED or LVIS_SELECTED );
+  I := Perform( LVM_GETITEMSTATE, Idx, LVIS_CUT or LVIS_DROPHILITED or LVIS_FOCUSED or LVIS_SELECTED );
   Result := PListViewItemState( @ I )^;
 end;
 
@@ -50741,8 +50407,7 @@ type
   end;
   PNMLISTVIEW = ^TNMLISTVIEW;
 
-function WndProc_LVDeleteItem( Sender: PControl; var Msg: TMsg; var Rslt: LRESULT )
-                          : Boolean;
+function WndProc_LVDeleteItem( Sender: PControl; var Msg: TMsg; var Rslt: LRESULT ): Boolean;
 var Hdr: PNMHDR;
     LV: PNMListView;
 begin
@@ -51133,10 +50798,9 @@ function WndProcLVMeasureItem2( Sender: PControl; var Msg: TMsg; var Rslt: LRESU
 begin
   Result := FALSE;
   if (Msg.message = WM_MEASUREITEM) and (Msg.wParam = 0) then begin
-    Rslt := Sender.DF.fLVItemHeight;
+    Rslt   := Sender.DF.fLVItemHeight;
     Result := TRUE;
   end;
-
 end;
 
 function TControl.SetLVItemHeight(Value: Integer): PControl;
@@ -51147,12 +50811,12 @@ end;
 
 procedure TControl.Set_LVItemHeight(Value: Integer);
 begin
-  if  DF.fLVItemHeight <> Value then begin
-      if  DF.fLVItemHeight = 0 then begin
-          Parent.AttachProc(WndProcLVMeasureItem);
-          AttachProc(WndProcLVMeasureItem2);
-      end;
-      DF.fLVItemHeight := Value;
+  if (DF.fLVItemHeight <> Value) then begin
+    if (DF.fLVItemHeight = 0) then begin
+      Parent.AttachProc(WndProcLVMeasureItem);
+      AttachProc(WndProcLVMeasureItem2);
+    end;
+    DF.fLVItemHeight := Value;
   end;
 end;
 
@@ -51161,8 +50825,7 @@ begin
   Result := SearchFor( S, -1, FALSE );
 end;
 
-function TControl.SearchFor(const S: KOLString; StartAfter: Integer;
-  Partial: Boolean): Integer;
+function TControl.SearchFor(const S: KOLString; StartAfter: Integer; Partial: Boolean): Integer;
 var Cmd: Integer;
     I: Integer;
 begin
@@ -51593,8 +51256,8 @@ begin
   Result := @ Self;
 end;
 {$ENDIF}
-function WndProc_CNDrawItem( Sender: PControl; var Msg: TMsg; var Rslt: LRESULT )
-                          : Boolean;
+
+function WndProc_CNDrawItem( Sender: PControl; var Msg: TMsg; var Rslt: LRESULT ): Boolean;
 type PDrawAction = ^TDrawAction;
      PDrawState = ^TDrawState;
 var DI: PDrawItemStruct;
@@ -51629,8 +51292,7 @@ begin
   AttachProc( @WndProc_CNDrawItem );
 end;
 
-function WndProc_MeasureItem( Sender: PControl; var Msg: TMsg; var Rslt: LRESULT )
-                          : Boolean;
+function WndProc_MeasureItem( Sender: PControl; var Msg: TMsg; var Rslt: LRESULT ): Boolean;
 var MI: PMeasureItemStruct;
     Control: PControl;
     I: Integer;
@@ -54426,14 +54088,16 @@ begin
 end;
 
 {$IFnDEF PAS_VERSION}
-    {$I KOL_ASM.inc} //<<<<<<<<<<<<<<<<<<<<<<< KOL_ASM.inc
-    {$IFnDEF UNICODE_CTRLS}
-        {$I KOL_ASM_NOUNICODE.inc} //<<<<<<<<< KOL_ASM_NOUNICODE.inc
-    {$ENDIF noUNICODE}
+  {$I KOL_ASM.inc.pas}         //<<<<<<<<< KOL_ASM.inc
+  {$IFnDEF UNICODE_CTRLS}
+    {$I KOL_ASM_NOUNICODE.inc} //<<<<<<<<< KOL_ASM_NOUNICODE.inc
+  {$ENDIF noUNICODE}
 {$ENDIF PAS_VERSION}
+
 {$IFDEF USE_CUSTOMEXTENSIONS}
   {$I CUSTOM_CODE_EXTENSION.inc} // See comments in TControl
 {$ENDIF USE_CUSTOMEXTENSIONS}
+
 {$IFDEF EVENTS_DYNAMIC}//-------------------------------------------------------
 {$IFDEF ASM_VERSION}
 function TControl.ProvideUniqueEvents: PEvents;

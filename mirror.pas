@@ -8089,8 +8089,7 @@ begin
   end;
 end;
 
-procedure TKOLCustomControl.SetupLast(SL: TStringList; const AName,
-  AParent, Prefix: String);
+procedure TKOLCustomControl.SetupLast(SL: TStringList; const AName, AParent, Prefix: String);
 var KF: TKOLForm;
     i: Integer;
 begin
@@ -21858,27 +21857,27 @@ begin
   Result := True;
 end;
 
-procedure TKOLFont.GenerateCode(SL: TStrings; const AName: String;
-  AFont: TKOLFont);
+procedure TKOLFont.GenerateCode(SL: TStrings; const AName: String; AFont: TKOLFont);
 const
   FontPitches: array[ TFontPitch ] of String = ( 'fpDefault', 'fpVariable', 'fpFixed' );
-var BFont: TKOLFont;
-    S: String;
-    FontPname: String;
-    Lines: Integer;
-    KF: TKOLForm;
-    Ctl_Name: String;
-    fs: TFontStyles;
 
-    procedure AddLine( const S: String );
-    begin
-      if Lines = 0 then
-        if (fOwner <> nil) and (fOwner is TKOLCustomControl) then
-          (fOwner as TKOLCustomControl).BeforeFontChange( SL, AName, '    ' );
-      Inc( Lines );
-      //Rpt( AName + '.' + FontPname + '.' + S + ';' );
-      SL.Add( '    ' + AName + '.' + FontPname + '.' + S + ';' );
-    end;
+var
+  S:          String;
+  FontPname:  String;
+  Ctl_Name:   String;
+  Lines:      Integer;
+  BFont:      TKOLFont;
+  KF:         TKOLForm;
+  fs:         TFontStyles;
+
+  procedure AddLine(const S: String);
+  begin
+    if (Lines = 0) and (fOwner <> nil) and (fOwner is TKOLCustomControl) then
+      (fOwner as TKOLCustomControl).BeforeFontChange( SL, AName, '    ' );
+    Inc( Lines );
+    //Rpt( AName + '.' + FontPname + '.' + S + ';' );
+    SL.Add( '    ' + AName + '.' + FontPname + '.' + S + ';' );
+  end;
 
 begin
   asm
@@ -21889,40 +21888,36 @@ begin
   end;
   //Rpt( fOwner.Name );
   BFont := AFont;
-  if AFont = nil then
-    BFont := TKOLFont.Create( nil );
+  if (AFont = nil) then
+    BFont := TKOLFont.Create(nil);
 
-  KF := nil;
+  KF       := nil;
   Ctl_Name := '';
-  if  fOwner <> nil then
-      if  fOwner is TKOLForm then
-      begin
-          KF := fOwner as TKOLForm;
-          Ctl_Name := 'Form';
-      end
-      else if  fOwner is TKOLCustomControl then
-      begin
-          KF := (fOwner as TKOLCustomControl).ParentKOLForm;
-          if  KF <> nil then
-              Ctl_Name := (fOwner as TKOLCustomControl).Name;
-      end;
+  if Assigned(fOwner) then begin
+    if (fOwner is TKOLForm) then begin
+      KF       := fOwner as TKOLForm;
+      Ctl_Name := 'Form';
+    end else if (fOwner is TKOLCustomControl) then begin
+      KF := (fOwner as TKOLCustomControl).ParentKOLForm;
+      if Assigned(KF) then
+        Ctl_Name := (fOwner as TKOLCustomControl).Name;
+    end;
+  end;
 
   FontPname := 'Font';
-  Lines := 0;
-  if  (fOwner <> nil) and (fOwner is TKOLCustomControl) then
-      FontPname := (fOwner as TKOLCustomControl).FontPropName;
+  Lines     := 0;
+  if Assigned(fOwner) and (fOwner is TKOLCustomControl) then
+    FontPname := (fOwner as TKOLCustomControl).FontPropName;
 
-  if  Color <> BFont.Color then
-      if  (KF <> nil) and KF.FormCompact then
-      begin
-          KF.FormAddCtlCommand( Ctl_Name, 'FormSetFontColor', '' );
-          KF.FormAddNumParameter( (Color shl 1) or (Color shr 31) );
-      end
-      else
+  if (Color <> BFont.Color) then begin
+    if Assigned(KF) and KF.FormCompact then begin
+      KF.FormAddCtlCommand( Ctl_Name, 'FormSetFontColor', '' );
+      KF.FormAddNumParameter( (Color shl 1) or (Color shr 31) );
+    end else
       AddLine( 'Color := TColor(' + Color2Str( Color ) + ')' );
+  end;
 
-  if FontStyle <> BFont.FontStyle then
-  begin
+  if (FontStyle <> BFont.FontStyle) then begin
       if  (KF <> nil) and KF.FormCompact then
       begin
           fs := FontStyle;

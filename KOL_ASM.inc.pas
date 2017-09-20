@@ -2592,7 +2592,7 @@ asm
     POP   ESI
 end;
 
-function _AnsiCompareStrA_Fast2(S1, S2: PAnsiChar): Integer;
+function _AnsiCompareStrA_Fast2(const S1, S2: PAnsiChar): Integer;
 asm
         CALL     EAX2PChar
         CALL     EDX2PChar
@@ -2613,7 +2613,7 @@ asm
         POP      ESI
 end;
 
-function _AnsiCompareStrNoCaseA_Fast2(S1, S2: PAnsiChar): Integer;
+function _AnsiCompareStrNoCaseA_Fast2(const S1, S2: PAnsiChar): Integer;
 asm
         CALL     EAX2PChar
         CALL     EDX2PChar
@@ -3487,7 +3487,7 @@ asm     //cmd    //opd
        {$ELSE}
        PUSH      GWL_USERDATA
        PUSH      ECX
-       CALL      GetWindowLong
+       CALL      GetWindowLongPtr
        {$ENDIF}
        POP       EDX
        TEST      EAX, EAX
@@ -4632,7 +4632,7 @@ asm
        {$ELSE}
        PUSH     GWL_USERDATA
        PUSH     [ECX].TNMHdr.hwndFrom
-       CALL     GetWindowLong
+       CALL     GetWindowLongPtr
        {$ENDIF}
         pop      ecx
         POP      EDX
@@ -5854,12 +5854,12 @@ asm     //cmd    //opd
         CMP      EAX, [ESI].TControl.fHandle
         JNE      @@1
         {$IFDEF USE_GRAPHCTLS}
-        {$IFDEF USE_FLAGS}
-        TEST     [ESI].TControl.fFlagsG6, 1 shl G6_GraphicCtl
-        {$ELSE}
-        CMP      [ESI].TControl.fWindowed, AL
-        {$ENDIF}
-        JNE      @@1
+          {$IFDEF USE_FLAGS}
+            TEST     [ESI].TControl.fFlagsG6, 1 shl G6_GraphicCtl
+          {$ELSE}
+            CMP      [ESI].TControl.fWindowed, AL
+          {$ENDIF}
+          JNE      @@1
         {$ENDIF}
         MOV      EAX, [EDI].TMsg.hWnd
         MOV      [ESI].TControl.fHandle, EAX
@@ -6430,11 +6430,7 @@ asm
         PUSH    0
         PUSH    WM_SETTEXT
         PUSH    ECX
-        {$IFDEF UNICODE_CTRLS}
-        CALL    SendMessageW
-        {$ELSE}
         CALL    SendMessage
-        {$ENDIF}
 @@0:
         {$IFDEF USE_FLAGS}
         TEST    [EBX].fFlagsG1, (1 shl G1_IsStaticControl)
@@ -7051,11 +7047,7 @@ asm
 
 @@defwindowproc:
         PUSH     [EDX].TMsg.hwnd
-        {$IFDEF UNICODE_CTRLS}
-        CALL     DefWindowProcW
-        {$ELSE}
         CALL     DefWindowProc
-        {$ENDIF}
 end;
 
 function TControl.GetWindowState: TWindowState;
@@ -9763,31 +9755,6 @@ asm
         XOR      EAX, EAX
 end;
 
-destructor TStrList.Destroy;
-asm
-  PUSH     EAX
-  CALL     Clear
-  POP      EAX
-  CALL     TObj.Destroy
-end;
-
-function TStrList.Add(const S: Ansistring): integer;
-asm
-  MOV      ECX, EDX
-  MOV      EDX, [EAX].fCount
-  PUSH     EDX
-  CALL     Insert
-  POP      EAX
-end;
-
-procedure TStrList.Assign(Strings: PStrList);
-asm
-  PUSHAD
-  CALL     Clear
-  POPAD
-  JMP      AddStrings
-end;
-
 procedure TStrList.Clear;
 asm
         PUSH     EBX
@@ -9811,6 +9778,31 @@ asm
 @@1:    XCHG     EAX, [EBX].fList
         CALL     TObj.RefDec
         POP      EBX
+end;
+
+destructor TStrList.Destroy;
+asm
+  PUSH     EAX
+  CALL     Clear
+  POP      EAX
+  CALL     TObj.Destroy
+end;
+
+function TStrList.Add(const S: Ansistring): integer;
+asm
+  MOV      ECX, EDX
+  MOV      EDX, [EAX].fCount
+  PUSH     EDX
+  CALL     Insert
+  POP      EAX
+end;
+
+procedure TStrList.Assign(Strings: PStrList);
+asm
+  PUSHAD
+  CALL     Clear
+  POPAD
+  JMP      AddStrings
 end;
 
 {$IFDEF TStrList_Delete_ASM}
@@ -9886,33 +9878,7 @@ asm
         POP      EBX
 end;
 
-procedure TStrList.Put(Idx: integer; const Value: Ansistring);
-asm
-        PUSH     EAX
-        PUSH     EDX
-        CALL     Insert
-        POP      EDX
-        POP      EAX
-        INC      EDX
-        JMP      Delete
-end;
-
-(* bugged dufa
-procedure TStrList.AddStrings(Strings: PStrList);
-asm
-        PUSH     EAX
-        XCHG     EAX, EDX
-        PUSH     0
-        MOV      EDX, ESP
-        CALL     GetTextStr
-        POP      EDX
-        POP      EAX
-        MOV      CL, 1
-        PUSH     EDX
-        CALL     SetText
-        CALL     RemoveStr
-end;
-
+(* bugged 
 procedure TStrList.MergeFromFile(const FileName: KOLString);
 asm
         PUSH     EAX
@@ -10780,11 +10746,7 @@ asm
         MOV      EAX, [EBP+8]
         CALL     TControl.GetWindowHandle
         PUSH     EAX
-        {$IFDEF UNICODE_CTRLS}
-        CALL     Windows.SendMessageW
-        {$ELSE}
-        CALL     Windows.SendMessageA
-        {$ENDIF}
+        CALL     SendMessage
 end;
 
 function TControl.Postmsg(msgcode: DWORD; wParam: WPARAM; lParam: LPARAM): Boolean; stdcall;
@@ -10795,7 +10757,7 @@ asm
         MOV      EAX, [EBP+8]
         CALL     TControl.GetWindowHandle
         PUSH     EAX
-        CALL     Windows.PostMessageA
+        CALL     PostMessage
 end;
 
 function TControl.GetChildCount: Integer;

@@ -957,8 +957,8 @@ type
     dwDrawStage: DWORD;
     hdc: HDC;
     rc: TRect;
-    dwItemSpec: DWORD_PTR;  // this is control specific, but it's how to specify an item.  valid only with CDDS_ITEM bit set
-    uItemState: UINT;
+    dwItemSpec:  DWORD_PTR;  // this is control specific, but it's how to specify an item.  valid only with CDDS_ITEM bit set
+    uItemState:  UINT;
     lItemlParam: LPARAM;
   end;
   PNMCustomDraw = ^TNMCustomDraw;
@@ -1487,19 +1487,6 @@ type
   end;
   PTrackMouseEvent = ^TTrackMouseEvent;
   TTrackMouseEvent = tagTRACKMOUSEEVENT;
-
-//////////////////////////////////////////////////////////////////////////////
-
-
-/////////////////////////////////////////////////////////
-// Some stuff from new Delphi versions (not available in old ones):
-{$IFNDEF FPC}
-{$IFNDEF UNICODE_CTRLS}
-const
-  //IDC_HAND = MakeIntResource(32649);
-  IDC_HAND = PChar(32649);
-  {$ENDIF}
-{$ENDIF}
 
 /////////////////////////////////////////////////////////
 const

@@ -327,6 +327,41 @@ type
   end;
 
   //----------------------------------------------------------------------------
+  //---- MIRROR FOR FONT CHOOSING DIALOG ----
+  //---- «≈– ¿ÀŒ ƒÀﬂ ƒ»¿ÀŒ√¿ ¬€¡Œ–¿ ÷¬≈“¿ ----
+  TKOLFontDialog = class(TKOLObj)
+  private
+    FMinFontSize:  Integer;
+    FMaxFontSize:  Integer;
+    FDevice:       KOL.TFontDialogDevice;
+    FFont:         TKOLFont;
+    FOnHelp:       TOnEvent;
+    FOnApply:      TOnEvent;
+    FOptions:      KOL.TFontDialogOptions;
+    procedure SetMinFontSize(const Value: Integer);
+    procedure SetMaxFontSize(const Value: Integer);
+    procedure SetDevice(const Value: KOL.TFontDialogDevice);
+    procedure SetInitFont(const Value: TKOLFont);
+    procedure SetOnApply(const Value: TOnEvent);
+    procedure SetOnHelp(const Value: TOnEvent);
+    procedure SetOptions(const Value: KOL.TFontDialogOptions);
+  protected
+    procedure AssignEvents( SL: TStringList; const AName: String ); override;
+    procedure SetupFirst(SL: TStringList; const AName,AParent, Prefix: String); override;
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+  published
+    property Device: KOL.TFontDialogDevice read FDevice write SetDevice;
+    property MinFontSize: Integer read FMinFontSize write SetMinFontSize;
+    property MaxFontSize: Integer read FmaxFontSize write SetMaxFontSize;
+    property Options: KOL.TFontDialogOptions read FOptions write SetOptions default [KOL.fdEffects, KOL.fdInitFont];
+    property Font: TKOLFont read FFont write SetInitFont;
+    property OnApply: TOnEvent read FOnApply write SetOnApply;
+    property OnHelp: TOnEvent read FOnHelp write SetOnHelp;
+  end;
+
+  //----------------------------------------------------------------------------
   //---- MIRROR FOR TRAY ICON ----
   //---- «≈– ¿ÀŒ ƒÀﬂ » ŒÕ » ¬ “–≈≈ ----
   TKOLTrayIcon = class( TKOLObj )
@@ -367,8 +402,6 @@ type
 
 type KOLTPixelFormat = KOL.TPixelFormat;
 
-
-
 function CountSystemColorsUsedInBitmap( Bmp: KOL.PBitmap; ColorList: KOL.PList ): KOLTPixelFormat;
 //function SaveBitmap( Bitmap: TBitmap; const Path: String ): Boolean;
 procedure GenerateBitmapResource( Bitmap: TBitmap; const RsrcName, FileName: String;
@@ -387,7 +420,7 @@ implementation
 procedure Register;
 begin
   RegisterComponents( 'KOL', [ TKOLTimer, TKOLThread, TKOLImageList, TKOLMainMenu, TKOLPopupMenu,
-                      TKOLOpenSaveDialog, TKOLOpenDirDialog, TKOLColorDialog,
+                      TKOLOpenSaveDialog, TKOLOpenDirDialog, TKOLColorDialog, TKOLFontDialog,
                       TKOLTrayIcon ] );
   RegisterComponentEditor( TKOLImageList, TKOLImageListEditor );
   RegisterPropertyEditor( TypeInfo( String ), TKOLOpenSaveDialog, 'Filter',
@@ -2648,8 +2681,7 @@ begin
   Result := TRUE;
 end;
 
-procedure TKOLColorDialog.P_SetupFirst(SL: TStringList; const AName,
-  AParent, Prefix: String);
+procedure TKOLColorDialog.P_SetupFirst(SL: TStringList; const AName, AParent, Prefix: String);
 var I: Integer;
 begin
   asm
@@ -2728,6 +2760,101 @@ begin
   end;
 end;
 
+{ TKOLFontDialog }
+
+constructor TKOLFontDialog.Create(AOwner: TComponent);
+begin
+  inherited;
+  FFont := TKOLFont.Create(Self);
+end;
+
+destructor TKOLFontDialog.Destroy;
+begin
+  FFont.Free;
+  inherited;
+end;
+
+procedure TKOLFontDialog.SetupFirst(SL: TStringList; const AName, AParent, Prefix: String);
+const
+  OpenOption: array [KOL.TFontDialogOption] of String =
+    ('fdAnsiOnly', 'fdTrueTypeOnly', 'fdEffects', 'fdFixedPitchOnly',
+     'fdForceFontExist', 'fdNoFaceSel', 'fdNoOEMFonts', 'fdNoSimulations',
+     'fdNoSizeSel', 'fdNoStyleSel',  'fdNoVectorFonts', {'fdShowHelp',}
+     'fdWysiwyg', 'fdLimitSize', 'fdScalableOnly', {'fdApplyButton',} 'fdInitFont');
+  Device2Str: array[KOL.TFontDialogDevice] of String = ('fdBoth', 'fdScreen', 'fdPrinter');
+
+var
+  PfxName:  String;
+  SOpts:    String;
+  opt:      KOL.TFontDialogOption;
+begin
+  PfxName := Prefix + AName;
+
+  SL.Add('');
+  SL.Add(PfxName + ' := NewFontDialog(' + AParent + ');');
+  SL.Add(PfxName + '.MinFontSize := '    + Int2Str(FMinFontSize) + ';');
+  SL.Add(PfxName + '.MaxFontSize := '    + Int2Str(FMaxFontSize) + ';');
+  SL.Add(PfxName + '.Device := '         + Device2Str[FDevice] + ';');
+
+  SOpts := '';
+  for opt := Low(opt) to High(opt) do begin
+    if (opt in FOptions) then
+      SOpts := SOpts + ', ' + OpenOption[opt];
+  end;
+  Delete(SOpts, 1, 2);
+  SL.Add(PfxName + '.Options := [' + SOpts + '];');
+
+  FFont.GenerateCode(SL, AName, nil);
+end;
+
+procedure TKOLFontDialog.AssignEvents(SL: TStringList; const AName: String);
+begin
+  inherited;
+  DoAssignEvents(SL, AName, ['OnHelp', 'OnApply'], [@OnHelp, @OnApply]);
+end;
+
+procedure TKOLFontDialog.SetMinFontSize(const Value:Integer);
+begin
+  FMinFontSize := Value;
+  Change;
+end;
+
+procedure TKOLFontDialog.SetMaxFontSize(const Value:Integer);
+begin
+  FMaxFontSize := Value;
+  Change;
+end;
+
+procedure TKOLFontDialog.SetDevice(const Value: KOL.TFontDialogDevice);
+begin
+  FDevice := Value;
+  Change;
+end;
+
+procedure TKOLFontDialog.SetInitFont(const Value: TKOLFont{TKOLLogFont}{TLogFont});
+begin
+  FFont.Assign(Value);
+  Change;
+end;
+
+procedure TKOLFontDialog.SetOnHelp(const Value: TOnEvent);
+begin
+  FOnHelp := Value;
+  Change;
+end;
+
+procedure TKOLFontDialog.SetOnApply(const Value: TOnEvent);
+begin
+  FOnApply := Value;
+  Change;
+end;
+
+procedure TKOLFontDialog.SetOptions(const Value: KOL.TFontDialogOptions);
+begin
+  FOptions := Value;
+  Change;
+end;
+
 { TKOLTrayIcon }
 
 procedure TKOLTrayIcon.AssignEvents(SL: TStringList; const AName: String);
@@ -2739,9 +2866,7 @@ begin
   @@e_signature:
   end;
   inherited;
-  DoAssignEvents( SL, AName,
-  [ 'OnMouse' ],
-  [ @ OnMouse ] );
+  DoAssignEvents( SL, AName, [ 'OnMouse' ], [ @ OnMouse ] );
 end;
 
 constructor TKOLTrayIcon.Create(AOwner: TComponent);
