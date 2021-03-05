@@ -303,10 +303,49 @@ function count_1_bits_in_byte( x: Byte ): Byte;
 function count_1_bits_in_dword( x: Integer ): Integer;
 {* ѕодсчитывает число единичных битов в 32-битном }
 
+{ Round to a specific digit or power of ten }
+{ ADigit has a valid range of 37 to -37.  Here are some valid examples
+  of ADigit values...
+   3 = 10^3  = 1000   = thousand's place
+   2 = 10^2  =  100   = hundred's place
+   1 = 10^1  =   10   = ten's place
+  -1 = 10^-1 = 1/10   = tenth's place
+  -2 = 10^-2 = 1/100  = hundredth's place
+  -3 = 10^-3 = 1/1000 = thousandth's place }
+
+type
+  TRoundToRange = -37..37;
+
+function RoundTo(const AValue: Double; const ADigit: TRoundToRange): Double;
+
+{ This variation of the RoundTo function follows the asymmetric arithmetic
+  rounding algorithm (if Frac(X) < .5 then return X else return X + 1).  This
+  function defaults to rounding to the hundredth's place (cents). }
+
+function SimpleRoundTo(const AValue: Double; const ADigit: TRoundToRange = -2): Double;
 
 implementation
 
 uses SysConst;
+
+function RoundTo(const AValue: Double; const ADigit: TRoundToRange): Double;
+var
+  LFactor: Double;
+begin
+  LFactor := IntPower(10, ADigit);
+  Result := Round(AValue / LFactor) * LFactor;
+end;
+
+function SimpleRoundTo(const AValue: Double; const ADigit: TRoundToRange = -2): Double;
+var
+  LFactor: Double;
+begin
+  LFactor := IntPower(10, ADigit);
+  if AValue < 0 then
+    Result := Trunc((AValue / LFactor) - 0.5) * LFactor
+  else
+    Result := Trunc((AValue / LFactor) + 0.5) * LFactor;
+end;
 
 function EAbs( D: Double ): Double;
 begin

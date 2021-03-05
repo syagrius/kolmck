@@ -530,11 +530,7 @@ begin
   if (Msg.message = WM_HSCROLL) or (Msg.message = WM_VSCROLL) then
   if (Msg.lParam <> 0) then
   begin
-    {$IFDEF USE_PROP}
-    Trackbar := Pointer( GetProp( Msg.lParam, ID_SELF ) );
-    {$ELSE}
     Trackbar := Pointer( GetWindowLongPtr( Msg.lParam, GWLP_USERDATA ) );
-    {$ENDIF}
     if Trackbar <> nil then
     begin
       D := Trackbar.CustomData;

@@ -815,7 +815,7 @@ begin
       if Result.ComClass = ComClass then Exit;
       Result := Result.FNext;
     end;
-    raise EOleError.CreateResFmt(e_Ole, Integer( @SObjectFactoryMissing ), [ComClass.ClassName]);
+    raise EOleError.CreateFmt(e_Ole, SObjectFactoryMissing, [ComClass.ClassName]);
   finally
     FLock.EndRead;
   end;
@@ -1246,7 +1246,7 @@ var
   ClassName, Description: WideString;
 begin
   if ComServer.TypeLib.GetTypeInfoOfGUID(ClassID, FClassInfo) <> S_OK then
-    raise EOleError.CreateResFmt(e_Ole, Integer(@STypeInfoMissing), [TypedComClass.ClassName]);
+    raise EOleError.CreateFmt(e_Ole, STypeInfoMissing, [TypedComClass.ClassName]);
   OleCheck(FClassInfo.GetDocumentation(MEMBERID_NIL, @ClassName,
     @Description, nil, nil));
   inherited Create(ComServer, TypedComClass, ClassID,
@@ -1382,13 +1382,12 @@ begin
   inherited Create(ComServer, AutoClass, ClassID, Instancing, ThreadingModel);
   FDispTypeInfo := GetInterfaceTypeInfo(IMPLTYPEFLAG_FDEFAULT);
   if FDispTypeInfo = nil then
-    raise EOleError.CreateResFmt(e_Ole, Integer(@SBadTypeInfo), [AutoClass.ClassName]);
+    raise EOleError.CreateFmt(e_Ole, SBadTypeInfo, [AutoClass.ClassName]);
   OleCheck(FDispTypeInfo.GetTypeAttr(TypeAttr));
   FDispIntfEntry := GetIntfEntry(TypeAttr^.guid);
   FDispTypeInfo.ReleaseTypeAttr(TypeAttr);
   if FDispIntfEntry = nil then
-    raise EOleError.CreateResFmt(e_Ole, Integer(@SDispIntfMissing),
-          [AutoClass.ClassName]);
+    raise EOleError.CreateFmt(e_Ole, SDispIntfMissing, [AutoClass.ClassName]);
   FErrorIID := FDispIntfEntry^.IID;
   FEventTypeInfo := GetInterfaceTypeInfo(IMPLTYPEFLAG_FDEFAULT or
     IMPLTYPEFLAG_FSOURCE);
@@ -1588,8 +1587,7 @@ begin
       PKOLChar(Value), Length(Value) + 1);
     RegCloseKey(Handle);
   end;
-  if Status <> 0 then raise EOleRegistrationError.CreateResFmt(e_Registry,
-                            Integer(@SCreateRegKeyError), [ nil ] );
+  if Status <> 0 then raise EOleRegistrationError.CreateFmt(e_Registry, SCreateRegKeyError, [nil]);
 end;
 
 { Delete registry key }
@@ -1638,7 +1636,7 @@ var
   LocalMachine: array [0..MAX_COMPUTERNAME_LENGTH] of KOLchar;
 begin
   if @CoCreateInstanceEx = nil then
-    raise Exception.CreateResFmt(e_Com, Integer(@SDCOMNotInstalled), [nil]);
+    raise Exception.CreateFmt(e_Com, SDCOMNotInstalled, [nil]);
   FillChar(ServerInfo, sizeof(ServerInfo), 0);
   ServerInfo.pwszName := PWideChar(MachineName);
   IID_IUnknown := IUnknown;
@@ -1935,7 +1933,7 @@ procedure GetIDsOfNames(const Dispatch: IDispatch; Names: PChar;
 
   procedure RaiseNameException;
   begin
-    raise EOleError.CreateResFmt(e_Com, Integer( @SNoMethod ), [Names]);
+    raise EOleError.CreateFmt(e_Com, SNoMethod, [Names]);
   end;
 
 type
@@ -1993,7 +1991,7 @@ procedure VarDispInvoke(Result: PVariant; const Instance: Variant;
 
   procedure RaiseException;
   begin
-    raise EOleError.CreateResFmt(e_Com, Integer( @SVarNotObject ), [ nil ] );
+    raise EOleError.CreateFmt(e_Com, SVarNotObject, [ nil ] );
   end;
 
 var

@@ -167,7 +167,7 @@ begin
     MI.SetupTemplate( SL, I = 0, ParentKOLForm );
   end;
 
-  S := ''''' ], ' + OnMenuItemMethodName(False) + ', false );';
+  S := ''''' ], ' + OnMenuItemMethodName() + ', false );';
   if Count <> 0 then
     S := ', ' + S;
   if Length( S ) + Length( SL[ SL.Count - 1 ] ) > 64 then
@@ -297,7 +297,7 @@ begin
     MI.SetupTemplate( SL, I = 0, ParentKOLForm );
   end;
 
-  S := ''''' ], ' + OnMenuItemMethodName(False) + ', true );';
+  S := ''''' ], ' + OnMenuItemMethodName() + ', true );';
   if Count <> 0 then
     S := ', ' + S;
   if Length( S ) + Length( SL[ SL.Count - 1 ] ) > 64 then

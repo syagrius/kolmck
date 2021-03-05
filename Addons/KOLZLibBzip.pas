@@ -192,33 +192,22 @@ function BZDecompressBuf(const InBuf: Pointer; InBytes: Integer;
 function BZCompressStream(inStream, outStream: PStream; BlockSize100k: TBlockSize100k = 5): Integer;
 function BZDecompressStream(inStream, outStream: PStream): Integer;
 
-
 {** deflate routines ********************************************************}
 
 function deflateInit_(var strm: TZStreamRec; level: Integer; version: PChar;
   recsize: Integer): Integer; external;
-
 function DeflateInit2_(var strm: TZStreamRec; level: integer; method: integer; windowBits: integer;
   memLevel: integer; strategy: integer; version: PChar; recsize: integer): integer; external;
-
-function deflate(var strm: TZStreamRec; flush: Integer): Integer;
-  external;
-
+function deflate(var strm: TZStreamRec; flush: Integer): Integer; external;
 function deflateEnd(var strm: TZStreamRec): Integer; external;
 
 {** inflate routines ********************************************************}
 
-function inflateInit_(var strm: TZStreamRec; version: PChar;
-  recsize: Integer): Integer; external;
-
+function inflateInit_(var strm: TZStreamRec; version: PChar; recsize: Integer): Integer; external;
 function inflateInit2_(var strm: TZStreamRec; windowBits: integer;
   version: PChar; recsize: integer): integer; external;
-
-function inflate(var strm: TZStreamRec; flush: Integer): Integer;
-  external;
-
+function inflate(var strm: TZStreamRec; flush: Integer): Integer; external;
 function inflateEnd(var strm: TZStreamRec): Integer; external;
-
 function inflateReset(var strm: TZStreamRec): Integer; external;
 
 const

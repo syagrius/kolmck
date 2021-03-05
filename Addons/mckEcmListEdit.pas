@@ -5,49 +5,35 @@ interface
 
 uses
   Windows, KOL, Classes, Messages, Forms, SysUtils, mirror,
-  mckCtrls, Graphics, KOLEcmListEdit,
-//////////////////////////////////////////////////
-     {$IFDEF _D6orHigher}                       //
-     DesignIntf, DesignEditors, DesignConst,    //
-     Variants,                                  //
-     {$ELSE}                                    //
-//////////////////////////////////////////////////
-     DsgnIntf,
-//////////////////////////////////////////////////////////
-     {$ENDIF}                                           //
-
-  mckLVColumnsEditor;
+  mckCtrls, Graphics, KOLEcmListEdit, DesignIntf, DesignEditors, DesignConst, mckLVColumnsEditor;
 
 type
-//  TOnEditText = procedure (Sender: PControl; ACol, ARow: Integer; var Value: String) of object;
-
   TKOLEcmListEdit = class(TKOLListView)
-  private
+  protected
     fDrawForbidden: TOnDrawItem;
-    fListData: boolean;
-    fOnGetText: TOnEditText;
-    fOnPutText: TOnEditText;
-    fOnEndEdit: TOnEndEdit;
-    fOnColAdjust: TOnColAdjust;
-    fOnEditChar: TOnEditChar;
-    fOnCreateEdit: TOnCreateEdit;
-    fLimStyle: TKOLListViewStyle;
-    fOnDrawCell: TOnDrawCell;
+    fListData:      Boolean;
+    fOnGetText:     TOnEditText;
+    fOnPutText:     TOnEditText;
+    fOnEndEdit:     TOnEndEdit;
+    fOnCellAdjust:  TOnCellAdjust;
+    fOnEditChar:    TOnEditChar;
+    fOnCreateEdit:  TOnCreateEdit;
+    fLimStyle:      TKOLListViewStyle;
+    fOnDrawCell:    TOnDrawCell;
     procedure SetOnGetText(const Value: TOnEditText);
     procedure SetOnPutText(const Value: TOnEditText);
     procedure SetOnEndEdit(const Value: TOnEndEdit);
-    procedure SetOnColAdjust(const Value: TOnColAdjust);
+    procedure SetOnCellAdjust(const Value: TOnCellAdjust);
     procedure SetOnEditChar(const Value: TOnEditChar);
     procedure SetOnCreateEdit(const Value: TOnCreateEdit);
     procedure SetLimStyle(const Value: TKOLListViewStyle);
     procedure SetOnDrawCell(const Value: TOnDrawCell);
-  protected
     function  AdditionalUnits: string; override;
     procedure SetupFirst( SL: TStringList; const AName, AParent, Prefix: String ); override;
-    procedure SetupLast( SL: TStringList; const AName, AParent, Prefix: String ); override;
+    procedure SetupLast(SL: TStringList; const AName, AParent, Prefix: String); override;
     procedure AssignEvents( SL: TStringList; const AName: String ); override;
     function  SetupParams( const AName, AParent: TDelphiString ): TDelphiString; override;
-   function  GetCaption: string;
+    function  GetCaption: string;
     function  GetStyle: TKOLListViewStyle;
     function  GetOptions: TKOLListViewOptions;
     procedure SetOptions(v: TKOLListViewOptions);
@@ -62,7 +48,7 @@ type
     property OnGetEditText: TOnEditText read fOnGetText write SetOnGetText;
     property OnPutEditText: TOnEditText read fOnPutText write SetOnPutText;
     property OnStopEdit:  TOnEndEdit  read fOnEndEdit write SetOnEndEdit;
-    property OnColAdjust: TOnColAdjust read fOnColAdjust write SetOnColAdjust;
+    property OnCellAdjust: TOnCellAdjust read fOnCellAdjust write SetOnCellAdjust;
     property OnEditChar: TOnEditChar read fOnEditChar write SetOnEditChar;
     property OnCreateEdit: TOnCreateEdit read fOnCreateEdit write SetOnCreateEdit;
     property OnDrawCell: TOnDrawCell read FOnDrawCell write SetOnDrawCell;
@@ -73,63 +59,68 @@ type
 
 implementation
 
-//{$R EcmListEdit.dcr}
-
 constructor TKOLEcmListEdit.Create;
 begin
-   inherited;
-   inherited Style   := lvsDetail;
-   inherited Options := [{lvoRowSelect,}lvoHideSel,lvoGridLines,lvoOwnerDrawFixed];
-//   Font.FontCharset  := 204;
+ inherited;
+ inherited Style   := lvsDetail;
+ inherited Options := [{lvoRowSelect,}lvoHideSel, lvoGridLines, lvoOwnerDrawFixed];
 end;
-
 
 function  TKOLEcmListEdit.AdditionalUnits;
 begin
-   Result := ', KOLEcmListEdit';
+  Result := ', KOLEcmListEdit';
 end;
 
 procedure TKOLEcmListEdit.SetupFirst;
 begin
-//   if @fOnGetText <> nil then
-//     SL.Add( '      PEcmListEdit(' + AName + '.CustomObj).OnGetEditText := Result.' +
   inherited;
 end;
 
-procedure TKOLEcmListEdit.SetupLast;
+procedure TKOLEcmListEdit.SetupLast(SL: TStringList; const AName, AParent, Prefix: String);
 begin
-   inherited AssignEvents(SL, AName);
-   if @fOnGetText <> nil then
-     SL.Add( '      PEcmListEdit(' + AName + '.CustomObj).OnGetEditText := Result.' +
-       ParentForm.MethodName( @OnGetEditText ) + ';' );
-   if @fOnPutText <> nil then
-     SL.Add( '      PEcmListEdit(' + AName + '.CustomObj).OnPutEditText := Result.' +
-       ParentForm.MethodName( @OnPutEditText ) + ';' );
-   if @fOnEndEdit <> nil then
-     SL.Add( '      PEcmListEdit(' + AName + '.CustomObj).OnStopEdit := Result.' +
-       ParentForm.MethodName( @OnStopEdit ) + ';' );
-   if @fOnColAdjust <> nil then
-     SL.Add( '      PEcmListEdit(' + AName + '.CustomObj).OnColAdjust := Result.' +
-       ParentForm.MethodName( @OnColAdjust ) + ';' );
-   if @fOnEditChar <> nil then
-     SL.Add( '      PEcmListEdit(' + AName + '.CustomObj).OnEditChar := Result.' +
-       ParentForm.MethodName( @OnEditChar ) + ';' );
-   if @fOnCreateEdit <> nil then
-     SL.Add( '      PEcmListEdit(' + AName + '.CustomObj).OnCreateEdit := Result.' +
-       ParentForm.MethodName( @OnCreateEdit ) + ';' );
-   if @fOnDrawCell <> nil then
-     SL.Add( '      PEcmListEdit(' + AName + '.CustomObj).OnDrawCell := Result.' +
-       ParentForm.MethodName( @OnDrawCell ) + ';' );
+  inherited;
+//  inherited AssignEvents(SL, AName);
+//
+//  DoAssignEvents(SL, 'PEcmListEdit(' + AName + '.CustomObj)',
+//    ['OnGetEditText', 'OnPutEditText', 'OnStopEdit', 'OnCellAdjust', 'OnEditChar', 'OnCreateEdit', 'OnDrawCell'],
+//    [@OnGetEditText, @OnPutEditText, @OnStopEdit, @fOnCellAdjust, @OnEditChar, @OnCreateEdit, @OnDrawCell]);
+
+//  if Assigned(fOnGetText) then begin
+//  SL.Add( '      PEcmListEdit(' + AName + '.CustomObj).OnGetEditText := Result.' +
+//  ParentForm.MethodName(@OnGetEditText) + ';' );
+//  end;
+//  if @fOnPutText <> nil then
+//  SL.Add( '      PEcmListEdit(' + AName + '.CustomObj).OnPutEditText := Result.' +
+//  ParentForm.MethodName( @OnPutEditText ) + ';' );
+//  if @fOnEndEdit <> nil then
+//  SL.Add( '      PEcmListEdit(' + AName + '.CustomObj).OnStopEdit := Result.' +
+//  ParentForm.MethodName( @OnStopEdit ) + ';' );
+//  if @fOnCellAdjust <> nil then
+//  SL.Add( '      PEcmListEdit(' + AName + '.CustomObj).OnCellAdjust := Result.' +
+//  ParentForm.MethodName( @fOnCellAdjust ) + ';' );
+//  if @fOnEditChar <> nil then
+//  SL.Add( '      PEcmListEdit(' + AName + '.CustomObj).OnEditChar := Result.' +
+//  ParentForm.MethodName( @OnEditChar ) + ';' );
+//  if @fOnCreateEdit <> nil then
+//  SL.Add( '      PEcmListEdit(' + AName + '.CustomObj).OnCreateEdit := Result.' +
+//  ParentForm.MethodName( @OnCreateEdit ) + ';' );
+//  if (@fOnDrawCell <> nil) then
+//  SL.Add( '      PEcmListEdit(' + AName + '.CustomObj).OnDrawCell := Result.' +
+//  ParentForm.MethodName( @OnDrawCell ) + ';' );
 end;
 
 procedure TKOLEcmListEdit.AssignEvents;
 begin
-   inherited;
+  inherited;
+
+  DoAssignEvents(SL, 'PEcmListEdit(' + AName + '.CustomObj)',
+    ['OnGetEditText', 'OnPutEditText', 'OnStopEdit', 'OnCellAdjust', 'OnEditChar', 'OnCreateEdit', 'OnDrawCell'],
+    [@OnGetEditText, @OnPutEditText, @OnStopEdit, @fOnCellAdjust, @OnEditChar, @OnCreateEdit, @OnDrawCell]);
 end;
 
 function TKOLEcmListEdit.GetCaption;
 begin
-   Result := inherited Caption;
+  Result := inherited Caption;
 end;
 
 function TKOLEcmListEdit.GetStyle;
@@ -140,12 +131,12 @@ end;
 
 function TKOLEcmListEdit.GetOptions;
 begin
-   Result := inherited Options;
+  Result := inherited Options;
 end;
 
 procedure TKOLEcmListEdit.SetOptions;
 begin
-   inherited Options := v + [{lvoRowSelect,}lvoHideSel,lvoOwnerDrawFixed];
+  inherited Options := v + [{lvoRowSelect,}lvoHideSel,lvoOwnerDrawFixed];
 end;
 
 procedure Register;
@@ -161,7 +152,7 @@ end;
 
 procedure TKOLEcmListEdit.SetOnGetText(const Value: TOnEditText);
 begin
-  if @fOnGetText <> @Value then begin
+  if (@fOnGetText <> @Value) then begin
     fOnGetText := Value;
     Change();
   end;
@@ -169,7 +160,7 @@ end;
 
 procedure TKOLEcmListEdit.SetOnPutText(const Value: TOnEditText);
 begin
-  if @fOnPutText <> @Value then begin
+  if (@fOnPutText <> @Value) then begin
     fOnPutText := Value;
     Change();
   end;
@@ -177,25 +168,25 @@ end;
 
 procedure TKOLEcmListEdit.SetOnEndEdit(const Value: TOnEndEdit);
 begin
-  if @fOnEndEdit <> @Value then begin
+  if (@fOnEndEdit <> @Value) then begin
     fOnEndEdit := Value;
     Change();
   end;
 end;
 
-procedure TKOLEcmListEdit.SetOnColAdjust(const Value: TOnColAdjust);
+procedure TKOLEcmListEdit.SetOnCellAdjust(const Value: TOnCellAdjust);
 begin
-  if @fOnColAdjust <> @Value then begin
-    fOnColAdjust := Value;
+  if (@fOnCellAdjust <> @Value) then begin
+    fOnCellAdjust := Value;
     Change;
   end;
 end;
 
 procedure TKOLEcmListEdit.SetOnEditChar(const Value: TOnEditChar);
 begin
-  if @fOnEditChar <> @Value then begin
+  if (@fOnEditChar <> @Value) then begin
     fOnEditChar := Value;
-    Change();
+    Change;
   end;
 end;
 
@@ -203,7 +194,7 @@ procedure TKOLEcmListEdit.SetOnDrawCell(const Value: TOnDrawCell);
 begin
   if @FOnDrawCell <> @Value then begin
     FOnDrawCell:= Value;
-    Change();
+    Change;
   end;
 end;
 
@@ -214,12 +205,11 @@ end;
 
 procedure TKOLEcmListEdit.SetOnCreateEdit(const Value: TOnCreateEdit);
 begin
-  if @fOnCreateEdit <> @Value then begin
+  if (@fOnCreateEdit <> @Value) then begin
     fOnCreateEdit := Value;
-    Change();
+    Change;
   end;
 end;
-
 
 procedure TKOLEcmListEdit.SetLimStyle(const Value: TKOLListViewStyle);
 begin

@@ -8,8 +8,6 @@
 { E-mail  : alex@diploms.com                                            }
 { Выполнен на основе класса RyMenu Алексея Румянцева (skitl@mail.ru).   }
 {***********************************************************************}
-{$DEFINE USE_AUTOFREE4CONTROLS}
-
 unit XPMenus;
 
 interface
@@ -173,9 +171,7 @@ begin
       end;
       PXPControl( AParent).fMenuObj := Result;
       AParent.AttachProc(WndProcMenu );
-      {$IFDEF USE_AUTOFREE4CONTROLS}     //dufa
       AParent.Add2AutoFree( Result );
-      {$ENDIF}
     end;
   end;
 

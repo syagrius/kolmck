@@ -42,8 +42,8 @@ end;
 procedure tinyLoadJPGGIFBMPFile(var TargetBitmap: PBitMap; FileName: String);
 var
   Stream: IStream;
-  Picta: IPicture;
-  hh: THandle;
+  Picta:  IPicture;
+  hh:     OLE_HANDLE;
 asm
     //[ebx] = PBitmap;
     //edi = FileName;
@@ -110,8 +110,8 @@ end;
 procedure tinyLoadJPGGIFBMPMemory(var TargetBitmap: PBitMap; Ptr: HGlobal; Size: DWORD);
 var
   Stream: IStream;
-  Picta: IPicture;
-  hh: THandle;
+  Picta:  IPicture;
+  hh:     OLE_HANDLE;
 begin
   TargetBitmap := nil;
   if CreateStreamOnHGlobal(ptr, TRUE, Stream) <> S_OK then
@@ -142,7 +142,7 @@ end;
 
 procedure tinyLoadJPGGIFBMPString(const s: String; out TargetBitmap: PBitMap);
 var
-  hh:     DWORD;
+  hh:     OLE_HANDLE;
   hPtr:   DWORD;
   len:    Integer;
   Stream: IStream;

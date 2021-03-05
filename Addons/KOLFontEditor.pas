@@ -109,7 +109,7 @@ begin
   end;                    // with
 end;
 
-function FontDialogHook(Wnd: HWnd; Msg: UINT; WParam: WPARAM; LParam: LPARAM): UINT; stdcall;
+function FontDialogHook(Wnd: HWnd; Msg: UINT; WParam: WPARAM; LParam: LPARAM): UINT_PTR; stdcall;
 var
   _Self             : TKOLFontProperty;
   R, R2, SR         : TRect;

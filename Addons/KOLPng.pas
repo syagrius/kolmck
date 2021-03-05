@@ -2602,9 +2602,6 @@ var
   {$IFDEF ASM_VERSION}
   Src, Dst: PByte;
   CntBytes: Integer;
-  {$IFDEF SMALLEST_CODE}
-  Src2: PByte;
-  {$ENDIF}
   {$ELSE}
   {$IFDEF PAS_PNG}
   {$ELSE}
