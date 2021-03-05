@@ -16843,28 +16843,6 @@ begin
   Result := M + Result;
 end;
 
-{$IFDEF _D2009orHigher}  const Suffix: AnsiString = 'KMGT';
-{$ELSE}                  const Suffix = 'KMGT';    {$ENDIF}
-function Num2Bytes( Value : Double ) : KOLString;
-var V, I : Integer;
-begin
-  Result := '';
-  I := 0;
-  while (Value >= 1024) and (I < 4) do begin
-    Inc( I );
-    Value := Value / 1024.0;
-  end;
-  Result := Int2Str( Trunc( Value ) );
-  V := Trunc( (Value - Trunc( Value )) * 100 );
-  if V <> 0 then begin
-    if (V mod 10) = 0 then
-       V := V div 10;
-    Result := Result + ',' + Int2Str( V );
-  end;
-  if I > 0 then
-     Result := Result + KOLString( Suffix[ I ] );
-end;
-
 function S2Int( S: PKOLChar ): Integer;
 var M : Integer;
 begin
@@ -16889,6 +16867,24 @@ begin
   Result := S2Int( PKOLChar( Value ) );
 end;
 {$ENDIF PAS_VERSION}
+
+function Num2Bytes(Value : Double): KOLString; 
+const Suffix: KOLString = 'KMGT';
+var V, I : Integer;
+begin
+  Result := '';
+  I := 0;
+  while (Value >= 1024) and (I < 4) do begin
+    Inc( I );
+    Value := Value / 1024.0;
+  end;
+  Result := Double2Str(Trunc(Value * 100) / 100); // fix by Oleg N. Cher:
+  V := POS('.', Result);                          //
+  if V > 0 then                                   //
+    Result[V] := ',';                             // .
+  if I > 0 then
+    Result := Result + Suffix[I];
+end;
 
 {$IFDEF PAS_ONLY}
 function StrCopy(Dest, Source: PAnsiChar): PAnsiChar;
