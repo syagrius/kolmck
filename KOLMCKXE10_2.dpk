@@ -1,7 +1,8 @@
-package KOLMCK4;
+package KOLMCKXE10_2;
 
 {$R *.res}
-{$ALIGN ON}
+{$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
+{$ALIGN 8}
 {$ASSERTIONS ON}
 {$BOOLEVAL OFF}
 {$DEBUGINFO ON}
@@ -11,40 +12,46 @@ package KOLMCK4;
 {$LOCALSYMBOLS ON}
 {$LONGSTRINGS ON}
 {$OPENSTRINGS ON}
-{$OPTIMIZATION OFF}
+{$OPTIMIZATION ON}
 {$OVERFLOWCHECKS OFF}
 {$RANGECHECKS OFF}
 {$REFERENCEINFO ON}
 {$SAFEDIVIDE OFF}
-{$STACKFRAMES ON}
+{$STACKFRAMES OFF}
 {$TYPEDADDRESS OFF}
 {$VARSTRINGCHECKS ON}
-{$WRITEABLECONST ON}
+{$WRITEABLECONST OFF}
 {$MINENUMSIZE 1}
-{$IMAGEBASE $00400000}
-{$DESCRIPTION '_KOL_ mirror controls for Delphi 4'}
+{$IMAGEBASE $13400000}
+{$DESCRIPTION 'KOLMCKXE10_2'}
+{$DEFINE UNICODE_CTRLS}
+{$DEFINE PAS_ONLY}
+{$DEFINE PAS_VERSION}
+{$ENDIF IMPLICITBUILDING}
 {$DESIGNONLY}
-{$IMPLICITBUILD ON}
+{$IMPLICITBUILD OFF}
 {$DEFINE INPACKAGE}
-{$DEFINE _NOT_Use_KOLCtrlWrapper}
 
 requires
-  vcl40,
-  Vclx40;
+  rtl,
+  vcl,
+  designide,
+  xmlrtl,
+  vclx;
 
 contains
+  KOL in 'KOL.pas',
+  KOLadd in 'KOLadd.pas',
   mirror in 'mirror.pas',
   mckObjs in 'mckObjs.pas',
   mckCtrls in 'mckCtrls.pas',
-  KOL in 'KOL.pas',
-  mckAccEditorD4 in 'mckAccEditorD4.pas',
   mckCtrlDraw in 'mckCtrlDraw.pas',
-  mckActionListEditor in 'mckActionListEditor.pas',
   mckMenuEditor in 'mckMenuEditor.pas',
-  mckAccEditor in 'mckAccEditor.pas',
   mckToolbarEditor in 'mckToolbarEditor.pas',
-  mckLVColumnsEditor in 'mckLVColumnsEditor.pas',
+  mckAccEditor in 'mckAccEditor.pas',
+  mckActionListEditor in 'mckActionListEditor.pas',
   mckFileFilterEditor in 'mckFileFilterEditor.pas',
-	KOLadd in 'KOLadd.pas';
+  mckLVColumnsEditor in 'mckLVColumnsEditor.pas',
+  MCKAppExpert200x in 'MCKAppExpert200x.pas';
 
 end.

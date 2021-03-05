@@ -184,6 +184,7 @@ const
 
   PBS_SMOOTH              = 01;
   PBS_VERTICAL            = 04;
+  PBS_MARQUEE             = $08;
 
   PBM_SETRANGE            = WM_USER+1;
   PBM_SETPOS              = WM_USER+2;
@@ -196,6 +197,7 @@ const
 					 // wParam = True: Result = low
   PBM_GETPOS              = WM_USER+8;
   PBM_SETBARCOLOR         = WM_USER+9;		// lParam = bar color
+  PBM_SETMARQUEE          = WM_USER + 10;
   PBM_SETBKCOLOR          = CCM_SETBKCOLOR;  // lParam = bkColor
 
   SB_SETTEXTA             = WM_USER+1;
@@ -957,8 +959,8 @@ type
     dwDrawStage: DWORD;
     hdc: HDC;
     rc: TRect;
-    dwItemSpec:  DWORD_PTR;  // this is control specific, but it's how to specify an item.  valid only with CDDS_ITEM bit set
-    uItemState:  UINT;
+    dwItemSpec: DWORD_PTR;  // this is control specific, but it's how to specify an item.  valid only with CDDS_ITEM bit set
+    uItemState: UINT;
     lItemlParam: LPARAM;
   end;
   PNMCustomDraw = ^TNMCustomDraw;

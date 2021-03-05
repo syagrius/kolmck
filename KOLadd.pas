@@ -1178,46 +1178,7 @@ begin
   Result := ( PBitsList( fList ).fCount + 3) div 4;
 end;
 
-{$IFDEF ASM_noVERSION}
 //[function TBits.IndexOf]
-function TBits.IndexOf(Value: Boolean): Integer;
-asm     //cmd    //opd
-        PUSH     EDI
-        MOV      EDI, [EAX].fList
-        MOV      ECX, [EDI].TList.fCount
-@@ret_1:
-        OR       EAX, -1
-        JECXZ    @@ret_EAX
-        MOV      EDI, [EDI].TList.fItems
-        TEST     DL, DL
-        MOV      EDX, EDI
-        JE       @@of_false
-        INC      EAX
-        REPZ     SCASD
-        JE       @@ret_1
-        MOV      EAX, [EDI-4]
-        NOT      EAX
-        JMP      @@calc_offset
-        BSF      EAX, EAX
-        SUB      EDI, EDX
-        SHR      EDI, 2
-        ADD      EAX, EDI
-        JMP      @@ret_EAX
-@@of_false:
-        REPE     SCASD
-        JE       @@ret_1
-        MOV      EAX, [EDI-4]
-@@calc_offset:
-        BSF      EAX, EAX
-        DEC      EAX
-        SUB      EDI, 4
-        SUB      EDI, EDX
-        SHL      EDI, 3
-        ADD      EAX, EDI
-@@ret_EAX:
-        POP      EDI
-end;
-{$ELSE ASM_VERSION} //Pascal
 function TBits.IndexOf(Value: Boolean): Integer;
 var I: Integer;
     D: DWORD;
@@ -1262,7 +1223,6 @@ begin
     end;
   end;
 end;
-{$ENDIF ASM_VERSION}
 
 //[function TBits.LoadFromStream]
 procedure TBits.InstallBits(FromIdx, N: Integer; Value: Boolean);
@@ -1324,51 +1284,6 @@ begin
 end;
 
 //[procedure TBits.SetBit]
-{$IFDEF ASM_noVERSION}
-procedure TBits.SetBit(Idx: Integer; const Value: Boolean);
-asm
-  PUSH EBX
-  XCHG EBX, EAX
-  CMP  EDX, [EBX].fCount
-  JL   @@2
-
-  LEA  EAX, [EDX+32]
-  SHR  EAX, 5
-
-  PUSH ECX
-  MOV  ECX, [EBX].fList
-  CMP  [ECX].TBitsList.fCount, EAX
-  JGE  @@1
-
-  MOV  [ECX].TBitsList.fCount, EAX
-  MOV  ECX, [ECX].TBitsList.fCapacity
-  SHL  ECX, 5
-  CMP  EDX, ECX
-  JLE  @@1
-
-  PUSH EDX
-  INC  EDX
-  PUSH EAX
-  MOV  EAX, EBX
-  CALL SetCapacity
-  POP  EAX
-  POP  EDX
-
-@@1:
-  POP  ECX
-@@2:
-  MOV  EAX, [EBX].fList
-  MOV  EAX, [EAX].TBitsList.fItems
-  SHR  ECX, 1
-  JC   @@2set
-  BTR  [EAX], EDX
-  JMP  @@exit
-@@2set:
-  BTS  [EAX], EDX
-@@exit:
-  POP  EBX
-end;
-{$ELSE}
 procedure TBits.SetBit(Idx: Integer; const Value: Boolean);
 var Msk: DWORD;
     MinListCount: Integer;
@@ -1392,7 +1307,6 @@ begin
   if  Idx >= fCount then
       fCount := Idx + 1;
 end;
-{$ENDIF}
 
 //[procedure TBits.SetCapacity]
 procedure TBits.SetCapacity(const Value: Integer);
@@ -2272,6 +2186,7 @@ function _NewDirChgNotifier: PDirChange;
 begin
   New( Result, Create );
 end;
+
 //[function NewDirChangeNotifier]
 function NewDirChangeNotifier( const Path: KOLString; Filter: TFileChangeFilter;
                                WatchSubtree: Boolean; ChangeProc: TOnDirChange )
@@ -2371,30 +2286,7 @@ begin
 {$ENDIF ASM_VERSION}
 end;
 
-{$IFDEF noASM_VERSION}
 //[destructor TDirChange.Destroy]
-destructor TDirChange.Destroy;
-asm
-        PUSH     EBX
-        XCHG     EBX, EAX
-        MOV      [EBX].FDestroying, 1
-        MOV      ECX, [EBX].FMonitor
-        JECXZ    @@no_monitor
-        XCHG     EAX, ECX
-        CALL     TObj.Destroy // TObj.Free //
-@@no_monitor:
-        MOV      ECX, [EBX].FHandle
-        JECXZ    @@exit
-        PUSH     ECX
-        CALL     FindCloseChangeNotification
-@@exit:
-        LEA      EAX, [EBX].FPath
-        CALL     System.@LStrClr
-        XCHG     EAX, EBX
-        CALL     TObj.Destroy
-        POP      EBX
-end;
-{$ELSE ASM_VERSION} //Pascal
 destructor TDirChange.Destroy;
 begin
   FDestroying := TRUE;
@@ -2415,45 +2307,8 @@ begin
   FPath := '';
   inherited;
 end;
-{$ENDIF ASM_VERSION}
 
-{$IFDEF ASM_noVERSION}
 //[function TDirChange.Execute]
-function TDirChange.Execute(Sender: PThread): Integer;
-asm
-        PUSH     EBX
-        PUSH     ESI
-        XCHG     EBX, EAX
-        MOV      ESI, EDX
-@@loo:
-        MOVZX    ECX, [ESI].TThread.FTerminated
-        INC      ECX
-        LOOP     @@e_loop
-
-        MOV      ECX, [EBX].FHandle
-        INC      ECX
-        JZ       @@e_loop
-
-        PUSH     INFINITE
-        PUSH     ECX
-        CALL     WaitForSingleObject
-        OR       EAX, EAX
-        JNZ      @@loo
-
-        PUSH     [EBX].FHandle
-        MOV      EAX, [EBX].FMonitor
-        PUSH     EBX
-        PUSH     offset[TDirChange.Changed]
-        CALL     TThread.Synchronize
-        CALL     FindNextChangeNotification
-        JMP      @@loo
-@@e_loop:
-
-        POP      ESI
-        POP      EBX
-        XOR      EAX, EAX
-end;
-{$ELSE ASM_VERSION} //Pascal
 function TDirChange.Execute(Sender: PThread): PtrInt;
 var Handles: array[ 0..1 ] of THandle;
     //i: Integer;
@@ -2477,20 +2332,15 @@ begin
       end;
     else break;
     end;
-  {$IFDEF SAFE_CODE}
   TRY
-  {$ENDIF}
   FindCloseChangeNotification( Handles[ 0 ] );
   FHandle := 0;
   CloseHandle( FinEvent );
   FinEvent := 0;
-  {$IFDEF SAFE_CODE}
   EXCEPT
   END;
-  {$ENDIF}
   Result := 0;
 end;
-{$ENDIF ASM_VERSION}
 
 ////////////////////////////////////////////////////////////////////////
 //
@@ -2736,36 +2586,17 @@ end;
 
 //[procedure TAction.LinkMenuItem]
 procedure TAction.LinkMenuItem(Menu: PMenu; MenuItemIdx: integer);
-{$IFDEF _FPC}
-var
-  arr1_DoOnMenuItem: array[ 0..0 ] of TOnMenuItem;
-{$ENDIF _FPC}
 begin
   //LinkCtrl(Menu, ckMenu, MenuItemIdx, UpdateMenu); -- replaced by mdw to:
   LinkCtrl(Menu, ckMenu, Menu.Items[MenuItemIdx].MenuId, UpdateMenu);
-
-  {$IFDEF _FPC}
-  arr1_DoOnMenuItem[ 0 ] := DoOnMenuItem;
-  Menu.AssignEvents(MenuItemIdx, arr1_DoOnMenuItem);
-  {$ELSE}
   Menu.AssignEvents(MenuItemIdx, [ DoOnMenuItem ]);
-  {$ENDIF}
 end;
 
 //[procedure TAction.LinkToolbarButton]
 procedure TAction.LinkToolbarButton(Toolbar: PControl; ButtonIdx: integer);
-{$IFDEF _FPC}
-var
-  arr1_DoOnToolbarButtonClick: array[ 0..0 ] of TOnToolbarButtonClick;
-{$ENDIF _FPC}
 begin
   LinkCtrl(Toolbar, ckToolbar, ButtonIdx, UpdateToolbar);
-  {$IFDEF _FPC}
-  arr1_DoOnToolbarButtonClick[ 0 ] := DoOnToolbarButtonClick;
-  Toolbar.TBAssignEvents(ButtonIdx, arr1_DoOnToolbarButtonClick);
-  {$ELSE}
   Toolbar.TBAssignEvents(ButtonIdx, [DoOnToolbarButtonClick]);
-  {$ENDIF}
 end;
 
 //[destructor TAction.Destroy]

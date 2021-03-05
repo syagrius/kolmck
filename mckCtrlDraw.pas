@@ -9,29 +9,44 @@ uses
 type
   TScrollStyle = (ssNone, ssHorz, ssVert, ssBoth);
 
-const
-  TextHFlags: array[TTextAlign] of DWORD     = (DT_LEFT, DT_RIGHT,   DT_CENTER);
-  TextVFlags: array[TVerticalAlign] of DWORD = (DT_TOP,  DT_VCENTER, DT_BOTTOM);
-  WordWrapFlags: array[Boolean] of DWORD     = (DT_SINGLELINE, 0);//!
-  CheckFlags: array[Boolean] of DWORD        = (0, DFCS_CHECKED);
+  TCDLVColumn = packed record
+    Caption:   WideString;
+    TextAlign: TTextAlign;
+    Width:     Integer;
+  end;
+  ArrayTCDLVColumn = array of TCDLVColumn;
 
-procedure DrawButton(aUX: Boolean; DC: HDC; R: TRect; aEnabled, aDefBtn: Boolean; dwTextFlags: DWORD; aText: WideString);
-procedure DrawEditBox(aUX: Boolean; DC: HDC; R: TRect; aEnabled, aIsPwd: Boolean; dwTextFlags: DWORD; aText: WideString);
-procedure DrawMemo(aUX: Boolean; DC: HDC; R: TRect; aColor: Integer; aEnabled: Boolean; aScrollStyle: TScrollStyle; dwTextFlags: DWORD; aText: WideString);
+  TCDTBButton = packed record
+    Caption:   WideString;
+    Rect:      TRect;
+    Enabled:   Boolean;
+    Separator: Boolean;
+    Checked:   Boolean;
+  end;
+  ArrayTCDTBButton = array of TCDTBButton;
+
+const
+  TextHFlags:    array[TTextAlign] of DWORD     = (DT_LEFT, DT_RIGHT,   DT_CENTER);
+  TextVFlags:    array[TVerticalAlign] of DWORD = (DT_TOP,  DT_VCENTER, DT_BOTTOM);
+  WordWrapFlags: array[Boolean] of DWORD        = (DT_SINGLELINE, 0);//!
+  CheckFlags:    array[Boolean] of DWORD        = (0, DFCS_CHECKED);
+
+procedure DrawButton(aUX, aEnabled, aDefBtn: Boolean; DC: HDC; R: TRect; dwTextFlags: DWORD; aText: WideString);
+procedure DrawEditBox(aUX, aEnabled, aIsPwd: Boolean; DC: HDC; R: TRect; dwTextFlags: DWORD; aText: WideString);
+procedure DrawMemo(aUX, aEnabled: Boolean; DC: HDC; R: TRect; aColor: Integer;aScrollStyle: TScrollStyle; dwTextFlags: DWORD; aText: WideString);
 procedure DrawCombobox(DC: HDC; R: TRect; aEnabled: Boolean; aText: WideString);
 procedure DrawLabel(DC: HDC; R: TRect; dwTextFlags: DWORD; aText: WideString);
 procedure DrawCheckbox(DC: HDC; R: TRect; aEnabled, aChecked, aHasBorder: Boolean; aText: WideString);
-procedure DrawRadiobox(aUX: Boolean; DC: HDC; R: TRect; aEnabled, aChecked, aHasBorder: Boolean; aText: WideString);
-procedure DrawListBox(aUX: Boolean; DC: HDC; R: TRect; aEnabled: Boolean; aText: WideString);
-procedure DrawTreeView(aUX: Boolean; DC: HDC; R: TRect; aEnabled: Boolean; aText: WideString);
-procedure DrawListView(aUX: Boolean; DC: HDC; R: TRect; aEnabled: Boolean; aColumns: KOLWideString);
+procedure DrawRadiobox(aUX, aEnabled, aChecked, aHasBorder: Boolean; DC: HDC; R: TRect; aText: WideString);
+procedure DrawListBox(aUX, aEnabled: Boolean; DC: HDC; R: TRect; aText: WideString);
+procedure DrawTreeView(aUX, aEnabled: Boolean; DC: HDC; R: TRect; aText: WideString);
+procedure DrawListView(aUX, aEnabled: Boolean; DC: HDC; R: TRect; aCols: ArrayTCDLVColumn);
 procedure DrawProgressBar(DC: HDC; R: TRect; aVertical: Boolean; aProgress, aMaxProgress: Integer);
 procedure DrawTrackBar(DC: HDC; R: TRect; aVertical: Boolean; aProgress, aMaxProgress: Integer);
 procedure DrawGroupBox(aUX: Boolean; DC: HDC; R: TRect; aText: WideString);
-procedure DrawScrollBar(aUX: Boolean; DC: HDC; R: TRect; aEnabled, aVertical: Boolean; aPos, aMin, aMax: Integer);
+procedure DrawScrollBar(aUX, aEnabled, aVertical: Boolean; DC: HDC; R: TRect; aPos, aMin, aMax: Integer);
 procedure DrawScrollBox(aUX: Boolean; DC: HDC; R: TRect; aScrollStyle: TScrollStyle);
-// not yet
-procedure DrawToolbar(aUX: Boolean; DC: HDC; R: TRect; aEnabled: Boolean; aText: WideString);
+procedure DrawToolbar(aUX, aEnabled: Boolean; DC: HDC; R: TRect; aBtns: ArrayTCDTBButton);
 
 implementation
 
@@ -43,17 +58,25 @@ begin
   Result := aPixelX + Round((aPos + Abs(aMin)) / (aMax + Abs(aMin)) * (aPixelMax - aPixelX * 3));
 end;
 
-procedure DrawScrollBar(aUX: Boolean; DC: HDC; R: TRect; aEnabled, aVertical: Boolean; aPos, aMin, aMax: Integer);
+procedure DrawScrollBar(aUX, aEnabled, aVertical: Boolean; DC: HDC; R: TRect; aPos, aMin, aMax: Integer);
 const                  //enb    btn
   arrThemedSBLU: array[Boolean, Boolean] of TThemedScrollBar = (
-    (tsArrowBtnLeftDisabled, tsArrowBtnUpDisabled), (tsArrowBtnLeftNormal, tsArrowBtnUpNormal));
+    (tsArrowBtnLeftDisabled, tsArrowBtnUpDisabled),
+    (tsArrowBtnLeftNormal, tsArrowBtnUpNormal));
+
   arrThemedSBRD: array[Boolean, Boolean] of TThemedScrollBar = (
-    (tsArrowBtnRightDisabled, tsArrowBtnDownDisabled), (tsArrowBtnRightNormal, tsArrowBtnDownNormal));
+    (tsArrowBtnRightDisabled, tsArrowBtnDownDisabled),
+    (tsArrowBtnRightNormal, tsArrowBtnDownNormal));
+
   arrThemedSBTH: array[Boolean] of TThemedScrollBar = (tsThumbBtnHorzNormal,  tsThumbBtnVertNormal);
+
   arrSBLU: array[Boolean, Boolean] of DWORD = (
-    (DFCS_SCROLLLEFT or DFCS_INACTIVE,DFCS_SCROLLUP or DFCS_INACTIVE), (DFCS_SCROLLLEFT,  DFCS_SCROLLUP));
+    (DFCS_SCROLLLEFT or DFCS_INACTIVE,DFCS_SCROLLUP or DFCS_INACTIVE),
+    (DFCS_SCROLLLEFT,  DFCS_SCROLLUP));
+
   arrSBRD: array[Boolean, Boolean] of DWORD = (
-    (DFCS_SCROLLRIGHT or DFCS_INACTIVE, DFCS_SCROLLDOWN or DFCS_INACTIVE), (DFCS_SCROLLRIGHT, DFCS_SCROLLDOWN));
+    (DFCS_SCROLLRIGHT or DFCS_INACTIVE, DFCS_SCROLLDOWN or DFCS_INACTIVE),
+    (DFCS_SCROLLRIGHT, DFCS_SCROLLDOWN));
 
 var
   w:  Integer;
@@ -92,7 +115,7 @@ begin
   end;
 end;
 
-procedure DrawButton(aUX: Boolean; DC: HDC; R: TRect; aEnabled, aDefBtn: Boolean; dwTextFlags: DWORD; aText: WideString);
+procedure DrawButton(aUX, aEnabled, aDefBtn: Boolean; DC: HDC; R: TRect; dwTextFlags: DWORD; aText: WideString);
 const                   //enb      defbtn
   arrThemedButton: array[Boolean, Boolean] of TThemedButton =
     ((tbPushButtonDisabled, tbPushButtonDisabled), (tbPushButtonNormal, tbPushButtonDefaulted));
@@ -125,7 +148,7 @@ begin
   end;
 end;
 
-procedure DrawEditBox(aUX: Boolean; DC: HDC; R: TRect; aEnabled, aIsPwd: Boolean; dwTextFlags: DWORD; aText: WideString);
+procedure DrawEditBox(aUX, aEnabled, aIsPwd: Boolean; DC: HDC; R: TRect; dwTextFlags: DWORD; aText: WideString);
 begin
   if ThemeServices.ThemesAvailable and aUX then begin
     // draw element
@@ -148,7 +171,7 @@ begin
   end;
 end;
 
-procedure DrawMemo(aUX: Boolean; DC: HDC; R: TRect; aColor: Integer; aEnabled: Boolean; aScrollStyle: TScrollStyle; dwTextFlags: DWORD; aText: WideString);
+procedure DrawMemo(aUX, aEnabled: Boolean; DC: HDC; R: TRect; aColor: Integer;aScrollStyle: TScrollStyle; dwTextFlags: DWORD; aText: WideString);
 var
   w: Integer;
   h: Integer;
@@ -168,13 +191,13 @@ begin
     InflateRect(R, -1, -1);
     // draw scrolls
     case aScrollStyle of
-      ssHorz: DrawScrollBar(aUX, DC, Rect(R.Left, R.Bottom - h, R.Right, R.Bottom), False, False, 2, 0, 100);
-      ssVert: DrawScrollBar(aUX, DC, Rect(R.Right - w, R.Top, R.Right, R.Bottom), False, True, 2, 0, 100);
+      ssHorz: DrawScrollBar(aUX, False, False, DC, Rect(R.Left, R.Bottom - h, R.Right, R.Bottom), 2, 0, 100);
+      ssVert: DrawScrollBar(aUX, False, True, DC, Rect(R.Right - w, R.Top, R.Right, R.Bottom), 2, 0, 100);
       ssBoth:
       begin
         ThemeServices.DrawElement(DC, ThemeServices.GetElementDetails(tsLowerTrackVertNormal), Rect(R.Left, R.Bottom - h, R.Right, R.Bottom), nil);
-        DrawScrollBar(aUX, DC, Rect(R.Left, R.Bottom - h, R.Right - w, R.Bottom), False, False, 2, 0, 100);
-        DrawScrollBar(aUX, DC, Rect(R.Right - w, R.Top, R.Right, R.Bottom - h), False, True, 2, 0, 100);
+        DrawScrollBar(aUX, False, False, DC, Rect(R.Left, R.Bottom - h, R.Right - w, R.Bottom), 2, 0, 100);
+        DrawScrollBar(aUX, False, True, DC, Rect(R.Right - w, R.Top, R.Right, R.Bottom - h), 2, 0, 100);
       end;
     end;
     // draw text
@@ -191,13 +214,13 @@ begin
     DeleteObject(b);
     // draw scrolls
     case aScrollStyle of
-      ssHorz: DrawScrollBar(aUX, DC, Rect(R.Left, R.Bottom - h, R.Right, R.Bottom), False, False, 2, 0, 100);
-      ssVert: DrawScrollBar(aUX, DC, Rect(R.Right - w, R.Top, R.Right, R.Bottom), False, True, 2, 0, 100);
+      ssHorz: DrawScrollBar(aUX, False, False, DC, Rect(R.Left, R.Bottom - h, R.Right, R.Bottom), 2, 0, 100);
+      ssVert: DrawScrollBar(aUX, False, True, DC, Rect(R.Right - w, R.Top, R.Right, R.Bottom), 2, 0, 100);
       ssBoth:
       begin
         FillRect(DC, Rect(R.Left, R.Bottom - h, R.Right, R.Bottom), GetSysColorBrush(COLOR_BTNFACE));
-        DrawScrollBar(aUX, DC, Rect(R.Left, R.Bottom - h, R.Right - w, R.Bottom), False, False, 2, 0, 100);
-        DrawScrollBar(aUX, DC, Rect(R.Right - w, R.Top, R.Right, R.Bottom - h), False, True, 2, 0, 100);
+        DrawScrollBar(aUX, False, False, DC, Rect(R.Left, R.Bottom - h, R.Right - w, R.Bottom), 2, 0, 100);
+        DrawScrollBar(aUX, False, True, DC, Rect(R.Right - w, R.Top, R.Right, R.Bottom - h), 2, 0, 100);
       end;
     end;
     // draw text
@@ -261,10 +284,11 @@ begin
   ThemeServices.DrawText(DC, d, aText, r, DT_LEFT, 0);
 end;
 
-procedure DrawRadiobox(aUX: Boolean; DC: HDC; R: TRect; aEnabled, aChecked, aHasBorder: Boolean; aText: WideString);
+procedure DrawRadiobox(aUX, aEnabled, aChecked, aHasBorder: Boolean; DC: HDC; R: TRect; aText: WideString);
 const                   //enb      chk
   arrFlags: array[Boolean, Boolean] of DWORD =
-    ((DFCS_INACTIVE, DFCS_CHECKED or DFCS_INACTIVE), (0, DFCS_CHECKED));
+    ((DFCS_INACTIVE, DFCS_CHECKED or DFCS_INACTIVE),
+     (0, DFCS_CHECKED));
                         //enb      chk
   arrThemedRB: array[Boolean, Boolean] of TThemedButton =
     ((tbRadioButtonUncheckedDisabled, tbRadioButtonCheckedDisabled),
@@ -303,7 +327,7 @@ begin
   end;
 end;
 
-procedure DrawListBox(aUX: Boolean; DC: HDC; R: TRect; aEnabled: Boolean; aText: WideString);
+procedure DrawListBox(aUX, aEnabled: Boolean; DC: HDC; R: TRect; aText: WideString);
 begin
   if ThemeServices.ThemesAvailable and aUX then begin
     // draw element
@@ -326,42 +350,44 @@ begin
   end;
 end;
 
-procedure DrawTreeView(aUX: Boolean; DC: HDC; R: TRect; aEnabled: Boolean; aText: WideString);
+procedure DrawTreeView(aUX, aEnabled: Boolean; DC: HDC; R: TRect; aText: WideString);
 begin
-  DrawListBox(aUX, DC, R, aEnabled, aText);
+  DrawListBox(aUX, aEnabled, DC, R, aText);
 end;
 
-procedure DrawListView(aUX: Boolean; DC: HDC; R: TRect; aEnabled: Boolean; aColumns: KOLWideString);
+procedure DrawListView(aUX, aEnabled: Boolean; DC: HDC; R: TRect; aCols: ArrayTCDLVColumn);
+const
+  HEAD_HEIGHT = 20;
+  CXL         = 8; //!
+  CXR         = 6; //!
+
 var
-  w: WideString;
+  i: Integer;
   d: TThemedElementDetails;
+  f: DWORD;
 begin
   // draw main
-  DrawListBox(aUX, DC, R, aEnabled, '');
+  DrawListBox(aUX, aEnabled, DC, R, '');
   // columns
-  if (aColumns <> '') then begin
+  if (Length(aCols) > 0) then begin
     // draw head back
-    R := Bounds(2, 2, R.Right - 4, 20);
+    R := Bounds(2, 2, R.Right - 4, HEAD_HEIGHT);
     ThemeServices.DrawElement(DC, ThemeServices.GetElementDetails(thHeaderRoot), R, nil);
     // draw columns
-    R := Bounds(2, 2, 50, 20);
-    repeat
-      w := ParseW(aColumns, #13);
-      if (aColumns = '') and (w = '') then
-        Break
-      else begin
-        // get element
-        d := ThemeServices.GetElementDetails(thHeaderItemNormal);
-        // draw head column
-        ThemeServices.DrawElement(DC, d, R, nil);
-        // draw text
-        Inc(R.Left, 10);
-        ThemeServices.DrawText(DC, d, w, R, DT_LEFT or DT_VCENTER or DT_SINGLELINE, 0);
-        // next
-        Inc(R.Left, 40);
-        Inc(R.Right, 50);
-      end;
-    until False;
+    for i := 0 to High(aCols) do begin
+      // get element
+      d := ThemeServices.GetElementDetails(thHeaderItemNormal);
+      // draw head column
+      R.Right := R.Left + aCols[i].Width;
+      ThemeServices.DrawElement(DC, d, R, nil);
+      // draw text
+      Inc(R.Left, CXL);
+      Dec(R.Right, CXR);
+      f := TextHFlags[aCols[i].TextAlign] or DT_VCENTER or DT_SINGLELINE;
+      ThemeServices.DrawText(DC, d, aCols[i].Caption, R, f, 0);
+      // next
+      R.Left := R.Right + CXR;
+    end;
   end;
 end;
 
@@ -426,35 +452,54 @@ begin
   FillRect(DC, R, GetSysColorBrush(COLOR_BTNFACE));
   DrawEdge(DC, R, EDGE_SUNKEN, BF_RECT or BF_ADJUST);
   case aScrollStyle of
-    ssHorz: DrawScrollBar(aUX, DC, Rect(R.Left, R.Bottom - h, R.Right, R.Bottom), True, False, 2, 0, 100);
-    ssVert: DrawScrollBar(aUX, DC, Rect(R.Right - w, R.Top, R.Right, R.Bottom), True, True, 2, 0, 100);
+    ssHorz: DrawScrollBar(aUX, True, False, DC, Rect(R.Left, R.Bottom - h, R.Right, R.Bottom), 2, 0, 100);
+    ssVert: DrawScrollBar(aUX, True, True, DC, Rect(R.Right - w, R.Top, R.Right, R.Bottom), 2, 0, 100);
     ssBoth:
     begin
-      DrawScrollBar(aUX, DC, Rect(R.Left, R.Bottom - h, R.Right - w, R.Bottom), True, False, 2, 0, 100);
-      DrawScrollBar(aUX, DC, Rect(R.Right - w, R.Top, R.Right, R.Bottom - h), True, True, 2, 0, 100);
+      DrawScrollBar(aUX, True, False, DC, Rect(R.Left, R.Bottom - h, R.Right - w, R.Bottom), 2, 0, 100);
+      DrawScrollBar(aUX, True, True, DC, Rect(R.Right - w, R.Top, R.Right, R.Bottom - h), 2, 0, 100);
     end;
   end;
 end;
 
-// not yet
-procedure DrawToolbar(aUX: Boolean; DC: HDC; R: TRect; aEnabled: Boolean; aText: WideString);
+procedure DrawToolbar(aUX, aEnabled: Boolean; DC: HDC; R: TRect; aBtns: ArrayTCDTBButton);
+const        // enb,     sep
+  arrTTB: array[Boolean, Boolean] of TThemedToolBar = (
+    (ttbButtonDisabled, ttbSeparatorDisabled),
+    (ttbButtonNormal,   ttbSeparatorNormal)
+  );
+
 var
+  i: Integer;
   d: TThemedElementDetails;
 begin
   if ThemeServices.ThemesAvailable and aUX then begin
-    // get element
-    d := ThemeServices.GetElementDetails(ttbToolBarRoot);
-    // draw element
-    ThemeServices.DrawElement(DC, d, R, nil);
-
-    // get element
-    d := ThemeServices.GetElementDetails(ttbSplitButtonNormal);
-    // draw element
-    ThemeServices.DrawElement(DC, d, R, nil);
-    // text
-    ThemeServices.DrawText(DC, d, aText, R, 0, 0);
+    // draw background
+    ThemeServices.DrawElement(DC, ThemeServices.GetElementDetails(ttbToolBarRoot), R, nil);
+    // draw buttons
+    for i := 0 to High(aBtns) do begin
+      // get element
+      if aBtns[i].Checked then
+        d := ThemeServices.GetElementDetails(ttbButtonChecked)
+      else
+        d := ThemeServices.GetElementDetails(arrTTB[aBtns[i].Enabled, aBtns[i].Separator]);
+      // draw element
+      ThemeServices.DrawElement(DC, d, aBtns[i].Rect, nil);
+      // draw text
+      ThemeServices.DrawText(DC, d, aBtns[i].Caption, aBtns[i].Rect, 0, 0);
+    end;
   end else begin
-
+    // draw background
+    FillRect(DC, R, GetSysColorBrush(COLOR_BTNFACE));
+    // draw buttons
+    for i := 0 to High(aBtns) do begin
+      if aBtns[i].Separator then
+        Windows.Rectangle(DC, aBtns[i].Rect.Left, aBtns[i].Rect.Top, aBtns[i].Rect.Right, aBtns[i].Rect.Bottom)
+      else begin
+        DrawEdge(DC, aBtns[i].Rect, BDR_RAISEDINNER, BF_RECT);
+        DrawTextW(DC, PWideChar(aBtns[i].Caption), Length(aBtns[i].Caption), aBtns[i].Rect, DT_LEFT);
+      end;
+    end;
   end;
 end;
 

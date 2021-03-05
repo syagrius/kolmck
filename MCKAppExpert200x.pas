@@ -110,8 +110,8 @@ const
   'object KOLProj: TKOLProject' + #13#10 + 
     'Locked = False' + #13#10 + 
     'Localizy = False' + #13#10 + 
-    'projectName = ''prj''' + #13#10 + 
-    'projectDest = ''prj''' + #13#10 + 
+    'projectName = ''%prj_name%''' + #13#10 +
+    'projectDest = ''%prj_name%''' + #13#10 + 
     'sourcePath = ''%path%''' + #13#10 + 
     'outdcuPath = ''%path%''' + #13#10 + 
     'dprResource = True' + #13#10 + 
@@ -126,9 +126,7 @@ const
     'PaintType = ptWYSIWIG' + #13#10 + 
     'ShowHint = False' + #13#10 + 
     'ReportDetailed = False' + #13#10 + 
-    'GeneratePCode = False' + #13#10 + 
-    'NewIF = True' + #13#10 + 
-    'Left = 16' + #13#10 + 
+    'Left = 16' + #13#10 +
     'Top = 16' + #13#10 + 
   'end' + #13#10 + 
   'object KOLForm: TKOLForm' + #13#10 + 
@@ -245,8 +243,9 @@ begin
       lst.Text := StringReplace(unt_template, '%unt_name%', unt_name, [rfReplaceAll]);
       lst.SaveToFile(ChangeFileExt(unt, '.pas'));
       // gen dfm
-      lst.Text := StringReplace(dfm_template, '%path%', ExtractFilePath(unt), [rfReplaceAll]);
+      lst.Text := StringReplace(dfm_template, '%prj_name%', ExtractFileName(prj), [rfReplaceAll]);
       lst.Text := StringReplace(lst.Text, '%unt_name%', unt_name, [rfReplaceAll]);
+      lst.Text := StringReplace(lst.Text, '%path%', ExtractFilePath(unt), [rfReplaceAll]);
       lst.SaveToFile(ChangeFileExt(unt, '.dfm'));
       // gen dummy res file
       resfile := FileCreate(ChangeFileExt(prj, '.res'));
@@ -274,7 +273,7 @@ end;
 
 function TMCKWizard.GetComment: string;
 begin
-  Result := 'v0.03';
+  Result := 'v0.04';
 end;
 
 function TMCKWizard.GetGlyph: Cardinal;

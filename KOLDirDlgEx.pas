@@ -98,9 +98,8 @@ type
     procedure DoCancel( Sender: PObj );
     procedure DoNotClose( Sender: PObj; var Accept: Boolean );
     procedure DoShow( Sender: PObj );
-    function DoMsg( var Msg: TMsg; var Rslt: Integer ): Boolean;
-    function DoExpanding( Sender: PControl; Item: THandle; Expand: Boolean )
-                 : Boolean;
+    function DoMsg( var Msg: TMsg; var Rslt: LRESULT ): Boolean;
+    function DoExpanding( Sender: PControl; Item: THandle; Expand: Boolean ): Boolean;
     function DoFilterAttrs( Attrs: DWORD; const APath: KOLString ): Boolean;
     procedure Rescantree;
     procedure RescanNode( node: Integer );
@@ -687,7 +686,7 @@ begin
   end;
 end;
 
-function TOpenDirDialogEx.DoMsg(var Msg: TMsg; var Rslt: Integer): Boolean;
+function TOpenDirDialogEx.DoMsg(var Msg: TMsg; var Rslt: LRESULT): Boolean;
 var NMHdr: PNMHdr;
     NMCustomDraw: PNMCustomDraw;
     i: Integer;
@@ -1073,7 +1072,7 @@ begin
                         SL.Add( Find32W.cFileName );
                     if  not FFindNextFileW( F, @Find32W ) then break;
                 end;
-                SL.Sort( FALSE );
+                SL.Sort( [] );
                 //LogFileOutput( 'C:\sort_test.txt', '--------------------------'#13#10#13#10 +
                 //               SL.Text );
               FINALLY

@@ -1,4 +1,27 @@
 -------------------------------------------------------------------
+05.03.21
+-------------------------------------------------------------------
+Changes after last svn:
+
+* MCK: ux visual style mode updated
+- MCK: remove pcode / collapse 
+- MCK: remove FormCompact
+- MCK: source formatting: mckObjs.pas, mckCtrls.pas (by cnpack) 
+- KOL: remove codegeneration for MCK FormCompact
+* KOL: move some defines from KOL.pas to KOLDEF.inc
+* KOL: some refactoring\cleaning
+* KOL: remove unused defines (SAFE_CODE, USE_CMOV, COMMANDACTIONS_OBJ, USE_AUTOFREE4CONTROLS, USE_AUTOFREE4CHILDREN, NEW_ALIGN, PROVIDE_EXITCODE - always on; OLD_REFCOUNT, SMALLEST_CODE*, SPEED_FASTER, USE_PROP, UMERIC_APPICON, CUSTOM_APPICON, TEST_INDEXOFCHARS_COMPAT, _FPC, REDEFINE_ABS, OLD_*, NOT_FIX_MODAL, NOT_UNLOAD_RICHEDITLIB, ANCHORS_WM_SIZE, COMMANDACTIONS_RECORD - always off; OLD_FREE and etc..)
+* KOL: fix WStrRScan - affected: ExtractFileNeme, ExtractFileExt, ExtractFilePath and "Create new  mck project" in XE 10.2 and maybe other high versions (by Hubert Bannwarth)
+* KOL: fix "Create new mck project" in XE 10.2/3 and maybe other versions
+* KOL: remove some old\commented\broken\asm code and defines like "*ASM_NO_VERSION*"
+* KOLadd: remove some old\commented\broken\asm code and defines like "*ASM_NO_VERSION*"
+* and some else..
+
+Tested on:
+	Delphi 2006 x32(ansi\unicode)
+	Delphi XE 10.3 x32(unicode), x64(unicode)
+
+-------------------------------------------------------------------
 3.12.14
 -------------------------------------------------------------------
 Merge with unofficial 3.22 version compatible with fpc 2.6.4 and 2.7.1 i386 and x64 compilers by "Dmitri K dmiko@mail333.com (dmiko)" principal work 

@@ -22,11 +22,9 @@ asm
     PUSH  EAX
     CALL  GetProcAddress
     XCHG  ECX, EAX
-    {$IFDEF SAFE_CODE}
     POP   EDX
     JECXZ @@fin
     PUSH  EDX
-    {$ENDIF}
     PUSH  8                               // dwSize
     PUSH  ESP                             // @ ICC
     CALL  ECX                             // Proc( @ ICC )
@@ -40,9 +38,7 @@ asm
   push edx // Flags
   mov  ecx, [Applet]
   {$IFDEF SNAPMOUSE2DFLTBTN}
-  {$IFDEF SAFE_CODE}
   jecxz @@0
-  {$ENDIF}
   pushad
   xchg eax, ecx
   mov  edx, offset[WndProcSnapMouse2DfltBtn]
@@ -51,9 +47,7 @@ asm
 @@0:
   {$ENDIF}
   mov  edx, 0
-  {$IFDEF SAFE_CODE}
   jecxz @@1
-  {$ENDIF}
   mov  edx, [ecx].TControl.fHandle
   mov  ecx, [ecx].TControl.fCaption
 @@1: push ecx // Title
@@ -62,9 +56,7 @@ asm
   call MessageBox
   {$IFDEF SNAPMOUSE2DFLTBTN}
   mov  ecx, [Applet]
-  {$IFDEF SAFE_CODE}
   jecxz @@2
-  {$ENDIF}
   pushad
   xchg eax, ecx
   mov  edx, offset[WndProcSnapMouse2DfltBtn]
@@ -109,10 +101,8 @@ asm
         PUSH     EAX               // prepare Length(Text)
         CALL     EDX2PChar
         PUSH     EDX               // prepare PChar(Text)
-        {$IFDEF  SAFE_CODE}
         MOV      EAX, EBX
         CALL     RefInc
-        {$ENDIF}
         PUSH     HandleValid or FontValid
         PUSH     EBX
         CALL     RequiredState
@@ -152,12 +142,10 @@ asm
         XCHG     EAX, EBX
         CALL     SetHandle
 @@exit:
-        {$IFDEF  SAFE_CODE}
         PUSH     EAX
         XCHG     EAX, EBX
         CALL     RefDec
         POP      EAX
-        {$ENDIF}
         POP      ESI
         POP      EBX
 end;
@@ -229,10 +217,7 @@ asm     // EAX = Value
       PUSH      EDI
       PUSH      ECX
         LEA       EDI, [ESP+8+0Fh]  // EBX := @Buf[ 15 ]
-        {$IFDEF SMALLEST_CODE}
-        {$ELSE}
         AND       EDX, $F
-        {$ENDIF}
 @@loop: DEC       EDI
         DEC       EDX
           PUSH      EAX
@@ -634,16 +619,11 @@ function CopyTail( const S : AnsiString; Len : Integer ) : AnsiString;
 asm
         PUSH     ECX
         PUSH     EAX
-          PUSH     EDX
-            CALL     System.@LStrLen
-          POP      ECX
-          CMP      ECX, EAX
-          {$IFDEF USE_CMOV}
-          CMOVG    ECX, EAX
-          {$ELSE}
-          JLE      @@1
-          MOV      ECX, EAX
-@@1:      {$ENDIF}
+        PUSH     EDX
+          CALL     System.@LStrLen
+        POP      ECX
+        CMP      ECX, EAX
+        CMOVG    ECX, EAX
 
         MOV      EDX, EAX
         SUB      EDX, ECX
@@ -660,12 +640,7 @@ asm
         CALL     System.@LStrLen
         POP      ECX
         CMP      ECX, EAX
-        {$IFDEF USE_CMOV}
         CMOVG    ECX, EAX
-        {$ELSE}
-        JLE      @@1
-        MOV      ECX, EAX
-@@1:    {$ENDIF}
 
         MOV      EDX, EAX
         SUB      EDX, ECX
@@ -674,7 +649,6 @@ asm
         CALL     System.@LStrDelete
 end;
 
-{$IFnDEF TEST_INDEXOFCHARS_COMPAT}
 function IndexOfChar( const S : KOLString; Chr : KOLChar ) : Integer;
 asm
         CALL     EAX2PChar
@@ -686,7 +660,6 @@ asm
         LEA      EDX, [EAX+1]
 @@1:    SUB      EAX, EDX
 end;
-{$ENDIF}
 
 function IndexOfCharsMin( const S, Chars : AnsiString ) : Integer;
 asm     PUSH     ESI
@@ -873,6 +846,12 @@ asm
         CALL     RemoveStr
         XCHG     EAX, ESI
 
+        //dufa: if true -> AL=42 (this is char "*"), fix AL -> 1
+@@fix_true_result:
+        TEST  AL, AL
+        JZ    @@exit
+        MOV   AL, 1
+        //dufa.
 @@exit:
         POP      ESI
 end;
@@ -1550,105 +1529,6 @@ asm
         JMP     _FillStrList
 end;
 
-procedure TIniFile.SectionData(Names: PStrList);
-asm
-        PUSH    ESI
-        PUSH    EDI
-        PUSH    EBX
-        PUSH    ECX
-
-        MOV     EBX,EAX
-        MOV     EAX, IniBufferStrSize
-        MOV     EDI,EDX
-
-        CALL    System.@GetMem
-        MOV     ESI,EAX
-        PUSH    EAX
-
-        OR     [EBX].fMode,0
-        JNE     @@DOWrite
-
-        PUSH    [EBX].fFileName
-        MOV     EAX,IniBufferSize
-        PUSH    EAX
-
-        LEA     EAX,[ESI+4]
-        PUSH    EAX
-        PUSH    [EBX].fSection
-
-        CALL    GetPrivateProfileSection
-        JMP     _FillStrList
-
-@@DOWrite:
-
-        PUSH    EBX
-        PUSH    ESI
-        PUSH    EDX
-        PUSH    EBP
-
-        MOV     EDX,0
-        MOV     EBP,[EDI].TStrList.fCount
-        MOV     EBX,IniBufferSize-2 // оставим место для #0#0
-
-{ECM+++>} OR      EBP,EBP  // otherwise GetPChars when StrList.Count = 0 crashed
-
-@@LOOP:
-        JE      @@ENDLOOP
-
-        OR      EBX,EBX
-        JE      @@ENDLOOP
-
-        PUSH    EDX
-        MOV     EAX,EDI
-        CALL    TStrList.GetPChars
-
-        PUSH    EAX
-        CALL    StrLen
-        POP     EAX
-
-        XOR     ECX,-1
-        MOV     EDX,ESI
-
-        SUB     EBX,ECX
-        JA      @@L1
-        ADD     ECX,EBX
-        XOR     EBX,EBX
-@@L1:
-
-        ADD     ESI,ECX
-
-        CALL    MOVE
-@@L2:
-        POP     EDX
-        INC     EDX
-        DEC     EBP
-        JMP     @@LOOP
-@@ENDLOOP:
-        MOV     WORD PTR [ESI],0
-
-        POP     EBP
-        POP     EDX
-        POP     ESI
-        POP     EBX
-        MOV     EAX,EBX
-        CALL    ClearSection
-
-        PUSH    [EBX].fFileName
-        PUSH    ESI
-        PUSH    [EBX].fSection
-
-        CALL    WritePrivateProfileSection
-
-        POP     EAX
-        CALL    System.@FreeMem
-
-        POP     ECX
-        POP     EBX
-        POP     EDI
-        POP     ESI
-
-end;
-
 function _NewControl( AParent: PControl; ControlClassName: PKOLChar;
                       Style: DWORD; Ctl3D: Boolean;
                       Actions: TCommandActionsParam ): PControl;
@@ -1695,29 +1575,21 @@ asm
             LEA      EDI, [EBX].TControl.fBoundsRect
             LODSB
             MOVSX    EAX, AL
-            {$IFNDEF SMALLEST_CODE}
             PUSH     EAX
             MOVSX    ECX, byte ptr [ESI+2]
             ADD      EAX, ECX // AParent.fClientLeft
-            {$ENDIF}
             STOSD    // fBoundsRect.Left
-            {$IFNDEF SMALLEST_CODE}
             POP      EAX
             PUSH     EAX
             MOVSX    ECX, byte ptr [ESI+0]
             ADD      EAX, ECX // AParent.fClientTop
-            {$ENDIF}
             STOSD    // fBoundsRect.Top
-            {$IFNDEF SMALLEST_CODE}
             XCHG     EDX, EAX
             POP      EAX
-            {$ENDIF}
             ADD      EAX, 64
             STOSD    // fBoundsRect.Right
-            {$IFNDEF SMALLEST_CODE}
             XCHG     EAX, EDX
             ADD      EAX, 64
-            {$ENDIF}
             STOSD    // fBoundsRect.Bottom}
         POP      ECX
             MOV      EAX, [ECX].TControl.fCursor
@@ -2503,11 +2375,7 @@ asm     //cmd    //opd
         CALL     MakeFlags
         POP      EDX
 
-        {$IFDEF  COMMANDACTIONS_OBJ}
         PUSH     TOOLBAR_ACTIONS
-        {$ELSE}
-        PUSH     0   //: actions : = nil
-        {$ENDIF}
         XCHG     ECX, EAX // ECX = MakeFlags(...)
    MOV  EDI, ECX
         MOV      EAX, [ESP+8] // EAX = AParent
@@ -2516,14 +2384,9 @@ asm     //cmd    //opd
         OR       ECX, WS_CHILD or WS_VISIBLE or TBSTYLE_TOOLTIPS
         MOV      EDX, offset[ TOOLBARCLASSNAME ]
         CALL     _NewCommonControl
-        {$IFDEF  COMMANDACTIONS_OBJ}
         MOV      EDX, [EAX].TControl.fCommandActions
         MOV      [EDX].TCommandActionsObj.aClear, offset[ClearToolbar]
         MOV      [EDX].TCommandActionsObj.aGetCount, TB_BUTTONCOUNT
-        {$ELSE}
-        MOV      [EAX].TControl.fCommandActions.aClear, offset[ClearToolbar]
-        MOV      [EAX].TControl.fCommandActions.aGetCount, TB_BUTTONCOUNT
-        {$ENDIF}
         {$IFDEF  USE_FLAGS}
         OR       [EAX].TControl.fFlagsG5, 1 shl G5_IsButton
         {$ELSE}
@@ -2838,11 +2701,7 @@ asm
         PUSH     [hInstance]// Params.WindowClass.hInstance := hInstance
         PUSH     ECX        // Params.WindowClass.cbWndExtra := 0
         PUSH     ECX        // Params.WindowClass.cbClsExtra := 0
-        {$IFDEF  SAFE_CODE}
         PUSH     [EBX].fDefWndProc     // Params.WindowClass.lpfnWndProc := fDefWndProc
-        {$ELSE}
-        PUSH     0
-        {$ENDIF}
         PUSH     [EBX].fClsStyle       // Params.WindowClass.style := fStyle
         ADD      ESP, -64
         PUSH     ECX
@@ -2872,12 +2731,7 @@ asm
 @@1:    PUSH     EAX         // Params.Height := Height | CW_UseDefault
         MOV      EAX, [EBX].fBoundsRect.Right
         SUB      EAX, [EBX].fBoundsRect.Left
-        {$IFDEF USE_CMOV}
         CMOVZ    EAX, ECX
-        {$ELSE}
-        JNZ      @@2
-        MOV      EAX, ECX
-@@2:    {$ENDIF}
 
         PUSH     EAX         // Params.Width := Width | CW_UseDefault
         MOV      EAX, [EBX].fBoundsRect.Left
@@ -2956,11 +2810,7 @@ asm
         TEST     EAX, EAX
         JZ       @@fin
         PUSH     EAX
-        {$IFDEF USE_PROP}
-        PUSH     offset ID_SELF
-        {$ELSE}
         PUSH     GWL_USERDATA
-        {$ENDIF}
         PUSH     EAX
 
         PUSH     0
@@ -2969,29 +2819,17 @@ asm
         PUSH     EAX
         CALL     SendMessage
 
-        {$IFDEF USE_PROP}
-        CALL     GetProp
-        {$ELSE}
         CALL     GetWindowLong
-        {$ENDIF}
         XCHG     ECX, EAX
         POP      EAX
         INC      ECX
         LOOP     @@propSet
         MOV      [CreatingWindow], ECX
         PUSH     EBX
-        {$IFDEF USE_PROP}
-        PUSH     offset ID_SELF
-        PUSH     EAX
-        CALL     SetProp
-        {$ELSE}
         PUSH     GWL_USERDATA
         PUSH     EAX
         CALL     SetWindowLong
-        {$ENDIF}
 @@propSet:
-        {$IFDEF SMALLEST_CODE}
-        {$ELSE}
         {$IFDEF  USE_FLAGS}
         TEST     [EBX].fFlagsG3, 1 shl G3_IsControl
         {$ELSE}
@@ -3006,7 +2844,6 @@ asm
         PUSH     EBX
         CALL     Perform
 @@iconSet:
-        {$ENDIF}
         MOV      ECX, [EBX].PP.fCreateWndExt
         {$IFDEF  NIL_EVENTS}
         JECXZ    @@dblbufcreate
@@ -3191,12 +3028,8 @@ asm
         XCHG     ESI, EAX       // ESI = Idx'
 
         XOR      EAX, EAX
-        {$IFDEF  COMMANDACTIONS_OBJ}
         MOV      ECX, [EBX].fCommandActions
         MOVZX    ECX, [ECX].TCommandActionsObj.aGetItemLength
-        {$ELSE}
-        MOVZX    ECX, [EBX].fCommandActions.aGetItemLength
-        {$ENDIF}
         JECXZ    @@ret_empty
 
         PUSH     ECX            // push aGetItemLength
@@ -3214,12 +3047,8 @@ asm
         POP      EDX              // restore L
         LEA      ECX, [EDX+1]
         MOV      dword ptr [EAX], ECX
-        {$IFDEF  COMMANDACTIONS_OBJ}
         MOV      ECX, [EBX].fCommandActions
         MOVZX    ECX, [ECX].TCommandActionsObj.aGetItemText
-        {$ELSE}
-        MOVZX    ECX, [EBX].fCommandActions.aGetItemText
-        {$ENDIF}
         JECXZ    @@ret_buf
 
         PUSH     EDX              // save L
@@ -3266,12 +3095,8 @@ asm
         CALL     ECX2PChar
         PUSH     ECX       // @Value[1]
 
-        {$IFDEF  COMMANDACTIONS_OBJ}
         MOV      ECX, [EBX].fCommandActions
         MOVZX    ECX, [ECX].TCommandActionsObj.aSetItemText
-        {$ELSE}
-        MOVZX    ECX, [EBX].fCommandActions.aSetItemText
-        {$ENDIF}
         JECXZ    @@1
 
         PUSH     0
@@ -3309,12 +3134,8 @@ asm
 
 @@1:    // @Value[1] in stack already
         POP      EDX
-        {$IFDEF  COMMANDACTIONS_OBJ}
         MOV      ECX, [EBX].fCommandActions
         MOVZX    ECX, [ECX].TCommandActionsObj.aDeleteItem
-        {$ELSE}
-        MOVZX    ECX, [EBX].fCommandActions.aDeleteItem
-        {$ENDIF}
         JECXZ    @@exit
 
         PUSH     ESI
@@ -3362,12 +3183,8 @@ asm
         PUSH     EBX
         MOV      EBX, EAX               // EBX = @Self
 
-        {$IFDEF  COMMANDACTIONS_OBJ}
         MOV      ECX, [EBX].fCommandActions
         MOVZX    ECX, [ECX].TCommandActionsObj.aAddItem
-        {$ELSE}
-        MOVZX    ECX, [EBX].fCommandActions.aAddItem   // ECX = aAddItem
-        {$ENDIF}
         JECXZ    @@chk_addtext
 
         CALL     EDX2PChar
@@ -3392,12 +3209,8 @@ asm
         JMP      @@exit
 
 @@chk_addtext:
-        {$IFDEF  COMMANDACTIONS_OBJ}
         MOV      ECX, [EBX].fCommandActions
         MOV      ECX, [ECX].TCommandActionsObj.aAddText
-        {$ELSE}
-        MOV      ECX, [EBX].fCommandActions.aAddText
-        {$ENDIF}
         JECXZ    @@add_text_simple
 
         CALL     ECX
@@ -3420,12 +3233,8 @@ function TControl.Insert(Idx: Integer; const S: AnsiString): Integer;
 asm
          CALL    ECX2PChar
          PUSH    ECX
-         {$IFDEF COMMANDACTIONS_OBJ}
          MOV     ECX, [EAX].fCommandActions
          MOVZX   ECX, [ECX].TCommandActionsObj.aInsertItem
-         {$ELSE}
-         MOVZX   ECX, [EAX].fCommandActions.aInsertItem
-         {$ENDIF}
          JECXZ   @@exit_1
 
          PUSH    EDX
@@ -4142,12 +3951,7 @@ asm     { [EBP+$8] = @Self
         STOSD
         MOV      EAX, [ToolbarsIDcmd]
         TEST     EBX, EBX
-        {$IFDEF USE_CMOV}
         CMOVL    EBX, EAX
-        {$ELSE}
-        JGE      @@b0
-        MOV      EBX, EAX
-@@b0:   {$ENDIF}
           STOSD
           XOR      EAX, EAX
           INC      AH  // TBSTYLE_SEP = 1
@@ -4179,12 +3983,7 @@ asm     { [EBP+$8] = @Self
         MOV      EAX, [ToolbarsIDcmd]
         STOSD
         TEST     EBX, EBX
-        {$IFDEF USE_CMOV}
         CMOVL    EBX, EAX
-        {$ELSE}
-        JGE      @@210
-        MOV      EBX, EAX
-@@210:  {$ENDIF}
           MOV      ECX, [EBP+8]
           MOV      AH,  BYTE PTR [ECX].TControl.DF.fDefaultTBBtnStyle
         POP      ECX
