@@ -58,6 +58,7 @@ type
   //============================================================================
   //---- MIRROR FOR A BUTTON ----
   //---- «≈– ¿ÀŒ ƒÀﬂ  ÕŒœ » ----
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLButton = class(TKOLControl)
   private
     FFlat: Boolean;
@@ -126,6 +127,7 @@ type
   //============================================================================
   //---- MIRROR FOR A BIT BUTTON ----
   //---- «≈– ¿ÀŒ ƒÀﬂ –»—Œ¬¿ÕÕŒ…  ÕŒœ » ----
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLBitBtn = class(TKOLControl)
   private
     FOptions: TBitBtnOptions;
@@ -216,6 +218,7 @@ type
   //============================================================================
   //---- MIRROR FOR A LABEL ----
   //---- «≈– ¿ÀŒ ƒÀﬂ Ã≈“ » ----
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLLabel = class(TKOLControl)
   private
     FShowAccelChar: Boolean;
@@ -251,6 +254,7 @@ type
   //============================================================================
   //---- MIRROR FOR A LABEL EFFECT ----
   //---- «≈– ¿ÀŒ ƒÀﬂ Ã≈“ » — ›‘‘≈ “¿Ã» ----
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLLabelEffect = class(TKOLLabel)
   private
     FShadowDeep: Integer;
@@ -281,6 +285,7 @@ type
   //============================================================================
   //---- MIRROR FOR A PANEL ----
   //---- «≈– ¿ÀŒ ƒÀﬂ œ¿Õ≈À» ----
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLPanel = class(TKOLControl)
   private
     FEdgeStyle: TEdgeStyle;
@@ -323,6 +328,7 @@ type
   //============================================================================
   //---- MIRROR FOR MDI CLIENT ----
   //---- «≈– ¿ÀŒ ƒÀﬂ MDI  À»≈Õ“¿ ----
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLMDIClient = class(TKOLControl)
   private
     FTimer: TTimer;
@@ -340,6 +346,7 @@ type
   //===========================================================================
   //---- MIRROR FOR A GRADIENT PANEL
   //---- «≈– ¿ÀŒ ƒÀﬂ √–¿ƒ»≈Õ“ÕŒ… œ¿Õ≈À»
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLGradientPanel = class(TKOLControl)
   private
     FColor1: TColor;
@@ -380,6 +387,7 @@ type
   //===========================================================================
   //---- MIRROR FOR A SPLITTER
   //---- «≈– ¿ÀŒ ƒÀﬂ –¿«ƒ≈À»“≈Àﬂ
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLSplitter = class(TKOLControl)
   private
     FMinSizePrev: Integer;
@@ -419,6 +427,7 @@ type
   //===========================================================================
   //---- MIRROR FOR A GROUPBOX
   //---- «≈– ¿ÀŒ ƒÀﬂ √–”œœ€
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLGroupBox = class(TKOLControl)
   private
   protected
@@ -456,6 +465,7 @@ type
   //===========================================================================
   //---- MIRROR FOR A CHECKBOX
   //---- «≈– ¿ÀŒ ƒÀﬂ ‘À¿∆ ¿
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLCheckBox = class(TKOLControl)
   private
     FChecked: Boolean;
@@ -502,6 +512,7 @@ type
   //===========================================================================
   //---- MIRROR FOR A RADIOBOX
   //---- «≈– ¿ÀŒ ƒÀﬂ –¿ƒ»Œ-‘À¿∆ ¿
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLRadioBox = class(TKOLControl)
   private
     FChecked: Boolean;
@@ -555,6 +566,7 @@ type
 
   TKOLEditOptions = set of TKOLEditOption;
 
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLEditBox = class(TKOLControl)
   private
     FOptions: TKOLEditOptions;
@@ -626,6 +638,7 @@ type
 
   TKOLMemoOptions = set of TKOLMemoOption;
 
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLMemo = class(TKOLControl)
   private
     FOptions: TKOLMemoOptions;
@@ -696,6 +709,7 @@ type
   //---- «≈– ¿ÀŒ ƒÀﬂ –≈ƒ¿ “Œ–¿
   TKOLRichEditVersion = (ver1, ver3);
 
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLRichEdit = class(TKOLControl)
   private
     FOptions: TKOLMemoOptions;
@@ -823,6 +837,7 @@ type
 
   TKOLListboxOptions = set of TKOLListboxOption;
 
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLListBox = class(TKOLControl)
   private
     FOptions: TKOLListboxOptions;
@@ -899,6 +914,7 @@ type
 
   TKOLComboOptions = set of TKOLComboOption;
 
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLComboBox = class(TKOLControl)
   private
     FOptions: TKOLComboOptions;
@@ -962,6 +978,7 @@ type
   //===========================================================================
   //---- MIRROR FOR A PAINTBOX
   //---- «≈– ¿ÀŒ ƒÀﬂ ÃŒÀ‹¡≈–“¿
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLPaintBox = class(TKOLControl)
   private
     fNotAvailable: Boolean;
@@ -987,6 +1004,7 @@ type
   //===========================================================================
   //---- MIRROR FOR A IMAGESHOW
   //---- «≈– ¿ÀŒ ƒÀﬂ  ¿–“»Õ »
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLImageShow = class(TKOLControl)
   private
     FCurIndex: Integer;
@@ -1028,6 +1046,7 @@ type
   //===========================================================================
   //---- MIRROR FOR A PROGRESSBAR
   //---- «≈– ¿ÀŒ ƒÀﬂ À»Õ≈… » œ–Œ√–≈——¿
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLProgressBar = class(TKOLControl)
   private
     FVertical: Boolean;
@@ -1141,6 +1160,7 @@ type
     property LVColOrder: Integer read FLVColOrder write SetLVColOrder;
   end;
 
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLListView = class(TKOLControl)
   private
     FOptions: TKOLListViewOptions;
@@ -1276,6 +1296,7 @@ type
 
   TKOLTreeViewOptions = set of TKOLTreeViewOption;
 
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLTreeView = class(TKOLControl)
   private
     FOptions: TKOLTreeViewOptions;
@@ -1439,6 +1460,7 @@ type
     property action: TKOLAction read Faction write Setaction;
   end;
 
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLToolbar = class(TKOLControl)
   private
     FOptions: TToolbarOptions;
@@ -1622,6 +1644,7 @@ type
   //===========================================================================
   //---- MIRROR FOR A DATE TIME PICKER
   //---- «≈– ¿ÀŒ ƒÀﬂ ¬¬Œƒ¿ ƒ¿“€ » ¬–≈Ã≈Õ»
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLDateTimePicker = class(TKOLControl)
   private
     FOnDTPUserString: KOL.TDTParseInputEvent;
@@ -1656,10 +1679,12 @@ type
   //===========================================================================
   //---- MIRROR FOR A TAB CONTROL
   //---- «≈– ¿ÀŒ ƒÀﬂ “¿¡”À»–Œ¬¿ÕÕŒ√Œ ¡ÀŒ ÕŒ“¿
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLTabPage = class(TKOLPanel)
     function TypeName: string; override;
   end;
 
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLTabControl = class(TKOLControl)
   private
     FOptions: TTabControlOptions;
@@ -1760,6 +1785,7 @@ type
   //---- «≈– ¿ÀŒ ƒÀﬂ Œ Õ¿ œ–Œ –”“ »
   TScrollBars = (ssNone, ssHorz, ssVert, ssBoth);
 
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLScrollBox = class(TKOLControl)
   private
     FScrollBars: TScrollBars;
@@ -1799,6 +1825,7 @@ type
   //===========================================================================
   //---- MIRROR FOR A SCROLL BAR
   //---- «≈– ¿ÀŒ ƒÀﬂ œŒÀŒ—€ œ–Œ –”“ »
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLScrollBar = class(TKOLControl)
   private
     FSBPageSize: Integer;

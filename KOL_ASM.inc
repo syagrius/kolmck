@@ -13566,4 +13566,555 @@ asm
     POP  EAX
 end;
 
+procedure Swap(var X, Y: PtrInt);
+asm
+  MOV  ECX, [EDX]
+  XCHG ECX, [EAX]
+  MOV  [EDX], ECX
+end;
+
+function Min( X, Y: Integer ): Integer;   
+asm
+  CMP   EAX, EDX
+  CMOVG EAX, EDX
+end;
+
+function Max( X, Y: Integer ): Integer;
+asm
+  CMP EAX, EDX
+  CMOVL EAX, EDX
+end;
+
+function Sgn( X: Integer ): Integer;
+asm
+  CMP EAX, 0
+  MOV EDX, -1
+  CMOVL EAX, EDX
+  MOV EDX, 1
+  CMOVG EAX, EDX
+end;
+
+function ColorsMix( Color1, Color2: TColor ): TColor;
+asm
+   //PUSH EDX
+   CALL Color2Rgb
+   //POP  EDX
+   XCHG EAX, EDX
+   //PUSH EDX
+   CALL Color2Rgb
+   //POP EDX
+   MOV ECX, $0FEFEFE
+   AND EAX, ECX
+   AND EDX, ECX
+   ADD EAX, EDX
+   ROR EAX, 1
+end;
+
+// This version of code by Galkov: Changes in comparison to Delphi standard:
+//              no Overflow exception if Exponent is very big negative value
+//              (just 0 in result in such case).
+function IntPower(Base: Extended; Exponent: Integer): Extended;
+asm
+        fld1             { Result := 1 }
+        test    eax,eax  // check Exponent for 0, return 0 ** 0 = 1
+        jz      @@3      // (though Mathematics says that this is not so...)
+        fld     Base
+        jg      @@2
+        fdivr   ST,ST(1) { Base := 1 / Base }
+        neg     eax
+        jmp     @@2
+@@1:    fmul    ST,ST    { X := Base * Base }
+@@2:    shr     eax,1
+        jnc     @@1
+        fmul    ST(1),ST { Result := Result * X }
+        jnz     @@1
+        fstp    st       { pop X from FPU stack }
+@@3:    fwait
+end;
+
+function GetBits( N: DWORD; first, last: Byte ): DWord;
+asm
+   XCHG EAX, EDX  // (1) EDX=N, AL=first
+   CMP AL, 31     // first(AL) > 31 ?
+   JBE  @@1       // (2) если да, то Result := 0;
+@@0:
+   XOR  EAX, EAX  // (2)
+   RET            // (1)
+@@1:
+   XCHG EAX, ECX  // (1) AL = last CL = first
+   SHR  EDX, CL   // (2) EDX = N shr first
+   SUB  AL,  CL	  // (2) AL = last - first
+   JL @@0         // (2) если last < first то Result := 0;
+
+   CMP AL, 32     // (2) last - first >= 32 ?
+   XCHG ECX, EAX  // (1) CL = last - first
+   XCHG EAX, EDX  // (1) EAX = N shr first
+   JAE  @@exit    // (2) если last - first > 31, то Result := EAX;
+   SBB  EDX, EDX  // (2) EDX = -1
+   DEC  EDX       // (1) EDX = 1111...10 = -2
+   SHL  EDX, CL   // (2) EDX = 111...100..0 (где n(0)=last-first+1)
+   NOT  EDX       // (2) EDX = маска 000..0111...1 (где n(1)=last-first+1)
+   AND  EAX, EDX  // (2)
+@@exit: // EAX = результат, (1 байт на команду RET)
+end;
+
+function GetBitsL( N: DWORD; from, len: Byte ): DWord;
+asm
+   ADD  CL, DL
+   DEC  CL
+   JMP  GetBits
+end;
+
+function StrCopy(Dest, Source: PAnsiChar): PAnsiChar; assembler;
+asm
+        PUSH    EDI
+        PUSH    ESI
+        MOV     ESI,EAX
+        MOV     EDI,EDX
+        OR      ECX, -1
+        XOR     AL,AL
+        REPNE   SCASB
+        NOT     ECX
+        MOV     EDI,ESI
+        MOV     ESI,EDX
+        MOV     EDX,ECX
+        MOV     EAX,EDI
+        SHR     ECX,2
+        REP     MOVSD
+        MOV     ECX,EDX
+        AND     ECX,3
+        REP     MOVSB
+        POP     ESI
+        POP     EDI
+end;
+
+function StrScan(Str: PAnsiChar; Chr: AnsiChar): PAnsiChar; assembler;
+asm
+        PUSH    EDI
+        PUSH    EAX
+        MOV     EDI,Str
+        OR      ECX, -1
+        XOR     AL,AL
+        REPNE   SCASB
+        NOT     ECX
+        POP     EDI
+        XCHG    EAX, EDX
+        REPNE   SCASB
+
+        XCHG    EAX, EDI
+        POP     EDI
+
+        JE      @@1
+        XOR     EAX, EAX
+        RET
+
+@@1:    DEC     EAX
+end;
+
+function StrRScan(Str: PAnsiChar; Chr: AnsiChar): PAnsiChar; assembler;
+asm
+        PUSH    EDI
+        MOV     EDI,Str
+        MOV     ECX,0FFFFFFFFH
+        XOR     AL,AL
+        REPNE   SCASB
+        NOT     ECX
+        STD
+        DEC     EDI
+        MOV     AL,Chr
+        REPNE   SCASB
+        MOV     EAX,0
+        JNE     @@1
+        MOV     EAX,EDI
+        INC     EAX
+@@1:    CLD
+        POP     EDI
+end;
+
+function StrScanLen(Str: PAnsiChar; Chr: AnsiChar; Len: Integer): PAnsiChar; assembler;
+asm
+        PUSH    EDI
+        XCHG    EDI, EAX
+        XCHG    EAX, EDX
+        REPNE   SCASB
+        XCHG    EAX, EDI
+        POP     EDI
+        { -> EAX => to next character after found or to the end of Str,
+             ZF = 0 if character found. }
+end;
+
+procedure Str2LowerCase( S: PAnsiChar );
+asm
+        XOR      ECX, ECX
+@@1:
+        MOV      CL, byte ptr [EAX]
+        JECXZ    @@exit  {>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>}
+        SUB      CL, 'A'
+        CMP      CL, 'Z'-'A'
+        JA       @@2
+        ADD      byte ptr [EAX], 32
+@@2:    INC      EAX
+        JMP      @@1
+@@exit:
+end;
+
+function CompareMem(P1, P2: Pointer; Length: Integer): Boolean; assembler;
+asm
+        PUSH    ESI
+        PUSH    EDI
+        MOV     ESI,P1
+        MOV     EDI,P2
+        MOV     EDX,ECX
+        XOR     EAX,EAX
+        AND     EDX,3
+        SHR     ECX,1
+        SHR     ECX,1
+        REPE    CMPSD
+        JNE     @@2
+        MOV     ECX,EDX
+        REPE    CMPSB
+        JNE     @@2
+@@1:    INC     EAX
+@@2:    POP     EDI
+        POP     ESI
+end;
+
+function _WStrLComp(S1, S2: PWideChar; Len: Integer): Integer;
+asm
+        PUSH    EDI
+        PUSH    ESI
+        MOV     EDI,EDX
+        XCHG    ESI,EAX
+        CMP     EAX, EAX
+        REPE    CMPSW
+        MOVZX   EAX, word ptr [ESI-2]
+        MOVZX   EDX, word ptr [EDI-2]
+        SUB     EAX,EDX
+        POP     ESI
+        POP     EDI
+end;
+
+function _AnsiCompareStrA(const S1, S2: PAnsiChar): Integer;
+asm
+  CMP BYTE PTR [IsAnsiInit], $00
+  JNZ @@Start
+@@Upper:
+  PUSH S1
+  PUSH S2
+  CALL InitAnsi
+  POP  S2
+  POP  S1
+@@Start:
+  CALL _AnsiCompareStrA_Fast
+end;
+
+function _AnsiCompareStrNoCaseA(const S1, S2: PAnsiChar): Integer;
+asm
+  CMP BYTE PTR [IsAnsiNoCaseInit], $00
+  JNZ @@Start
+@@Upper:
+  PUSH S1
+  PUSH S2
+  CALL InitAnsiNoCase
+  POP  S2
+  POP  S1
+@@Start:
+  CALL _AnsiCompareStrNoCaseA_Fast
+end;
+
+function WStrLen( W: PWideChar ): Integer;
+asm
+         XCHG     EDI, EAX
+         XCHG     EDX, EAX
+         OR       ECX, -1
+         XOR      EAX, EAX
+         CMP      EAX, EDI
+         JE       @@exit0
+         REPNE    SCASW
+         DEC      EAX
+         DEC      EAX
+         SUB      EAX, ECX
+@@exit0:
+         MOV      EDI, EDX
+end;
+
+function WStrCmp( W1, W2: PWideChar ): Integer;
+asm
+         PUSH     ESI
+         PUSH     EDI
+         XCHG     ESI, EAX
+         MOV      EDI, EDX
+         XOR      EAX, EAX
+@@loop:  LODSW
+         MOVZX    EDX, word ptr [EDI]
+         INC      EDI
+         INC      EDI
+         CMP      EAX, EDX
+         JNE      @@exit
+         TEST     EAX, EAX
+         JNZ      @@loop
+@@exit:  SUB      EAX, EDX
+         POP      EDI
+         POP      ESI
+end;
+
+procedure WStrCopy( Dest, Src: PWideChar );
+asm
+        PUSH    EDI
+        PUSH    ESI
+        MOV     ESI,EAX
+        MOV     EDI,EDX
+        OR      ECX, -1
+        XOR     EAX, EAX
+        REPNE   SCASW
+        NOT     ECX
+        MOV     EDI,ESI
+        MOV     ESI,EDX
+        REP     MOVSW
+        POP     ESI
+        POP     EDI
+end;
+
+function StrIsStartingFromNoCase( Str, Pattern: PAnsiChar ): Boolean;
+asm
+        XOR     ECX, ECX
+      @@1:
+        MOV     CL, [EDX]   // pattern[ i ]
+        INC     EDX
+        MOV     CH, [EAX]   // str[ i ]
+        INC     EAX
+        JECXZ   @@2         // str = pattern; CL = #0, CH = #0
+        CMP     CL, 'a'
+        JB      @@cl_ok
+        CMP     CL, 'z'
+        JA      @@cl_ok
+        SUB     CL, 32
+      @@cl_ok:
+        CMP     CH, 'a'
+        JB      @@ch_ok
+        CMP     CH, 'z'
+        JA      @@ch_ok
+        SUB     CH, 32
+      @@ch_ok:
+        CMP     CL, CH
+        JE      @@1
+      @@2:
+        TEST    CL, CL
+        SETZ    AL
+end;
+
+function StrLCopy(Dest: PAnsiChar; const Source: PAnsiChar; MaxLen: Cardinal): PAnsiChar; assembler;
+asm
+        PUSH    EDI
+        PUSH    ESI
+        PUSH    EBX
+        MOV     ESI,EAX
+        MOV     EDI,EDX
+        MOV     EBX,ECX
+        XOR     AL,AL
+        TEST    ECX,ECX
+        JZ      @@1
+        REPNE   SCASB
+        JNE     @@1
+        INC     ECX
+@@1:    SUB     EBX,ECX
+        MOV     EDI,ESI
+        MOV     ESI,EDX
+        MOV     EDX,EDI
+        MOV     ECX,EBX
+        SHR     ECX,2
+        REP     MOVSD
+        MOV     ECX,EBX
+        AND     ECX,3
+        REP     MOVSB
+        STOSB
+        MOV     EAX,EDX
+        POP     EBX
+        POP     ESI
+        POP     EDI
+end;
+
+function StrComp(const Str1, Str2: PAnsiChar): Integer; assembler; // by Aleksandr Sharahov
+asm
+   sub   edx, eax
+   jnz   @next
+   xor   eax, eax
+   jmp   @ret
+@next:
+   movzx ecx, [eax+edx]
+   cmp   cl, [eax]
+   jne   @stop
+   test  cl, cl
+   jz    @stop
+   movzx ecx, [eax+edx+1]
+   cmp   cl, [eax+1]
+   jne   @stop1
+   test  cl, cl
+   jz    @stop1
+   movzx ecx, [eax+edx+2]
+   cmp   cl, [eax+2]
+   jne   @stop2
+   test  cl, cl
+   jz    @stop2
+   movzx ecx, [eax+edx+3]
+   cmp   cl, [eax+3]
+   jne   @stop3
+   add   eax, 4
+   test  cl, cl
+   jz    @stop4
+   movzx ecx, [eax+edx]
+   cmp   cl, [eax]
+   jne   @stop
+   test  cl, cl
+   jz    @stop
+   movzx ecx, [eax+edx+1]
+   cmp   cl, [eax+1]
+   jne   @stop1
+   test  cl, cl
+   jz    @stop1
+   movzx ecx, [eax+edx+2]
+   cmp   cl, [eax+2]
+   jne   @stop2
+   test  cl, cl
+   jz    @stop2
+   movzx ecx, [eax+edx+3]
+   cmp   cl, [eax+3]
+   jne   @stop3
+   add   eax, 4
+   test  cl, cl
+   jnz   @next
+@stop4:
+   sub   eax, 4
+@stop3:
+   add   eax, 1
+@stop2:
+   add   eax, 1
+@stop1:
+   add   eax, 1
+@stop:
+   movzx eax, [eax]
+   sub   eax, ecx
+@ret:
+end;
+
+function StrComp_NoCase(const Str1, Str2: PAnsiChar): Integer;
+asm
+  CMP BYTE PTR [IsUpperInit], $00     //dufa
+  JNZ @@Start                         //dufa
+
+@@Upper:                              //dufa
+  PUSH Str1                           //dufa
+  PUSH Str2                           //dufa
+  CALL Init_Upper                     //dufa
+  POP  Str2                           //dufa
+  POP  Str1                           //dufa
+
+@@Start:
+  PUSH    EBX                         //dufa
+  PUSH    ESI
+  XCHG    ESI, EAX
+
+@@1:
+  MOVZX   EAX, BYTE PTR [EDX]
+  INC     EDX
+  MOVZX   ECX, BYTE PTR [EAX+Upper]   //dufa
+  //MOV     CL,  BYTE PTR [EAX+Upper] //dufa
+  LODSB
+  //SUB     CL,  BYTE PTR [EAX+Upper] //dufa
+  MOVZX   EBX, BYTE PTR [EAX+Upper]   //dufa
+  SUB     ECX, EBX                    //dufa
+  JNZ     @@fin
+  CMP     AL,  CL
+  JNZ     @@1
+
+@@fin:
+  //MOVSX   EAX, CL                   //dufa
+  MOV     EAX, ECX                    //dufa
+  NEG     EAX
+  POP     ESI
+  POP     EBX                         //dufa
+end;
+
+function StrLComp(const Str1, Str2: PAnsiChar; MaxLen: Cardinal): Integer; assembler; // by SysUtils
+asm
+        PUSH    EDI
+        PUSH    ESI
+        PUSH    EBX
+        MOV     EDI,EDX
+        MOV     ESI,EAX
+        MOV     EBX,ECX
+        XOR     EAX,EAX
+        OR      ECX,ECX
+        JE      @@1
+        REPNE   SCASB
+        SUB     EBX,ECX
+        MOV     ECX,EBX
+        MOV     EDI,EDX
+        XOR     EDX,EDX
+        REPE    CMPSB
+        MOV     AL,[ESI-1]
+        MOV     DL,[EDI-1]
+        SUB     EAX,EDX
+@@1:    POP     EBX
+        POP     ESI
+        POP     EDI
+end;
+
+function StrLComp_NoCase(const Str1, Str2: PAnsiChar; MaxLen: Cardinal): Integer;
+asm
+  CMP BYTE PTR [IsUpperInit], $00 //dufa
+  JNZ @@Start                     //dufa
+
+@@Upper:                          //dufa
+  PUSH Str1                       //dufa
+  PUSH Str2                       //dufa
+  PUSH MaxLen                     //dufa
+  CALL Init_Upper                 //dufa
+  POP  MaxLen                     //dufa
+  POP  Str2                       //dufa
+  POP  Str1                       //dufa
+
+@@Start:
+  PUSH    EDI
+  PUSH    ESI
+  PUSH    EBX
+  MOV     EDI, Str1//EDX          //dufa
+  XCHG    ESI, Str2//EAX          //dufa
+  XOR     EBX, EBX
+  JECXZ   @@fin
+
+@@1:
+  MOVZX   EAX, BYTE PTR [EDI]
+  INC     EDI
+  MOV     BL, BYTE PTR [EAX+Upper]
+  LODSB
+  SUB     BL, BYTE PTR [EAX+Upper]
+  JNZ     @@fin
+  TEST    EAX, EAX
+  JZ      @@fin
+  LOOP    @@1
+
+@@fin:
+  MOVSX   EAX, BL
+  POP     EBX
+  POP     ESI
+  POP     EDI
+end;
+
+function StrLen(const Str: PAnsiChar): Cardinal; assembler;
+asm
+        XCHG    EAX, EDI
+        XCHG    EDX, EAX
+        OR      ECX, -1
+        XOR     EAX, EAX
+        CMP     EAX, EDI
+        JE      @@exit0
+        REPNE   SCASB
+        DEC     EAX
+        DEC     EAX
+        SUB     EAX,ECX
+@@exit0:
+        MOV     EDI,EDX
+end;
+
 //======================================== THE END OF FILE KOL_ASM.inc

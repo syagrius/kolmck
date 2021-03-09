@@ -112,6 +112,7 @@ type
   // один раз в проекте). Он отвечает за генерацию кода и содержит доступные
   // из ObjectInspector-а настройки (общие для всего проекта), используемые
   // при генерации кода dpr-файла.
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLProject = class(TComponent)
   private
     fProjectName: string;
@@ -365,6 +366,7 @@ type
   // Mirror class, corresponding to unnecessary in KOL application taskbar button (variable Applet).
   // Зеркальный класс, соответствующий необязательному в KOL
   // приложению (окну, представляющему кнопку приложения на панели задач)
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLApplet = class(TComponent)
   private
     FLastWarnTimeAbtMainForm: Integer;
@@ -499,6 +501,7 @@ type
 
   TKOLFormBorderStyle = (fbsNone, fbsSingle, fbsDialog, fbsToolWindow); {YS}
 
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLForm = class(TKOLApplet)
   private
     fFormMain: Boolean;
@@ -1349,6 +1352,7 @@ type
     property ownerDraw: Boolean read FownerDraw write SetownerDraw;
   end;
 
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLMainMenu = class(TKOLMenu)
   private
   public
@@ -1371,6 +1375,7 @@ type
     tpmNoAnimation, {+ecm} tpmReturnCmd {/+ecm});
   TPopupMenuFlags = set of TPopupMenuFlag;
 
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLPopupMenu = class(TKOLMenu)
   protected
     FOnPopup: TOnEvent;
@@ -2246,6 +2251,7 @@ type
   //============================================================================
   // Special component, intended to use it instead TKOLForm and to implement a
   // unit, which contains MDI child form.
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLMDIChild = class(TKOLForm)
   private
     FParentForm: string;
@@ -2275,6 +2281,7 @@ type
   // unit, which does not contain a form, but non-visual KOL objects only.
   TDataModuleHowToDestroy = (ddAfterRun, ddOnAppletDestroy, ddManually);
 
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLDataModule = class(TKOLForm)
   private
     FOnCreate: TOnEvent;
@@ -2379,6 +2386,7 @@ type
   // unit, which can contain several visual and non-visual MCK components, which
   // can be adjusted at design time on a standalone designer form, and created
   // on KOL form at run time, like a panel with such controls.
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLFrame = class(TKOLForm)
   private
     FEdgeStyle: TEdgeStyle;
@@ -2512,6 +2520,7 @@ type
     property OnExecute: TOnEvent read FOnExecute write SetOnExecute;
   end;
 
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLActionList = class(TKOLObj)
   protected
     FActions: TList;

@@ -835,6 +835,7 @@ asm
 @@exit:
 end;
 
+{$IFNDEF PARAMS_DEFAULT}
 function ParamCount: Integer;
 asm
          CALL GetCommandLine
@@ -846,6 +847,51 @@ asm
          JNE  @@while
          XCHG EAX, EDX
 end;
+
+function ParamStr( Idx: Integer ): KOLString;
+asm
+         PUSH EDI
+         MOV  EDI, EDX
+         TEST EAX, EAX
+         JNE  @@1
+         SUB  ESP, 260
+         MOV  ECX, ESP
+         PUSH 260
+         PUSH ECX
+         PUSH 0
+         CALL GetModuleFileName
+         XCHG ECX, EAX
+         MOV  EDX, ESP
+         MOV  EAX, EDI
+         CALL System.@LStrFromPCharLen
+         ADD  ESP, 260
+         JMP  @@exit
+@@1:
+         PUSH EAX
+         CALL GetCommandLine
+         POP  ECX
+         INC  ECX
+@@loop:  CALL SkipSpaces
+         MOV  EDX, EAX
+         CALL SkipParam
+         LOOP @@loop
+         MOV  ECX, EAX
+         SUB  ECX, EDX
+         CMP  ECX, 2
+         JL   @@ready
+         CMP  byte ptr [EDX], '"'
+         JNE  @@ready
+         CMP  byte ptr [EAX-1], '"'
+         JNE  @@ready
+         INC  EDX
+         DEC  EAX
+@@ready: SUB  EAX, EDX
+         XCHG ECX, EAX
+         XCHG EAX, EDI
+         CALL System.@LStrFromPCharLen
+@@exit:  POP  EDI
+end;
+{$ENDIF PARAMS_DEFAULT}
 
 function __DelimiterLast( Str: PAnsiChar; Delimiters: PAnsiChar ): PAnsiChar;
 asm

@@ -43,6 +43,7 @@ type
   //============================================================================
   //---- MIRROR FOR A TIMER ----
   //---- гепйюкн дкъ рюилепю ----
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLTimer = class(TKOLObj)
   private
     FEnabled: Boolean;
@@ -80,6 +81,7 @@ type
 
   TThreadPriority = (tpNormal, tpBelowNormal, tpLowest, tpIdle, tpAboveNormal, tpHighest, tpCritical);
 
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLThread = class(TKOLObj)
   private
     FPriorityClass: TPriorityClass;
@@ -119,6 +121,7 @@ type
   //============================================================================
   //---- MIRROR FOR AN IMAGELIST ----
   //---- гепйюкн дкъ яохяйю пхясмйнб ----
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLImageList = class(TKOLObj)
   private
     FImgWidth: Integer;
@@ -183,6 +186,7 @@ type
   //----------------------------------------------------------------------------
   //---- MIRROR FOR OPENSAVE FILE DIALOG ----
   //---- гепйюкн дкъ дхюкнцю бшанпю тюикю ----
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLOpenSaveDialog = class(TKOLObj)
   private
     FOptions: TOpenSaveOptions;
@@ -232,6 +236,7 @@ type
   //----------------------------------------------------------------------------
   //---- MIRROR FOR OPENDIR DIALOG ----
   //---- гепйюкн дкъ дхюкнцю бшанпю дхпейрнпхъ ----
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLOpenDirDialog = class(TKOLObj)
   private
     FTitle: string;
@@ -268,6 +273,7 @@ type
   //----------------------------------------------------------------------------
   //---- MIRROR FOR COLOR CHOOSING DIALOG ----
   //---- гепйюкн дкъ дхюкнцю бшанпю жберю ----
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLColorDialog = class(TKOLObj)
   private
     FColorCustomOption: TColorCustomOption;
@@ -302,6 +308,7 @@ type
   //----------------------------------------------------------------------------
   //---- MIRROR FOR FONT CHOOSING DIALOG ----
   //---- гепйюкн дкъ дхюкнцю бшанпю жберю ----
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLFontDialog = class(TKOLObj)
   private
     FMinFontSize: Integer;
@@ -337,6 +344,7 @@ type
   //----------------------------------------------------------------------------
   //---- MIRROR FOR TRAY ICON ----
   //---- гепйюкн дкъ хйнмйх б рпее ----
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLTrayIcon = class(TKOLObj)
   private
     FIcon: TIcon;
