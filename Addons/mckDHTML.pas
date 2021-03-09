@@ -9,6 +9,7 @@ type
   TDHTMLEditShowContextMenu = procedure(Sender: TObject; xPos: Integer; yPos: Integer) of object;
   TDHTMLEditContextMenuAction = procedure(Sender: TObject; itemIndex: Integer) of object;
 
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TDHTMLEDIT = class(TKOLCustomControl)
   private
     fBrowseMode: boolean;

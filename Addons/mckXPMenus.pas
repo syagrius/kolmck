@@ -6,6 +6,7 @@ uses
   Windows, mirror, Messages, Graphics, Classes, Math, SysUtils;
 
 type
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLXPMainMenu = class(TKOLMainMenu)
   private
     { Private declarations }
@@ -45,6 +46,7 @@ type
     property  CheckColor: TColor read FCheckColor write SetCheckColor;
   end;
 
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLXPPopupMenu = class(TKOLPopupMenu)
   private
     { Private declarations }

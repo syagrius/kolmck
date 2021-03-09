@@ -9,6 +9,7 @@ uses
 {$I KOLDEF.INC}
 
 type
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLTrackBar = class(TKOLControl)
   private
     FOptions: TTrackbarOptions;
@@ -56,6 +57,7 @@ type
 
   { SPC CONTROLS }
 
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TSPCDirectoryEditBox = class(TKOLControl)
   private
     { Private declarations }
@@ -101,6 +103,7 @@ type
   end;
 
   TSortBy = (sbName, sbExtention);
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TSPCFileListBox = class(TKOLListBox)
   private
     { Private declarations }
@@ -163,6 +166,7 @@ type
     //    property Items: Boolean read FNotAvailable;
   end;
 
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TSPCDirectoryListBox = class(TKOLListView)
   private
     { Private declarations }
@@ -230,6 +234,7 @@ type
     property OnColumnClick: Boolean read FNotAvailable;
   end;
 
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TSPCDriveComboBox = class(TKOLComboBox)
   private
     { Private declarations }
@@ -280,6 +285,7 @@ type
     property Items: Boolean read FNotAvailable;
   end;
 
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TSPCFilterComboBox = class(TKOLComboBox)
   private
     { Private declarations }
@@ -331,6 +337,7 @@ type
     property OnChar: Boolean read FNotAvailable;
   end;
 
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TSPCStatusBar = class(TKOLControl)
   private
     { Private declarations }

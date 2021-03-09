@@ -39,6 +39,7 @@ type
   TWebBrowserOnFullScreen = procedure(Sender: TObject; FullScreen: WordBool) of object;
   TWebBrowserOnTheaterMode = procedure(Sender: TObject; TheaterMode: WordBool) of object;
 
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLWebBrowser = class(TKOLCustomControl)
   private
     FOnStatusTextChange: TWebBrowserStatusTextChange;

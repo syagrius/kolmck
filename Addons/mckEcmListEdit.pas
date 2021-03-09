@@ -8,6 +8,7 @@ uses
   mckCtrls, Graphics, KOLEcmListEdit, DesignIntf, DesignEditors, DesignConst, mckLVColumnsEditor;
 
 type
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLEcmListEdit = class(TKOLListView)
   protected
     fDrawForbidden: TOnDrawItem;

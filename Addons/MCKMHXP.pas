@@ -52,6 +52,7 @@ uses
 
 type
 
+  {$IFDEF _DXE2orHigher}[ComponentPlatformsAttribute(pidWin32 or pidWin64)]{$ENDIF}
   TKOLMHXP = class(TKOLObj)
   private
     FAppName: string;
